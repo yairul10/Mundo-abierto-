@@ -1,0 +1,18 @@
+const canvas=document.querySelector('#world'),ctx=canvas.getContext('2d');
+const DEFAULT={name:'Aventurero',level:1,x:0,y:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,speed:220};
+let player={...DEFAULT,...JSON.parse(localStorage.getItem('mundoAbierto.player')||'{}')};
+const keys={}, joy={x:0,y:0}; let last=performance.now();
+function resize(){canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)} addEventListener('resize',resize);resize();
+addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+const j=document.querySelector('#joystick'),s=document.querySelector('#stick');
+function moveStick(e){const r=j.getBoundingClientRect(),t=e.touches?e.touches[0]:e;let x=t.clientX-(r.left+r.width/2),y=t.clientY-(r.top+r.height/2),m=Math.hypot(x,y),lim=45;if(m>lim){x=x/m*lim;y=y/m*lim}joy.x=x/lim;joy.y=y/lim;s.style.transform='translate('+x+'px,'+y+'px)'}
+j.addEventListener('pointerdown',e=>{j.setPointerCapture(e.pointerId);moveStick(e)});j.addEventListener('pointermove',e=>{if(j.hasPointerCapture(e.pointerId))moveStick(e)});j.addEventListener('pointerup',()=>{joy.x=joy.y=0;s.style.transform=''});
+function save(){localStorage.setItem('mundoAbierto.player',JSON.stringify(player))}
+setInterval(save,5000);addEventListener('beforeunload',save);
+function hud(){playerName.textContent=player.name;level.textContent='Nivel '+player.level;hpText.textContent=player.hp+'/'+player.maxHp;energyText.textContent=player.energy+'/'+player.maxEnergy;hpBar.style.width=player.hp/player.maxHp*100+'%';energyBar.style.width=player.energy/player.maxEnergy*100+'%';attack.textContent=player.attack;defense.textContent=player.defense;gold.textContent=player.gold}
+function draw(){const w=innerWidth,h=innerHeight;ctx.clearRect(0,0,w,h);ctx.fillStyle='#1d5438';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#ffffff0d';ctx.lineWidth=1;const grid=80,ox=((w/2-player.x)%grid+grid)%grid,oy=((h/2-player.y)%grid+grid)%grid;for(let x=ox;x<w;x+=grid){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let y=oy;y<h;y+=grid){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.fillStyle='#d6a635';ctx.beginPath();ctx.arc(w/2,h/2,22,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText(player.name,w/2,h/2-30)}
+function loop(now){let dt=Math.min((now-last)/1000,.05);last=now;let x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joy.x,y=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joy.y,m=Math.hypot(x,y);if(m>1){x/=m;y/=m}player.x+=x*player.speed*dt;player.y+=y*player.speed*dt;draw();hud();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+const panel=document.querySelector('#characterPanel'),nameInput=document.querySelector('#nameInput');
+characterBtn.onclick=()=>{nameInput.value=player.name;statList.innerHTML='Nivel: '+player.level+'<br>Vida: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Ataque: '+player.attack+'<br>Defensa: '+player.defense;panel.classList.remove('hidden')};closePanel.onclick=()=>panel.classList.add('hidden');
+saveBtn.onclick=()=>{player.name=(nameInput.value.trim()||'Aventurero').slice(0,16);save();hud();panel.classList.add('hidden')};
+resetBtn.onclick=()=>{if(confirm('¿Reiniciar el personaje?')){player={...DEFAULT};save();panel.classList.add('hidden')}};hud();
