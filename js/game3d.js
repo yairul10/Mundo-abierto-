@@ -39,11 +39,11 @@ function auroraMaterial(mesh){
  if(!mesh.geometry.getAttribute('normal'))mesh.geometry.computeVertexNormals();
  const colors=new Float32Array(pos.count*3),c=new THREE.Color();
  for(let i=0;i<pos.count;i++){
-  const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),ax=Math.abs(x);
+  const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),az=Math.abs(z);
   c.setRGB(.78,.80,.82); // casco gris claro
-  if(y<-.045||(ax>.34&&z>.18))c.setRGB(.055,.075,.105); // mecánica y góndolas
-  if(y>.045&&ax<.24&&z<.28)c.setRGB(.018,.055,.09); // cabina negro azulada
-  if((ax>.33&&ax<.72&&z<.2)||(ax<.18&&z<-.28))c.setRGB(.72,.035,.045); // paneles rojos
+  if(y<-.045||(x>.18&&az>.34))c.setRGB(.055,.075,.105); // mecánica y góndolas
+  if(y>.045&&az<.24&&x<.32)c.setRGB(.018,.055,.09); // cabina negro azulada
+  if((az>.3&&az<.72&&Math.abs(x+.12)<.075)||(az<.1&&x<-.28))c.setRGB(.72,.035,.045); // franjas rojas
   colors[i*3]=c.r;colors[i*3+1]=c.g;colors[i*3+2]=c.b;
  }
  mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
@@ -53,7 +53,7 @@ function auroraMaterial(mesh){
 new GLTFLoader().load('./assets/models/aurora_s1.glb?v=1',gltf=>{
  const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
  const box=new THREE.Box3().setFromObject(model),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
- model.position.sub(center);const scale=124/Math.max(size.x,size.z);model.scale.setScalar(scale);model.rotation.y=Math.PI;
+ model.position.sub(center);const scale=124/Math.max(size.x,size.z);model.scale.setScalar(scale);model.rotation.y=-Math.PI/2;
  playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData.auroraModel=model;
 },undefined,err=>console.warn('Aurora-S1 GLB no disponible; se usa la nave procedural.',err));
 const engineLights=[],engineTrails=[];for(const x of[-38,38]){const l=new THREE.PointLight(0x29aaff,30,230,2);l.position.set(x,-1,54);playerMesh.add(l);engineLights.push(l);const core=new THREE.Mesh(new THREE.CircleGeometry(7.7,20),new THREE.MeshBasicMaterial({color:0xcaf7ff,side:THREE.DoubleSide}));core.position.set(x,-1,54.7);playerMesh.add(core);const trail=new THREE.Mesh(new THREE.ConeGeometry(5.2,76,12,1,true),new THREE.MeshBasicMaterial({color:0x35bfff,transparent:true,opacity:.48,depthWrite:false,blending:THREE.AdditiveBlending}));trail.rotation.x=Math.PI/2;trail.position.set(x,-1,91);playerMesh.add(trail);engineTrails.push(trail)}
