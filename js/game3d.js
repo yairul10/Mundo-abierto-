@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+const THREE=window.THREE;if(!THREE)throw new Error('Three.js no disponible');
 const $=id=>document.getElementById(id), canvas=$('world');
 const CLASSES={acorazada:{name:'Acorazada',hp:150,energy:70,attack:14,defense:12,speed:205},energia:{name:'Energía',hp:85,energy:160,attack:18,defense:4,speed:215},interceptora:{name:'Interceptora',hp:105,energy:110,attack:16,defense:7,speed:235},soporte:{name:'Soporte',hp:115,energy:145,attack:9,defense:8,speed:215}};
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
