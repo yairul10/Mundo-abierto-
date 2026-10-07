@@ -29,10 +29,10 @@ addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){
 const joyEl=$('joystick'),stick=$('stick');
 function throttleMove(e){const r=joyEl.getBoundingClientRect(),dy=e.clientY-(r.top+r.height/2),v=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.throttle=v;stick.style.transform='translateY('+(-v*38)+'px)'}
 joyEl.onpointerdown=e=>{joyEl.setPointerCapture(e.pointerId);throttleMove(e)};joyEl.onpointermove=e=>joyEl.hasPointerCapture(e.pointerId)&&throttleMove(e);joyEl.onpointerup=joyEl.onpointercancel=()=>{joy.throttle=0;stick.style.transform=''};
-const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0;
+const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0;
 lookZone.onpointerdown=e=>{lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
-lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15)};
-lookZone.onpointerup=lookZone.onpointercancel=e=>{if(e.pointerId===lookId)lookId=null};
+lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
+lookZone.onpointerup=lookZone.onpointercancel=e=>{if(e.pointerId===lookId){lookId=null;bankInput=0}};
 $('fireBtn').onpointerdown=()=>fire();$('skillBtn').onpointerdown=skill;
 function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;localStorage.setItem('mundoAbierto.player',JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
@@ -43,11 +43,11 @@ const panel=$('characterPanel');$('characterBtn').onclick=()=>{const box=panel.q
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const keyThrottle=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
-if(keys.a||keys.arrowleft)yaw+=1.6*dt;if(keys.d||keys.arrowright)yaw-=1.6*dt;if(keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
+if(keys.a||keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(keys.d||keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
 playerMesh.position.addScaledVector(forward,player.speed*throttle*dt);
 playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
-playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,0,.1);
+playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=bankInput*Math.min(1,.35+Math.abs(throttle)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
 for(const l of engineLights)l.intensity=18+Math.abs(throttle)*40;
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
