@@ -5,7 +5,7 @@ try{
   const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
-  await import('./js/game3d.js?v=3d-20261006-7');
+  await import('./js/game3d.js?v=3d-20261006-8');
   status.remove();
 }catch(err){
   status.textContent='ERROR 3D: '+(err?.message||err);
