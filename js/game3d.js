@@ -1,3 +1,4 @@
+import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
 const THREE=window.THREE;if(!THREE)throw new Error('Three.js no disponible');
 const $=id=>document.getElementById(id), canvas=$('world');
 const CLASSES={acorazada:{name:'Acorazada',hp:150,energy:70,attack:14,defense:12,speed:205},energia:{name:'Energía',hp:85,energy:160,attack:18,defense:4,speed:215},interceptora:{name:'Interceptora',hp:105,energy:110,attack:16,defense:7,speed:235},soporte:{name:'Soporte',hp:115,energy:145,attack:9,defense:8,speed:215}};
@@ -30,8 +31,32 @@ if(kind==='scout'){g.scale.set(.7,.7,.82)}
 if(kind==='raider'){const blade=new THREE.Mesh(new THREE.BoxGeometry(105,4,14),dark);blade.position.z=8;g.add(blade);g.scale.set(.82,.82,.92)}
 if(kind==='sentinel'){const armor=new THREE.Mesh(new THREE.BoxGeometry(62,18,42),dark);armor.position.z=12;g.add(armor);g.scale.set(1.05,1.05,1.12)}
 if(kind==='player'){for(const side of[-1,1]){const nav=new THREE.Mesh(new THREE.SphereGeometry(2.6,8,6),new THREE.MeshBasicMaterial({color:side<0?0xff3b3b:0x49ff83}));nav.position.set(side*62,1,19);g.add(nav);const navLight=new THREE.PointLight(side<0?0xff3333:0x44ff88,5,45,2);navLight.position.copy(nav.position);g.add(navLight)}}return g}
-const playerMesh=ship();playerMesh.scale.setScalar(.78);scene.add(playerMesh);
-const engineLights=[],engineTrails=[];for(const x of[-38,38]){const l=new THREE.PointLight(0x29aaff,30,230,2);l.position.set(x,-1,54);playerMesh.add(l);engineLights.push(l);const core=new THREE.Mesh(new THREE.CircleGeometry(7.7,20),new THREE.MeshBasicMaterial({color:0xcaf7ff,side:THREE.DoubleSide}));core.rotation.x=Math.PI/2;core.position.set(x,-1,54.7);playerMesh.add(core);const trail=new THREE.Mesh(new THREE.ConeGeometry(5.2,76,12,1,true),new THREE.MeshBasicMaterial({color:0x35bfff,transparent:true,opacity:.48,depthWrite:false,blending:THREE.AdditiveBlending}));trail.rotation.x=Math.PI/2;trail.position.set(x,-1,91);playerMesh.add(trail);engineTrails.push(trail)}
+// El grupo raíz conserva toda la física y el guardado. El modelo visual puede
+// cambiar sin alterar posición, rotación, disparos ni controles.
+const playerMesh=new THREE.Group(),proceduralShip=ship();proceduralShip.scale.setScalar(.78);playerMesh.add(proceduralShip);scene.add(playerMesh);
+function auroraMaterial(mesh){
+ const pos=mesh.geometry.getAttribute('position');if(!pos)return;
+ if(!mesh.geometry.getAttribute('normal'))mesh.geometry.computeVertexNormals();
+ const colors=new Float32Array(pos.count*3),c=new THREE.Color();
+ for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),ax=Math.abs(x);
+  c.setRGB(.78,.80,.82); // casco gris claro
+  if(y<-.045||(ax>.34&&z>.18))c.setRGB(.055,.075,.105); // mecánica y góndolas
+  if(y>.045&&ax<.24&&z<.28)c.setRGB(.018,.055,.09); // cabina negro azulada
+  if((ax>.33&&ax<.72&&z<.2)||(ax<.18&&z<-.28))c.setRGB(.72,.035,.045); // paneles rojos
+  colors[i*3]=c.r;colors[i*3+1]=c.g;colors[i*3+2]=c.b;
+ }
+ mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+ mesh.material=new THREE.MeshStandardMaterial({vertexColors:true,metalness:.72,roughness:.3});
+ mesh.castShadow=false;mesh.receiveShadow=false;
+}
+new GLTFLoader().load('./assets/models/aurora_s1.glb?v=1',gltf=>{
+ const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
+ const box=new THREE.Box3().setFromObject(model),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+ model.position.sub(center);const scale=124/Math.max(size.x,size.z);model.scale.setScalar(scale);model.rotation.y=Math.PI;
+ playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData.auroraModel=model;
+},undefined,err=>console.warn('Aurora-S1 GLB no disponible; se usa la nave procedural.',err));
+const engineLights=[],engineTrails=[];for(const x of[-38,38]){const l=new THREE.PointLight(0x29aaff,30,230,2);l.position.set(x,-1,54);playerMesh.add(l);engineLights.push(l);const core=new THREE.Mesh(new THREE.CircleGeometry(7.7,20),new THREE.MeshBasicMaterial({color:0xcaf7ff,side:THREE.DoubleSide}));core.position.set(x,-1,54.7);playerMesh.add(core);const trail=new THREE.Mesh(new THREE.ConeGeometry(5.2,76,12,1,true),new THREE.MeshBasicMaterial({color:0x35bfff,transparent:true,opacity:.48,depthWrite:false,blending:THREE.AdditiveBlending}));trail.rotation.x=Math.PI/2;trail.position.set(x,-1,91);playerMesh.add(trail);engineTrails.push(trail)}
 const planet=new THREE.Mesh(new THREE.SphereGeometry(650,32,20),new THREE.MeshStandardMaterial({color:0x183b67,roughness:.85,emissive:0x06162b,emissiveIntensity:.6}));planet.position.set(2600,900,-3000);scene.add(planet);const moon=new THREE.Mesh(new THREE.SphereGeometry(180,20,12),mat(0x5d6270));moon.position.set(1700,500,-2400);scene.add(moon);
 function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}scene.add(station());
 const asteroidMat=mat(0x4c505a);for(let i=0;i<85;i++){const a=new THREE.Mesh(new THREE.IcosahedronGeometry(10+Math.random()*30,1),asteroidMat);a.scale.set(1+Math.random(),.7+Math.random(),.8+Math.random());a.position.set(500+Math.random()*3300,(Math.random()-.5)*1100,-2100+Math.random()*3600);a.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);scene.add(a)}
