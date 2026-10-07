@@ -47,7 +47,7 @@ if(keys.a||keys.arrowleft)yaw+=1.6*dt;if(keys.d||keys.arrowright)yaw-=1.6*dt;if(
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
 playerMesh.position.addScaledVector(forward,player.speed*throttle*dt);
 playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
-playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=-pitch;playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,0,.1);
+playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,0,.1);
 for(const l of engineLights)l.intensity=18+Math.abs(throttle)*40;
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
