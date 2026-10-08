@@ -331,6 +331,7 @@ for(let i=0;i<MAX_DRONES;i++){
  const eye=new THREE.Mesh(new THREE.SphereGeometry(4,8,6),new THREE.MeshBasicMaterial({color:0x3be7ff}));eye.position.z=-14;drone.add(eye);
  for(const wing of[-1,1]){const fin=new THREE.Mesh(new THREE.BoxGeometry(13,2,17),new THREE.MeshStandardMaterial({color:0x243c59,metalness:.6,roughness:.3}));fin.position.x=wing*16;drone.add(fin)}
  const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(3,4,18,8),new THREE.MeshStandardMaterial({color:0x365c86,metalness:.75,roughness:.3,emissive:0x063f72}));muzzle.rotation.x=Math.PI/2;muzzle.position.z=-18;drone.add(muzzle);
+ drone.scale.setScalar(0.6); // 40% menos tamaño visual, sin alterar disparos ni formación.
  scene.add(drone);supportDrones.push({mesh:drone,side,rank:Math.floor(i/2)});
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
