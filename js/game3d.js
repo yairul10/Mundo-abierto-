@@ -91,13 +91,13 @@ const LOOT_TYPES=[
  {id:'reliquia',name:'Componente ancestral',color:0xffca58,rarity:'Épico'}
 ];
 player.loot=player.loot&&typeof player.loot==='object'?player.loot:{};
-const drops=[];const dropGeo=new THREE.OctahedronGeometry(9,0);
+const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
 function spawnLoot(e){
  const roll=Math.random(),item=LOOT_TYPES[roll<.53?0:roll<.81?1:roll<.96?2:3];
- const mesh=new THREE.Mesh(dropGeo,new THREE.MeshBasicMaterial({color:item.color}));
+ const mesh=new THREE.Mesh(dropGeo,new THREE.MeshBasicMaterial({color:item.color,depthTest:false}));mesh.renderOrder=5;
  mesh.position.copy(e.mesh.position);mesh.position.y+=14;scene.add(mesh);
- const halo=new THREE.PointLight(item.color,4,85,2);mesh.add(halo);
- drops.push({mesh,item,age:0,baseY:mesh.position.y});
+ const halo=new THREE.PointLight(item.color,7,150,2);mesh.add(halo);
+ const marker=new THREE.Sprite(new THREE.SpriteMaterial({color:item.color,transparent:true,opacity:.55,depthTest:false}));marker.scale.set(52,52,1);mesh.add(marker);drops.push({mesh,item,age:0,baseY:mesh.position.y});
 }
 function lootToast(message){
  const el=$('lootToast');if(!el)return;
@@ -107,7 +107,7 @@ function lootToast(message){
 function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
   const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*1.5;d.mesh.rotation.z+=dt*.65;
-  d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*5;
+  d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
   if(d.mesh.position.distanceTo(playerMesh.position)<90){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
