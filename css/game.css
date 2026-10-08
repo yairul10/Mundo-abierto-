@@ -8,3 +8,8 @@
 
 /* Inventario de materiales y estado dinámico del sector */
 .inventory-note{font-size:12px;line-height:1.5;color:#aebed3}.inventory-item{display:flex;align-items:center;gap:10px;padding:11px 7px;border-bottom:1px solid #ffffff20}.inventory-item>div{flex:1;min-width:0}.inventory-item strong,.inventory-item small{display:block}.inventory-item strong{font-size:13px}.inventory-item small{font-size:11px;color:#aebed3;line-height:1.45;margin-top:3px}.inventory-item>b{font-size:16px;color:#ffe3a1}.inventory-gem{width:15px;height:15px;flex:none;transform:rotate(45deg);border:1px solid #ffffffaa;box-shadow:0 0 12px #ffffff55}#targetInfo.outside-zone{border-color:#88a9c477}#targetInfo.outside-zone small{color:#d5e5f5}
+
+/* Inventario opaco, por encima de todos los controles; el vuelo se pausa al abrirlo. */
+#characterPanel{z-index:40;background:#0a1525;box-shadow:0 0 0 100vmax #010611d9,0 20px 60px #000b;isolation:isolate;overflow-y:auto;overscroll-behavior:contain}body.inventory-open #hud,body.inventory-open #targetInfo,body.inventory-open #combatControls,body.inventory-open #joystick,body.inventory-open #characterBtn,body.inventory-open #lootToast,body.inventory-open #levelToast{visibility:hidden}body.inventory-open #lookZone{pointer-events:none}
+.loot-toast{position:absolute;z-index:20;top:34%;left:50%;transform:translateX(-50%);width:max-content;max-width:min(76vw,340px);padding:9px 14px;border-radius:12px;border:1px solid #ba91ff;background:#0c1833f2;color:#f6f2ff;text-align:center;font-size:12px;font-weight:750;line-height:1.35;box-shadow:0 0 14px #9862ef55;pointer-events:none}
+@media(max-width:600px){#characterPanel{inset:5% 5%;max-height:88%;padding:18px}.loot-toast{top:34%;font-size:12px;padding:8px 11px}}
