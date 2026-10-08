@@ -78,3 +78,10 @@ body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,b
 #questToggle{position:absolute;right:5px;top:4px;background:#213952;color:white;border:1px solid #ffffff44;border-radius:8px;width:27px;height:27px;font-size:17px}
 #questTracker.collapsed{width:auto;min-width:185px;padding:9px 34px 9px 10px}
 #questTracker.collapsed #questObjective,#questTracker.collapsed .quest-progress,#questTracker.collapsed #questReward{display:none}
+
+/* Misiones como botón compacto junto al HUD, sin tapar el radar. */
+#questToggle{position:absolute;top:16px;left:min(calc(14px + 405px),calc(100vw - 104px));z-index:15;width:43px;height:43px;border:1px solid #d5a22d99;border-radius:12px;background:#12263be8;color:#fff;font-size:22px;box-shadow:0 2px 12px #0007}
+#questTracker{position:absolute;top:68px;left:14px;right:auto;width:min(330px,calc(100vw - 28px));max-width:calc(100vw - 28px);z-index:14;padding:12px}
+#questTracker.hidden{display:none}
+#questTracker strong{padding-right:0}
+@media(max-width:540px){#questToggle{left:auto;right:76px;top:16px}#questTracker{top:72px;left:14px;width:min(330px,calc(100vw - 28px))}}
