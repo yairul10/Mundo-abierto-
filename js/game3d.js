@@ -318,16 +318,20 @@ modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=1',gltf=>{
 },undefined,err=>console.warn('Modelo scout GLB no disponible; se conserva la nave básica original.',err));
 // Dos drones de apoyo: acompañan al jugador y disparan proyectiles reales.
 const supportDrones=[];
-player.droneCount=Math.max(0,Math.min(2,Math.floor(Number(player.droneCount)||0)));
+const MAX_DRONES=8;
+// Los primeros dos mantienen su precio original; los siguientes son progresión futura.
+const DRONE_PRICES=[100,200,5000,20000,80000,300000,1000000,4000000];
+player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
 function ownedDrones(){return player.droneCount}
-for(const side of[-1,1]){
+for(let i=0;i<MAX_DRONES;i++){
+ const side=i%2===0?-1:1;
  const drone=new THREE.Group();
  const shell=new THREE.Mesh(new THREE.OctahedronGeometry(11,0),new THREE.MeshStandardMaterial({color:0x748da7,metalness:.65,roughness:.3,emissive:0x102d4c}));
  shell.scale.set(1.4,.55,1.7);drone.add(shell);
  const eye=new THREE.Mesh(new THREE.SphereGeometry(4,8,6),new THREE.MeshBasicMaterial({color:0x3be7ff}));eye.position.z=-14;drone.add(eye);
  for(const wing of[-1,1]){const fin=new THREE.Mesh(new THREE.BoxGeometry(13,2,17),new THREE.MeshStandardMaterial({color:0x243c59,metalness:.6,roughness:.3}));fin.position.x=wing*16;drone.add(fin)}
  const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(3,4,18,8),new THREE.MeshStandardMaterial({color:0x365c86,metalness:.75,roughness:.3,emissive:0x063f72}));muzzle.rotation.x=Math.PI/2;muzzle.position.z=-18;drone.add(muzzle);
- scene.add(drone);supportDrones.push({mesh:drone,side,cooldown:side===-1?.3:.8});
+ scene.add(drone);supportDrones.push({mesh:drone,side,rank:Math.floor(i/2)});
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
@@ -349,24 +353,35 @@ modelLoader.load('./assets/models/sci_fi_fighter_spacecraft.glb?v=1',gltf=>{
  }
 },undefined,()=>console.info('Modelo de dron pendiente: se usa el diseño provisional.'));
 function updateSupportDrones(dt,now){
- const active=!docked&&!landing&&!panel.classList.contains('hidden');
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
- const target=lockedEnemy&&!lockedEnemy.dead?lockedEnemy:nearest();
+ const up=new THREE.Vector3().crossVectors(right,forward).normalize();
  for(let i=0;i<supportDrones.length;i++){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
-  const desired=playerMesh.position.clone().addScaledVector(right,d.side*102).addScaledVector(forward,-27);
-  desired.y+=14+Math.sin(now*.002+d.side)*4;
+  // Formación de cuatro parejas escalonadas, sin superposición.
+  const desired=playerMesh.position.clone().addScaledVector(right,d.side*(98+d.rank*45)).addScaledVector(forward,-27-d.rank*44);
+  desired.addScaledVector(up,14+Math.sin(now*.002+i)*4);
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
-  d.cooldown-=dt;
-  if(!active||!target||target.dead||d.cooldown>0||target.mesh.position.distanceTo(d.mesh.position)>720)continue;
-  if(inSafeZone(d.mesh.position))continue;
-  const start=d.mesh.position.clone().addScaledVector(forward,26);
-  const direction=target.mesh.position.clone().sub(start).normalize();
-  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,42,8),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95}));
-  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
-  shots.push({mesh:bolt,vel:direction.multiplyScalar(950),life:1,damage:Math.max(1,player.attack*.17)});
-  d.cooldown=1.1;
+ }
+}
+// Disparo manual sincronizado: cada dron copia la mira y la dispersión de la nave.
+function fireSupportDrones(aimPoint,locked,noseDir){
+ const count=ownedDrones();if(!count)return;
+ for(let i=0;i<count;i++){
+  const d=supportDrones[i];if(!d.mesh.visible)continue;
+  const start=d.mesh.position.clone().addScaledVector(noseDir,26);
+  const destination=aimPoint.clone();
+  if(locked){
+   const spread=13;
+   destination.x+=(Math.random()-.5)*spread*2;
+   destination.y+=(Math.random()-.5)*spread*2;
+   destination.z+=(Math.random()-.5)*spread*2;
+  }
+  const direction=destination.sub(start).normalize();
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
+  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
+  bolt.position.copy(start);scene.add(bolt);
+  shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:1.65,damage:player.attack*.2});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
@@ -439,6 +454,7 @@ function fire(mult=1,count=1){
   mesh.position.copy(start);scene.add(mesh);
   shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5});
  }
+ fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  fireCd=.17;
 }
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
@@ -462,11 +478,11 @@ function upgradeLevel(id){return Math.max(0,Math.min(10,Math.floor(Number(player
 function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u)=>n+upgradeLevel(u.id)*u.amount,0)}
 function renderDrones(){
  const el=$('droneShop');if(!el)return;
- const count=ownedDrones(),price=count===0?100:200;
- el.innerHTML='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/2</strong><small>Cada dron dispara su propio láser automático contra enemigos cercanos.</small><small>'+(count>=2?'Dos drones equipados':'Siguiente dron: '+price+' créditos')+'</small></div><button id="buyDroneBtn" '+(count>=2||player.gold<price?'disabled':'')+'>'+(count>=2?'Máximo':'Comprar')+'</button></div>';
- const button=$('buyDroneBtn');button.onclick=()=>{
-  const owned=ownedDrones(),cost=owned===0?100:200;
-  if(owned>=2||player.gold<cost)return;
+ const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
+ el.innerHTML='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Disparan un láser cada uno SOLO cuando tú disparas, hacia tu misma mira y con igual dispersión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
+ $('buyDroneBtn').onclick=()=>{
+  const owned=ownedDrones(),cost=DRONE_PRICES[owned];
+  if(owned>=MAX_DRONES||player.gold<cost)return;
   player.gold-=cost;player.droneCount=owned+1;save();hud();renderDrones();
   lootToast('🤖 Dron '+player.droneCount+' adquirido y equipado');
  };
