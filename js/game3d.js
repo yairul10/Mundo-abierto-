@@ -391,7 +391,7 @@ function updateEnemyShots(dt){
  }
 }
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
-let fireCd=0,skillCd=0;
+let fireCd=0,skillCd=0,fireHeld=false,firePointerId=null;
 // Apuntado asistido: sólo objetivos vivos dentro del cono central de la pantalla.
 let lockedEnemy=null;
 const lockFrame=$('targetLock');
@@ -439,7 +439,7 @@ function fire(mult=1,count=1){
   mesh.position.copy(start);scene.add(mesh);
   shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5});
  }
- fireCd=.28;
+ fireCd=.17;
 }
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
@@ -697,7 +697,18 @@ const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0
 lookZone.onpointerdown=e=>{if(!panel.classList.contains('hidden'))return;lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
 lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
 lookZone.onpointerup=lookZone.onpointercancel=e=>{if(e.pointerId===lookId){lookId=null;bankInput=0}};
-$('fireBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)fire()};$('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
+const fireButton=$('fireBtn');
+fireButton.style.touchAction='none';
+fireButton.onpointerdown=e=>{
+ if(!panel.classList.contains('hidden')||docked||landing)return;
+ e.preventDefault();firePointerId=e.pointerId;fireHeld=true;
+ fireButton.setPointerCapture(e.pointerId);
+ fire();
+};
+function releaseFire(e){if(e.pointerId===firePointerId){fireHeld=false;firePointerId=null}}
+fireButton.onpointerup=releaseFire;
+fireButton.onpointercancel=releaseFire;
+fireButton.onlostpointercapture=()=>{fireHeld=false;firePointerId=null};$('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
 function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;localStorage.setItem('mundoAbierto.player',JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
@@ -722,7 +733,7 @@ camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));came
 function hud(){$('playerName').textContent=player.name;$('classLabel').textContent=player.classId?CLASSES[player.classId].name:'Sin tipo';$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
 const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;renderInventory();renderUpgrades();renderDrones();box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp+upgradeBonus('maxHp');player.hp=player.maxHp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack+upgradeBonus('attack');player.defense=c.defense+upgradeBonus('defense');player.speed=c.speed+upgradeBonus('speed');hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
-let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
+let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
