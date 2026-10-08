@@ -98,7 +98,24 @@ for(const x of [-19,19]){
  trail.rotation.x=Math.PI/2;trail.position.set(x,y,z+23);playerMesh.add(trail);engineTrails.push(trail);
 }
 const planet=new THREE.Mesh(new THREE.SphereGeometry(650,32,20),new THREE.MeshStandardMaterial({color:0x183b67,roughness:.85,emissive:0x06162b,emissiveIntensity:.6}));planet.position.set(2600,900,-3000);scene.add(planet);const moon=new THREE.Mesh(new THREE.SphereGeometry(180,20,12),mat(0x5d6270));moon.position.set(1700,500,-2400);scene.add(moon);
-function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}scene.add(station());
+function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
+// La plataforma de aterrizaje y sus luces permanecen en las mismas coordenadas
+// para no alterar el piloto automático ni el acceso al hangar.
+modelLoader.load('./assets/models/estacion_aurora.glb?v=1',gltf=>{
+ const model=gltf.scene;
+ const bounds=new THREE.Box3().setFromObject(model);
+ const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
+ const longest=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(longest)||longest<.001)return;
+ // Conservar pista, barandillas y luz de baliza del modelo procedural.
+ const children=[...auroraStation.children];
+ for(let i=0;i<children.length;i++)if(i!==18&&i!==19&&i!==20&&i!==34)auroraStation.remove(children[i]);
+ const scale=690/longest;
+ model.scale.setScalar(scale);
+ model.position.copy(center).multiplyScalar(-scale);
+ auroraStation.add(model);
+},undefined,()=>console.info('Estación Aurora GLB pendiente: se conserva la estación original.'));
 const asteroidMat=mat(0x4c505a);for(let i=0;i<85;i++){const a=new THREE.Mesh(new THREE.IcosahedronGeometry(10+Math.random()*30,1),asteroidMat);a.scale.set(1+Math.random(),.7+Math.random(),.8+Math.random());a.position.set(500+Math.random()*3300,(Math.random()-.5)*1100,-2100+Math.random()*3600);a.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);scene.add(a)}
 const TYPES={scout:{hp:35,damage:5,speed:120,xp:18,color:0xe65757},raider:{hp:55,damage:8,speed:150,xp:28,color:0xe78b45},sentinel:{hp:90,damage:12,speed:90,xp:45,color:0xb86bd9}};
 const enemyDefs=[['scout',1150,-180],['scout',1400,260],['scout',1650,-420],['raider',1900,420],['raider',2300,-280],['sentinel',2850,350],['sentinel',3300,-450]];
