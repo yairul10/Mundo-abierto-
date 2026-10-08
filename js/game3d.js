@@ -267,7 +267,7 @@ function randomSectorPosition(minRadius=MAP_SAFE_RADIUS,maxRadius=MAP_RADIUS-100
  return new THREE.Vector3(MAP_CENTER_X+Math.cos(angle)*r,(Math.random()-.5)*760,MAP_CENTER_Z+Math.sin(angle)*r);
 }
 const asteroidField=new THREE.Group();scene.add(asteroidField);
-for(let i=0;i<165;i++){
+for(let i=0;i<100;i++){
  const rock=new THREE.Mesh(asteroidShapes[i%asteroidShapes.length],asteroidMaterials[i%asteroidMaterials.length]);
  const radius=9+Math.random()*27;
  rock.scale.set(radius*(.8+Math.random()*.7),radius*(.65+Math.random()*.55),radius*(.8+Math.random()*.65));
@@ -281,7 +281,7 @@ const TYPES={
  raider:{hp:70,damage:10,speed:150,xp:36,gold:10,loot:2,color:0xe78b45},
  sentinel:{hp:140,damage:20,speed:90,xp:72,gold:20,loot:4,color:0xb86bd9}
 };
-const enemyKinds=['scout','scout','scout','scout','scout','raider','raider','raider','raider','sentinel','sentinel','sentinel'];
+const enemyKinds=[...Array(8).fill('scout'),...Array(7).fill('raider'),...Array(5).fill('sentinel')];
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
  const min=type==='scout'?850:type==='raider'?1200:1700;
