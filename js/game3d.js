@@ -271,11 +271,14 @@ function drawRadar(dt){
 }
 // Paso 14: atraque asistido y hangar sin cambiar de escena ni perder progreso.
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
-let docked=false;
-const DOCK_RADIUS=530;
+let docked=false,landing=false,landingTime=0,landingStart=null,landingYaw=0,landingPitch=0,landingArmed=true;
+const LANDING_TRIGGER=new THREE.Vector3(540,0,-650);
+const LANDING_RADIUS=330;
+const LANDING_APPROACH=new THREE.Vector3(535,175,-650);
+const LANDING_TOUCHDOWN=new THREE.Vector3(535,24,-650);
+const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t)};
 function hangarRefresh(){
- const missing=Math.max(0,Math.ceil(player.maxHp-player.hp));
- const cost=Math.ceil(missing*.3);
+ const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=Math.ceil(missing*.3);
  hangarStats.textContent='Casco: '+Math.ceil(player.hp)+' / '+player.maxHp+' · Energía: '+Math.ceil(player.energy)+' / '+player.maxEnergy+' · Créditos: '+player.gold;
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
@@ -285,23 +288,43 @@ function resetDockControls(){
  joy.throttle=0;joy.strafe=0;$('stick').style.transform='';
  for(const key of Object.keys(keys))keys[key]=0;
 }
-function enterHangar(){
- if(docked||!panel.classList.contains('hidden'))return;
- if(playerMesh.position.distanceTo(SAFE_ZONE_CENTER)>DOCK_RADIUS)return;
- if(Math.abs(joy.throttle)>.12||Math.abs(joy.strafe)>.12)return;
- docked=true;resetDockControls();dockBtn.classList.add('hidden');
- document.body.classList.add('docked');
- player.energy=player.maxEnergy;
- hangar.classList.remove('hidden');hangarRefresh();save();
+function finishLanding(){
+ landing=false;docked=true;
+ playerMesh.position.copy(LANDING_TOUCHDOWN);pitch=0;yaw=0;
+ resetDockControls();dockBtn.classList.add('hidden');
+ document.body.classList.remove('landing');document.body.classList.add('docked');
+ player.energy=player.maxEnergy;hangar.classList.remove('hidden');
+ hangarRefresh();save();
+}
+function beginLanding(){
+ if(docked||landing||!landingArmed||!panel.classList.contains('hidden'))return;
+ landing=true;landingTime=0;landingStart=playerMesh.position.clone();landingYaw=yaw;landingPitch=pitch;
+ resetDockControls();document.body.classList.add('landing');
+ dockBtn.classList.remove('hidden');dockBtn.disabled=true;dockBtn.textContent='🛬 Piloto automático · Aproximación';
+}
+function advanceLanding(dt){
+ if(!landing)return;
+ landingTime+=dt;
+ // Aproximación horizontal elevada, seguida de descenso vertical y toma de contacto.
+ if(landingTime<3.4){
+  const t=smooth(landingTime/3.4);
+  playerMesh.position.lerpVectors(landingStart,LANDING_APPROACH,t);
+  yaw=landingYaw+(0-landingYaw)*t;pitch=landingPitch*(1-t);
+  dockBtn.textContent='🛬 Aproximación automática';
+ }else if(landingTime<7.6){
+  const t=smooth((landingTime-3.4)/4.2);
+  playerMesh.position.lerpVectors(LANDING_APPROACH,LANDING_TOUCHDOWN,t);
+  yaw=0;pitch=0;dockBtn.textContent='🛬 Descendiendo · '+Math.round(t*100)+'%';
+ }else finishLanding();
 }
 function leaveHangar(){
  if(!docked)return;
- docked=false;hangar.classList.add('hidden');document.body.classList.remove('docked');
- // Reaparecer cerca de la estación, sin teletransportarse fuera de la zona segura.
- playerMesh.position.copy(SAFE_ZONE_CENTER).add(new THREE.Vector3(0,0,560));
+ docked=false;landingArmed=false;
+ hangar.classList.add('hidden');document.body.classList.remove('docked');
+ // Salida fuera del pasillo de descenso, con altura suficiente sobre la plataforma.
+ playerMesh.position.set(540,195,-370);yaw=0;pitch=0;
  resetDockControls();save();
 }
-dockBtn.onclick=enterHangar;
 $('launchBtn').onclick=leaveHangar;
 $('repairBtn').onclick=()=>{
  if(!docked)return;
@@ -310,23 +333,25 @@ $('repairBtn').onclick=()=>{
  player.gold-=cost;player.hp=player.maxHp;hangarRefresh();save();hud();
 };
 function updateDock(){
- if(docked){dockBtn.classList.add('hidden');return}
- const near=playerMesh.position.distanceTo(SAFE_ZONE_CENTER)<=DOCK_RADIUS;
- const stopped=Math.abs(joy.throttle)<.12&&Math.abs(joy.strafe)<.12&&!keys.w&&!keys.s&&!keys.arrowup&&!keys.arrowdown;
- dockBtn.classList.toggle('hidden',!near);
- dockBtn.disabled=!stopped;
- dockBtn.textContent=stopped?'🛬 Atracar en Aurora':'Reduce la velocidad para atracar';
+ if(docked)return;
+ if(landing){dockBtn.classList.remove('hidden');return}
+ const distance=Math.hypot(playerMesh.position.x-LANDING_TRIGGER.x,playerMesh.position.z-LANDING_TRIGGER.z);
+ if(distance>LANDING_RADIUS+110)landingArmed=true;
+ // Activación sólo cerca de la plataforma, no en toda la zona segura.
+ const inCorridor=distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<360;
+ if(inCorridor&&landingArmed)beginLanding();
+ dockBtn.classList.add('hidden');
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');joy.strafe=0;
-function throttleMove(e){if(!panel.classList.contains('hidden')||docked)return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
+function throttleMove(e){if(!panel.classList.contains('hidden')||docked||landing)return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
 joyEl.onpointerdown=e=>{joyEl.setPointerCapture(e.pointerId);throttleMove(e)};joyEl.onpointermove=e=>joyEl.hasPointerCapture(e.pointerId)&&throttleMove(e);joyEl.onpointerup=joyEl.onpointercancel=()=>{joy.throttle=0;joy.strafe=0;stick.style.transform=''};
 const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0;
 lookZone.onpointerdown=e=>{if(!panel.classList.contains('hidden'))return;lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
 lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
 lookZone.onpointerup=lookZone.onpointercancel=e=>{if(e.pointerId===lookId){lookId=null;bankInput=0}};
-$('fireBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked)fire()};$('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked)skill()};
+$('fireBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)fire()};$('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
 function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;localStorage.setItem('mundoAbierto.player',JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
@@ -335,19 +360,19 @@ function hud(){$('playerName').textContent=player.name;$('classLabel').textConte
 const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;renderInventory();renderUpgrades();box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp+upgradeBonus('maxHp');player.hp=player.maxHp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack+upgradeBonus('attack');player.defense=c.defense+upgradeBonus('defense');player.speed=c.speed+upgradeBonus('speed');hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
-const menuOpen=docked||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
-if(!docked&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
+const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
+if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
-const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*strafe*dt/movementScale);
+const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*strafe*dt/movementScale);advanceLanding(dt);
 playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
 for(const l of engineLights)l.intensity=18+Math.abs(throttle)*48;for(const t of engineTrails){t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58;}
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe&&!docked){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,0,0);player.hp=player.maxHp;player.energy=player.maxEnergy}
-const back=forward.clone().multiplyScalar(-285).add(new THREE.Vector3(0,105,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
+const back=forward.clone().multiplyScalar(-285).add(new THREE.Vector3(0,105,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 hud();
