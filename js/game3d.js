@@ -48,6 +48,38 @@ const spaceBackground=createSpaceBackground();if(spaceBackground)scene.backgroun
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
 scene.add(new THREE.HemisphereLight(0x7bbcff,0x050713,1.8));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
 const starsGeo=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1600;i++)sp.push((Math.random()-.5)*8000,(Math.random()-.5)*4500,(Math.random()-.5)*8000);starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xbad9ff,size:3,sizeAttenuation:true})));
+// Planeta lejano del Sector Aurora: decorativo, sin colisiones ni viajes aún.
+// Materiales sin niebla para conservar su silueta desde la zona jugable.
+function createAuroraPlanet(){
+ const textureCanvas=document.createElement('canvas');textureCanvas.width=512;textureCanvas.height=256;
+ const ctx=textureCanvas.getContext('2d');if(!ctx)return;
+ const ocean=ctx.createLinearGradient(0,0,0,256);
+ ocean.addColorStop(0,'#081c48');ocean.addColorStop(.28,'#175a99');ocean.addColorStop(.52,'#1c8bba');ocean.addColorStop(.78,'#123c78');ocean.addColorStop(1,'#061634');
+ ctx.fillStyle=ocean;ctx.fillRect(0,0,512,256);
+ let seed=46823;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ for(let i=0;i<80;i++){
+  const y=rnd()*256,w=100+rnd()*260;
+  ctx.fillStyle=i%3===0?'rgba(150,220,242,.09)':'rgba(9,30,88,.14)';
+  ctx.fillRect(rnd()*512,y,w,1+rnd()*8);
+ }
+ for(let i=0;i<19;i++){
+  const x=rnd()*512,y=25+rnd()*205;
+  ctx.fillStyle='rgba(159,217,235,'+(.05+rnd()*.11)+')';
+  ctx.beginPath();ctx.ellipse(x,y,35+rnd()*100,2+rnd()*7,rnd()*.3,0,Math.PI*2);ctx.fill();
+ }
+ const texture=new THREE.CanvasTexture(textureCanvas);texture.colorSpace=THREE.SRGBColorSpace;
+ const planet=new THREE.Group();
+ planet.position.set(2150,950,-5200);
+ const globe=new THREE.Mesh(new THREE.SphereGeometry(680,48,32),new THREE.MeshStandardMaterial({map:texture,roughness:1,metalness:0,emissive:0x0a2b56,emissiveIntensity:.45,fog:false}));
+ globe.rotation.z=.17;planet.add(globe);
+ const glow=new THREE.Mesh(new THREE.SphereGeometry(708,40,24),new THREE.MeshBasicMaterial({color:0x2c9ce5,transparent:true,opacity:.085,side:THREE.BackSide,depthWrite:false,fog:false}));planet.add(glow);
+ const rings=new THREE.Mesh(new THREE.RingGeometry(845,1140,96),new THREE.MeshBasicMaterial({color:0x78a9c9,transparent:true,opacity:.24,side:THREE.DoubleSide,depthWrite:false,fog:false}));
+ rings.rotation.x=1.18;rings.rotation.y=.26;planet.add(rings);
+ scene.add(planet);
+ const moon=new THREE.Mesh(new THREE.IcosahedronGeometry(145,3),new THREE.MeshStandardMaterial({color:0x9a9ba5,roughness:1,flatShading:true,emissive:0x20212a,emissiveIntensity:.18,fog:false}));
+ moon.position.set(3350,1220,-5550);scene.add(moon);
+}
+createAuroraPlanet();
 function mat(color,emissive=0){return new THREE.MeshStandardMaterial({color,metalness:.7,roughness:.32,emissive,emissiveIntensity:1.4})}
 function ship(color=0x65c7ff,kind='player'){const g=new THREE.Group();g.frustumCulled=false;
 const isPlayer=kind==='player',hull=mat(isPlayer?0xe8e9e7:color),dark=mat(0x111a27),trim=mat(isPlayer?0x333b47:0x9bc9e8),red=mat(0xc92e32),glass=new THREE.MeshPhysicalMaterial({color:0x071a2b,metalness:.55,roughness:.08,transmission:.12,emissive:0x063f68,emissiveIntensity:1.15});
