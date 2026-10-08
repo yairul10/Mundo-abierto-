@@ -369,6 +369,9 @@ const MAX_DRONES=8;
 const DRONE_PRICES=[100,200,5000,20000,80000,300000,1000000,4000000];
 const EXPLORER_PRICE=DRONE_PRICES[7]*2;
 player.explorerDrone=player.explorerDrone===true;
+player.explorerRangeLevel=Math.max(1,Math.min(10,Math.floor(Number(player.explorerRangeLevel)||1)));
+function explorerRange(){return 450+player.explorerRangeLevel*100}
+function explorerUpgradePrice(){return 250000*Math.pow(2,player.explorerRangeLevel-1)}
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
 function ownedDrones(){return player.droneCount}
 for(let i=0;i<MAX_DRONES;i++){
@@ -395,7 +398,7 @@ function updateExplorer(dt,now){
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
  let target=playerMesh.position.clone().addScaledVector(forward,-95).add(new THREE.Vector3(0,26+Math.sin(now*.003)*5,0));
- let closest=null,best=550;
+ let closest=null,best=explorerRange();
  for(const drop of drops){
   const dist=drop.mesh.position.distanceTo(explorerMesh.position);
   if(dist<best){best=dist;closest=drop}
@@ -559,8 +562,14 @@ function renderDrones(){
  const containers=[$('hangarDroneShop')].filter(Boolean);if(!containers.length)return;
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
  const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Cada dron agrega un láser extra a tu nave cuando disparas. Apunta hacia tu misma mira y conserva la misma precisión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
+ const rangeLevel=player.explorerRangeLevel,rangeMax=rangeLevel>=10,rangePrice=explorerUpgradePrice();
  const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Dron Explorador · 9.º especial</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirido y equipado':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Requiere 8 drones')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||count<8||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipado':'Comprar')+'</button></div>';
- for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml;
+ const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance del Explorador · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
+ for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml;
+ el.querySelector('.buyExplorerRange').onclick=()=>{
+  const price=explorerUpgradePrice();if(!player.explorerDrone||player.explorerRangeLevel>=10||player.gold<price)return;
+  player.gold-=price;player.explorerRangeLevel++;save();hud();renderDrones();lootToast('📡 Explorador: alcance '+explorerRange()+' m');if(docked)hangarRefresh();
+ };
  el.querySelector('.buyExplorerBtn').onclick=()=>{
   if(player.explorerDrone||ownedDrones()<8||player.gold<EXPLORER_PRICE)return;
   player.gold-=EXPLORER_PRICE;player.explorerDrone=true;save();hud();renderDrones();lootToast('🛰️ Dron Explorador equipado');
