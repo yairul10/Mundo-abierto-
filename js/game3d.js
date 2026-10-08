@@ -494,12 +494,33 @@ function renderInventory(){
  $('lootInventory').innerHTML=LOOT_TYPES.map(t=>'<div class="inventory-item"><span class="inventory-gem" style="background:#'+t.color.toString(16).padStart(6,'0')+'"></span><div><strong>'+t.name+'</strong><small>'+t.rarity+' · '+t.description+'</small></div><b>×'+(Math.max(0,Number(player.loot[t.id])||0))+'</b></div>').join('');
 }
 const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
+// Caja 3D compartida para todas las rarezas. Si el GLB aún no existe,
+// se conserva el botín original sin interrumpir el juego.
+let lootCrateTemplate=null;
+modelLoader.load('./assets/models/scificrate.glb?v=1',gltf=>{
+ const template=gltf.scene;
+ const box=new THREE.Box3().setFromObject(template);
+ const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+ const longest=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(longest)||longest<.001)return;
+ template.position.sub(center);
+ template.scale.multiplyScalar(43/longest);
+ lootCrateTemplate=template;
+},undefined,()=>console.info('Caja GLB pendiente: botín original disponible.'));
 function spawnLoot(e){
  const roll=Math.random(),item=LOOT_TYPES[roll<.53?0:roll<.81?1:roll<.96?2:3];
- const mesh=new THREE.Mesh(dropGeo,new THREE.MeshBasicMaterial({color:item.color,depthTest:false}));mesh.renderOrder=5;
- mesh.position.copy(e.mesh.position);mesh.position.y+=14;scene.add(mesh);
- const halo=new THREE.PointLight(item.color,7,150,2);mesh.add(halo);
- const marker=new THREE.Sprite(new THREE.SpriteMaterial({color:item.color,transparent:true,opacity:.55,depthTest:false}));marker.scale.set(52,52,1);mesh.add(marker);drops.push({mesh,item,age:0,baseY:mesh.position.y});
+ const mesh=new THREE.Group();mesh.position.copy(e.mesh.position);mesh.position.y+=14;
+ if(lootCrateTemplate){
+  const crate=lootCrateTemplate.clone(true);mesh.add(crate);
+  crate.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+ }else{
+  const fallback=new THREE.Mesh(dropGeo,new THREE.MeshBasicMaterial({color:item.color,depthTest:false}));
+  fallback.renderOrder=5;mesh.add(fallback);
+ }
+ scene.add(mesh);
+ const marker=new THREE.Sprite(new THREE.SpriteMaterial({color:item.color,transparent:true,opacity:.55,depthTest:false}));
+ marker.scale.set(35,35,1);marker.position.y=30;mesh.add(marker);
+ drops.push({mesh,item,age:0,baseY:mesh.position.y});
 }
 function lootToast(message){
  const el=$('lootToast');if(!el)return;
@@ -508,13 +529,13 @@ function lootToast(message){
 }
 function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
-  const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*1.5;d.mesh.rotation.z+=dt*.65;
+  const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*.65;d.mesh.rotation.z+=dt*.14;
   d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
   if(d.mesh.position.distanceTo(playerMesh.position)<90){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
-   scene.remove(d.mesh);d.mesh.material.dispose();drops.splice(i,1);save();
-  }else if(d.age>90){scene.remove(d.mesh);d.mesh.material.dispose();drops.splice(i,1)}
+   scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);save();
+  }else if(d.age>90){scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1)}
  }
 }
 function kill(e){const t=TYPES[e.type];e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
