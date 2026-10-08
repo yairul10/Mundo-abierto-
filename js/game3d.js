@@ -258,15 +258,40 @@ for(let variant=0;variant<5;variant++){
  }
  geo.computeVertexNormals();asteroidShapes.push(geo);
 }
-for(let i=0;i<85;i++){
- const a=new THREE.Mesh(asteroidShapes[i%asteroidShapes.length],asteroidMaterials[i%asteroidMaterials.length]);
- a.scale.set((10+Math.random()*30)*(1+Math.random()*.8),(10+Math.random()*30)*(.65+Math.random()*.65),(10+Math.random()*30)*(.8+Math.random()*.6));
- a.position.set(500+Math.random()*3300,(Math.random()-.5)*1100,-2100+Math.random()*3600);
- a.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);scene.add(a);
+// Distribución radial en todo el Sector Aurora (3 km), evitando el hangar.
+// Aleatorio estable por sesión para no reconstruir el escenario en cada fotograma.
+const MAP_CENTER_X=0,MAP_CENTER_Z=-650,MAP_RADIUS=3000,MAP_SAFE_RADIUS=830;
+function randomSectorPosition(minRadius=MAP_SAFE_RADIUS,maxRadius=MAP_RADIUS-100){
+ const angle=Math.random()*Math.PI*2;
+ const r=Math.sqrt(minRadius*minRadius+Math.random()*(maxRadius*maxRadius-minRadius*minRadius));
+ return new THREE.Vector3(MAP_CENTER_X+Math.cos(angle)*r,(Math.random()-.5)*760,MAP_CENTER_Z+Math.sin(angle)*r);
 }
-const TYPES={scout:{hp:35,damage:5,speed:120,xp:18,color:0xe65757},raider:{hp:55,damage:8,speed:150,xp:28,color:0xe78b45},sentinel:{hp:90,damage:12,speed:90,xp:45,color:0xb86bd9}};
-const enemyDefs=[['scout',1150,-180],['scout',1400,260],['scout',1650,-420],['raider',1900,420],['raider',2300,-280],['sentinel',2850,350],['sentinel',3300,-450]];
-const enemies=enemyDefs.map((d,i)=>{const t=TYPES[d[0]],m=ship(t.color,d[0]);scene.add(m);return{type:d[0],mesh:m,home:new THREE.Vector3(d[1],(i%3-1)*70,d[2]),hp:t.hp,maxHp:t.hp,dead:0,angle:i}});enemies.forEach(e=>e.mesh.position.copy(e.home));
+const asteroidField=new THREE.Group();scene.add(asteroidField);
+for(let i=0;i<165;i++){
+ const rock=new THREE.Mesh(asteroidShapes[i%asteroidShapes.length],asteroidMaterials[i%asteroidMaterials.length]);
+ const radius=9+Math.random()*27;
+ rock.scale.set(radius*(.8+Math.random()*.7),radius*(.65+Math.random()*.55),radius*(.8+Math.random()*.65));
+ rock.position.copy(randomSectorPosition(850,2950));
+ rock.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
+ asteroidField.add(rock);
+}
+// Tres tipos de nave actuales: cada escalón duplica vida, daño y recompensas.
+const TYPES={
+ scout:{hp:35,damage:5,speed:120,xp:18,gold:5,loot:1,color:0xe65757},
+ raider:{hp:70,damage:10,speed:150,xp:36,gold:10,loot:2,color:0xe78b45},
+ sentinel:{hp:140,damage:20,speed:90,xp:72,gold:20,loot:4,color:0xb86bd9}
+};
+const enemyKinds=['scout','scout','scout','scout','scout','raider','raider','raider','raider','sentinel','sentinel','sentinel'];
+function randomEnemyHome(type){
+ // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
+ const min=type==='scout'?850:type==='raider'?1200:1700;
+ return randomSectorPosition(min,2920);
+}
+const enemies=enemyKinds.map((type,i)=>{
+ const t=TYPES[type],mesh=ship(t.color,type);scene.add(mesh);
+ const home=randomEnemyHome(type);mesh.position.copy(home);
+ return {type,mesh,home,hp:t.hp,maxHp:t.hp,dead:0,angle:i};
+});
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
 // mantiene posición, IA, colisiones, disparos y recompensas intactos.
 // Si aún no se ha subido el GLB, las naves originales siguen funcionando.
@@ -471,7 +496,7 @@ function updateLoot(dt){
   }else if(d.age>90){scene.remove(d.mesh);d.mesh.material.dispose();drops.splice(i,1)}
  }
 }
-function kill(e){const t=TYPES[e.type];e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=5;spawnLoot(e);gainXp(t.xp);save()}
+function kill(e){const t=TYPES[e.type];e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
 function skill(){if(skillCd>0||!player.classId)return;const id=player.classId;if(id==='soporte'&&player.energy>=30){player.energy-=30;player.hp=Math.min(player.maxHp,player.hp+Math.round(player.maxHp*.35));skillCd=8}else if(id==='interceptora'&&player.energy>=30){player.energy-=30;fire(1.2,3);skillCd=5}else if(id==='acorazada'&&player.energy>=25){player.energy-=25;fire(2.4);skillCd=5}else if(id==='energia'&&player.energy>=35){player.energy-=35;for(const e of enemies)if(!e.dead&&e.mesh.position.distanceTo(playerMesh.position)<250){e.hp-=player.attack*1.8;if(e.hp<=0)kill(e)}skillCd=7}}
 // Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
 const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
@@ -670,7 +695,7 @@ for(const l of engineLights)l.intensity=18+Math.abs(throttle)*48;for(const t of 
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 updateSupportDrones(dt,now);
  for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
