@@ -121,7 +121,7 @@ modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=1',gltf=>{
   visual.position.copy(center).multiplyScalar(-1);
   visual.scale.setScalar(85/maxSpan);
   const pivot=new THREE.Group();
-  pivot.rotation.y=Math.PI;
+  pivot.rotation.y=0; // El GLB ya apunta en el sentido correcto; evitar giro de 180 grados.
   pivot.add(visual);
   e.mesh.add(pivot);
   for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
