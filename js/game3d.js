@@ -503,9 +503,11 @@ modelLoader.load('./assets/models/scificrate.glb?v=1',gltf=>{
  const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
  const longest=Math.max(size.x,size.y,size.z);
  if(!Number.isFinite(longest)||longest<.001)return;
- template.position.sub(center);
- template.scale.multiplyScalar(43/longest);
- lootCrateTemplate=template;
+ // Centrar ANTES de escalar, en un contenedor separado: evita desplazar
+ // accidentalmente modelos exportados con origen fuera de su geometría.
+ const pivot=new THREE.Group();template.position.sub(center);pivot.add(template);
+ pivot.scale.setScalar(32/longest);
+ lootCrateTemplate=pivot;
 },undefined,()=>console.info('Caja GLB pendiente: botín original disponible.'));
 function spawnLoot(e){
  const roll=Math.random(),item=LOOT_TYPES[roll<.53?0:roll<.81?1:roll<.96?2:3];
@@ -518,8 +520,8 @@ function spawnLoot(e){
   fallback.renderOrder=5;mesh.add(fallback);
  }
  scene.add(mesh);
- const marker=new THREE.Sprite(new THREE.SpriteMaterial({color:item.color,transparent:true,opacity:.55,depthTest:false}));
- marker.scale.set(35,35,1);marker.position.y=30;mesh.add(marker);
+ // Sin marcador geométrico flotante: solo se ve la caja real.
+
  drops.push({mesh,item,age:0,baseY:mesh.position.y});
 }
 function lootToast(message){
