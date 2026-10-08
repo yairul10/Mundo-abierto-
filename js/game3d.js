@@ -359,10 +359,11 @@ function updateSupportDrones(dt,now){
  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
  for(let i=0;i<supportDrones.length;i++){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
-  // Formación V tipo escuadrilla: cada nueva pareja se abre hacia atrás.
+  // Formación abanico frontal de 8 drones, inspirada en la referencia:
+  // cuatro a cada lado, dos hileras delante de la nave y centro despejado.
   const pair=Math.floor(i/2);
-  const sideOffset=75+pair*52;
-  const backOffset=48+pair*62;
+  const sideOffset=[78,135,195,250][pair];
+  const backOffset=[-125,-165,-190,-210][pair];
   const desired=playerMesh.position.clone().addScaledVector(right,d.side*sideOffset).addScaledVector(forward,-backOffset);
   desired.addScaledVector(up,14+Math.sin(now*.002+i)*4);
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
