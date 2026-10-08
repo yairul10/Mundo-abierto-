@@ -16,3 +16,7 @@
 
 /* Taller de equipamiento */
 .upgrade-card{display:flex;align-items:center;gap:8px;padding:12px 4px;border-bottom:1px solid #ffffff25}.upgrade-card>div{flex:1;min-width:0}.upgrade-card strong,.upgrade-card small{display:block}.upgrade-card strong{font-size:13px}.upgrade-card small{font-size:11px;color:#b4c6db;margin-top:4px;line-height:1.35}.panel .upgrade-card button{width:auto;min-width:83px;margin:0;padding:10px 8px;font-size:12px;background:#d5a22d}.panel .upgrade-card button:disabled{opacity:.42;background:#33465a;color:#d4e0eb}
+
+/* Paso 13: radar espacial compacto, fuera del HUD y controles. */
+#radarWidget{position:absolute;right:12px;top:140px;z-index:9;width:156px;text-align:center;pointer-events:none;filter:drop-shadow(0 4px 12px #000a)}#miniRadar{display:block;width:156px;height:156px;background:transparent}#stationDistance{margin-top:-4px;font-size:11px;font-weight:750;color:#9cecff;text-shadow:0 1px 5px #000}.radar-legend{margin-top:2px;font-size:9px;color:#d3dfef;text-shadow:0 1px 5px #000}body.inventory-open #radarWidget{visibility:hidden}
+@media(max-width:600px){#radarWidget{top:135px;right:8px;transform:scale(.77);transform-origin:top right}}
