@@ -86,19 +86,34 @@ function createAuroraPlanet(){
  const moon=new THREE.Mesh(new THREE.IcosahedronGeometry(145,3),new THREE.MeshStandardMaterial({color:0x9a9ba5,roughness:1,flatShading:true,emissive:0x20212a,emissiveIntensity:.18,fog:false}));
  moon.position.set(3350,1220,-5550);scene.add(moon);
 }
-// Planeta ilustrado con anillos: imagen en un plano que mira a la cámara.
-// Se utiliza mezcla aditiva para que el negro del fondo no tape el espacio.
-// Si el recurso aún no está subido, se conserva el planeta 3D anterior.
-new THREE.TextureLoader().load('./assets/planeta_aurora.webp?v=1',texture=>{
- texture.colorSpace=THREE.SRGBColorSpace;
- const planetImage=new THREE.Sprite(new THREE.SpriteMaterial({
-  map:texture,color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,
-  depthWrite:false,fog:false
- }));
- planetImage.position.set(2150,950,-5200);
- planetImage.scale.set(2050,2050,1);
- scene.add(planetImage);
-},undefined,()=>createAuroraPlanet());
+// Planeta Aurora 3D: único planeta principal. No cargar el sprite 2D
+// ni el planeta procedural simultáneamente.
+const auroraPlanetPosition=new THREE.Vector3(2150,950,-5200);
+const auroraPlanetPivot=new THREE.Group();
+auroraPlanetPivot.position.copy(auroraPlanetPosition);scene.add(auroraPlanetPivot);
+const auroraPlanetLoader=new GLTFLoader();
+auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
+ const model=gltf.scene;
+ const bounds=new THREE.Box3().setFromObject(model);
+ const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
+ const longest=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(longest)||longest<.0001){createAuroraPlanet();return}
+ const targetDiameter=1450;
+ const factor=targetDiameter/longest;
+ model.scale.setScalar(factor);
+ model.position.copy(center).multiplyScalar(-factor);
+ model.traverse(obj=>{
+  if(!obj.isMesh)return;
+  obj.frustumCulled=false;
+  const materials=Array.isArray(obj.material)?obj.material:[obj.material];
+  for(const material of materials){if(!material)continue;material.fog=false;material.side=THREE.FrontSide;}
+ });
+ auroraPlanetPivot.add(model);
+},undefined,err=>{
+ console.warn('No se pudo cargar planeta_aurora.glb; se muestra el planeta de respaldo.',err);
+ createAuroraPlanet();
+});
 function mat(color,emissive=0){return new THREE.MeshStandardMaterial({color,metalness:.7,roughness:.32,emissive,emissiveIntensity:1.4})}
 function ship(color=0x65c7ff,kind='player'){const g=new THREE.Group();g.frustumCulled=false;
 const isPlayer=kind==='player',hull=mat(isPlayer?0xe8e9e7:color),dark=mat(0x111a27),trim=mat(isPlayer?0x333b47:0x9bc9e8),red=mat(0xc92e32),glass=new THREE.MeshPhysicalMaterial({color:0x071a2b,metalness:.55,roughness:.08,transmission:.12,emissive:0x063f68,emissiveIntensity:1.15});
