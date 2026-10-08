@@ -358,10 +358,10 @@ function updateSupportDrones(dt,now){
  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
  for(let i=0;i<supportDrones.length;i++){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
-  // Formación de cuatro parejas escalonadas, sin superposición.
-  // Los cuatro primeros: dos a cada lado. Los otros cuatro: dos parejas detrás de la nave.
-  const sideOffset=i<4?(i<2?100:155):(i<6?70:135);
-  const backOffset=i<4?(i<2?20:65):(i<6?165:225);
+  // Formación V tipo escuadrilla: cada nueva pareja se abre hacia atrás.
+  const pair=Math.floor(i/2);
+  const sideOffset=75+pair*52;
+  const backOffset=48+pair*62;
   const desired=playerMesh.position.clone().addScaledVector(right,d.side*sideOffset).addScaledVector(forward,-backOffset);
   desired.addScaledVector(up,14+Math.sin(now*.002+i)*4);
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
