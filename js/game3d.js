@@ -66,13 +66,26 @@ function auroraMaterial(mesh){
  mesh.material.needsUpdate=true;
  mesh.castShadow=false;mesh.receiveShadow=false;
 }
-new GLTFLoader().load('./assets/models/aurora_s1.glb?v=1',gltf=>{
- const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
+const modelLoader=new GLTFLoader();
+function fitPlayerModel(model,yaw=0){
  const box=new THREE.Box3().setFromObject(model),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
- model.position.sub(center);const scale=124/Math.max(size.x,size.z);model.scale.setScalar(scale);model.rotation.y=-Math.PI/2;
- playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData.auroraModel=model;
-},undefined,err=>console.warn('Aurora-S1 GLB no disponible; se usa la nave procedural.',err));
-const engineLights=[],engineTrails=[];for(const x of[-38,38]){const l=new THREE.PointLight(0x29aaff,30,230,2);l.position.set(x,-1,54);playerMesh.add(l);engineLights.push(l);const core=new THREE.Mesh(new THREE.CircleGeometry(7.7,20),new THREE.MeshBasicMaterial({color:0xcaf7ff,side:THREE.DoubleSide}));core.position.set(x,-1,54.7);playerMesh.add(core);const trail=new THREE.Mesh(new THREE.ConeGeometry(5.2,76,12,1,true),new THREE.MeshBasicMaterial({color:0x35bfff,transparent:true,opacity:.48,depthWrite:false,blending:THREE.AdditiveBlending}));trail.rotation.x=Math.PI/2;trail.position.set(x,-1,91);playerMesh.add(trail);engineTrails.push(trail)}
+ model.position.sub(center);model.scale.multiplyScalar(124/Math.max(size.x,size.z));model.rotation.y=yaw;
+ return model;
+}
+function mountPlayerModel(model,key){playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData[key]=model}
+function loadAuroraFallback(){
+ modelLoader.load('./assets/models/aurora_s1.glb?v=1',gltf=>{
+  const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
+  mountPlayerModel(fitPlayerModel(model,-Math.PI/2),'auroraModel');
+ },undefined,err=>console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err));
+}
+modelLoader.load('./assets/models/x_wing_starfighter.glb?v=1',gltf=>{
+ const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
+ // El modelo mira hacia +Z; el juego avanza hacia -Z.
+ mountPlayerModel(fitPlayerModel(model,Math.PI),'xWingModel');
+},undefined,err=>{console.warn('X-Wing no disponible; cargando Aurora-S1.',err);loadAuroraFallback()});
+const engineLights=[],engineTrails=[];for(const [x,y] of[[-28,7],[-28,-7],[28,7],[28,-7]]){const l=new THREE.PointLight(0x29aaff,18,190,2);l.position.set(x,y,53);playerMesh.add(l);engineLights.push(l);const core=new THREE.Mesh(new THREE.CircleGeometry(4.4,16),new THREE.MeshBasicMaterial({color:0xcaf7ff,side:THREE.DoubleSide}));core.position.set(x,y,54);playerMesh.add(core);const trail=new THREE.Mesh(new THREE.ConeGeometry(3.3,68,10,1,true),new THREE.MeshBasicMaterial({color:0x35bfff,transparent:true,opacity:.42,depthWrite:false,blending:THREE.AdditiveBlending}));trail.rotation.x=Math.PI/2;trail.position.set(x,y,86);playerMesh.add(trail);engineTrails.push(trail)}
 const planet=new THREE.Mesh(new THREE.SphereGeometry(650,32,20),new THREE.MeshStandardMaterial({color:0x183b67,roughness:.85,emissive:0x06162b,emissiveIntensity:.6}));planet.position.set(2600,900,-3000);scene.add(planet);const moon=new THREE.Mesh(new THREE.SphereGeometry(180,20,12),mat(0x5d6270));moon.position.set(1700,500,-2400);scene.add(moon);
 function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}scene.add(station());
 const asteroidMat=mat(0x4c505a);for(let i=0;i<85;i++){const a=new THREE.Mesh(new THREE.IcosahedronGeometry(10+Math.random()*30,1),asteroidMat);a.scale.set(1+Math.random(),.7+Math.random(),.8+Math.random());a.position.set(500+Math.random()*3300,(Math.random()-.5)*1100,-2100+Math.random()*3600);a.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);scene.add(a)}
@@ -91,7 +104,7 @@ function fire(mult=1,count=1){
  const noseDir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  for(let i=0;i<count;i++){
   const mesh=new THREE.Mesh(new THREE.SphereGeometry(4,8,8),new THREE.MeshBasicMaterial({color:0x55ddff}));
-  const start=playerMesh.position.clone().addScaledVector(noseDir,50);
+  const start=playerMesh.position.clone().addScaledVector(noseDir,64);
   mesh.position.copy(start);scene.add(mesh);
   const dir=aimPoint.clone().sub(start).normalize();
   shots.push({mesh,vel:dir.multiplyScalar(850),life:2.1,damage:player.attack*mult});
