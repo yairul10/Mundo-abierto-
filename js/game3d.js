@@ -407,6 +407,11 @@ function beginLanding(){
  resetDockControls();document.body.classList.add('landing');
  dockBtn.classList.remove('hidden');dockBtn.disabled=true;dockBtn.textContent='🛬 Piloto automático · Aproximación';
 }
+dockBtn.onclick=()=>{
+ if(dockBtn.disabled||dockBtn.classList.contains('hidden'))return;
+ const distance=Math.hypot(playerMesh.position.x-LANDING_TRIGGER.x,playerMesh.position.z-LANDING_TRIGGER.z);
+ if(distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<360)beginLanding();
+};
 function advanceLanding(dt){
  if(!landing)return;
  landingTime+=dt;
@@ -444,8 +449,10 @@ function updateDock(){
  if(distance>LANDING_RADIUS+110)landingArmed=true;
  // Activación sólo cerca de la plataforma, no en toda la zona segura.
  const inCorridor=distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<360;
- if(inCorridor&&landingArmed)beginLanding();
- dockBtn.classList.add('hidden');
+ const available=inCorridor&&landingArmed&&panel.classList.contains('hidden');
+ dockBtn.classList.toggle('hidden',!available);
+ dockBtn.disabled=!available;
+ if(available)dockBtn.textContent='🛬 Aterrizar en Estación Aurora';
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
