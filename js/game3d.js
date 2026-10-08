@@ -109,7 +109,25 @@ auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
   const materials=Array.isArray(obj.material)?obj.material:[obj.material];
   for(const material of materials){if(!material)continue;material.fog=false;material.side=THREE.FrontSide;}
  });
+ // Iluminación dedicada: conserva el detalle azul de océanos y anillos
+ // aunque el planeta esté lejos de la luz general del sector.
+ model.rotation.set(.12,-.28,-.08);
+ model.traverse(obj=>{
+  if(!obj.isMesh)return;
+  const materials=Array.isArray(obj.material)?obj.material:[obj.material];
+  for(const material of materials){
+   if(!material||!material.isMeshStandardMaterial)continue;
+   material.roughness=Math.max(.7,material.roughness??.8);
+   material.metalness=Math.min(.12,material.metalness??0);
+   if(material.map){material.emissiveMap=material.map;material.emissive=new THREE.Color(0x56647a);material.emissiveIntensity=.45;}
+   else {material.emissive=new THREE.Color(0x34435b);material.emissiveIntensity=.24;}
+   material.needsUpdate=true;
+  }
+ });
  auroraPlanetPivot.add(model);
+ const planetLight=new THREE.DirectionalLight(0xd8edff,3.2);
+ planetLight.position.set(-950,1100,1600);
+ auroraPlanetPivot.add(planetLight);
 },undefined,err=>{
  console.warn('No se pudo cargar planeta_aurora.glb; se muestra el planeta de respaldo.',err);
  createAuroraPlanet();
@@ -202,7 +220,7 @@ for(const x of [-19,19]){
  const trail=new THREE.Mesh(new THREE.ConeGeometry(3.1,40,12,1,true),new THREE.MeshBasicMaterial({color:0x168dff,transparent:true,opacity:.38,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
  trail.rotation.x=Math.PI/2;trail.position.set(x,y,z+23);playerMesh.add(trail);engineTrails.push(trail);
 }
-const planet=new THREE.Mesh(new THREE.SphereGeometry(650,32,20),new THREE.MeshStandardMaterial({color:0x183b67,roughness:.85,emissive:0x06162b,emissiveIntensity:.6}));planet.position.set(2600,900,-3000);scene.add(planet);const moon=new THREE.Mesh(new THREE.SphereGeometry(180,20,12),mat(0x5d6270));moon.position.set(1700,500,-2400);scene.add(moon);
+// Planeta y luna provisionales eliminados: ahora solo existe planeta_aurora.glb.
 function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
 let auroraModelReady=false,auroraLandingModel=null;
 // La plataforma de aterrizaje y sus luces permanecen en las mismas coordenadas
