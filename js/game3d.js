@@ -85,10 +85,10 @@ function fire(mult=1,count=1){if(fireCd>0)return;const target=nearest();let dir=
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
- {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común'},
- {id:'aleacion',name:'Aleación reforzada',color:0x55c6ff,rarity:'Poco común'},
- {id:'nucleo',name:'Núcleo de energía',color:0xc783ff,rarity:'Raro'},
- {id:'reliquia',name:'Componente ancestral',color:0xffca58,rarity:'Épico'}
+ {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común',description:'Restos recuperados de naves y drones. Material básico de fabricación.'},
+ {id:'aleacion',name:'Aleación reforzada',color:0x55c6ff,rarity:'Poco común',description:'Metal resistente para reforzar casco y estructuras.'},
+ {id:'nucleo',name:'Núcleo de energía',color:0xc783ff,rarity:'Raro',description:'Fuente de energía concentrada para sistemas avanzados.'},
+ {id:'reliquia',name:'Componente ancestral',color:0xffca58,rarity:'Épico',description:'Tecnología antigua de origen desconocido y gran valor.'}
 ];
 player.loot=player.loot&&typeof player.loot==='object'?player.loot:{};
 const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
@@ -117,6 +117,21 @@ function updateLoot(dt){
 }
 function kill(e){const t=TYPES[e.type];e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=5;spawnLoot(e);gainXp(t.xp);save()}
 function skill(){if(skillCd>0||!player.classId)return;const id=player.classId;if(id==='soporte'&&player.energy>=30){player.energy-=30;player.hp=Math.min(player.maxHp,player.hp+Math.round(player.maxHp*.35));skillCd=8}else if(id==='interceptora'&&player.energy>=30){player.energy-=30;fire(1.2,3);skillCd=5}else if(id==='acorazada'&&player.energy>=25){player.energy-=25;fire(2.4);skillCd=5}else if(id==='energia'&&player.energy>=35){player.energy-=35;for(const e of enemies)if(!e.dead&&e.mesh.position.distanceTo(playerMesh.position)<250){e.hp-=player.attack*1.8;if(e.hp<=0)kill(e)}skillCd=7}}
+// Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
+const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
+function inSafeZone(position){return position.distanceTo(SAFE_ZONE_CENTER)<SAFE_ZONE_RADIUS}
+let lastZoneLabel='';
+function updateZone(){
+ const safe=inSafeZone(playerMesh.position);
+ const label=safe?'ESTACIÓN AURORA|Zona segura':'SECTOR AURORA|Espacio abierto';
+ if(label!==lastZoneLabel){
+  const [title,subtitle]=label.split('|'),el=$('targetInfo');
+  el.replaceChildren(document.createTextNode(title),document.createElement('br'));
+  const small=document.createElement('small');small.textContent=subtitle;el.appendChild(small);
+  el.classList.toggle('outside-zone',!safe);lastZoneLabel=label;
+ }
+ return safe;
+}
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();fire()}if(e.key.toLowerCase()==='q')skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');
@@ -132,7 +147,7 @@ playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
 function hud(){$('playerName').textContent=player.name;$('classLabel').textContent=player.classId?CLASSES[player.classId].name:'Sin tipo';$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
-const panel=$('characterPanel');$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;$('lootInventory').innerHTML=LOOT_TYPES.map(t=>'<div>'+t.name+' <b>×'+(player.loot[t.id]||0)+'</b></div>').join('');box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp;player.hp=c.hp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack;player.defense=c.defense;player.speed=c.speed;hud();panel.classList.add('hidden')});panel.classList.remove('hidden')};$('closePanel').onclick=()=>panel.classList.add('hidden');$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();panel.classList.add('hidden')};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
+const panel=$('characterPanel');$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;$('lootInventory').innerHTML=LOOT_TYPES.map(t=>'<div class="inventory-item"><span class="inventory-gem" style="background:#'+t.color.toString(16).padStart(6,'0')+'"></span><div><strong>'+t.name+'</strong><small>'+t.rarity+' · '+t.description+'</small></div><b>×'+(Math.max(0,Number(player.loot[t.id])||0))+'</b></div>').join('');box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp;player.hp=c.hp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack;player.defense=c.defense;player.speed=c.speed;hud();panel.classList.add('hidden')});panel.classList.remove('hidden')};$('closePanel').onclick=()=>panel.classList.add('hidden');$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();panel.classList.add('hidden')};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const keyThrottle=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
@@ -143,7 +158,8 @@ playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=bankInput*Math.min(1,.35+Math.abs(throttle)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
 for(const l of engineLights)l.intensity=18+Math.abs(throttle)*48;for(const t of engineTrails){t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58;}
 updateLoot(dt);
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
+const playerSafe=updateZone();
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,0,0);player.hp=player.maxHp;player.energy=player.maxEnergy}
 const back=forward.clone().multiplyScalar(-285).add(new THREE.Vector3(0,105,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
