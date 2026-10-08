@@ -524,11 +524,11 @@ campaign.index=Math.max(0,Math.min(MISSIONS.length,Math.floor(Number(campaign.in
 campaign.progress=Math.max(0,Math.floor(Number(campaign.progress)||0));
 campaign.docked=!!campaign.docked;
 player.quests.aurora=campaign;
-let questCollapsed=localStorage.getItem('mundoAbierto.questCollapsed')==='1';
+let questCollapsed=true;
 function renderMission(){
  const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
- el.classList.remove('hidden');el.classList.toggle('collapsed',questCollapsed);
- toggle.textContent=questCollapsed?'▾':'▴';toggle.setAttribute('aria-expanded',String(!questCollapsed));
+ el.classList.toggle('hidden',questCollapsed);
+ toggle.textContent='📋';toggle.setAttribute('aria-expanded',String(!questCollapsed));toggle.setAttribute('aria-label',questCollapsed?'Abrir misiones':'Cerrar misiones');
  if(campaign.index>=MISSIONS.length){
   $('questTitle').textContent='🏆 Sector Aurora completado';
   $('questObjective').textContent='Las tres misiones iniciales están completas.';
@@ -540,7 +540,7 @@ function renderMission(){
  $('questProgressBar').style.width=(100*Math.min(m.goal,campaign.progress)/m.goal)+'%';
  $('questReward').textContent=campaign.progress+'/'+m.goal+' · Premio: '+m.reward.toLocaleString('es')+' créditos + '+m.xp+' XP';
 }
-$('questToggle').onclick=()=>{questCollapsed=!questCollapsed;localStorage.setItem('mundoAbierto.questCollapsed',questCollapsed?'1':'0');renderMission()};
+$('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
 function missionEvent(type){
  if(campaign.index>=MISSIONS.length)return;
  if(campaign.index===0&&type==='scout')campaign.progress++;
