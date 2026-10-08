@@ -16,11 +16,11 @@ function createSpaceBackground(){
  ctx.fillStyle=base;ctx.fillRect(0,0,c.width,c.height);
  // Nubes superpuestas muy transparentes para no competir con la mira.
  const clouds=[
-  [360,440,480,245,'55,89,160',.16],
-  [850,530,570,230,'87,49,135',.12],
-  [1430,375,540,260,'35,110,163',.16],
-  [1900,640,410,240,'89,54,144',.11],
-  [75,630,370,190,'40,100,155',.09]
+  [360,440,520,270,'55,89,160',.26],
+  [850,530,620,260,'87,49,135',.21],
+  [1430,375,570,290,'35,110,163',.27],
+  [1900,640,450,260,'89,54,144',.20],
+  [75,630,390,210,'40,100,155',.17]
  ];
  for(const [x,y,rx,ry,rgb,alpha] of clouds){
   ctx.save();ctx.translate(x,y);ctx.scale(1,ry/rx);
@@ -167,7 +167,25 @@ modelLoader.load('./assets/models/estacion_aurora.glb?v=1',gltf=>{
  LANDING_TOUCHDOWN.copy(padWorld).add(new THREE.Vector3(0,52,0));
  landingArmed=true;
 },undefined,()=>console.info('Estación Aurora GLB pendiente: se conserva la estación original.'));
-const asteroidMat=mat(0x4c505a);for(let i=0;i<85;i++){const a=new THREE.Mesh(new THREE.IcosahedronGeometry(10+Math.random()*30,1),asteroidMat);a.scale.set(1+Math.random(),.7+Math.random(),.8+Math.random());a.position.set(500+Math.random()*3300,(Math.random()-.5)*1100,-2100+Math.random()*3600);a.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);scene.add(a)}
+// Asteroides rocosos: siluetas irregulares, tonos minerales y relieve de bajo costo.
+const asteroidMaterials=[0x77746e,0x8b7765,0x5d6571,0x948b80].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true,emissive:color,emissiveIntensity:.075}));
+const asteroidShapes=[];
+for(let variant=0;variant<5;variant++){
+ const geo=new THREE.IcosahedronGeometry(1,1);
+ const pos=geo.attributes.position;
+ for(let j=0;j<pos.count;j++){
+  const v=new THREE.Vector3().fromBufferAttribute(pos,j);
+  const bump=1+.16*Math.sin(v.x*11+variant*2.7)*Math.cos(v.y*9-variant)+.12*Math.sin(v.z*13+variant);
+  pos.setXYZ(j,v.x*bump,v.y*bump,v.z*bump);
+ }
+ geo.computeVertexNormals();asteroidShapes.push(geo);
+}
+for(let i=0;i<85;i++){
+ const a=new THREE.Mesh(asteroidShapes[i%asteroidShapes.length],asteroidMaterials[i%asteroidMaterials.length]);
+ a.scale.set((10+Math.random()*30)*(1+Math.random()*.8),(10+Math.random()*30)*(.65+Math.random()*.65),(10+Math.random()*30)*(.8+Math.random()*.6));
+ a.position.set(500+Math.random()*3300,(Math.random()-.5)*1100,-2100+Math.random()*3600);
+ a.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);scene.add(a);
+}
 const TYPES={scout:{hp:35,damage:5,speed:120,xp:18,color:0xe65757},raider:{hp:55,damage:8,speed:150,xp:28,color:0xe78b45},sentinel:{hp:90,damage:12,speed:90,xp:45,color:0xb86bd9}};
 const enemyDefs=[['scout',1150,-180],['scout',1400,260],['scout',1650,-420],['raider',1900,420],['raider',2300,-280],['sentinel',2850,350],['sentinel',3300,-450]];
 const enemies=enemyDefs.map((d,i)=>{const t=TYPES[d[0]],m=ship(t.color,d[0]);scene.add(m);return{type:d[0],mesh:m,home:new THREE.Vector3(d[1],(i%3-1)*70,d[2]),hp:t.hp,maxHp:t.hp,dead:0,angle:i}});enemies.forEach(e=>e.mesh.position.copy(e.home));
