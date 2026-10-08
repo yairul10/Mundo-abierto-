@@ -692,23 +692,48 @@ const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');joy.strafe=0;
 function throttleMove(e){if(!panel.classList.contains('hidden')||docked||landing)return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
-joyEl.onpointerdown=e=>{joyEl.setPointerCapture(e.pointerId);throttleMove(e)};joyEl.onpointermove=e=>joyEl.hasPointerCapture(e.pointerId)&&throttleMove(e);joyEl.onpointerup=joyEl.onpointercancel=()=>{joy.throttle=0;joy.strafe=0;stick.style.transform=''};
+// Entradas táctiles independientes: el joystick no pierde su dedo al disparar.
+let joyTouchId=null;
+function resetJoystick(){joy.throttle=0;joy.strafe=0;stick.style.transform=''}
+joyEl.addEventListener('touchstart',e=>{
+ if(joyTouchId!==null)return;
+ const t=e.changedTouches[0];if(!t)return;
+ joyTouchId=t.identifier;e.preventDefault();throttleMove(t);
+},{passive:false});
+joyEl.addEventListener('touchmove',e=>{
+ for(const t of e.changedTouches)if(t.identifier===joyTouchId){e.preventDefault();throttleMove(t);break}
+},{passive:false});
+const stopJoyTouch=e=>{for(const t of e.changedTouches)if(t.identifier===joyTouchId){joyTouchId=null;resetJoystick();break}};
+joyEl.addEventListener('touchend',stopJoyTouch,{passive:false});
+joyEl.addEventListener('touchcancel',stopJoyTouch,{passive:false});
+joyEl.onpointerdown=e=>{if(e.pointerType==='touch')return;joyEl.setPointerCapture(e.pointerId);throttleMove(e)};
+joyEl.onpointermove=e=>{if(e.pointerType!=='touch'&&joyEl.hasPointerCapture(e.pointerId))throttleMove(e)};
+joyEl.onpointerup=joyEl.onpointercancel=e=>{if(e.pointerType!=='touch')resetJoystick()};
 const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0;
 lookZone.onpointerdown=e=>{if(!panel.classList.contains('hidden'))return;lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
 lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
 lookZone.onpointerup=lookZone.onpointercancel=e=>{if(e.pointerId===lookId){lookId=null;bankInput=0}};
 const fireButton=$('fireBtn');
 fireButton.style.touchAction='none';
+let fireTouchId=null;
+fireButton.addEventListener('touchstart',e=>{
+ if(fireTouchId!==null||!panel.classList.contains('hidden')||docked||landing)return;
+ const t=e.changedTouches[0];if(!t)return;
+ fireTouchId=t.identifier;fireHeld=true;e.preventDefault();fire();
+},{passive:false});
+const stopFireTouch=e=>{for(const t of e.changedTouches)if(t.identifier===fireTouchId){fireTouchId=null;fireHeld=false;break}};
+fireButton.addEventListener('touchend',stopFireTouch,{passive:false});
+fireButton.addEventListener('touchcancel',stopFireTouch,{passive:false});
 fireButton.onpointerdown=e=>{
- if(!panel.classList.contains('hidden')||docked||landing)return;
+ if(e.pointerType==='touch'||!panel.classList.contains('hidden')||docked||landing)return;
  e.preventDefault();firePointerId=e.pointerId;fireHeld=true;
- fireButton.setPointerCapture(e.pointerId);
- fire();
+ fireButton.setPointerCapture(e.pointerId);fire();
 };
-function releaseFire(e){if(e.pointerId===firePointerId){fireHeld=false;firePointerId=null}}
+function releaseFire(e){if(e.pointerType!=='touch'&&e.pointerId===firePointerId){fireHeld=false;firePointerId=null}}
 fireButton.onpointerup=releaseFire;
 fireButton.onpointercancel=releaseFire;
-fireButton.onlostpointercapture=()=>{fireHeld=false;firePointerId=null};$('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
+fireButton.onlostpointercapture=()=>{if(fireTouchId===null){fireHeld=false;firePointerId=null}};
+$('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
 function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;localStorage.setItem('mundoAbierto.player',JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
