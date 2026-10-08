@@ -164,6 +164,39 @@ function updateZone(){
  }
  return safe;
 }
+// Radar 2D orientado según la nave. Coordenadas X/Z del mundo 3D.
+const radar=$('miniRadar'),radarCtx=radar.getContext('2d'),radarDistance=$('stationDistance');
+const RADAR_RANGE=1100,RADAR_SIZE=156,RADAR_CENTER=78,RADAR_RADIUS=66;
+let radarElapsed=0;
+function radarPoint(wx,wz){
+ const dx=wx-playerMesh.position.x,dz=wz-playerMesh.position.z;
+ const a=yaw,c=Math.cos(a),s=Math.sin(a);
+ // Frente de la nave siempre arriba del radar.
+ const rx=(dx*c+dz*(-s))*RADAR_RADIUS/RADAR_RANGE;
+ const ry=(dx*s+dz*c)*RADAR_RADIUS/RADAR_RANGE;
+ return {x:RADAR_CENTER+rx,y:RADAR_CENTER+ry,inside:rx*rx+ry*ry<RADAR_RADIUS*RADAR_RADIUS,angle:Math.atan2(ry,rx)};
+}
+function drawRadar(dt){
+ radarElapsed+=dt;if(radarElapsed<.13)return;radarElapsed=0;
+ const ctx=radarCtx;ctx.clearRect(0,0,RADAR_SIZE,RADAR_SIZE);
+ ctx.fillStyle='#071829ed';ctx.beginPath();ctx.arc(78,78,72,0,Math.PI*2);ctx.fill();
+ ctx.save();ctx.beginPath();ctx.arc(78,78,66,0,Math.PI*2);ctx.clip();
+ ctx.strokeStyle='#72bbdd33';ctx.lineWidth=1;
+ for(const rad of [22,44,66]){ctx.beginPath();ctx.arc(78,78,rad,0,Math.PI*2);ctx.stroke()}
+ ctx.beginPath();ctx.moveTo(78,12);ctx.lineTo(78,144);ctx.moveTo(12,78);ctx.lineTo(144,78);ctx.stroke();
+ const dot=(x,y,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()};
+ for(const e of enemies){if(e.dead||!e.mesh.visible)continue;const p=radarPoint(e.mesh.position.x,e.mesh.position.z);if(p.inside)dot(p.x,p.y,'#ff6a6a',3)}
+ for(const d of drops){const p=radarPoint(d.mesh.position.x,d.mesh.position.z);if(p.inside)dot(p.x,p.y,'#e8b5ff',2.8)}
+ const station=radarPoint(SAFE_ZONE_CENTER.x,SAFE_ZONE_CENTER.z);
+ if(station.inside)dot(station.x,station.y,'#56e5ff',5);
+ ctx.restore();
+ // La estación permanece señalada en el borde aunque quede fuera del alcance.
+ if(!station.inside){const a=station.angle;const x=78+Math.cos(a)*62,y=78+Math.sin(a)*62;ctx.save();ctx.translate(x,y);ctx.rotate(a+Math.PI/2);ctx.fillStyle='#56e5ff';ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(5,5);ctx.lineTo(-5,5);ctx.closePath();ctx.fill();ctx.restore()}
+ ctx.fillStyle='#fff7a1';ctx.beginPath();ctx.moveTo(78,68);ctx.lineTo(71,87);ctx.lineTo(78,83);ctx.lineTo(85,87);ctx.closePath();ctx.fill();
+ ctx.strokeStyle='#5bb9e4aa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(78,78,72,0,Math.PI*2);ctx.stroke();
+ const distance=Math.hypot(playerMesh.position.x-SAFE_ZONE_CENTER.x,playerMesh.position.z-SAFE_ZONE_CENTER.z);
+ radarDistance.textContent='Aurora · '+Math.round(distance)+' m';
+}
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();fire()}if(e.key.toLowerCase()==='q')skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');
@@ -190,6 +223,7 @@ playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=bankInput*Math.min(1,.35+Math.abs(throttle)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
 for(const l of engineLights)l.intensity=18+Math.abs(throttle)*48;for(const t of engineTrails){t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58;}
 updateLoot(dt);
+drawRadar(dt);
 const playerSafe=updateZone();
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
