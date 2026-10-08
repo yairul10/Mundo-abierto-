@@ -32,3 +32,12 @@
 
 /* Durante el aterrizaje automático se ocultan controles manuales, pero se mantiene el HUD y el radar. */
 body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,body.landing #aimReticle{visibility:hidden}body.landing #lookZone{pointer-events:none}body.landing #dockBtn{visibility:visible;bottom:15%;background:#102b42ef;border-color:#71dfff}
+
+/* HUD despejado: minimapa en el antiguo espacio del rótulo de sector. */
+#radarWidget{top:86px;right:14px}
+#targetInfo{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:18;min-width:205px;padding:12px 22px;font-size:15px;font-weight:800;letter-spacing:1.5px;border-radius:15px;background:#071b30e8;box-shadow:0 0 28px #03101bd9;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility .22s ease}
+#targetInfo small{display:block;margin-top:5px;font-size:12px}
+#targetInfo.zone-visible{opacity:1;visibility:visible}
+#targetInfo.outside-zone{border-color:#f5a35eaa}
+#combatControls{bottom:32px}
+@media(max-width:600px){#radarWidget{top:88px;right:8px;transform:scale(.77);transform-origin:top right}#targetInfo{top:42%;left:50%;font-size:14px;padding:11px 17px}#combatControls{bottom:30px}}
