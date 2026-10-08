@@ -713,26 +713,41 @@ const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0
 lookZone.onpointerdown=e=>{if(!panel.classList.contains('hidden'))return;lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
 lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
 lookZone.onpointerup=lookZone.onpointercancel=e=>{if(e.pointerId===lookId){lookId=null;bankInput=0}};
+// El botón de fuego funciona también como zona de apuntado al arrastrar.
+// Mantener pulsado dispara ráfagas; deslizar ese MISMO dedo cambia rumbo.
+function aimWhileFiring(x,y){
+ const dx=x-lastFireX,dy=y-lastFireY;
+ lastFireX=x;lastFireY=y;
+ yaw-=dx*.006;
+ pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);
+ bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65);
+}
 const fireButton=$('fireBtn');
 fireButton.style.touchAction='none';
-let fireTouchId=null;
+let fireTouchId=null,lastFireX=0,lastFireY=0;
 fireButton.addEventListener('touchstart',e=>{
  if(fireTouchId!==null||!panel.classList.contains('hidden')||docked||landing)return;
  const t=e.changedTouches[0];if(!t)return;
- fireTouchId=t.identifier;fireHeld=true;e.preventDefault();fire();
+ fireTouchId=t.identifier;lastFireX=t.clientX;lastFireY=t.clientY;
+ fireHeld=true;e.preventDefault();fire();
 },{passive:false});
-const stopFireTouch=e=>{for(const t of e.changedTouches)if(t.identifier===fireTouchId){fireTouchId=null;fireHeld=false;break}};
+fireButton.addEventListener('touchmove',e=>{
+ for(const t of e.changedTouches)if(t.identifier===fireTouchId){e.preventDefault();aimWhileFiring(t.clientX,t.clientY);break}
+},{passive:false});
+const stopFireTouch=e=>{for(const t of e.changedTouches)if(t.identifier===fireTouchId){fireTouchId=null;fireHeld=false;bankInput=0;break}};
 fireButton.addEventListener('touchend',stopFireTouch,{passive:false});
 fireButton.addEventListener('touchcancel',stopFireTouch,{passive:false});
 fireButton.onpointerdown=e=>{
  if(e.pointerType==='touch'||!panel.classList.contains('hidden')||docked||landing)return;
  e.preventDefault();firePointerId=e.pointerId;fireHeld=true;
+ lastFireX=e.clientX;lastFireY=e.clientY;
  fireButton.setPointerCapture(e.pointerId);fire();
 };
-function releaseFire(e){if(e.pointerType!=='touch'&&e.pointerId===firePointerId){fireHeld=false;firePointerId=null}}
+fireButton.onpointermove=e=>{if(e.pointerType!=='touch'&&e.pointerId===firePointerId)aimWhileFiring(e.clientX,e.clientY)};
+function releaseFire(e){if(e.pointerType!=='touch'&&e.pointerId===firePointerId){fireHeld=false;firePointerId=null;bankInput=0}}
 fireButton.onpointerup=releaseFire;
 fireButton.onpointercancel=releaseFire;
-fireButton.onlostpointercapture=()=>{if(fireTouchId===null){fireHeld=false;firePointerId=null}};
+fireButton.onlostpointercapture=()=>{if(fireTouchId===null){fireHeld=false;firePointerId=null;bankInput=0}};
 $('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
 function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;localStorage.setItem('mundoAbierto.player',JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
