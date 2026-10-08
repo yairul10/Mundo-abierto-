@@ -108,13 +108,23 @@ modelLoader.load('./assets/models/estacion_aurora.glb?v=1',gltf=>{
  const center=bounds.getCenter(new THREE.Vector3());
  const longest=Math.max(size.x,size.y,size.z);
  if(!Number.isFinite(longest)||longest<.001)return;
- // Conservar pista, barandillas y luz de baliza del modelo procedural.
+ // Sustituir la estación provisional completa, incluida su pista artificial.
+ // Conservar solo la baliza de iluminación para no perder visibilidad nocturna.
  const children=[...auroraStation.children];
- for(let i=0;i<children.length;i++)if(i!==18&&i!==19&&i!==20&&i!==34)auroraStation.remove(children[i]);
+ for(let i=0;i<children.length;i++)if(i!==34)auroraStation.remove(children[i]);
  const scale=690/longest;
  model.scale.setScalar(scale);
  model.position.copy(center).multiplyScalar(-scale);
  auroraStation.add(model);
+ // Plataforma lateral plana integrada en el GLB, identificada en su geometría.
+ // Coordenadas originales del modelo antes del escalado y centrado.
+ const padLocal=new THREE.Vector3(-26,0.35,8.5);
+ const padStation=padLocal.clone().sub(center).multiplyScalar(scale);
+ const padWorld=auroraStation.localToWorld(padStation);
+ LANDING_TRIGGER.copy(padWorld);
+ LANDING_APPROACH.copy(padWorld).add(new THREE.Vector3(0,185,0));
+ LANDING_TOUCHDOWN.copy(padWorld).add(new THREE.Vector3(0,52,0));
+ landingArmed=true;
 },undefined,()=>console.info('Estación Aurora GLB pendiente: se conserva la estación original.'));
 const asteroidMat=mat(0x4c505a);for(let i=0;i<85;i++){const a=new THREE.Mesh(new THREE.IcosahedronGeometry(10+Math.random()*30,1),asteroidMat);a.scale.set(1+Math.random(),.7+Math.random(),.8+Math.random());a.position.set(500+Math.random()*3300,(Math.random()-.5)*1100,-2100+Math.random()*3600);a.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);scene.add(a)}
 const TYPES={scout:{hp:35,damage:5,speed:120,xp:18,color:0xe65757},raider:{hp:55,damage:8,speed:150,xp:28,color:0xe78b45},sentinel:{hp:90,damage:12,speed:90,xp:45,color:0xb86bd9}};
@@ -432,7 +442,7 @@ function leaveHangar(){
  docked=false;landingArmed=false;
  hangar.classList.add('hidden');document.body.classList.remove('docked');
  // Salida fuera del pasillo de descenso, con altura suficiente sobre la plataforma.
- playerMesh.position.set(540,195,-370);yaw=0;pitch=0;
+ playerMesh.position.copy(LANDING_APPROACH).add(new THREE.Vector3(0,50,220));yaw=0;pitch=0;
  resetDockControls();save();
 }
 $('launchBtn').onclick=leaveHangar;
