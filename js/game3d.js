@@ -359,7 +359,10 @@ function updateSupportDrones(dt,now){
  for(let i=0;i<supportDrones.length;i++){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
   // Formación de cuatro parejas escalonadas, sin superposición.
-  const desired=playerMesh.position.clone().addScaledVector(right,d.side*(98+d.rank*45)).addScaledVector(forward,-27-d.rank*44);
+  // Los cuatro primeros: dos a cada lado. Los otros cuatro: dos parejas detrás de la nave.
+  const sideOffset=i<4?(i<2?100:155):(i<6?70:135);
+  const backOffset=i<4?(i<2?20:65):(i<6?165:225);
+  const desired=playerMesh.position.clone().addScaledVector(right,d.side*sideOffset).addScaledVector(forward,-backOffset);
   desired.addScaledVector(up,14+Math.sin(now*.002+i)*4);
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
  }
@@ -479,7 +482,7 @@ function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u
 function renderDrones(){
  const containers=[$('droneShop'),$('hangarDroneShop')].filter(Boolean);if(!containers.length)return;
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
- const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Disparan un láser cada uno SOLO cuando tú disparas, hacia tu misma mira y con igual dispersión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
+ const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Cada dron agrega un láser extra a tu nave cuando disparas. Apunta hacia tu misma mira y conserva la misma precisión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
  for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"');el.querySelector('.buyDroneBtn').onclick=()=>{
   const owned=ownedDrones(),cost=DRONE_PRICES[owned];
   if(owned>=MAX_DRONES||player.gold<cost)return;
