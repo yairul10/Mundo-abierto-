@@ -81,7 +81,23 @@ const enemyDefs=[['scout',1150,-180],['scout',1400,260],['scout',1650,-420],['ra
 const enemies=enemyDefs.map((d,i)=>{const t=TYPES[d[0]],m=ship(t.color,d[0]);scene.add(m);return{type:d[0],mesh:m,home:new THREE.Vector3(d[1],(i%3-1)*70,d[2]),hp:t.hp,maxHp:t.hp,dead:0,angle:i}});enemies.forEach(e=>e.mesh.position.copy(e.home));
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
 let fireCd=0,skillCd=0;
-function fire(mult=1,count=1){if(fireCd>0)return;const dir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();for(let i=0;i<count;i++){const mesh=new THREE.Mesh(new THREE.SphereGeometry(4,8,8),new THREE.MeshBasicMaterial({color:0x55ddff}));mesh.position.copy(playerMesh.position).addScaledVector(dir,45);scene.add(mesh);shots.push({mesh,vel:dir.clone().multiplyScalar(850),life:2.1,damage:player.attack*mult})}fireCd=.28}
+function fire(mult=1,count=1){
+ if(fireCd>0)return;
+ // La mira está en el centro de la pantalla: el rayo de la cámara define el objetivo.
+ // El proyectil nace en la nave, pero converge a ese punto en el mundo 3D.
+ camera.updateMatrixWorld();
+ const aimDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
+ const aimPoint=camera.position.clone().addScaledVector(aimDir,1600);
+ const noseDir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
+ for(let i=0;i<count;i++){
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(4,8,8),new THREE.MeshBasicMaterial({color:0x55ddff}));
+  const start=playerMesh.position.clone().addScaledVector(noseDir,50);
+  mesh.position.copy(start);scene.add(mesh);
+  const dir=aimPoint.clone().sub(start).normalize();
+  shots.push({mesh,vel:dir.multiplyScalar(850),life:2.1,damage:player.attack*mult});
+ }
+ fireCd=.28;
+}
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
