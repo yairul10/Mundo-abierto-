@@ -414,22 +414,22 @@ function finishLanding(){
 function selectLandingPlatform(){
  // La estación GLB se carga de forma asíncrona. Buscar una superficie plana
  // directamente bajo la nave en vez de depender de coordenadas del modelo.
- const ray=new THREE.Raycaster(new THREE.Vector3(playerMesh.position.x,playerMesh.position.y+1200,playerMesh.position.z),new THREE.Vector3(0,-1,0),0,2500);
+ const ray=new THREE.Raycaster(new THREE.Vector3(playerMesh.position.x,playerMesh.position.y+65,playerMesh.position.z),new THREE.Vector3(0,-1,0),0,1300);
  auroraStation.updateMatrixWorld(true);
  const hits=ray.intersectObjects(auroraStation.children,true);
  const hit=hits.find(h=>{
   if(!h.face)return false;
   const normal=h.face.normal.clone().transformDirection(h.object.matrixWorld);
-  return normal.y>.65&&h.point.distanceTo(playerMesh.position)<650;
+  return normal.y>.72&&h.point.y<=playerMesh.position.y+65&&h.point.distanceTo(playerMesh.position)<450;
  });
  if(hit){
   LANDING_TRIGGER.copy(hit.point);
-  LANDING_TOUCHDOWN.copy(hit.point).add(new THREE.Vector3(0,52,0));
-  LANDING_APPROACH.copy(hit.point).add(new THREE.Vector3(0,185,0));
+  LANDING_TOUCHDOWN.copy(hit.point).add(new THREE.Vector3(0,37,0));
+  LANDING_APPROACH.copy(hit.point).add(new THREE.Vector3(0,165,0));
  }
 }
 function beginLanding(){
- if(docked||landing||!landingArmed||!panel.classList.contains('hidden'))return;
+ if(docked||landing||!panel.classList.contains('hidden'))return;
  selectLandingPlatform();
  landing=true;landingTime=0;landingStart=playerMesh.position.clone();landingYaw=yaw;landingPitch=pitch;
  resetDockControls();document.body.classList.add('landing');
@@ -438,7 +438,7 @@ function beginLanding(){
 dockBtn.onclick=()=>{
  if(dockBtn.disabled||dockBtn.classList.contains('hidden'))return;
  const distance=Math.hypot(playerMesh.position.x-auroraStation.position.x,playerMesh.position.z-auroraStation.position.z);
- if(distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<650)beginLanding();
+ if(distance<LANDING_RADIUS)beginLanding();
 };
 function advanceLanding(dt){
  if(!landing)return;
@@ -476,8 +476,8 @@ function updateDock(){
  const distance=Math.hypot(playerMesh.position.x-auroraStation.position.x,playerMesh.position.z-auroraStation.position.z);
  if(distance>LANDING_RADIUS+110)landingArmed=true;
  // Activación sólo cerca de la plataforma, no en toda la zona segura.
- const inCorridor=distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<650;
- const available=inCorridor&&landingArmed&&panel.classList.contains('hidden');
+ const inCorridor=distance<LANDING_RADIUS;
+ const available=inCorridor&&panel.classList.contains('hidden');
  dockBtn.classList.toggle('hidden',!available);
  dockBtn.disabled=!available;
  if(available)dockBtn.textContent='🛬 Aterrizar en Estación Aurora';
