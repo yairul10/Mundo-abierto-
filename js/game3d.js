@@ -249,6 +249,7 @@ modelLoader.load('./assets/models/estacion_aurora.glb?v=1',gltf=>{
 // Estación Aurora modular: tres GLB independientes, con estación antigua como respaldo.
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 let modularStationReady=false;
+const modularLandingPads=[];
 const modularPaths=[
  './assets/models/scififortress_optimizado.glb',
  './assets/models/landingpad_optimizado.glb',
@@ -266,9 +267,10 @@ Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>modelLoader.loa
   const group=new THREE.Group();group.add(obj);return group;
  }
  const hub=fitted(hubSource,315);assembly.add(hub);
- const positions=[[450,0],[-450,0],[0,450],[0,-450],[320,320]];
+ const positions=[[450,0],[-450,0],[0,450],[0,-450]];
  for(const [x,z] of positions){
   const pad=fitted(padSource,250);pad.position.set(x,0,z);assembly.add(pad);
+  modularLandingPads.push(pad);
   const bridge=fitted(bridgeSource,245);
   // Eje largo del corredor local alineado con el radio hacia cada plataforma.
   const bridgeBounds=new THREE.Box3().setFromObject(bridge);
@@ -280,13 +282,14 @@ Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>modelLoader.loa
  // La estación conserva la posición original en el mundo y su luz.
  const old=[...auroraStation.children];for(const child of old)if(!child.isLight)auroraStation.remove(child);
  auroraStation.add(assembly);modularStationReady=true;auroraModelReady=true;
+ auroraLandingModel=assembly;
  // La plataforma oriental es el punto de aterrizaje; conservar alturas seguras.
  const padWorld=auroraStation.localToWorld(new THREE.Vector3(450,15,0));
  LANDING_TRIGGER.copy(padWorld);
  LANDING_APPROACH.copy(padWorld).add(new THREE.Vector3(0,185,0));
  LANDING_TOUCHDOWN.copy(padWorld).add(new THREE.Vector3(0,52,0));
  landingArmed=true;
- console.info('Estación Aurora modular montada: 1 núcleo, 5 plataformas y 5 corredores.');
+ console.info('Estación Aurora modular montada: 1 núcleo, 4 plataformas y 4 corredores.');
 }).catch(err=>console.warn('Estación modular no disponible: se mantiene la estación anterior.',err));
 // Asteroides rocosos: siluetas irregulares, tonos minerales y relieve de bajo costo.
 const asteroidMaterials=[0x77746e,0x8b7765,0x5d6571,0x948b80].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true,emissive:color,emissiveIntensity:.075}));
@@ -756,6 +759,27 @@ function finishLanding(){
 // No usar posiciones antiguas si no existe una plataforma detectable.
 function selectLandingPlatform(apply=false){
  if(!auroraModelReady)return false;
+ if(modularStationReady){
+  auroraStation.updateMatrixWorld(true);
+  let nearest=null,best=Infinity;
+  for(const pad of modularLandingPads){
+   const bounds=new THREE.Box3().setFromObject(pad);
+   const center=bounds.getCenter(new THREE.Vector3());
+   const distance=Math.hypot(playerMesh.position.x-center.x,playerMesh.position.z-center.z);
+   const deltaY=playerMesh.position.y-bounds.max.y;
+   if(distance<155&&deltaY>=-30&&deltaY<240&&distance<best){
+    best=distance;nearest={center,top:bounds.max.y};
+   }
+  }
+  if(!nearest)return false;
+  if(apply){
+   const point=new THREE.Vector3(nearest.center.x,nearest.top,nearest.center.z);
+   LANDING_TRIGGER.copy(point);
+   LANDING_TOUCHDOWN.copy(point).add(new THREE.Vector3(0,37,0));
+   LANDING_APPROACH.copy(point).add(new THREE.Vector3(0,155,0));
+  }
+  return true;
+ }
  const origin=playerMesh.position.clone().add(new THREE.Vector3(0,18,0));
  const ray=new THREE.Raycaster(origin,new THREE.Vector3(0,-1,0),0,240);
  auroraStation.updateMatrixWorld(true);
