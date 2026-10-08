@@ -99,7 +99,7 @@ auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
  const center=bounds.getCenter(new THREE.Vector3());
  const longest=Math.max(size.x,size.y,size.z);
  if(!Number.isFinite(longest)||longest<.0001){createAuroraPlanet();return}
- const targetDiameter=1450;
+ const targetDiameter=2175; // 50% más grande; conservar orientación y ubicación
  const factor=targetDiameter/longest;
  model.scale.setScalar(factor);
  model.position.copy(center).multiplyScalar(-factor);
