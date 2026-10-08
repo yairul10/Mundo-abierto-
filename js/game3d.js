@@ -79,7 +79,7 @@ function loadAuroraFallback(){
   mountPlayerModel(fitPlayerModel(model,-Math.PI/2),'auroraModel');
  },undefined,err=>console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err));
 }
-modelLoader.load('./assets/models/x_wing_starfighter.glb?v=1',gltf=>{
+modelLoader.load('./assets/models/x_wing_starfighter.glb?v=2',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
  // El modelo mira hacia +Z; el juego avanza hacia -Z.
