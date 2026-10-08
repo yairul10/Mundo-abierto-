@@ -639,6 +639,7 @@ function hangarRefresh(){
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
  $('hangarMessage').textContent=missing&&player.gold<cost?'Necesitas '+cost+' créditos para reparar.':'';
+ refreshTestGift();renderDrones();renderUpgrades();
 }
 // Bono de prueba único por progreso guardado en este navegador.
 const giftButton=$('testCreditGift');
