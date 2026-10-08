@@ -41,3 +41,14 @@ body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,b
 #targetInfo.outside-zone{border-color:#f5a35eaa}
 #combatControls{bottom:32px}
 @media(max-width:600px){#radarWidget{top:88px;right:8px;transform:scale(.77);transform-origin:top right}#targetInfo{top:42%;left:50%;font-size:14px;padding:11px 17px}#combatControls{bottom:30px}}
+
+/* Controles compactos de cámara y HUD plegable para móviles. */
+#hud{z-index:12;padding-right:40px}
+#hudToggle{position:absolute;right:6px;top:6px;width:29px;height:29px;border-radius:9px;border:1px solid #a6c4df77;background:#122a43;color:#e9f7ff;font-size:22px;line-height:24px;z-index:2;cursor:pointer}
+#hud.collapsed{min-width:0;width:auto;padding:7px 40px 7px 10px}
+#hud.collapsed #hudDetails{display:none}
+#hud.collapsed::before{content:"❤️ Vida";font-size:12px;font-weight:700;color:#e8f6ff}
+#hud.collapsed #hudToggle{top:3px;right:4px}
+#zoomControls{position:absolute;right:14px;bottom:184px;display:flex;flex-direction:column;gap:8px;z-index:15}
+#zoomControls button{width:42px;height:42px;border-radius:50%;border:1px solid #b8dfff99;background:#10243ddc;color:white;font-size:26px;line-height:1;touch-action:manipulation}
+@media(max-width:600px){#zoomControls{right:12px;bottom:174px}#zoomControls button{width:39px;height:39px;font-size:23px}}
