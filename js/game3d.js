@@ -367,6 +367,8 @@ const supportDrones=[];
 const MAX_DRONES=8;
 // Los primeros dos mantienen su precio original; los siguientes son progresión futura.
 const DRONE_PRICES=[100,200,5000,20000,80000,300000,1000000,4000000];
+const EXPLORER_PRICE=DRONE_PRICES[7]*2;
+player.explorerDrone=player.explorerDrone===true;
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
 function ownedDrones(){return player.droneCount}
 for(let i=0;i<MAX_DRONES;i++){
@@ -379,6 +381,28 @@ for(let i=0;i<MAX_DRONES;i++){
  const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(3,4,18,8),new THREE.MeshStandardMaterial({color:0x365c86,metalness:.75,roughness:.3,emissive:0x063f72}));muzzle.rotation.x=Math.PI/2;muzzle.position.z=-18;drone.add(muzzle);
  drone.scale.setScalar(0.6); // 40% menos tamaño visual, sin alterar disparos ni formación.
  scene.add(drone);supportDrones.push({mesh:drone,side,rank:Math.floor(i/2)});
+}
+// Noveno dron especial: mascota exploradora independiente de los ocho de combate.
+const explorerMesh=new THREE.Group();
+const explorerShell=new THREE.Mesh(new THREE.OctahedronGeometry(13,1),new THREE.MeshStandardMaterial({color:0xe3ad43,metalness:.6,roughness:.3,emissive:0x69410d,emissiveIntensity:.35}));
+explorerShell.scale.set(1.1,.7,1.4);explorerMesh.add(explorerShell);
+const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.MeshBasicMaterial({color:0x6effc8}));
+explorerEye.position.z=-15;explorerMesh.add(explorerEye);
+explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
+function updateExplorer(dt,now){
+ explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
+ if(!explorerMesh.visible)return;
+ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+ let target=playerMesh.position.clone().addScaledVector(forward,-95).add(new THREE.Vector3(0,26+Math.sin(now*.003)*5,0));
+ let closest=null,best=550;
+ for(const drop of drops){
+  const dist=drop.mesh.position.distanceTo(explorerMesh.position);
+  if(dist<best){best=dist;closest=drop}
+ }
+ if(closest)target=closest.mesh.position.clone().add(new THREE.Vector3(0,12,0));
+ explorerMesh.position.lerp(target,Math.min(1,dt*3.5));
+ explorerMesh.rotation.y=yaw;
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
@@ -417,9 +441,9 @@ function updateSupportDrones(dt,now){
 }
 // Disparo manual sincronizado: cada dron copia la mira y la dispersión de la nave.
 function fireSupportDrones(aimPoint,locked,noseDir){
- const count=ownedDrones();if(!count)return;
- for(let i=0;i<count;i++){
-  const d=supportDrones[i];if(!d.mesh.visible)continue;
+ const count=ownedDrones();if(!count&&!player.explorerDrone)return;
+ for(let i=0;i<count+(player.explorerDrone?1:0);i++){
+  const d=i<count?supportDrones[i]:{mesh:explorerMesh};if(!d.mesh.visible)continue;
   const start=d.mesh.position.clone().addScaledVector(noseDir,26);
   const destination=aimPoint.clone();
   if(locked){
@@ -532,10 +556,16 @@ player.upgrades=player.upgrades&&typeof player.upgrades==='object'?player.upgrad
 function upgradeLevel(id){return Math.max(0,Math.min(10,Math.floor(Number(player.upgrades[id])||0)))}
 function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u)=>n+upgradeLevel(u.id)*u.amount,0)}
 function renderDrones(){
- const containers=[$('droneShop'),$('hangarDroneShop')].filter(Boolean);if(!containers.length)return;
+ const containers=[$('hangarDroneShop')].filter(Boolean);if(!containers.length)return;
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
  const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Cada dron agrega un láser extra a tu nave cuando disparas. Apunta hacia tu misma mira y conserva la misma precisión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
- for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"');el.querySelector('.buyDroneBtn').onclick=()=>{
+ const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Dron Explorador · 9.º especial</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirido y equipado':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Requiere 8 drones')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||count<8||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipado':'Comprar')+'</button></div>';
+ for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml;
+ el.querySelector('.buyExplorerBtn').onclick=()=>{
+  if(player.explorerDrone||ownedDrones()<8||player.gold<EXPLORER_PRICE)return;
+  player.gold-=EXPLORER_PRICE;player.explorerDrone=true;save();hud();renderDrones();lootToast('🛰️ Dron Explorador equipado');
+  if(docked)hangarRefresh();
+ };el.querySelector('.buyDroneBtn').onclick=()=>{
   const owned=ownedDrones(),cost=DRONE_PRICES[owned];
   if(owned>=MAX_DRONES||player.gold<cost)return;
   player.gold-=cost;player.droneCount=owned+1;save();hud();renderDrones();
@@ -544,7 +574,7 @@ function renderDrones(){
  };}
 }
 function renderUpgrades(){
- const containers=[$('upgradeList'),$('hangarUpgradeShop')].filter(Boolean);if(!containers.length)return;
+ const containers=[$('hangarUpgradeShop')].filter(Boolean);if(!containers.length)return;
  const html=UPGRADES.map(u=>{
   const lv=upgradeLevel(u.id),max=lv>=10,need=u.base+lv,price=u.credits*(lv+1);
   const available=(Number(player.loot[u.material])||0)>=need&&player.gold>=price;
@@ -652,7 +682,7 @@ function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
   const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*.65;d.mesh.rotation.z+=dt*.14;
   d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
-  if(d.mesh.position.distanceTo(playerMesh.position)<90){
+  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&d.mesh.position.distanceTo(explorerMesh.position)<42)){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
    scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot');save();
@@ -978,7 +1008,7 @@ drawRadar(dt);
 const playerSafe=updateZone();updateDock();
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<650&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>170)e.mesh.position.addScaledVector(dir,t.speed*dt);else if(d<65)player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d<570&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
 updateEnemyShots(dt);
-updateSupportDrones(dt,now);
+updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile&&p.target&&!p.target.dead&&p.target.mesh.visible){const desired=p.target.mesh.position.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.vel.lerp(desired,Math.min(1,dt*2.8));p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize())}p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
