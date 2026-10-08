@@ -5,3 +5,6 @@
 #flightControls{display:none!important}#lookZone{position:absolute;z-index:2;right:0;top:0;width:52%;height:100%;touch-action:none}#joystick{z-index:6}#stick{left:33px}#combatControls{z-index:7}#characterBtn,#hud,#targetInfo{z-index:8}@media(max-width:600px){#lookZone{width:55%}}
 /* Evita superponer el indicador de estación con el HUD en móvil */
 @media(max-width:600px){#targetInfo{left:auto;right:14px;top:74px;transform:none;max-width:38%;font-size:9px;padding:5px 7px;letter-spacing:.3px}}
+
+/* Inventario de materiales y estado dinámico del sector */
+.inventory-note{font-size:12px;line-height:1.5;color:#aebed3}.inventory-item{display:flex;align-items:center;gap:10px;padding:11px 7px;border-bottom:1px solid #ffffff20}.inventory-item>div{flex:1;min-width:0}.inventory-item strong,.inventory-item small{display:block}.inventory-item strong{font-size:13px}.inventory-item small{font-size:11px;color:#aebed3;line-height:1.45;margin-top:3px}.inventory-item>b{font-size:16px;color:#ffe3a1}.inventory-gem{width:15px;height:15px;flex:none;transform:rotate(45deg);border:1px solid #ffffffaa;box-shadow:0 0 12px #ffffff55}#targetInfo.outside-zone{border-color:#88a9c477}#targetInfo.outside-zone small{color:#d5e5f5}
