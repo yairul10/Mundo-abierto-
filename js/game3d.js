@@ -129,12 +129,15 @@ modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=1',gltf=>{
 },undefined,err=>console.warn('Modelo scout GLB no disponible; se conserva la nave básica original.',err));
 // Dos drones de apoyo: acompañan al jugador y disparan proyectiles reales.
 const supportDrones=[];
+player.droneCount=Math.max(0,Math.min(2,Math.floor(Number(player.droneCount)||0)));
+function ownedDrones(){return player.droneCount}
 for(const side of[-1,1]){
  const drone=new THREE.Group();
  const shell=new THREE.Mesh(new THREE.OctahedronGeometry(11,0),new THREE.MeshStandardMaterial({color:0x748da7,metalness:.65,roughness:.3,emissive:0x102d4c}));
  shell.scale.set(1.4,.55,1.7);drone.add(shell);
  const eye=new THREE.Mesh(new THREE.SphereGeometry(4,8,6),new THREE.MeshBasicMaterial({color:0x3be7ff}));eye.position.z=-14;drone.add(eye);
  for(const wing of[-1,1]){const fin=new THREE.Mesh(new THREE.BoxGeometry(13,2,17),new THREE.MeshStandardMaterial({color:0x243c59,metalness:.6,roughness:.3}));fin.position.x=wing*16;drone.add(fin)}
+ const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(3,4,18,8),new THREE.MeshStandardMaterial({color:0x365c86,metalness:.75,roughness:.3,emissive:0x063f72}));muzzle.rotation.x=Math.PI/2;muzzle.position.z=-18;drone.add(muzzle);
  scene.add(drone);supportDrones.push({mesh:drone,side,cooldown:side===-1?.3:.8});
 }
 function updateSupportDrones(dt,now){
@@ -142,19 +145,20 @@ function updateSupportDrones(dt,now){
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const target=lockedEnemy&&!lockedEnemy.dead?lockedEnemy:nearest();
- for(const d of supportDrones){
+ for(let i=0;i<supportDrones.length;i++){
+  const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
   const desired=playerMesh.position.clone().addScaledVector(right,d.side*102).addScaledVector(forward,-27);
   desired.y+=14+Math.sin(now*.002+d.side)*4;
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
   d.cooldown-=dt;
   if(!active||!target||target.dead||d.cooldown>0||target.mesh.position.distanceTo(d.mesh.position)>720)continue;
   if(inSafeZone(d.mesh.position))continue;
-  const start=d.mesh.position.clone().addScaledVector(forward,15);
+  const start=d.mesh.position.clone().addScaledVector(forward,26);
   const direction=target.mesh.position.clone().sub(start).normalize();
-  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,27,6),new THREE.MeshBasicMaterial({color:0x2c9dff}));
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,42,8),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95}));
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
   shots.push({mesh:bolt,vel:direction.multiplyScalar(950),life:1,damage:Math.max(1,player.attack*.17)});
-  d.cooldown=1.25;
+  d.cooldown=1.1;
  }
 }
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
@@ -227,6 +231,17 @@ const UPGRADES=[
 player.upgrades=player.upgrades&&typeof player.upgrades==='object'?player.upgrades:{};
 function upgradeLevel(id){return Math.max(0,Math.min(10,Math.floor(Number(player.upgrades[id])||0)))}
 function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u)=>n+upgradeLevel(u.id)*u.amount,0)}
+function renderDrones(){
+ const el=$('droneShop');if(!el)return;
+ const count=ownedDrones(),price=count===0?100:200;
+ el.innerHTML='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/2</strong><small>Cada dron dispara su propio láser automático contra enemigos cercanos.</small><small>'+(count>=2?'Dos drones equipados':'Siguiente dron: '+price+' créditos')+'</small></div><button id="buyDroneBtn" '+(count>=2||player.gold<price?'disabled':'')+'>'+(count>=2?'Máximo':'Comprar')+'</button></div>';
+ const button=$('buyDroneBtn');button.onclick=()=>{
+  const owned=ownedDrones(),cost=owned===0?100:200;
+  if(owned>=2||player.gold<cost)return;
+  player.gold-=cost;player.droneCount=owned+1;save();hud();renderDrones();
+  lootToast('🤖 Dron '+player.droneCount+' adquirido y equipado');
+ };
+}
 function renderUpgrades(){
  const el=$('upgradeList');if(!el)return;
  el.innerHTML=UPGRADES.map(u=>{
@@ -411,7 +426,7 @@ playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
 function hud(){$('playerName').textContent=player.name;$('classLabel').textContent=player.classId?CLASSES[player.classId].name:'Sin tipo';$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
-const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;renderInventory();renderUpgrades();box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp+upgradeBonus('maxHp');player.hp=player.maxHp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack+upgradeBonus('attack');player.defense=c.defense+upgradeBonus('defense');player.speed=c.speed+upgradeBonus('speed');hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
+const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;renderInventory();renderUpgrades();renderDrones();box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp+upgradeBonus('maxHp');player.hp=player.maxHp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack+upgradeBonus('attack');player.defense=c.defense+upgradeBonus('defense');player.speed=c.speed+upgradeBonus('speed');hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
