@@ -109,27 +109,30 @@ auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
   const materials=Array.isArray(obj.material)?obj.material:[obj.material];
   for(const material of materials){if(!material)continue;material.fog=false;material.side=THREE.FrontSide;}
  });
- // Iluminación dedicada: conserva el detalle azul de océanos y anillos
- // aunque el planeta esté lejos de la luz general del sector.
- // Presentación frontal similar a Sloyd: el eje de los anillos queda
- // inclinado respecto de la cámara del jugador (que mira hacia -Z).
- // Rotar el conjunto completo, no solo el planeta interior.
+ // Orientación real del GLB, con ajuste interactivo en el teléfono.
+ // El giro Y permite ver la cara opuesta, no solo inclinar los anillos.
  model.rotation.order='YXZ';
- // Corregir la pendiente del óvalo: de casi vertical a una diagonal suave.
- model.rotation.set(-.18,.08,-.88);
- model.traverse(obj=>{
-  if(!obj.isMesh)return;
-  const materials=Array.isArray(obj.material)?obj.material:[obj.material];
-  for(const material of materials){
-   if(!material||!material.isMeshStandardMaterial)continue;
-   // Evitar que el brillo metálico oscurezca los anillos de hielo.
-   material.roughness=Math.max(.82,material.roughness??.8);
-   material.metalness=Math.min(.12,material.metalness??0);
-   if(material.map){material.emissiveMap=material.map;material.emissive=new THREE.Color(0xa8cfff);material.emissiveIntensity=.85;}
-   else {material.emissive=new THREE.Color(0x94b8d8);material.emissiveIntensity=.48;}
-   material.needsUpdate=true;
-  }
- });
+ const defaultAngles=[-.18,2.4,-.88];
+ let angles=defaultAngles;
+ try{const saved=JSON.parse(localStorage.getItem('auroraPlanetAngles'));if(Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite))angles=saved}catch{}
+ const applyAngles=()=>model.rotation.set(angles[0],angles[1],angles[2]);
+ applyAngles();
+ const planetTool=document.createElement('div');
+ planetTool.style.cssText='position:fixed;right:12px;bottom:170px;z-index:70;font:13px system-ui;color:#e8f6ff;pointer-events:auto';
+ const toggle=document.createElement('button');toggle.textContent='🪐 Orientar planeta';
+ toggle.style.cssText='background:#102842;color:#fff;border:1px solid #6dbce9;border-radius:12px;padding:9px 12px;font:600 13px system-ui';
+ const editor=document.createElement('div');editor.style.cssText='display:none;margin-top:6px;background:rgba(7,18,37,.95);border:1px solid #5c9dc7;border-radius:12px;padding:12px;width:220px;box-shadow:0 4px 16px #0008';
+ toggle.onclick=()=>{editor.style.display=editor.style.display==='none'?'block':'none'};
+ const axes=[['Inclinar arriba/abajo',0],['Mostrar otra cara',1],['Inclinar anillos',2]];
+ for(const [name,idx] of axes){
+  const label=document.createElement('label');label.textContent=name;label.style.cssText='display:block;margin-bottom:9px';
+  const slider=document.createElement('input');slider.type='range';slider.min='-3.14';slider.max='3.14';slider.step='.02';slider.value=String(angles[idx]);slider.style.cssText='width:100%;display:block;margin-top:5px;accent-color:#6ad5ff';
+  slider.oninput=()=>{angles[idx]=Number(slider.value);applyAngles();localStorage.setItem('auroraPlanetAngles',JSON.stringify(angles))};
+  label.appendChild(slider);editor.appendChild(label);
+ }
+ const reset=document.createElement('button');reset.textContent='Restablecer';reset.style.cssText='background:#29465b;color:white;border:0;border-radius:8px;padding:7px';
+ reset.onclick=()=>{angles=[...defaultAngles];applyAngles();localStorage.removeItem('auroraPlanetAngles');editor.querySelectorAll('input').forEach((input,i)=>input.value=String(angles[i]))};
+ editor.appendChild(reset);planetTool.append(toggle,editor);document.body.appendChild(planetTool);
  auroraPlanetPivot.add(model);
  const planetLight=new THREE.DirectionalLight(0xeaf6ff,5.2);
  planetLight.position.set(-950,1100,1600);
