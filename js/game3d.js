@@ -477,25 +477,26 @@ player.upgrades=player.upgrades&&typeof player.upgrades==='object'?player.upgrad
 function upgradeLevel(id){return Math.max(0,Math.min(10,Math.floor(Number(player.upgrades[id])||0)))}
 function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u)=>n+upgradeLevel(u.id)*u.amount,0)}
 function renderDrones(){
- const el=$('droneShop');if(!el)return;
+ const containers=[$('droneShop'),$('hangarDroneShop')].filter(Boolean);if(!containers.length)return;
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
- el.innerHTML='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Disparan un láser cada uno SOLO cuando tú disparas, hacia tu misma mira y con igual dispersión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
- $('buyDroneBtn').onclick=()=>{
+ const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Disparan un láser cada uno SOLO cuando tú disparas, hacia tu misma mira y con igual dispersión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
+ for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"');el.querySelector('.buyDroneBtn').onclick=()=>{
   const owned=ownedDrones(),cost=DRONE_PRICES[owned];
   if(owned>=MAX_DRONES||player.gold<cost)return;
   player.gold-=cost;player.droneCount=owned+1;save();hud();renderDrones();
   lootToast('🤖 Dron '+player.droneCount+' adquirido y equipado');
- };
+  if(docked)hangarRefresh();
+ };}
 }
 function renderUpgrades(){
- const el=$('upgradeList');if(!el)return;
- el.innerHTML=UPGRADES.map(u=>{
+ const containers=[$('upgradeList'),$('hangarUpgradeShop')].filter(Boolean);if(!containers.length)return;
+ const html=UPGRADES.map(u=>{
   const lv=upgradeLevel(u.id),max=lv>=10,need=u.base+lv,price=u.credits*(lv+1);
   const available=(Number(player.loot[u.material])||0)>=need&&player.gold>=price;
   const resource=LOOT_TYPES.find(t=>t.id===u.material);
   return '<div class="upgrade-card"><div><strong>'+u.icon+' '+u.name+'</strong><small>Nivel '+lv+'/10 · +'+u.amount+' '+({maxHp:'casco',defense:'escudo',attack:'potencia',speed:'velocidad'}[u.stat])+' por nivel</small><small>'+ (max?'Mejora máxima':'Costo: '+need+' '+resource.name+' + '+price+' créditos')+'</small></div><button data-upgrade="'+u.id+'" '+(max||!available?'disabled':'')+'>'+(max?'Máximo':'Mejorar')+'</button></div>';
  }).join('');
- el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));
+ for(const el of containers){el.innerHTML=html;el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));}
 }
 function buyUpgrade(id){
  const u=UPGRADES.find(v=>v.id===id);if(!u)return;
@@ -504,7 +505,7 @@ function buyUpgrade(id){
  player.loot[u.material]-=need;player.gold-=price;player.upgrades[id]=lv+1;
  player[u.stat]+=u.amount;
  if(u.stat==='maxHp')player.hp=Math.min(player.maxHp,player.hp+u.amount);
- save();hud();renderUpgrades();renderInventory();
+ save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
 }
 function renderInventory(){
  $('lootInventory').innerHTML=LOOT_TYPES.map(t=>'<div class="inventory-item"><span class="inventory-gem" style="background:#'+t.color.toString(16).padStart(6,'0')+'"></span><div><strong>'+t.name+'</strong><small>'+t.rarity+' · '+t.description+'</small></div><b>×'+(Math.max(0,Number(player.loot[t.id])||0))+'</b></div>').join('');
@@ -639,6 +640,14 @@ function hangarRefresh(){
  $('repairBtn').disabled=!missing||player.gold<cost;
  $('hangarMessage').textContent=missing&&player.gold<cost?'Necesitas '+cost+' créditos para reparar.':'';
 }
+// Bono de prueba único por progreso guardado en este navegador.
+const giftButton=$('testCreditGift');
+function refreshTestGift(){const claimed=!!player.testCreditGift65;giftButton.disabled=claimed;giftButton.textContent=claimed?'✓ Bono de 30.000 créditos recibido':'🎁 Reclamar 30.000 créditos de prueba'}
+giftButton.onclick=()=>{
+ if(!docked||player.testCreditGift65)return;
+ player.testCreditGift65=true;player.gold=(Number(player.gold)||0)+30000;
+ save();hud();hangarRefresh();lootToast('🎁 +30.000 créditos de prueba');
+};
 function resetDockControls(){
  joy.throttle=0;joy.strafe=0;$('stick').style.transform='';
  for(const key of Object.keys(keys))keys[key]=0;
@@ -809,7 +818,7 @@ function updateSectorBoundary(dt){
  sectorNotice.textContent='☢️ Fuera del Sector Aurora · -8 casco/s · Regresa hacia la estación';
 }
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
-function hud(){$('playerName').textContent=player.name;$('classLabel').textContent=player.classId?CLASSES[player.classId].name:'Sin tipo';$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
+function hud(){const compact=$('hudCompactHealthFill');if(compact)compact.style.width=Math.max(0,Math.min(100,100*player.hp/player.maxHp))+'%';$('playerName').textContent=player.name;$('classLabel').textContent=player.classId?CLASSES[player.classId].name:'Sin tipo';$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
 // Zoom discreto de cámara, sin alterar la dirección de disparo ni el joystick.
 let cameraZoom=285;
 function setCameraZoom(next){cameraZoom=THREE.MathUtils.clamp(next,170,540)}
