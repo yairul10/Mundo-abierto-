@@ -72,3 +72,9 @@ body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,b
 #qaPanel{margin:14px 0;padding:12px;border:1px solid #77d8ff66;border-radius:12px;background:#09203caa}
 #qaPanel h3{margin:0 0 6px}#qaPanel button{margin:5px 0;width:100%}
 #qaTools.hidden{display:none}
+
+/* Campaña Aurora: seguimiento compacto y plegable en móviles. */
+#questTracker{z-index:7;padding-right:34px;max-width:calc(100vw - 104px)}
+#questToggle{position:absolute;right:5px;top:4px;background:#213952;color:white;border:1px solid #ffffff44;border-radius:8px;width:27px;height:27px;font-size:17px}
+#questTracker.collapsed{width:auto;min-width:185px;padding:9px 34px 9px 10px}
+#questTracker.collapsed #questObjective,#questTracker.collapsed .quest-progress,#questTracker.collapsed #questReward{display:none}
