@@ -388,7 +388,7 @@ function drawRadar(dt){
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
 let docked=false,landing=false,landingTime=0,landingStart=null,landingYaw=0,landingPitch=0,landingArmed=true;
 const LANDING_TRIGGER=new THREE.Vector3(540,0,-650);
-const LANDING_RADIUS=330;
+const LANDING_RADIUS=780; // Alcance de atraque desde el centro de la estación
 const LANDING_APPROACH=new THREE.Vector3(535,175,-650);
 const LANDING_TOUCHDOWN=new THREE.Vector3(535,24,-650);
 const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t)};
@@ -411,16 +411,34 @@ function finishLanding(){
  player.energy=player.maxEnergy;hangar.classList.remove('hidden');
  hangarRefresh();save();
 }
+function selectLandingPlatform(){
+ // La estación GLB se carga de forma asíncrona. Buscar una superficie plana
+ // directamente bajo la nave en vez de depender de coordenadas del modelo.
+ const ray=new THREE.Raycaster(new THREE.Vector3(playerMesh.position.x,playerMesh.position.y+1200,playerMesh.position.z),new THREE.Vector3(0,-1,0),0,2500);
+ auroraStation.updateMatrixWorld(true);
+ const hits=ray.intersectObjects(auroraStation.children,true);
+ const hit=hits.find(h=>{
+  if(!h.face)return false;
+  const normal=h.face.normal.clone().transformDirection(h.object.matrixWorld);
+  return normal.y>.65&&h.point.distanceTo(playerMesh.position)<650;
+ });
+ if(hit){
+  LANDING_TRIGGER.copy(hit.point);
+  LANDING_TOUCHDOWN.copy(hit.point).add(new THREE.Vector3(0,52,0));
+  LANDING_APPROACH.copy(hit.point).add(new THREE.Vector3(0,185,0));
+ }
+}
 function beginLanding(){
  if(docked||landing||!landingArmed||!panel.classList.contains('hidden'))return;
+ selectLandingPlatform();
  landing=true;landingTime=0;landingStart=playerMesh.position.clone();landingYaw=yaw;landingPitch=pitch;
  resetDockControls();document.body.classList.add('landing');
  dockBtn.classList.remove('hidden');dockBtn.disabled=true;dockBtn.textContent='🛬 Piloto automático · Aproximación';
 }
 dockBtn.onclick=()=>{
  if(dockBtn.disabled||dockBtn.classList.contains('hidden'))return;
- const distance=Math.hypot(playerMesh.position.x-LANDING_TRIGGER.x,playerMesh.position.z-LANDING_TRIGGER.z);
- if(distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<360)beginLanding();
+ const distance=Math.hypot(playerMesh.position.x-auroraStation.position.x,playerMesh.position.z-auroraStation.position.z);
+ if(distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<650)beginLanding();
 };
 function advanceLanding(dt){
  if(!landing)return;
@@ -455,10 +473,10 @@ $('repairBtn').onclick=()=>{
 function updateDock(){
  if(docked)return;
  if(landing){dockBtn.classList.remove('hidden');return}
- const distance=Math.hypot(playerMesh.position.x-LANDING_TRIGGER.x,playerMesh.position.z-LANDING_TRIGGER.z);
+ const distance=Math.hypot(playerMesh.position.x-auroraStation.position.x,playerMesh.position.z-auroraStation.position.z);
  if(distance>LANDING_RADIUS+110)landingArmed=true;
  // Activación sólo cerca de la plataforma, no en toda la zona segura.
- const inCorridor=distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<360;
+ const inCorridor=distance<LANDING_RADIUS&&Math.abs(playerMesh.position.y)<650;
  const available=inCorridor&&landingArmed&&panel.classList.contains('hidden');
  dockBtn.classList.toggle('hidden',!available);
  dockBtn.disabled=!available;
