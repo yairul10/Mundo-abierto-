@@ -497,11 +497,25 @@ function updateLoot(dt){
  }
 }
 function kill(e){const t=TYPES[e.type];e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
-function skill(){if(skillCd>0||!player.classId)return;const id=player.classId;if(id==='soporte'&&player.energy>=30){player.energy-=30;player.hp=Math.min(player.maxHp,player.hp+Math.round(player.maxHp*.35));skillCd=8}else if(id==='interceptora'&&player.energy>=30){player.energy-=30;fire(1.2,3);skillCd=5}else if(id==='acorazada'&&player.energy>=25){player.energy-=25;fire(2.4);skillCd=5}else if(id==='energia'&&player.energy>=35){player.energy-=35;for(const e of enemies)if(!e.dead&&e.mesh.position.distanceTo(playerMesh.position)<250){e.hp-=player.attack*1.8;if(e.hp<=0)kill(e)}skillCd=7}}
+// Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
+function skill(){
+ if(skillCd>0||player.energy<25||docked||landing||inSafeZone(playerMesh.position))return;
+ updateTargetLock();
+ const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
+ const start=playerMesh.position.clone().addScaledVector(forward,65);
+ const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
+ const aim=lockedEnemy?lockedEnemy.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1700);
+ const dir=aim.sub(start).normalize();
+ const mesh=new THREE.Mesh(new THREE.ConeGeometry(7,33,8),new THREE.MeshStandardMaterial({color:0xf3f3f3,emissive:0xff7629,emissiveIntensity:.7,metalness:.35,roughness:.4}));
+ mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
+ mesh.position.copy(start);scene.add(mesh);
+ shots.push({mesh,vel:dir.multiplyScalar(650),life:3,damage:player.attack*3,missile:true,target:lockedEnemy});
+ player.energy-=25;skillCd=7;
+}
 // Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
 const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
 function inSafeZone(position){return position.distanceTo(SAFE_ZONE_CENTER)<SAFE_ZONE_RADIUS}
-let lastZoneLabel='';
+let lastZoneLabel='',zoneToastTimer=null;
 function updateZone(){
  const safe=inSafeZone(playerMesh.position);
  const label=safe?'ESTACIÓN AURORA|Zona segura':'SECTOR AURORA|Espacio abierto';
@@ -509,7 +523,11 @@ function updateZone(){
   const [title,subtitle]=label.split('|'),el=$('targetInfo');
   el.replaceChildren(document.createTextNode(title),document.createElement('br'));
   const small=document.createElement('small');small.textContent=subtitle;el.appendChild(small);
-  el.classList.toggle('outside-zone',!safe);lastZoneLabel=label;
+  el.classList.toggle('outside-zone',!safe);
+  el.classList.add('zone-visible');
+  clearTimeout(zoneToastTimer);
+  zoneToastTimer=setTimeout(()=>el.classList.remove('zone-visible'),2800);
+  lastZoneLabel=label;
  }
  return safe;
 }
@@ -697,7 +715,7 @@ drawRadar(dt);
 const playerSafe=updateZone();updateDock();
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 updateSupportDrones(dt,now);
- for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
+ for(const p of shots){if(p.missile&&p.target&&!p.target.dead&&p.target.mesh.visible){const desired=p.target.mesh.position.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.vel.lerp(desired,Math.min(1,dt*2.8));p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize())}p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
 const back=forward.clone().multiplyScalar(-285).add(new THREE.Vector3(0,105,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
