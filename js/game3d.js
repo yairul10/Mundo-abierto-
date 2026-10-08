@@ -105,20 +105,52 @@ const enemyDefs=[['scout',1150,-180],['scout',1400,260],['scout',1650,-420],['ra
 const enemies=enemyDefs.map((d,i)=>{const t=TYPES[d[0]],m=ship(t.color,d[0]);scene.add(m);return{type:d[0],mesh:m,home:new THREE.Vector3(d[1],(i%3-1)*70,d[2]),hp:t.hp,maxHp:t.hp,dead:0,angle:i}});enemies.forEach(e=>e.mesh.position.copy(e.home));
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
 let fireCd=0,skillCd=0;
+// Apuntado asistido: sólo objetivos vivos dentro del cono central de la pantalla.
+let lockedEnemy=null;
+const lockFrame=$('targetLock');
+function updateTargetLock(){
+ camera.updateMatrixWorld();
+ let candidate=null,best=Infinity,screen=null;
+ const forwardView=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+ for(const e of enemies){
+  if(e.dead||!e.mesh.visible)continue;
+  const to=e.mesh.position.clone().sub(camera.position),distance=to.length();
+  if(distance>1550||distance<40||to.dot(forwardView)<=0)continue;
+  const p=e.mesh.position.clone().project(camera);
+  if(p.z<-1||p.z>1||Math.abs(p.x)>.34||Math.abs(p.y)>.30)continue;
+  const score=p.x*p.x+p.y*p.y+distance/18000;
+  if(score<best){best=score;candidate=e;screen=p}
+ }
+ lockedEnemy=candidate;
+ if(candidate&&screen&&!document.body.classList.contains('inventory-open')){
+  lockFrame.classList.remove('hidden');
+  lockFrame.style.left=((screen.x+1)*50)+'%';
+  lockFrame.style.top=((1-screen.y)*50)+'%';
+ }else lockFrame.classList.add('hidden');
+}
 function fire(mult=1,count=1){
  if(fireCd>0)return;
- // La mira está en el centro de la pantalla: el rayo de la cámara define el objetivo.
- // El proyectil nace en la nave, pero converge a ese punto en el mundo 3D.
- camera.updateMatrixWorld();
- const aimDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
- const aimPoint=camera.position.clone().addScaledVector(aimDir,1600);
+ updateTargetLock();
+ const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
+ const aimPoint=lockedEnemy?lockedEnemy.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1600);
  const noseDir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
- for(let i=0;i<count;i++){
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(4,8,8),new THREE.MeshBasicMaterial({color:0x55ddff}));
-  const start=playerMesh.position.clone().addScaledVector(noseDir,64);
+ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ // Un par de láseres por pulsación, saliendo de lados opuestos de la nave.
+ for(let i=0;i<2;i++){
+  const start=playerMesh.position.clone().addScaledVector(noseDir,58).addScaledVector(right,i===0?-26:26);
+  const destination=aimPoint.clone();
+  if(lockedEnemy){
+   // Pequeña dispersión: asistencia, pero no impactos garantizados.
+   const spread=13;
+   destination.x+=(Math.random()-.5)*spread*2;
+   destination.y+=(Math.random()-.5)*spread*2;
+   destination.z+=(Math.random()-.5)*spread*2;
+  }
+  const dir=destination.sub(start).normalize();
+  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false}));
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  const dir=aimPoint.clone().sub(start).normalize();
-  shots.push({mesh,vel:dir.multiplyScalar(850),life:2.1,damage:player.attack*mult});
+  shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5});
  }
  fireCd=.28;
 }
@@ -268,6 +300,6 @@ const playerSafe=updateZone();
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
 for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,0,0);player.hp=player.maxHp;player.energy=player.maxEnergy}
-const back=forward.clone().multiplyScalar(-285).add(new THREE.Vector3(0,105,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
+const back=forward.clone().multiplyScalar(-285).add(new THREE.Vector3(0,105,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));updateTargetLock();hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 hud();
