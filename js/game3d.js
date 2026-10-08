@@ -6,6 +6,45 @@ const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:
 let stored={};try{stored=JSON.parse(localStorage.getItem('mundoAbierto.player')||'{}')||{}}catch{}let player={...DEFAULT,...stored};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x020611);scene.fog=new THREE.FogExp2(0x020611,.00032);
+// Fondo espacial panorámico ligero: textura generada una vez, sin geometría
+// adicional ni llamadas de red. Nebulosas tenues y estrellas sobre espacio oscuro.
+function createSpaceBackground(){
+ const c=document.createElement('canvas');c.width=2048;c.height=1024;
+ const ctx=c.getContext('2d');if(!ctx)return null;
+ const base=ctx.createLinearGradient(0,0,0,c.height);
+ base.addColorStop(0,'#01040d');base.addColorStop(.45,'#030716');base.addColorStop(1,'#01040b');
+ ctx.fillStyle=base;ctx.fillRect(0,0,c.width,c.height);
+ // Nubes superpuestas muy transparentes para no competir con la mira.
+ const clouds=[
+  [360,440,480,245,'55,89,160',.16],
+  [850,530,570,230,'87,49,135',.12],
+  [1430,375,540,260,'35,110,163',.16],
+  [1900,640,410,240,'89,54,144',.11],
+  [75,630,370,190,'40,100,155',.09]
+ ];
+ for(const [x,y,rx,ry,rgb,alpha] of clouds){
+  ctx.save();ctx.translate(x,y);ctx.scale(1,ry/rx);
+  const g=ctx.createRadialGradient(0,0,0,0,0,rx);
+  g.addColorStop(0,'rgba('+rgb+','+alpha+')');
+  g.addColorStop(.4,'rgba('+rgb+','+(alpha*.45)+')');
+  g.addColorStop(1,'rgba('+rgb+',0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,rx,0,Math.PI*2);ctx.fill();ctx.restore();
+ }
+ // Distribución reproducible para que el fondo no cambie en cada carga.
+ let seed=91347;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ for(let i=0;i<2900;i++){
+  const x=random()*c.width,y=random()*c.height;
+  const radius=random()>.982?1.8:.35+random()*.8;
+  const intensity=.22+random()*.65;
+  const tint=random();ctx.fillStyle=tint>.93?'rgba(168,199,255,'+intensity+')':tint>.85?'rgba(255,218,200,'+intensity+')':'rgba(228,239,255,'+intensity+')';
+  ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+ }
+ const texture=new THREE.CanvasTexture(c);
+ texture.mapping=THREE.EquirectangularReflectionMapping;
+ texture.colorSpace=THREE.SRGBColorSpace;
+ return texture;
+}
+const spaceBackground=createSpaceBackground();if(spaceBackground)scene.background=spaceBackground;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
 scene.add(new THREE.HemisphereLight(0x7bbcff,0x050713,1.8));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
 const starsGeo=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1600;i++)sp.push((Math.random()-.5)*8000,(Math.random()-.5)*4500,(Math.random()-.5)*8000);starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xbad9ff,size:3,sizeAttenuation:true})));
