@@ -103,6 +103,30 @@ const asteroidMat=mat(0x4c505a);for(let i=0;i<85;i++){const a=new THREE.Mesh(new
 const TYPES={scout:{hp:35,damage:5,speed:120,xp:18,color:0xe65757},raider:{hp:55,damage:8,speed:150,xp:28,color:0xe78b45},sentinel:{hp:90,damage:12,speed:90,xp:45,color:0xb86bd9}};
 const enemyDefs=[['scout',1150,-180],['scout',1400,260],['scout',1650,-420],['raider',1900,420],['raider',2300,-280],['sentinel',2850,350],['sentinel',3300,-450]];
 const enemies=enemyDefs.map((d,i)=>{const t=TYPES[d[0]],m=ship(t.color,d[0]);scene.add(m);return{type:d[0],mesh:m,home:new THREE.Vector3(d[1],(i%3-1)*70,d[2]),hp:t.hp,maxHp:t.hp,dead:0,angle:i}});enemies.forEach(e=>e.mesh.position.copy(e.home));
+// Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
+// mantiene posición, IA, colisiones, disparos y recompensas intactos.
+// Si aún no se ha subido el GLB, las naves originales siguen funcionando.
+modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=1',gltf=>{
+ const original=gltf.scene;
+ original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+ // Ajustar escala con la caja del modelo antes de girarlo hacia el frente -Z.
+ const box=new THREE.Box3().setFromObject(original);
+ const size=box.getSize(new THREE.Vector3());
+ const center=box.getCenter(new THREE.Vector3());
+ const maxSpan=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(maxSpan)||maxSpan<.001)return;
+ for(const e of enemies){
+  if(e.type!=='scout')continue;
+  const visual=original.clone(true);
+  visual.position.copy(center).multiplyScalar(-1);
+  visual.scale.setScalar(85/maxSpan);
+  const pivot=new THREE.Group();
+  pivot.rotation.y=Math.PI;
+  pivot.add(visual);
+  e.mesh.add(pivot);
+  for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
+ }
+},undefined,err=>console.warn('Modelo scout GLB no disponible; se conserva la nave básica original.',err));
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
 let fireCd=0,skillCd=0;
 // Apuntado asistido: sólo objetivos vivos dentro del cono central de la pantalla.
