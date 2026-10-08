@@ -45,6 +45,13 @@ function createSpaceBackground(){
  return texture;
 }
 const spaceBackground=createSpaceBackground();if(spaceBackground)scene.background=spaceBackground;
+// Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
+new THREE.TextureLoader().load('./assets/fondo_espacial_aurora.webp?v=1',texture=>{
+ texture.mapping=THREE.EquirectangularReflectionMapping;
+ texture.colorSpace=THREE.SRGBColorSpace;
+ scene.background=texture;
+ if(spaceBackground)spaceBackground.dispose();
+},undefined,()=>console.info('Fondo espacial personalizado pendiente; usando fondo original.'));
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
 scene.add(new THREE.HemisphereLight(0x7bbcff,0x050713,1.8));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
 const starsGeo=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1600;i++)sp.push((Math.random()-.5)*8000,(Math.random()-.5)*4500,(Math.random()-.5)*8000);starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xbad9ff,size:3,sizeAttenuation:true})));
@@ -79,7 +86,19 @@ function createAuroraPlanet(){
  const moon=new THREE.Mesh(new THREE.IcosahedronGeometry(145,3),new THREE.MeshStandardMaterial({color:0x9a9ba5,roughness:1,flatShading:true,emissive:0x20212a,emissiveIntensity:.18,fog:false}));
  moon.position.set(3350,1220,-5550);scene.add(moon);
 }
-createAuroraPlanet();
+// Planeta ilustrado con anillos: imagen en un plano que mira a la cámara.
+// Se utiliza mezcla aditiva para que el negro del fondo no tape el espacio.
+// Si el recurso aún no está subido, se conserva el planeta 3D anterior.
+new THREE.TextureLoader().load('./assets/planeta_aurora.webp?v=1',texture=>{
+ texture.colorSpace=THREE.SRGBColorSpace;
+ const planetImage=new THREE.Sprite(new THREE.SpriteMaterial({
+  map:texture,color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,
+  depthWrite:false,fog:false
+ }));
+ planetImage.position.set(2150,950,-5200);
+ planetImage.scale.set(2050,2050,1);
+ scene.add(planetImage);
+},undefined,()=>createAuroraPlanet());
 function mat(color,emissive=0){return new THREE.MeshStandardMaterial({color,metalness:.7,roughness:.32,emissive,emissiveIntensity:1.4})}
 function ship(color=0x65c7ff,kind='player'){const g=new THREE.Group();g.frustumCulled=false;
 const isPlayer=kind==='player',hull=mat(isPlayer?0xe8e9e7:color),dark=mat(0x111a27),trim=mat(isPlayer?0x333b47:0x9bc9e8),red=mat(0xc92e32),glass=new THREE.MeshPhysicalMaterial({color:0x071a2b,metalness:.55,roughness:.08,transmission:.12,emissive:0x063f68,emissiveIntensity:1.15});
