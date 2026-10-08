@@ -115,7 +115,8 @@ auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
  // inclinado respecto de la cámara del jugador (que mira hacia -Z).
  // Rotar el conjunto completo, no solo el planeta interior.
  model.rotation.order='YXZ';
- model.rotation.set(-.34,.08,-.24);
+ // Corregir la pendiente del óvalo: de casi vertical a una diagonal suave.
+ model.rotation.set(-.18,.08,-.88);
  model.traverse(obj=>{
   if(!obj.isMesh)return;
   const materials=Array.isArray(obj.material)?obj.material:[obj.material];
