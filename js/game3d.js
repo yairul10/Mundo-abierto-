@@ -433,6 +433,10 @@ function updateTargetLock(){
   lockFrame.classList.remove('hidden');
   lockFrame.style.left=((screen.x+1)*50)+'%';
   lockFrame.style.top=((1-screen.y)*50)+'%';
+  const info={scout:['Explorador',1],raider:['Asaltante',3],sentinel:['Guardián',5]}[candidate.type]||['Enemigo',1];
+  $('targetName').textContent=info[0]+' · Nv. '+info[1];
+  $('targetHpText').textContent=Math.max(0,Math.ceil(candidate.hp))+'/'+candidate.maxHp;
+  $('targetHpFill').style.width=(100*Math.max(0,Math.min(1,candidate.hp/candidate.maxHp)))+'%';
  }else lockFrame.classList.add('hidden');
 }
 function fire(mult=1,count=1){
