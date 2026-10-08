@@ -68,3 +68,7 @@ body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,b
 #testCreditGift{background:#275b40;color:#e5ffe8;border:1px solid #7dd9a0;margin:10px 0}
 #testCreditGift:disabled{opacity:.5}
 .hangar-inner{max-height:calc(100dvh - 36px);overflow-y:auto}
+
+#qaPanel{margin:14px 0;padding:12px;border:1px solid #77d8ff66;border-radius:12px;background:#09203caa}
+#qaPanel h3{margin:0 0 6px}#qaPanel button{margin:5px 0;width:100%}
+#qaTools.hidden{display:none}
