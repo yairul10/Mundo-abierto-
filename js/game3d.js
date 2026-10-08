@@ -140,6 +140,25 @@ for(const side of[-1,1]){
  const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(3,4,18,8),new THREE.MeshStandardMaterial({color:0x365c86,metalness:.75,roughness:.3,emissive:0x063f72}));muzzle.rotation.x=Math.PI/2;muzzle.position.z=-18;drone.add(muzzle);
  scene.add(drone);supportDrones.push({mesh:drone,side,cooldown:side===-1?.3:.8});
 }
+// Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
+// Conserva el cañón lógico, la formación, los disparos y las compras existentes.
+modelLoader.load('./assets/models/sci_fi_fighter_spacecraft.glb?v=1',gltf=>{
+ const source=gltf.scene;
+ const bounds=new THREE.Box3().setFromObject(source);
+ const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
+ const longest=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(longest)||longest<.001)return;
+ for(const d of supportDrones){
+  const pivot=new THREE.Group();
+  const visual=source.clone(true);
+  visual.scale.setScalar(47/longest);
+  visual.position.copy(center).multiplyScalar(-47/longest);
+  pivot.add(visual);
+  d.mesh.add(pivot);
+  for(const part of d.mesh.children)if(part!==pivot)part.visible=false;
+ }
+},undefined,()=>console.info('Modelo de dron pendiente: se usa el diseño provisional.'));
 function updateSupportDrones(dt,now){
  const active=!docked&&!landing&&!panel.classList.contains('hidden');
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
