@@ -510,8 +510,55 @@ function buyUpgrade(id){
  player.loot[u.material]-=need;player.gold-=price;player.upgrades[id]=lv+1;
  player[u.stat]+=u.amount;
  if(u.stat==='maxHp')player.hp=Math.min(player.maxHp,player.hp+u.amount);
- save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
+ missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
 }
+// Campaña inicial del Sector Aurora: progreso persistente por perfil.
+const MISSIONS=[
+ {title:'Primer contacto',description:'Destruye 5 exploradoras enemigas',goal:5,reward:500,xp:75},
+ {title:'Recuperación espacial',description:'Recoge 3 cajas de botín',goal:3,reward:800,xp:110},
+ {title:'Regreso a la base',description:'Atraca en la estación Aurora y compra una mejora',goal:2,reward:1500,xp:160}
+];
+player.quests=player.quests&&typeof player.quests==='object'?player.quests:{};
+const campaign=player.quests.aurora&&typeof player.quests.aurora==='object'?player.quests.aurora:{index:0,progress:0,docked:false};
+campaign.index=Math.max(0,Math.min(MISSIONS.length,Math.floor(Number(campaign.index)||0)));
+campaign.progress=Math.max(0,Math.floor(Number(campaign.progress)||0));
+campaign.docked=!!campaign.docked;
+player.quests.aurora=campaign;
+let questCollapsed=localStorage.getItem('mundoAbierto.questCollapsed')==='1';
+function renderMission(){
+ const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
+ el.classList.remove('hidden');el.classList.toggle('collapsed',questCollapsed);
+ toggle.textContent=questCollapsed?'▾':'▴';toggle.setAttribute('aria-expanded',String(!questCollapsed));
+ if(campaign.index>=MISSIONS.length){
+  $('questTitle').textContent='🏆 Sector Aurora completado';
+  $('questObjective').textContent='Las tres misiones iniciales están completas.';
+  $('questProgressBar').style.width='100%';$('questReward').textContent='¡Buen trabajo!';return;
+ }
+ const m=MISSIONS[campaign.index];
+ $('questTitle').textContent='🎯 '+(campaign.index+1)+'/3 · '+m.title;
+ $('questObjective').textContent=m.description+(campaign.index===2?' · '+(campaign.docked?'Estación visitada':'Visita la estación'):'');
+ $('questProgressBar').style.width=(100*Math.min(m.goal,campaign.progress)/m.goal)+'%';
+ $('questReward').textContent=campaign.progress+'/'+m.goal+' · Premio: '+m.reward.toLocaleString('es')+' créditos + '+m.xp+' XP';
+}
+$('questToggle').onclick=()=>{questCollapsed=!questCollapsed;localStorage.setItem('mundoAbierto.questCollapsed',questCollapsed?'1':'0');renderMission()};
+function missionEvent(type){
+ if(campaign.index>=MISSIONS.length)return;
+ if(campaign.index===0&&type==='scout')campaign.progress++;
+ else if(campaign.index===1&&type==='loot')campaign.progress++;
+ else if(campaign.index===2){
+  if(type==='dock'){campaign.docked=true;campaign.progress=Math.max(1,campaign.progress)}
+  else if(type==='upgrade'&&campaign.docked)campaign.progress=2;
+  else return;
+ }else return;
+ const m=MISSIONS[campaign.index];
+ if(campaign.progress>=m.goal){
+  player.gold+=m.reward;gainXp(m.xp);
+  lootToast('🏆 '+m.title+' completada · +'+m.reward+' créditos · +'+m.xp+' XP');
+  campaign.index++;campaign.progress=0;campaign.docked=false;
+ }
+ renderMission();save();
+}
+renderMission();
 function renderInventory(){
  $('lootInventory').innerHTML=LOOT_TYPES.map(t=>'<div class="inventory-item"><span class="inventory-gem" style="background:#'+t.color.toString(16).padStart(6,'0')+'"></span><div><strong>'+t.name+'</strong><small>'+t.rarity+' · '+t.description+'</small></div><b>×'+(Math.max(0,Number(player.loot[t.id])||0))+'</b></div>').join('');
 }
@@ -558,11 +605,11 @@ function updateLoot(dt){
   if(d.mesh.position.distanceTo(playerMesh.position)<90){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
-   scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);save();
+   scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot');save();
   }else if(d.age>90){scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1)}
  }
 }
-function kill(e){const t=TYPES[e.type];e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
+function kill(e){const t=TYPES[e.type];missionEvent(e.type);e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
 // Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
 function skill(){
  if(skillCd>0||player.energy<25||docked||landing||inSafeZone(playerMesh.position))return;
@@ -656,7 +703,7 @@ function finishLanding(){
  resetDockControls();dockBtn.classList.add('hidden');
  document.body.classList.remove('landing');document.body.classList.add('docked');
  player.energy=player.maxEnergy;hangar.classList.remove('hidden');
- hangarRefresh();save();
+ hangarRefresh();missionEvent('dock');save();
 }
 // Solo aceptar una superficie horizontal realmente situada debajo de la nave.
 // No usar posiciones antiguas si no existe una plataforma detectable.
@@ -845,7 +892,7 @@ $('qaHeal').onclick=()=>qaApply(()=>{player.hp=player.maxHp;player.energy=player
 $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy});
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem(SAVE_KEY);location.reload()}};
-$('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
+$('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
