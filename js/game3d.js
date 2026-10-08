@@ -127,6 +127,36 @@ modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=1',gltf=>{
   for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
  }
 },undefined,err=>console.warn('Modelo scout GLB no disponible; se conserva la nave básica original.',err));
+// Dos drones de apoyo: acompañan al jugador y disparan proyectiles reales.
+const supportDrones=[];
+for(const side of[-1,1]){
+ const drone=new THREE.Group();
+ const shell=new THREE.Mesh(new THREE.OctahedronGeometry(11,0),new THREE.MeshStandardMaterial({color:0x748da7,metalness:.65,roughness:.3,emissive:0x102d4c}));
+ shell.scale.set(1.4,.55,1.7);drone.add(shell);
+ const eye=new THREE.Mesh(new THREE.SphereGeometry(4,8,6),new THREE.MeshBasicMaterial({color:0x3be7ff}));eye.position.z=-14;drone.add(eye);
+ for(const wing of[-1,1]){const fin=new THREE.Mesh(new THREE.BoxGeometry(13,2,17),new THREE.MeshStandardMaterial({color:0x243c59,metalness:.6,roughness:.3}));fin.position.x=wing*16;drone.add(fin)}
+ scene.add(drone);supportDrones.push({mesh:drone,side,cooldown:side===-1?.3:.8});
+}
+function updateSupportDrones(dt,now){
+ const active=!docked&&!landing&&!panel.classList.contains('hidden');
+ const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
+ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ const target=lockedEnemy&&!lockedEnemy.dead?lockedEnemy:nearest();
+ for(const d of supportDrones){
+  const desired=playerMesh.position.clone().addScaledVector(right,d.side*102).addScaledVector(forward,-27);
+  desired.y+=14+Math.sin(now*.002+d.side)*4;
+  d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
+  d.cooldown-=dt;
+  if(!active||!target||target.dead||d.cooldown>0||target.mesh.position.distanceTo(d.mesh.position)>720)continue;
+  if(inSafeZone(d.mesh.position))continue;
+  const start=d.mesh.position.clone().addScaledVector(forward,15);
+  const direction=target.mesh.position.clone().sub(start).normalize();
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,27,6),new THREE.MeshBasicMaterial({color:0x2c9dff}));
+  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
+  shots.push({mesh:bolt,vel:direction.multiplyScalar(950),life:1,damage:Math.max(1,player.attack*.17)});
+  d.cooldown=1.25;
+ }
+}
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
 let fireCd=0,skillCd=0;
 // Apuntado asistido: sólo objetivos vivos dentro del cono central de la pantalla.
@@ -395,7 +425,8 @@ updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.mesh.position.copy(e.home);e.mesh.visible=true}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<380&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>70)e.mesh.position.addScaledVector(dir,t.speed*dt);else player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt)}e.mesh.lookAt(playerMesh.position)}
-for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
+updateSupportDrones(dt,now);
+ for(const p of shots){p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<30){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,0,0);player.hp=player.maxHp;player.energy=player.maxEnergy}
 const back=forward.clone().multiplyScalar(-285).add(new THREE.Vector3(0,105,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
