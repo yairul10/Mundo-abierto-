@@ -111,21 +111,26 @@ auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
  });
  // Iluminación dedicada: conserva el detalle azul de océanos y anillos
  // aunque el planeta esté lejos de la luz general del sector.
- model.rotation.set(.12,-.28,-.08);
+ // Presentación frontal similar a Sloyd: el eje de los anillos queda
+ // inclinado respecto de la cámara del jugador (que mira hacia -Z).
+ // Rotar el conjunto completo, no solo el planeta interior.
+ model.rotation.order='YXZ';
+ model.rotation.set(-.34,.08,-.24);
  model.traverse(obj=>{
   if(!obj.isMesh)return;
   const materials=Array.isArray(obj.material)?obj.material:[obj.material];
   for(const material of materials){
    if(!material||!material.isMeshStandardMaterial)continue;
-   material.roughness=Math.max(.7,material.roughness??.8);
+   // Evitar que el brillo metálico oscurezca los anillos de hielo.
+   material.roughness=Math.max(.82,material.roughness??.8);
    material.metalness=Math.min(.12,material.metalness??0);
-   if(material.map){material.emissiveMap=material.map;material.emissive=new THREE.Color(0x56647a);material.emissiveIntensity=.45;}
-   else {material.emissive=new THREE.Color(0x34435b);material.emissiveIntensity=.24;}
+   if(material.map){material.emissiveMap=material.map;material.emissive=new THREE.Color(0xa8cfff);material.emissiveIntensity=.85;}
+   else {material.emissive=new THREE.Color(0x94b8d8);material.emissiveIntensity=.48;}
    material.needsUpdate=true;
   }
  });
  auroraPlanetPivot.add(model);
- const planetLight=new THREE.DirectionalLight(0xd8edff,3.2);
+ const planetLight=new THREE.DirectionalLight(0xeaf6ff,5.2);
  planetLight.position.set(-950,1100,1600);
  auroraPlanetPivot.add(planetLight);
 },undefined,err=>{
