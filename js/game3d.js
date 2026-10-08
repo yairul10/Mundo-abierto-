@@ -81,7 +81,7 @@ const enemyDefs=[['scout',1150,-180],['scout',1400,260],['scout',1650,-420],['ra
 const enemies=enemyDefs.map((d,i)=>{const t=TYPES[d[0]],m=ship(t.color,d[0]);scene.add(m);return{type:d[0],mesh:m,home:new THREE.Vector3(d[1],(i%3-1)*70,d[2]),hp:t.hp,maxHp:t.hp,dead:0,angle:i}});enemies.forEach(e=>e.mesh.position.copy(e.home));
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
 let fireCd=0,skillCd=0;
-function fire(mult=1,count=1){if(fireCd>0)return;const target=nearest();let dir=target?target.mesh.position.clone().sub(playerMesh.position).normalize():new THREE.Vector3(1,0,0);for(let i=0;i<count;i++){const mesh=new THREE.Mesh(new THREE.SphereGeometry(4,8,8),new THREE.MeshBasicMaterial({color:0x55ddff}));mesh.position.copy(playerMesh.position);scene.add(mesh);shots.push({mesh,vel:dir.clone().multiplyScalar(620),life:1.4,damage:player.attack*mult})}fireCd=.28}
+function fire(mult=1,count=1){if(fireCd>0)return;const dir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();for(let i=0;i<count;i++){const mesh=new THREE.Mesh(new THREE.SphereGeometry(4,8,8),new THREE.MeshBasicMaterial({color:0x55ddff}));mesh.position.copy(playerMesh.position).addScaledVector(dir,45);scene.add(mesh);shots.push({mesh,vel:dir.clone().multiplyScalar(850),life:2.1,damage:player.attack*mult})}fireCd=.28}
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
@@ -198,10 +198,10 @@ function drawRadar(dt){
  radarDistance.textContent='Aurora · '+Math.round(distance)+' m';
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();fire()}if(e.key.toLowerCase()==='q')skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
-const joyEl=$('joystick'),stick=$('stick');
-function throttleMove(e){if(!panel.classList.contains('hidden'))return;const r=joyEl.getBoundingClientRect(),dy=e.clientY-(r.top+r.height/2),v=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.throttle=v;stick.style.transform='translateY('+(-v*38)+'px)'}
-joyEl.onpointerdown=e=>{joyEl.setPointerCapture(e.pointerId);throttleMove(e)};joyEl.onpointermove=e=>joyEl.hasPointerCapture(e.pointerId)&&throttleMove(e);joyEl.onpointerup=joyEl.onpointercancel=()=>{joy.throttle=0;stick.style.transform=''};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open'))fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open'))skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+const joyEl=$('joystick'),stick=$('stick');joy.strafe=0;
+function throttleMove(e){if(!panel.classList.contains('hidden'))return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
+joyEl.onpointerdown=e=>{joyEl.setPointerCapture(e.pointerId);throttleMove(e)};joyEl.onpointermove=e=>joyEl.hasPointerCapture(e.pointerId)&&throttleMove(e);joyEl.onpointerup=joyEl.onpointercancel=()=>{joy.throttle=0;joy.strafe=0;stick.style.transform=''};
 const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0;
 lookZone.onpointerdown=e=>{if(!panel.classList.contains('hidden'))return;lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
 lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
@@ -216,11 +216,11 @@ const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.a
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const menuOpen=!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
-if(keys.a||keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(keys.d||keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
+if(keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
-playerMesh.position.addScaledVector(forward,player.speed*throttle*dt);
+const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*strafe*dt/movementScale);
 playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
-playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=bankInput*Math.min(1,.35+Math.abs(throttle)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
+playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
 for(const l of engineLights)l.intensity=18+Math.abs(throttle)*48;for(const t of engineTrails){t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58;}
 updateLoot(dt);
 drawRadar(dt);
