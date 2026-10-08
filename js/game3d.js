@@ -37,17 +37,33 @@ const playerMesh=new THREE.Group(),proceduralShip=ship();proceduralShip.scale.se
 function auroraMaterial(mesh){
  const pos=mesh.geometry.getAttribute('position');if(!pos)return;
  if(!mesh.geometry.getAttribute('normal'))mesh.geometry.computeVertexNormals();
+ // Meshy entrega Aurora como una sola malla. Pintamos zonas amplias y contrastadas
+ // en coordenadas locales para que el esquema se lea bien incluso en pantalla móvil.
  const colors=new Float32Array(pos.count*3),c=new THREE.Color();
  for(let i=0;i<pos.count;i++){
-  const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),az=Math.abs(z);
-  c.setRGB(.78,.80,.82); // casco gris claro
-  if(y<-.045||(x>.18&&az>.34))c.setRGB(.055,.075,.105); // mecánica y góndolas
-  if(y>.045&&az<.24&&x<.32)c.setRGB(.018,.055,.09); // cabina negro azulada
-  if((az>.3&&az<.72&&Math.abs(x+.12)<.075)||(az<.1&&x<-.28))c.setRGB(.72,.035,.045); // franjas rojas
+  const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),side=Math.abs(z);
+  const upper=y>-.035;
+  c.setRGB(.93,.95,.97); // blanco frío del casco
+  // Mecánica inferior, raíces de ala y góndolas: grafito casi negro.
+  if(y<-.075||(side>.54&&y<.045)||(x>.55&&side>.30))c.setRGB(.035,.045,.065);
+  // Cabina: una zona central superior azul-negra, larga y claramente visible.
+  if(upper&&side<.20&&x<.38&&x>-.58)c.setRGB(.008,.035,.065);
+  // Franjas rojas anchas y simétricas sobre alas y hombros.
+  const wingStripe=upper&&side>.34&&side<.78&&x>-.58&&x<.48;
+  const shoulderStripe=upper&&side>.20&&side<.39&&x>-.42&&x<.12;
+  const noseStripe=upper&&side<.12&&x<-.52;
+  const tipRed=side>.78&&upper;
+  if(wingStripe||shoulderStripe||noseStripe||tipRed)c.setRGB(.82,.035,.045);
+  // Recupera panel blanco en el centro para que el rojo no domine todo el fuselaje.
+  if(upper&&side<.075&&x>-.45&&x<.52)c.setRGB(.96,.97,.98);
   colors[i*3]=c.r;colors[i*3+1]=c.g;colors[i*3+2]=c.b;
  }
  mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
- mesh.material=new THREE.MeshStandardMaterial({vertexColors:true,metalness:.72,roughness:.3});
+ mesh.material=new THREE.MeshStandardMaterial({
+  vertexColors:true,metalness:.58,roughness:.24,
+  envMapIntensity:.65
+ });
+ mesh.material.needsUpdate=true;
  mesh.castShadow=false;mesh.receiveShadow=false;
 }
 new GLTFLoader().load('./assets/models/aurora_s1.glb?v=1',gltf=>{
