@@ -99,7 +99,7 @@ auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
  const center=bounds.getCenter(new THREE.Vector3());
  const longest=Math.max(size.x,size.y,size.z);
  if(!Number.isFinite(longest)||longest<.0001){createAuroraPlanet();return}
- const targetDiameter=2175; // 50% más grande; conservar orientación y ubicación
+ const targetDiameter=2610; // 20% más grande; misma ubicación y orientación
  const factor=targetDiameter/longest;
  model.scale.setScalar(factor);
  model.position.copy(center).multiplyScalar(-factor);
@@ -117,22 +117,7 @@ auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=3',gltf=>{
  try{const saved=JSON.parse(localStorage.getItem('auroraPlanetAngles'));if(Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite))angles=saved}catch{}
  const applyAngles=()=>model.rotation.set(angles[0],angles[1],angles[2]);
  applyAngles();
- const planetTool=document.createElement('div');
- planetTool.style.cssText='position:fixed;right:12px;bottom:170px;z-index:70;font:13px system-ui;color:#e8f6ff;pointer-events:auto';
- const toggle=document.createElement('button');toggle.textContent='🪐 Orientar planeta';
- toggle.style.cssText='background:#102842;color:#fff;border:1px solid #6dbce9;border-radius:12px;padding:9px 12px;font:600 13px system-ui';
- const editor=document.createElement('div');editor.style.cssText='display:none;margin-top:6px;background:rgba(7,18,37,.95);border:1px solid #5c9dc7;border-radius:12px;padding:12px;width:220px;box-shadow:0 4px 16px #0008';
- toggle.onclick=()=>{editor.style.display=editor.style.display==='none'?'block':'none'};
- const axes=[['Inclinar arriba/abajo',0],['Mostrar otra cara',1],['Inclinar anillos',2]];
- for(const [name,idx] of axes){
-  const label=document.createElement('label');label.textContent=name;label.style.cssText='display:block;margin-bottom:9px';
-  const slider=document.createElement('input');slider.type='range';slider.min='-3.14';slider.max='3.14';slider.step='.02';slider.value=String(angles[idx]);slider.style.cssText='width:100%;display:block;margin-top:5px;accent-color:#6ad5ff';
-  slider.oninput=()=>{angles[idx]=Number(slider.value);applyAngles();localStorage.setItem('auroraPlanetAngles',JSON.stringify(angles))};
-  label.appendChild(slider);editor.appendChild(label);
- }
- const reset=document.createElement('button');reset.textContent='Restablecer';reset.style.cssText='background:#29465b;color:white;border:0;border-radius:8px;padding:7px';
- reset.onclick=()=>{angles=[...defaultAngles];applyAngles();localStorage.removeItem('auroraPlanetAngles');editor.querySelectorAll('input').forEach((input,i)=>input.value=String(angles[i]))};
- editor.appendChild(reset);planetTool.append(toggle,editor);document.body.appendChild(planetTool);
+ // Editor retirado: conservar orientación guardada en este dispositivo.
  auroraPlanetPivot.add(model);
  const planetLight=new THREE.DirectionalLight(0xeaf6ff,5.2);
  planetLight.position.set(-950,1100,1600);
