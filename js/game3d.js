@@ -91,63 +91,37 @@ const LOOT_TYPES=[
  {id:'reliquia',name:'Componente ancestral',color:0xffca58,rarity:'Épico',description:'Tecnología antigua de origen desconocido y gran valor.'}
 ];
 player.loot=player.loot&&typeof player.loot==='object'?player.loot:{};
-const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
-function spawnLoot(e){
- const roll=Math.random(),item=LOOT_TYPES[roll<.53?0:roll<.81?1:roll<.96?2:3];
- const mesh=new THREE.Mesh(dropGeo,new THREE.MeshBasicMaterial({color:item.color,depthTest:false}));mesh.renderOrder=5;
- mesh.position.copy(e.mesh.position);mesh.position.y+=14;scene.add(mesh);
- const halo=new THREE.PointLight(item.color,7,150,2);mesh.add(halo);
- const marker=new THREE.Sprite(new THREE.SpriteMaterial({color:item.color,transparent:true,opacity:.55,depthTest:false}));marker.scale.set(52,52,1);mesh.add(marker);drops.push({mesh,item,age:0,baseY:mesh.position.y});
+// Mejoras permanentes: bonificaciones guardadas por separado de la clase.
+const UPGRADES=[
+ {id:'casco',name:'Blindaje del casco',icon:'🛠',stat:'maxHp',amount:15,material:'chatarra',base:2,credits:20},
+ {id:'escudo',name:'Escudo reforzado',icon:'🛡',stat:'defense',amount:2,material:'aleacion',base:1,credits:35},
+ {id:'armas',name:'Armas mejoradas',icon:'⚡',stat:'attack',amount:2,material:'aleacion',base:1,credits:35},
+ {id:'motor',name:'Propulsión avanzada',icon:'🚀',stat:'speed',amount:12,material:'nucleo',base:1,credits:60}
+];
+player.upgrades=player.upgrades&&typeof player.upgrades==='object'?player.upgrades:{};
+function upgradeLevel(id){return Math.max(0,Math.min(10,Math.floor(Number(player.upgrades[id])||0)))}
+function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u)=>n+upgradeLevel(u.id)*u.amount,0)}
+function renderUpgrades(){
+ const el=$('upgradeList');if(!el)return;
+ el.innerHTML=UPGRADES.map(u=>{
+  const lv=upgradeLevel(u.id),max=lv>=10,need=u.base+lv,price=u.credits*(lv+1);
+  const available=(Number(player.loot[u.material])||0)>=need&&player.gold>=price;
+  const resource=LOOT_TYPES.find(t=>t.id===u.material);
+  return '<div class="upgrade-card"><div><strong>'+u.icon+' '+u.name+'</strong><small>Nivel '+lv+'/10 · +'+u.amount+' '+({maxHp:'casco',defense:'escudo',attack:'potencia',speed:'velocidad'}[u.stat])+' por nivel</small><small>'+ (max?'Mejora máxima':'Costo: '+need+' '+resource.name+' + '+price+' créditos')+'</small></div><button data-upgrade="'+u.id+'" '+(max||!available?'disabled':'')+'>'+(max?'Máximo':'Mejorar')+'</button></div>';
+ }).join('');
+ el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));
 }
-function lootToast(message){
- const el=$('lootToast');if(!el)return;
- el.textContent=message;el.classList.remove('hidden');
- clearTimeout(lootToast.timer);lootToast.timer=setTimeout(()=>el.classList.add('hidden'),2200);
+function buyUpgrade(id){
+ const u=UPGRADES.find(v=>v.id===id);if(!u)return;
+ const lv=upgradeLevel(id),need=u.base+lv,price=u.credits*(lv+1);
+ if(lv>=10||(Number(player.loot[u.material])||0)<need||player.gold<price)return;
+ player.loot[u.material]-=need;player.gold-=price;player.upgrades[id]=lv+1;
+ player[u.stat]+=u.amount;
+ if(u.stat==='maxHp')player.hp=Math.min(player.maxHp,player.hp+u.amount);
+ save();hud();renderUpgrades();renderInventory();
 }
-function updateLoot(dt){
- for(let i=drops.length-1;i>=0;i--){
-  const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*1.5;d.mesh.rotation.z+=dt*.65;
-  d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
-  if(d.mesh.position.distanceTo(playerMesh.position)<90){
-   player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
-   lootToast('✦ '+d.item.name+' · '+d.item.rarity);
-   scene.remove(d.mesh);d.mesh.material.dispose();drops.splice(i,1);save();
-  }else if(d.age>90){scene.remove(d.mesh);d.mesh.material.dispose();drops.splice(i,1)}
- }
-}
-function kill(e){const t=TYPES[e.type];e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=5;spawnLoot(e);gainXp(t.xp);save()}
-function skill(){if(skillCd>0||!player.classId)return;const id=player.classId;if(id==='soporte'&&player.energy>=30){player.energy-=30;player.hp=Math.min(player.maxHp,player.hp+Math.round(player.maxHp*.35));skillCd=8}else if(id==='interceptora'&&player.energy>=30){player.energy-=30;fire(1.2,3);skillCd=5}else if(id==='acorazada'&&player.energy>=25){player.energy-=25;fire(2.4);skillCd=5}else if(id==='energia'&&player.energy>=35){player.energy-=35;for(const e of enemies)if(!e.dead&&e.mesh.position.distanceTo(playerMesh.position)<250){e.hp-=player.attack*1.8;if(e.hp<=0)kill(e)}skillCd=7}}
-// Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
-const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
-function inSafeZone(position){return position.distanceTo(SAFE_ZONE_CENTER)<SAFE_ZONE_RADIUS}
-let lastZoneLabel='';
-function updateZone(){
- const safe=inSafeZone(playerMesh.position);
- const label=safe?'ESTACIÓN AURORA|Zona segura':'SECTOR AURORA|Espacio abierto';
- if(label!==lastZoneLabel){
-  const [title,subtitle]=label.split('|'),el=$('targetInfo');
-  el.replaceChildren(document.createTextNode(title),document.createElement('br'));
-  const small=document.createElement('small');small.textContent=subtitle;el.appendChild(small);
-  el.classList.toggle('outside-zone',!safe);lastZoneLabel=label;
- }
- return safe;
-}
-const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();fire()}if(e.key.toLowerCase()==='q')skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
-const joyEl=$('joystick'),stick=$('stick');
-function throttleMove(e){if(!panel.classList.contains('hidden'))return;const r=joyEl.getBoundingClientRect(),dy=e.clientY-(r.top+r.height/2),v=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.throttle=v;stick.style.transform='translateY('+(-v*38)+'px)'}
-joyEl.onpointerdown=e=>{joyEl.setPointerCapture(e.pointerId);throttleMove(e)};joyEl.onpointermove=e=>joyEl.hasPointerCapture(e.pointerId)&&throttleMove(e);joyEl.onpointerup=joyEl.onpointercancel=()=>{joy.throttle=0;stick.style.transform=''};
-const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0;
-lookZone.onpointerdown=e=>{if(!panel.classList.contains('hidden'))return;lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
-lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
-lookZone.onpointerup=lookZone.onpointercancel=e=>{if(e.pointerId===lookId){lookId=null;bankInput=0}};
-$('fireBtn').onpointerdown=()=>{if(panel.classList.contains('hidden'))fire()};$('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden'))skill()};
-function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;localStorage.setItem('mundoAbierto.player',JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
-playerMesh.position.set(player.x,player.z,player.y);
-if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
-camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
-function hud(){$('playerName').textContent=player.name;$('classLabel').textContent=player.classId?CLASSES[player.classId].name:'Sin tipo';$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
-const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;$('lootInventory').innerHTML=LOOT_TYPES.map(t=>'<div class="inventory-item"><span class="inventory-gem" style="background:#'+t.color.toString(16).padStart(6,'0')+'"></span><div><strong>'+t.name+'</strong><small>'+t.rarity+' · '+t.description+'</small></div><b>×'+(Math.max(0,Number(player.loot[t.id])||0))+'</b></div>').join('');box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp;player.hp=c.hp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack;player.defense=c.defense;player.speed=c.speed;hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
+function renderInventory(){
+ renderInventory();renderUpgrades();box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp+upgradeBonus('maxHp');player.hp=player.maxHp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack+upgradeBonus('attack');player.defense=c.defense+upgradeBonus('defense');player.speed=c.speed+upgradeBonus('speed');hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem('mundoAbierto.player');location.reload()}};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');$('questTracker').classList.add('hidden');
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const menuOpen=!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
