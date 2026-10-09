@@ -446,7 +446,8 @@ function updateExplorer(dt,now){
   if(dist<best){best=dist;closest=drop}
  }
  if(closest)target=closest.mesh.position.clone().add(new THREE.Vector3(0,12,0));
- explorerMesh.position.lerp(target,Math.min(1,dt*3.5));
+ if(explorerMesh.position.distanceTo(playerMesh.position)>280)explorerMesh.position.copy(target);
+ else explorerMesh.position.lerp(target,Math.min(1,dt*3.5));
  explorerMesh.rotation.y=yaw;
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
@@ -1029,7 +1030,7 @@ if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position
 // Límite del Sector Aurora. Otros planetas podrán definir su propio centro/radio.
 const SECTOR_AURORA={x:0,z:-650,radius:3000,warning:600,damagePerSecond:8};
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
-sectorNotice.style.cssText='position:fixed;left:50%;top:38%;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
+sectorNotice.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
 document.body.appendChild(sectorNotice);
 function sectorDistance(){return Math.hypot(playerMesh.position.x-SECTOR_AURORA.x,playerMesh.position.z-SECTOR_AURORA.z)}
 // Recuperar partidas anteriores guardadas muy lejos, sin borrar su progreso.
