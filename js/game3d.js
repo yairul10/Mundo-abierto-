@@ -5,6 +5,35 @@ const CLASSES={acorazada:{name:'Acorazada',hp:150,energy:70,attack:14,defense:12
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
 const QA_FLAG='mundoAbierto.qaActive';const qaActive=localStorage.getItem(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')||{}}catch{}let player={...DEFAULT,...stored};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
+// Recuperación móvil ante pérdida del contexto WebGL. Guardar antes de
+// recargar evita perder posición, inventario o mejoras.
+let graphicsLost=false,graphicsRecoveryTimer=null;
+const graphicsRecovery=document.createElement('div');
+graphicsRecovery.style.cssText='position:fixed;inset:0;z-index:1000;display:none;place-items:center;background:rgba(2,6,17,.92);padding:24px;color:#eef8ff;font:600 16px system-ui;text-align:center;';
+graphicsRecovery.innerHTML='<div style="max-width:420px;padding:24px;border:1px solid #4fbfff;border-radius:18px;background:#071426"><strong style="display:block;font-size:21px;margin-bottom:10px">Recuperando gráficos…</strong><span id="graphicsRecoveryText">La partida fue guardada. Espera unos segundos.</span><button id="graphicsReloadBtn" type="button" style="display:block;margin:18px auto 0;padding:12px 18px;border:0;border-radius:12px;background:#168cff;color:white;font-weight:700">Recargar gráficos</button></div>';
+document.body.appendChild(graphicsRecovery);
+const graphicsRecoveryText=graphicsRecovery.querySelector('#graphicsRecoveryText');
+const GRAPHICS_RECOVERY_KEY='mundoAbierto.webglRecoveryAt';
+function reloadGraphics(){
+ try{save()}catch{}
+ try{sessionStorage.setItem(GRAPHICS_RECOVERY_KEY,String(Date.now()))}catch{}
+ const url=new URL(location.href);url.searchParams.set('graphics',String(Date.now()));location.replace(url);
+}
+graphicsRecovery.querySelector('#graphicsReloadBtn').onclick=reloadGraphics;
+canvas.addEventListener('webglcontextlost',event=>{
+ event.preventDefault();graphicsLost=true;
+ try{save()}catch{}
+ graphicsRecovery.style.display='grid';
+ let lastRecovery=0;try{lastRecovery=Number(sessionStorage.getItem(GRAPHICS_RECOVERY_KEY))||0}catch{}
+ const recentlyRetried=Date.now()-lastRecovery<30000;
+ graphicsRecoveryText.textContent=recentlyRetried?'Android volvió a detener los gráficos. Cierra otras aplicaciones y pulsa Recargar gráficos.':'La partida fue guardada. Intentaremos restaurar los gráficos automáticamente.';
+ if(!recentlyRetried)graphicsRecoveryTimer=setTimeout(reloadGraphics,8000);
+});
+canvas.addEventListener('webglcontextrestored',()=>{
+ graphicsLost=false;if(graphicsRecoveryTimer)clearTimeout(graphicsRecoveryTimer);
+ graphicsRecoveryText.textContent='Gráficos restaurados. Reiniciando el mundo…';
+ setTimeout(reloadGraphics,350);
+});
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x020611);scene.fog=new THREE.FogExp2(0x020611,.00032);
 // Fondo espacial panorámico ligero: textura generada una vez, sin geometría
 // adicional ni llamadas de red. Nebulosas tenues y estrellas sobre espacio oscuro.
@@ -46,7 +75,7 @@ function createSpaceBackground(){
 }
 const spaceBackground=createSpaceBackground();if(spaceBackground)scene.background=spaceBackground;
 // Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
-new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=95',texture=>{
+new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=96',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;
  texture.colorSpace=THREE.SRGBColorSpace;
  scene.background=texture;
@@ -107,7 +136,7 @@ function deferredModelLoad(loader,path,onLoad,onProgress,onError){
  }));
  return deferredModelQueue;
 }
-deferredModelLoad(auroraPlanetLoader,'./assets/models/planeta_aurora.glb?v=95',gltf=>{
+deferredModelLoad(auroraPlanetLoader,'./assets/models/planeta_aurora.glb?v=96',gltf=>{
  const model=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
@@ -206,12 +235,12 @@ function fitPlayerModel(model,yaw=0){
 }
 function mountPlayerModel(model,key){playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData[key]=model}
 function loadAuroraFallback(){
- modelLoader.load('./assets/models/aurora_s1.glb?v=95',gltf=>{
+ modelLoader.load('./assets/models/aurora_s1.glb?v=96',gltf=>{
   const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
   mountPlayerModel(fitPlayerModel(model,-Math.PI/2),'auroraModel');
  },undefined,err=>console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err));
 }
-modelLoader.load('./assets/models/x_wing_starfighter.glb?v=95',gltf=>{
+modelLoader.load('./assets/models/x_wing_starfighter.glb?v=96',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
  // El modelo mira hacia +Z; el juego avanza hacia -Z.
@@ -237,9 +266,9 @@ let modularStationReady=false;
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
 const modularPaths=[
- './assets/models/scififortress_optimizado.glb?v=95',
- './assets/models/landingpad_optimizado.glb?v=95',
- './assets/models/scificorridormodule_optimizado.glb?v=95'
+ './assets/models/scififortress_optimizado.glb?v=96',
+ './assets/models/landingpad_optimizado.glb?v=96',
+ './assets/models/scificorridormodule_optimizado.glb?v=96'
 ];
 Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLoad(modelLoader,path,gltf=>resolve(gltf.scene),undefined,reject))))
 .then(([hubSource,padSource,bridgeSource])=>{
@@ -327,7 +356,7 @@ const enemies=enemyKinds.map((type,i)=>{
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
 // mantiene posición, IA, colisiones, disparos y recompensas intactos.
 // Si aún no se ha subido el GLB, las naves originales siguen funcionando.
-deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=95',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=96',gltf=>{
  const original=gltf.scene;
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  // Ajustar escala con la caja del modelo antes de girarlo hacia el frente -Z.
@@ -380,7 +409,7 @@ const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.Mesh
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
 // El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=95',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=96',gltf=>{
  const visual=gltf.scene;
  visual.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(visual);
@@ -467,7 +496,7 @@ function updateExplorer(dt,now){
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
-deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=95',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=96',gltf=>{
  const source=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3());
@@ -742,7 +771,7 @@ const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
 // Caja 3D compartida para todas las rarezas. Si el GLB aún no existe,
 // se conserva el botín original sin interrumpir el juego.
 let lootCrateTemplate=null;
-deferredModelLoad(modelLoader,'./assets/models/scificrate.glb?v=95',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/scificrate.glb?v=96',gltf=>{
  const template=gltf.scene;
  const box=new THREE.Box3().setFromObject(template);
  const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
@@ -1091,7 +1120,7 @@ $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;playe
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem(SAVE_KEY);location.reload()}};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
+let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
