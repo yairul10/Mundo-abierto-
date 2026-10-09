@@ -373,6 +373,7 @@ player.explorerRangeLevel=Math.max(1,Math.min(10,Math.floor(Number(player.explor
 function explorerRange(){return 450+player.explorerRangeLevel*100}
 function explorerUpgradePrice(){return Math.round(4000000*Math.pow(player.explorerRangeLevel/9-1,2))}
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
+player.droneFormation=player.droneFormation==='shield'?'shield':'fan';
 function ownedDrones(){return player.droneCount}
 for(let i=0;i<MAX_DRONES;i++){
  const side=i%2===0?-1:1;
@@ -392,6 +393,22 @@ explorerShell.scale.set(1.1,.7,1.4);explorerMesh.add(explorerShell);
 const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.MeshBasicMaterial({color:0x6effc8}));
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
+// El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
+modelLoader.load('./assets/models/scifidrone.glb?v=1',gltf=>{
+ const visual=gltf.scene;
+ const bounds=new THREE.Box3().setFromObject(visual);
+ const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
+ const longest=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(longest)||longest<.001)return;
+ const pivot=new THREE.Group();
+ const scale=34/longest; // mascota compacta, tamaño independiente de los drones de combate
+ visual.scale.setScalar(scale);
+ visual.position.copy(center).multiplyScalar(-scale);
+ pivot.add(visual);
+ explorerMesh.add(pivot);
+ for(const part of explorerMesh.children)if(part!==pivot)part.visible=false;
+},undefined,error=>console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error));
 function updateExplorer(dt,now){
  explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
  if(!explorerMesh.visible)return;
@@ -426,19 +443,43 @@ modelLoader.load('./assets/models/sci_fi_fighter_spacecraft.glb?v=1',gltf=>{
   for(const part of d.mesh.children)if(part!==pivot)part.visible=false;
  }
 },undefined,()=>console.info('Modelo de dron pendiente: se usa el diseño provisional.'));
+const formationBtn=$('formationBtn');
+function refreshFormationButton(){
+ if(!formationBtn)return;
+ const shield=player.droneFormation==='shield';
+ formationBtn.textContent=shield?'🛡️':'🔄';
+ formationBtn.title=shield?'Escudo giratorio activo · Cambiar a abanico':'Abanico activo · Cambiar a escudo giratorio';
+ formationBtn.setAttribute('aria-label',formationBtn.title);
+ formationBtn.setAttribute('aria-pressed',String(shield));
+}
+if(formationBtn)formationBtn.onclick=()=>{
+ player.droneFormation=player.droneFormation==='shield'?'fan':'shield';
+ save();refreshFormationButton();
+ lootToast(player.droneFormation==='shield'?'🛡️ Formación: Escudo giratorio':'🤖 Formación: Abanico');
+};
+refreshFormationButton();
 function updateSupportDrones(dt,now){
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
  for(let i=0;i<supportDrones.length;i++){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
-  // Formación abanico frontal de 8 drones, inspirada en la referencia:
-  // cuatro a cada lado, dos hileras delante de la nave y centro despejado.
-  const pair=Math.floor(i/2);
-  const sideOffset=[78,135,195,250][pair];
-  const backOffset=[-125,-165,-190,-210][pair];
-  const desired=playerMesh.position.clone().addScaledVector(right,d.side*sideOffset).addScaledVector(forward,-backOffset);
-  desired.addScaledVector(up,14+Math.sin(now*.002+i)*4);
+  let desired;
+  if(player.droneFormation==='shield'){
+   // Rueda vertical delante de la nave, con separación equidistante y giro continuo.
+   const count=ownedDrones();
+   const angle=now*.00055+i*Math.PI*2/count;
+   const radius=105;
+   desired=playerMesh.position.clone().addScaledVector(forward,165)
+    .addScaledVector(right,Math.cos(angle)*radius)
+    .addScaledVector(up,Math.sin(angle)*radius+12);
+  }else{
+   const pair=Math.floor(i/2);
+   const sideOffset=[78,135,195,250][pair];
+   const backOffset=[-125,-165,-190,-210][pair];
+   desired=playerMesh.position.clone().addScaledVector(right,d.side*sideOffset).addScaledVector(forward,-backOffset);
+   desired.addScaledVector(up,14+Math.sin(now*.002+i)*4);
+  }
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
  }
 }
