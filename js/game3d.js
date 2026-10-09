@@ -843,7 +843,7 @@ function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
   const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*.65;d.mesh.rotation.z+=dt*.14;
   d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
-  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&d.mesh.position.distanceTo(explorerMesh.position)<42)){
+  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&d.mesh.position.distanceTo(playerMesh.position)<explorerRange())){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
    scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot');save();
