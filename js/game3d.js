@@ -46,7 +46,7 @@ function createSpaceBackground(){
 }
 const spaceBackground=createSpaceBackground();if(spaceBackground)scene.background=spaceBackground;
 // Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
-new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=93',texture=>{
+new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=94',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;
  texture.colorSpace=THREE.SRGBColorSpace;
  scene.background=texture;
@@ -92,7 +92,7 @@ const auroraPlanetPosition=new THREE.Vector3(2150,950,-5200);
 const auroraPlanetPivot=new THREE.Group();
 auroraPlanetPivot.position.copy(auroraPlanetPosition);scene.add(auroraPlanetPivot);
 const auroraPlanetLoader=new GLTFLoader();
-auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=93',gltf=>{
+auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=94',gltf=>{
  const model=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
@@ -191,12 +191,12 @@ function fitPlayerModel(model,yaw=0){
 }
 function mountPlayerModel(model,key){playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData[key]=model}
 function loadAuroraFallback(){
- modelLoader.load('./assets/models/aurora_s1.glb?v=93',gltf=>{
+ modelLoader.load('./assets/models/aurora_s1.glb?v=94',gltf=>{
   const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
   mountPlayerModel(fitPlayerModel(model,-Math.PI/2),'auroraModel');
  },undefined,err=>console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err));
 }
-modelLoader.load('./assets/models/x_wing_starfighter.glb?v=93',gltf=>{
+modelLoader.load('./assets/models/x_wing_starfighter.glb?v=94',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
  // El modelo mira hacia +Z; el juego avanza hacia -Z.
@@ -222,9 +222,9 @@ let modularStationReady=false;
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
 const modularPaths=[
- './assets/models/scififortress_optimizado.glb?v=93',
- './assets/models/landingpad_optimizado.glb?v=93',
- './assets/models/scificorridormodule_optimizado.glb?v=93'
+ './assets/models/scififortress_optimizado.glb?v=94',
+ './assets/models/landingpad_optimizado.glb?v=94',
+ './assets/models/scificorridormodule_optimizado.glb?v=94'
 ];
 Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>modelLoader.load(path,gltf=>resolve(gltf.scene),undefined,reject))))
 .then(([hubSource,padSource,bridgeSource])=>{
@@ -312,7 +312,7 @@ const enemies=enemyKinds.map((type,i)=>{
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
 // mantiene posición, IA, colisiones, disparos y recompensas intactos.
 // Si aún no se ha subido el GLB, las naves originales siguen funcionando.
-modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=93',gltf=>{
+modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=94',gltf=>{
  const original=gltf.scene;
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  // Ajustar escala con la caja del modelo antes de girarlo hacia el frente -Z.
@@ -365,7 +365,7 @@ const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.Mesh
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
 // El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-modelLoader.load('./assets/models/scifidrone.glb?v=93',gltf=>{
+modelLoader.load('./assets/models/scifidrone.glb?v=94',gltf=>{
  const visual=gltf.scene;
  visual.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(visual);
@@ -434,15 +434,25 @@ function updateExplorer(dt,now){
  if(!explorerMesh.visible)return;
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
- const target=playerMesh.position.clone().addScaledVector(forward,-38).addScaledVector(right,64).add(new THREE.Vector3(0,26+Math.sin(now*.003)*5,0));
- // La recolección funciona por radio: la mascota no abandona su posición para perseguir botín.
- if(explorerMesh.position.distanceTo(playerMesh.position)>280)explorerMesh.position.copy(target);
- else explorerMesh.position.lerp(target,Math.min(1,dt*6));
- explorerMesh.rotation.y=yaw;
+ const home=playerMesh.position.clone().addScaledVector(forward,-38).addScaledVector(right,64).add(new THREE.Vector3(0,26+Math.sin(now*.003)*5,0));
+ // Perseguir visualmente el recurso más cercano que esté dentro del alcance
+ // desbloqueado respecto de la nave; al tocarlo, updateLoot realiza la recogida.
+ let targetDrop=null,bestDistance=Infinity;
+ for(const drop of drops){
+  if(drop.mesh.position.distanceTo(playerMesh.position)>explorerRange())continue;
+  const distance=drop.mesh.position.distanceTo(explorerMesh.position);
+  if(distance<bestDistance){bestDistance=distance;targetDrop=drop}
+ }
+ const target=targetDrop?targetDrop.mesh.position:home;
+ const distance=explorerMesh.position.distanceTo(target);
+ if(explorerMesh.position.distanceTo(playerMesh.position)>explorerRange()+320)explorerMesh.position.copy(home);
+ else if(distance>1)explorerMesh.position.addScaledVector(target.clone().sub(explorerMesh.position).normalize(),Math.min(distance,(targetDrop?520:360)*dt));
+ if(targetDrop)explorerMesh.lookAt(targetDrop.mesh.position);
+ else explorerMesh.rotation.y=yaw;
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
-modelLoader.load('./assets/models/sci_fi_fighter_spacecraft.glb?v=93',gltf=>{
+modelLoader.load('./assets/models/sci_fi_fighter_spacecraft.glb?v=94',gltf=>{
  const source=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3());
@@ -717,7 +727,7 @@ const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
 // Caja 3D compartida para todas las rarezas. Si el GLB aún no existe,
 // se conserva el botín original sin interrumpir el juego.
 let lootCrateTemplate=null;
-modelLoader.load('./assets/models/scificrate.glb?v=93',gltf=>{
+modelLoader.load('./assets/models/scificrate.glb?v=94',gltf=>{
  const template=gltf.scene;
  const box=new THREE.Box3().setFromObject(template);
  const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
@@ -754,7 +764,7 @@ function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
   const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*.65;d.mesh.rotation.z+=dt*.14;
   d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
-  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&(d.mesh.position.distanceTo(explorerMesh.position)<42||d.mesh.position.distanceTo(playerMesh.position)<explorerRange()))){
+  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&d.mesh.position.distanceTo(explorerMesh.position)<42)){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
    scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot');save();
