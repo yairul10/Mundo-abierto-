@@ -406,6 +406,29 @@ modelLoader.load('./assets/models/scifidrone.glb?v=1',gltf=>{
  visual.scale.setScalar(scale);
  visual.position.copy(center).multiplyScalar(-scale);
  pivot.add(visual);
+ // Detalles azul eléctrico y violeta, conservando las texturas originales de Sloyd.
+ visual.traverse(part=>{
+  if(!part.isMesh)return;
+  const materials=Array.isArray(part.material)?part.material:[part.material];
+  part.material=materials.map(mat=>{
+   if(!mat)return mat;
+   const tinted=mat.clone();
+   if(tinted.color){
+    const hue=tinted.color.clone();
+    const light=hue.r*.2126+hue.g*.7152+hue.b*.0722;
+    if(light>.15 && light<.78)tinted.color.lerp(new THREE.Color(0x7cb8e8),.17);
+   }
+   if('emissive' in tinted){
+    tinted.emissive=new THREE.Color(0x123f8e);
+    tinted.emissiveIntensity=.18;
+   }
+   return tinted;
+  });
+  if(!Array.isArray(part.material))part.material=part.material[0];
+ });
+ const glow=new THREE.PointLight(0x30baff,3.5,55);
+ glow.position.set(0,0,-12);
+ pivot.add(glow);
  explorerMesh.add(pivot);
  for(const part of explorerMesh.children)if(part!==pivot)part.visible=false;
 },undefined,error=>console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error));
@@ -466,13 +489,18 @@ function updateSupportDrones(dt,now){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
   let desired;
   if(player.droneFormation==='shield'){
-   // Rueda vertical delante de la nave, con separación equidistante y giro continuo.
+   // Dron central fijo y hasta siete drones girando a su alrededor.
+   // El radio compacto evita tapar la nave y mantiene el conjunto delante.
    const count=ownedDrones();
-   const angle=now*.00055+i*Math.PI*2/count;
-   const radius=105;
-   desired=playerMesh.position.clone().addScaledVector(forward,165)
-    .addScaledVector(right,Math.cos(angle)*radius)
-    .addScaledVector(up,Math.sin(angle)*radius+12);
+   desired=playerMesh.position.clone().addScaledVector(forward,125);
+   if(i>0){
+    const orbitCount=Math.max(1,count-1);
+    const angle=now*.00065+(i-1)*Math.PI*2/orbitCount;
+    const radius=66;
+    desired.addScaledVector(right,Math.cos(angle)*radius)
+     .addScaledVector(up,Math.sin(angle)*radius);
+   }
+   desired.addScaledVector(up,12);
   }else{
    const pair=Math.floor(i/2);
    const sideOffset=[78,135,195,250][pair];
