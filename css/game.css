@@ -87,8 +87,8 @@ body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,b
 @media(max-width:540px){#questToggle{left:auto;right:76px;top:16px}#questTracker{top:72px;left:14px;width:min(330px,calc(100vw - 28px))}}
 
 /* Etiqueta compacta sobre enemigo fijado, sin bloquear controles táctiles. */
-#targetInfo{position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);width:132px;background:#071322e8;border:1px solid #fa687799;border-radius:8px;padding:5px 7px;text-align:center;color:#fff;font-size:11px;line-height:1.35;box-shadow:0 2px 9px #0008}
-#targetInfo strong{display:block;font-size:11px;white-space:nowrap}
+#targetLockInfo{position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);width:132px;background:#071322e8;border:1px solid #fa687799;border-radius:8px;padding:5px 7px;text-align:center;color:#fff;font-size:11px;line-height:1.35;box-shadow:0 2px 9px #0008}
+#targetLockInfo strong{display:block;font-size:11px;white-space:nowrap}
 #targetHpText{display:block;font-size:10px;color:#ffb7bb}
 #targetHpTrack{height:5px;background:#401b28;border-radius:6px;overflow:hidden;margin-top:3px}
 #targetHpFill{display:block;height:100%;width:100%;background:#ed4955;transition:width .1s linear}
