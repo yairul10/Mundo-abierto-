@@ -371,7 +371,7 @@ const EXPLORER_PRICE=DRONE_PRICES[7]*2;
 player.explorerDrone=player.explorerDrone===true;
 player.explorerRangeLevel=Math.max(1,Math.min(10,Math.floor(Number(player.explorerRangeLevel)||1)));
 function explorerRange(){return 450+player.explorerRangeLevel*100}
-function explorerUpgradePrice(){return Math.round(4000000*Math.pow(player.explorerRangeLevel/9-1,2))}
+function explorerUpgradePrice(){return Math.round(4000000*Math.pow(player.explorerRangeLevel/9,2))}
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
 player.droneFormation=player.droneFormation==='shield'?'shield':'fan';
 function ownedDrones(){return player.droneCount}
