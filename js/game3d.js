@@ -394,15 +394,16 @@ const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.Mesh
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
 // El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-modelLoader.load('./assets/models/scifidrone.glb?v=1',gltf=>{
+modelLoader.load('./assets/models/scifidrone.glb?v=3d-20261008-87',gltf=>{
  const visual=gltf.scene;
+ visual.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(visual);
  const size=bounds.getSize(new THREE.Vector3());
  const center=bounds.getCenter(new THREE.Vector3());
  const longest=Math.max(size.x,size.y,size.z);
  if(!Number.isFinite(longest)||longest<.001)return;
  const pivot=new THREE.Group();
- const scale=57/longest; // mascota más visible, independiente de los drones de combate, tamaño independiente de los drones de combate
+ const scale=90/longest; // escala legible en móvil, normalizada al tamaño real del GLB
  visual.scale.setScalar(scale);
  visual.position.copy(center).multiplyScalar(-scale);
  pivot.add(visual);
@@ -430,8 +431,9 @@ modelLoader.load('./assets/models/scifidrone.glb?v=1',gltf=>{
  glow.position.set(0,0,-12);
  pivot.add(glow);
  explorerMesh.add(pivot);
+ explorerMesh.scale.setScalar(1);
  for(const part of explorerMesh.children)if(part!==pivot)part.visible=false;
-},undefined,error=>console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error));
+},undefined,error=>{console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error);lootToast('⚠️ No se pudo cargar el modelo 3D de la mascota');});
 function updateExplorer(dt,now){
  explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
  if(!explorerMesh.visible)return;
@@ -756,6 +758,7 @@ function spawnLoot(e){
 }
 function lootToast(message){
  const el=$('lootToast');if(!el)return;
+ el.style.setProperty('top','10px','important');el.style.setProperty('bottom','auto','important');
  el.textContent=message;el.classList.remove('hidden');
  clearTimeout(lootToast.timer);lootToast.timer=setTimeout(()=>el.classList.add('hidden'),2200);
 }
@@ -1030,7 +1033,7 @@ if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position
 // Límite del Sector Aurora. Otros planetas podrán definir su propio centro/radio.
 const SECTOR_AURORA={x:0,z:-650,radius:3000,warning:600,damagePerSecond:8};
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
-sectorNotice.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
+sectorNotice.style.cssText='position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
 document.body.appendChild(sectorNotice);
 function sectorDistance(){return Math.hypot(playerMesh.position.x-SECTOR_AURORA.x,playerMesh.position.z-SECTOR_AURORA.z)}
 // Recuperar partidas anteriores guardadas muy lejos, sin borrar su progreso.
