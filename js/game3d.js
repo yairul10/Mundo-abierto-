@@ -1,9 +1,19 @@
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
 const THREE=window.THREE;if(!THREE)throw new Error('Three.js no disponible');
 const $=id=>document.getElementById(id), canvas=$('world');
+let storageWarningShown=false;
+function showStorageWarning(message='El navegador bloqueó el guardado. Esta sesión continuará, pero algunos cambios podrían no conservarse.'){
+ if(storageWarningShown)return;storageWarningShown=true;
+ const notice=document.createElement('div');notice.setAttribute('role','alert');
+ notice.style.cssText='position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:1200;max-width:86vw;padding:12px 16px;border-radius:13px;background:rgba(73,27,19,.95);border:1px solid #ff8b65;color:#fff1e9;font:600 14px system-ui;text-align:center;box-shadow:0 8px 24px #0008;';
+ notice.textContent='⚠️ '+message;document.body.appendChild(notice);setTimeout(()=>notice.remove(),6500);
+}
+function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStorageWarning();return null}}
+function safeStorageSet(key,value){try{localStorage.setItem(key,value);return true}catch{showStorageWarning();return false}}
+function safeStorageRemove(key){try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const CLASSES={acorazada:{name:'Acorazada',hp:150,energy:70,attack:14,defense:12,speed:205},energia:{name:'Energía',hp:85,energy:160,attack:18,defense:4,speed:215},interceptora:{name:'Interceptora',hp:105,energy:110,attack:16,defense:7,speed:235},soporte:{name:'Soporte',hp:115,energy:145,attack:9,defense:8,speed:215}};
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
-const QA_FLAG='mundoAbierto.qaActive';const qaActive=localStorage.getItem(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')||{}}catch{}let player={...DEFAULT,...stored};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
+const QA_FLAG='mundoAbierto.qaActive';const qaActive=safeStorageGet(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...stored};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Recuperación móvil ante pérdida del contexto WebGL. Guardar antes de
 // recargar evita perder posición, inventario o mejoras.
@@ -75,7 +85,7 @@ function createSpaceBackground(){
 }
 const spaceBackground=createSpaceBackground();if(spaceBackground)scene.background=spaceBackground;
 // Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
-new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=96',texture=>{
+new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=97',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;
  texture.colorSpace=THREE.SRGBColorSpace;
  scene.background=texture;
@@ -136,7 +146,7 @@ function deferredModelLoad(loader,path,onLoad,onProgress,onError){
  }));
  return deferredModelQueue;
 }
-deferredModelLoad(auroraPlanetLoader,'./assets/models/planeta_aurora.glb?v=96',gltf=>{
+deferredModelLoad(auroraPlanetLoader,'./assets/models/planeta_aurora.glb?v=97',gltf=>{
  const model=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
@@ -158,7 +168,7 @@ deferredModelLoad(auroraPlanetLoader,'./assets/models/planeta_aurora.glb?v=96',g
  model.rotation.order='YXZ';
  const defaultAngles=[-.18,2.4,-.88];
  let angles=defaultAngles;
- try{const saved=JSON.parse(localStorage.getItem('auroraPlanetAngles'));if(Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite))angles=saved}catch{}
+ try{const saved=JSON.parse(safeStorageGet('auroraPlanetAngles'));if(Array.isArray(saved)&&saved.length===3&&saved.every(Number.isFinite))angles=saved}catch{}
  const applyAngles=()=>model.rotation.set(angles[0],angles[1],angles[2]);
  applyAngles();
  // Editor retirado: conservar orientación guardada en este dispositivo.
@@ -235,12 +245,12 @@ function fitPlayerModel(model,yaw=0){
 }
 function mountPlayerModel(model,key){playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData[key]=model}
 function loadAuroraFallback(){
- modelLoader.load('./assets/models/aurora_s1.glb?v=96',gltf=>{
+ modelLoader.load('./assets/models/aurora_s1.glb?v=97',gltf=>{
   const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
   mountPlayerModel(fitPlayerModel(model,-Math.PI/2),'auroraModel');
  },undefined,err=>console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err));
 }
-modelLoader.load('./assets/models/x_wing_starfighter.glb?v=96',gltf=>{
+modelLoader.load('./assets/models/x_wing_starfighter.glb?v=97',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
  // El modelo mira hacia +Z; el juego avanza hacia -Z.
@@ -266,9 +276,9 @@ let modularStationReady=false;
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
 const modularPaths=[
- './assets/models/scififortress_optimizado.glb?v=96',
- './assets/models/landingpad_optimizado.glb?v=96',
- './assets/models/scificorridormodule_optimizado.glb?v=96'
+ './assets/models/scififortress_optimizado.glb?v=97',
+ './assets/models/landingpad_optimizado.glb?v=97',
+ './assets/models/scificorridormodule_optimizado.glb?v=97'
 ];
 Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLoad(modelLoader,path,gltf=>resolve(gltf.scene),undefined,reject))))
 .then(([hubSource,padSource,bridgeSource])=>{
@@ -356,7 +366,7 @@ const enemies=enemyKinds.map((type,i)=>{
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
 // mantiene posición, IA, colisiones, disparos y recompensas intactos.
 // Si aún no se ha subido el GLB, las naves originales siguen funcionando.
-deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=96',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=97',gltf=>{
  const original=gltf.scene;
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  // Ajustar escala con la caja del modelo antes de girarlo hacia el frente -Z.
@@ -409,7 +419,7 @@ const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.Mesh
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
 // El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=96',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=97',gltf=>{
  const visual=gltf.scene;
  visual.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(visual);
@@ -496,7 +506,7 @@ function updateExplorer(dt,now){
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
-deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=96',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=97',gltf=>{
  const source=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3());
@@ -771,7 +781,7 @@ const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
 // Caja 3D compartida para todas las rarezas. Si el GLB aún no existe,
 // se conserva el botín original sin interrumpir el juego.
 let lootCrateTemplate=null;
-deferredModelLoad(modelLoader,'./assets/models/scificrate.glb?v=96',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/scificrate.glb?v=97',gltf=>{
  const template=gltf.scene;
  const box=new THREE.Box3().setFromObject(template);
  const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
@@ -1069,7 +1079,7 @@ fireButton.onpointerup=releaseFire;
 fireButton.onpointercancel=releaseFire;
 fireButton.onlostpointercapture=()=>{if(fireTouchId===null){fireHeld=false;firePointerId=null;bankInput=0}};
 $('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
-function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;localStorage.setItem(SAVE_KEY,JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
+function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;return safeStorageSet(SAVE_KEY,JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
 // Límite del Sector Aurora. Otros planetas podrán definir su propio centro/radio.
@@ -1108,9 +1118,9 @@ const qaSwitch=$('qaSwitch'),qaTools=$('qaTools');
 qaSwitch.textContent=qaActive?'Volver a partida normal':'Entrar a partida QA';
 qaTools.classList.toggle('hidden',!qaActive);
 qaSwitch.onclick=()=>{
- save();
- if(qaActive)localStorage.removeItem(QA_FLAG);else localStorage.setItem(QA_FLAG,'1');
- location.reload();
+ if(!save())return;
+ const changed=qaActive?safeStorageRemove(QA_FLAG):safeStorageSet(QA_FLAG,'1');
+ if(changed)location.reload();
 };
 function qaApply(fn){if(!qaActive)return;fn();save();hud();renderDrones();renderUpgrades();renderInventory();if(docked)hangarRefresh()}
 $('qaCredits').onclick=()=>qaApply(()=>player.gold=(Number(player.gold)||0)+100000);
@@ -1118,7 +1128,7 @@ $('qaDrones').onclick=()=>qaApply(()=>player.droneCount=8);
 $('qaHeal').onclick=()=>qaApply(()=>{player.hp=player.maxHp;player.energy=player.maxEnergy});
 $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy});
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
-$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')){localStorage.removeItem(SAVE_KEY);location.reload()}};
+$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
 let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
