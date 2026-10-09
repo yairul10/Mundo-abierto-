@@ -483,26 +483,51 @@ deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
  explorerEye.position.z=-9;
  explorerEye.scale.setScalar(.65);
 },undefined,error=>{console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error);lootToast('⚠️ No se pudo cargar el modelo 3D de la mascota');});
+// Movimiento de compañía: paseos suaves alrededor de la nave, con pequeñas pausas.
+const explorerCompanion={phase:0,nextChange:0,side:1,fore:0,height:26,lookAngle:0};
 function updateExplorer(dt,now){
  explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
  if(!explorerMesh.visible)return;
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
- const home=playerMesh.position.clone().addScaledVector(forward,-38).addScaledVector(right,64).add(new THREE.Vector3(0,26+Math.sin(now*.003)*5,0));
- // Perseguir visualmente el recurso más cercano que esté dentro del alcance
- // desbloqueado respecto de la nave; al tocarlo, updateLoot realiza la recogida.
+ const t=now*.001;
+ if(t>=explorerCompanion.nextChange){
+  // Pasea alternativamente delante, al lado o un poco detrás.
+  explorerCompanion.phase++;
+  const sequence=[
+   [54,18,27],[68,-45,30],[-45,-66,22],
+   [-62,12,25],[-30,78,34],[40,66,28],
+   [75,-18,24],[-50,-38,29]
+  ];
+  const choice=sequence[explorerCompanion.phase%sequence.length];
+  explorerCompanion.side=choice[0];
+  explorerCompanion.fore=choice[1];
+  explorerCompanion.height=choice[2];
+  explorerCompanion.nextChange=t+3.5+Math.random()*2.5;
+ }
+ const home=playerMesh.position.clone()
+  .addScaledVector(right,explorerCompanion.side+Math.sin(t*.85)*7)
+  .addScaledVector(forward,explorerCompanion.fore+Math.sin(t*.53)*9)
+  .add(new THREE.Vector3(0,explorerCompanion.height+Math.sin(t*2.4)*5,0));
+ // Se acerca brevemente a una caja próxima, pero no abandona a su dueño:
+ // la recolección automática por radio continúa siendo independiente.
  let targetDrop=null,bestDistance=Infinity;
  for(const drop of drops){
-  if(drop.mesh.position.distanceTo(playerMesh.position)>explorerRange())continue;
+  if(drop.mesh.position.distanceTo(playerMesh.position)>145)continue;
   const distance=drop.mesh.position.distanceTo(explorerMesh.position);
   if(distance<bestDistance){bestDistance=distance;targetDrop=drop}
  }
- const target=targetDrop?targetDrop.mesh.position:home;
+ const target=targetDrop?targetDrop.mesh.position.clone().add(new THREE.Vector3(0,12,0)):home;
  const distance=explorerMesh.position.distanceTo(target);
- if(explorerMesh.position.distanceTo(playerMesh.position)>explorerRange()+320)explorerMesh.position.copy(home);
- else if(distance>1)explorerMesh.position.addScaledVector(target.clone().sub(explorerMesh.position).normalize(),Math.min(distance,(targetDrop?520:360)*dt));
- if(targetDrop)explorerMesh.lookAt(targetDrop.mesh.position);
- else explorerMesh.rotation.y=yaw;
+ if(explorerMesh.position.distanceTo(playerMesh.position)>260)explorerMesh.position.copy(home);
+ else explorerMesh.position.lerp(target,Math.min(1,dt*(targetDrop?3.5:2.2)));
+ // Giros progresivos, sin cambios bruscos de dirección.
+ const desiredYaw=targetDrop?Math.atan2(
+  -(targetDrop.mesh.position.x-explorerMesh.position.x),
+  -(targetDrop.mesh.position.z-explorerMesh.position.z)):yaw+Math.sin(t*.7)*.2;
+ explorerMesh.rotation.y+=Math.atan2(Math.sin(desiredYaw-explorerMesh.rotation.y),Math.cos(desiredYaw-explorerMesh.rotation.y))*Math.min(1,dt*3);
+ explorerMesh.rotation.z=Math.sin(t*1.7)*.06;
+ explorerMesh.rotation.x=Math.sin(t*1.1)*.035;
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
