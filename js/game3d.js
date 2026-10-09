@@ -394,7 +394,7 @@ const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.Mesh
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
 // El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-modelLoader.load('./assets/models/scifidrone.glb?v=3d-20261008-87',gltf=>{
+modelLoader.load('./assets/models/scifidrone.glb?v=3d-20261008-88',gltf=>{
  const visual=gltf.scene;
  visual.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(visual);
@@ -439,17 +439,10 @@ function updateExplorer(dt,now){
  if(!explorerMesh.visible)return;
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
- let target=playerMesh.position.clone().addScaledVector(forward,-48).addScaledVector(right,82).add(new THREE.Vector3(0,32+Math.sin(now*.003)*5,0));
- // Mantener la mascota cerca y visible: los materiales lejanos se recogen por su radio de exploración.
- let closest=null,best=220;
- for(const drop of drops){
-  if(drop.mesh.position.distanceTo(playerMesh.position)>260)continue;
-  const dist=drop.mesh.position.distanceTo(explorerMesh.position);
-  if(dist<best){best=dist;closest=drop}
- }
- if(closest)target=closest.mesh.position.clone().add(new THREE.Vector3(0,12,0));
+ const target=playerMesh.position.clone().addScaledVector(forward,-38).addScaledVector(right,64).add(new THREE.Vector3(0,26+Math.sin(now*.003)*5,0));
+ // La recolección funciona por radio: la mascota no abandona su posición para perseguir botín.
  if(explorerMesh.position.distanceTo(playerMesh.position)>280)explorerMesh.position.copy(target);
- else explorerMesh.position.lerp(target,Math.min(1,dt*3.5));
+ else explorerMesh.position.lerp(target,Math.min(1,dt*6));
  explorerMesh.rotation.y=yaw;
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
