@@ -46,7 +46,7 @@ function createSpaceBackground(){
 }
 const spaceBackground=createSpaceBackground();if(spaceBackground)scene.background=spaceBackground;
 // Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
-new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=94',texture=>{
+new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=95',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;
  texture.colorSpace=THREE.SRGBColorSpace;
  scene.background=texture;
@@ -92,7 +92,22 @@ const auroraPlanetPosition=new THREE.Vector3(2150,950,-5200);
 const auroraPlanetPivot=new THREE.Group();
 auroraPlanetPivot.position.copy(auroraPlanetPosition);scene.add(auroraPlanetPivot);
 const auroraPlanetLoader=new GLTFLoader();
-auroraPlanetLoader.load('./assets/models/planeta_aurora.glb?v=94',gltf=>{
+// Cola móvil: descarga y procesa un GLB secundario a la vez. La nave del
+// jugador conserva carga inmediata; el resto aprovecha períodos de reposo.
+let deferredModelQueue=Promise.resolve();
+function deferredModelLoad(loader,path,onLoad,onProgress,onError){
+ deferredModelQueue=deferredModelQueue.then(()=>new Promise(resolve=>{
+  const start=()=>loader.load(path,gltf=>{
+   try{if(onLoad)onLoad(gltf)}catch(error){console.error('Error al montar '+path,error)}finally{resolve()}
+  },onProgress,error=>{
+   try{if(onError)onError(error);else console.warn('No se pudo cargar '+path,error)}finally{resolve()}
+  });
+  if('requestIdleCallback' in window)requestIdleCallback(start,{timeout:1200});
+  else setTimeout(start,80);
+ }));
+ return deferredModelQueue;
+}
+deferredModelLoad(auroraPlanetLoader,'./assets/models/planeta_aurora.glb?v=95',gltf=>{
  const model=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
@@ -191,12 +206,12 @@ function fitPlayerModel(model,yaw=0){
 }
 function mountPlayerModel(model,key){playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData[key]=model}
 function loadAuroraFallback(){
- modelLoader.load('./assets/models/aurora_s1.glb?v=94',gltf=>{
+ modelLoader.load('./assets/models/aurora_s1.glb?v=95',gltf=>{
   const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
   mountPlayerModel(fitPlayerModel(model,-Math.PI/2),'auroraModel');
  },undefined,err=>console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err));
 }
-modelLoader.load('./assets/models/x_wing_starfighter.glb?v=94',gltf=>{
+modelLoader.load('./assets/models/x_wing_starfighter.glb?v=95',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
  // El modelo mira hacia +Z; el juego avanza hacia -Z.
@@ -222,11 +237,11 @@ let modularStationReady=false;
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
 const modularPaths=[
- './assets/models/scififortress_optimizado.glb?v=94',
- './assets/models/landingpad_optimizado.glb?v=94',
- './assets/models/scificorridormodule_optimizado.glb?v=94'
+ './assets/models/scififortress_optimizado.glb?v=95',
+ './assets/models/landingpad_optimizado.glb?v=95',
+ './assets/models/scificorridormodule_optimizado.glb?v=95'
 ];
-Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>modelLoader.load(path,gltf=>resolve(gltf.scene),undefined,reject))))
+Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLoad(modelLoader,path,gltf=>resolve(gltf.scene),undefined,reject))))
 .then(([hubSource,padSource,bridgeSource])=>{
  const assembly=new THREE.Group();
  // Ajustar cada pieza por separado sin alterar sus proporciones.
@@ -312,7 +327,7 @@ const enemies=enemyKinds.map((type,i)=>{
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
 // mantiene posición, IA, colisiones, disparos y recompensas intactos.
 // Si aún no se ha subido el GLB, las naves originales siguen funcionando.
-modelLoader.load('./assets/models/futuristic_spacecraft.glb?v=94',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=95',gltf=>{
  const original=gltf.scene;
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  // Ajustar escala con la caja del modelo antes de girarlo hacia el frente -Z.
@@ -365,7 +380,7 @@ const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.Mesh
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
 // El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-modelLoader.load('./assets/models/scifidrone.glb?v=94',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=95',gltf=>{
  const visual=gltf.scene;
  visual.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(visual);
@@ -452,7 +467,7 @@ function updateExplorer(dt,now){
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
-modelLoader.load('./assets/models/sci_fi_fighter_spacecraft.glb?v=94',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=95',gltf=>{
  const source=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3());
@@ -727,7 +742,7 @@ const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
 // Caja 3D compartida para todas las rarezas. Si el GLB aún no existe,
 // se conserva el botín original sin interrumpir el juego.
 let lootCrateTemplate=null;
-modelLoader.load('./assets/models/scificrate.glb?v=94',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/scificrate.glb?v=95',gltf=>{
  const template=gltf.scene;
  const box=new THREE.Box3().setFromObject(template);
  const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
