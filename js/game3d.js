@@ -518,10 +518,16 @@ function updateExplorer(dt,now){
  const distanceToPlayer=explorerMesh.position.distanceTo(playerMesh.position);
  // Cuando la nave se desplaza, el dron regresa hacia el radio de cobertura.
  let goal=target;
- if(distanceToPlayer>radius){
+ // Si está recogiendo, permitirle llegar al recurso dentro del radio comprado.
+ // Solo volver a la nave cuando no existe un objetivo válido o ya quedó muy lejos.
+ if(distanceToPlayer>radius&&!nearest){
   goal=playerMesh.position.clone().addScaledVector(
    explorerMesh.position.clone().sub(playerMesh.position).normalize(),radius*.72);
-  if(!nearest)c.nextChange=0;
+  c.nextChange=0;
+ } else if(distanceToPlayer>range+90){
+  goal=playerMesh.position.clone().addScaledVector(
+   explorerMesh.position.clone().sub(playerMesh.position).normalize(),range*.55);
+  c.nextChange=0;
  }
  const motion=goal.clone().sub(explorerMesh.position);
  const distance=motion.length();
@@ -914,6 +920,15 @@ function drawRadar(dt){
  const dot=(x,y,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()};
  for(const e of enemies){if(e.dead||!e.mesh.visible)continue;const p=radarPoint(e.mesh.position.x,e.mesh.position.z);if(p.inside)dot(p.x,p.y,'#ff6a6a',3)}
  for(const d of drops){const p=radarPoint(d.mesh.position.x,d.mesh.position.z);if(p.inside)dot(p.x,p.y,'#e8b5ff',2.8)}
+ // Mascota exploradora: punto celeste con borde blanco, distinto de los recursos.
+ if(player.explorerDrone&&explorerMesh.visible){
+  const pet=radarPoint(explorerMesh.position.x,explorerMesh.position.z);
+  if(pet.inside){
+   ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;
+   ctx.beginPath();ctx.arc(pet.x,pet.y,4.5,0,Math.PI*2);ctx.stroke();
+   dot(pet.x,pet.y,'#26edff',3.3);
+  }
+ }
  const station=radarPoint(SAFE_ZONE_CENTER.x,SAFE_ZONE_CENTER.z);
  if(station.inside)dot(station.x,station.y,'#56e5ff',5);
  ctx.restore();
