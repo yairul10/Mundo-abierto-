@@ -131,3 +131,10 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
  #combatControls button{width:52px;height:52px}
  #joystick{width:94px;height:94px}#stick{left:24px;top:24px;width:42px;height:42px}
 }
+
+/* Selector de formación de los ocho drones, visible durante el vuelo. */
+#formationBtn{position:fixed;z-index:15;top:76px;right:18px;width:44px;height:44px;border-radius:14px;border:1px solid #bca04e;background:#112339dd;color:#fff;font-size:23px;cursor:pointer;touch-action:manipulation}
+#formationBtn[aria-pressed="true"]{border-color:#65dfff;box-shadow:0 0 12px #40cfff66}
+@media (orientation:landscape) and (pointer:coarse){
+ #formationBtn{top:9px;right:calc(max(8px,env(safe-area-inset-right)) + 103px);width:40px;height:40px;font-size:20px}
+}
