@@ -402,7 +402,7 @@ modelLoader.load('./assets/models/scifidrone.glb?v=1',gltf=>{
  const longest=Math.max(size.x,size.y,size.z);
  if(!Number.isFinite(longest)||longest<.001)return;
  const pivot=new THREE.Group();
- const scale=34/longest; // mascota compacta, tamaño independiente de los drones de combate
+ const scale=57/longest; // mascota más visible, independiente de los drones de combate, tamaño independiente de los drones de combate
  visual.scale.setScalar(scale);
  visual.position.copy(center).multiplyScalar(-scale);
  pivot.add(visual);
@@ -437,7 +437,7 @@ function updateExplorer(dt,now){
  if(!explorerMesh.visible)return;
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
- let target=playerMesh.position.clone().addScaledVector(forward,-95).add(new THREE.Vector3(0,26+Math.sin(now*.003)*5,0));
+ let target=playerMesh.position.clone().addScaledVector(forward,-48).addScaledVector(right,82).add(new THREE.Vector3(0,32+Math.sin(now*.003)*5,0));
  let closest=null,best=explorerRange();
  for(const drop of drops){
   const dist=drop.mesh.position.distanceTo(explorerMesh.position);
@@ -533,15 +533,15 @@ function fireSupportDrones(aimPoint,locked,noseDir){
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
 const enemyShots=[];
-const enemyShotGeometry=new THREE.SphereGeometry(6,8,6);
+const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff})};
 function enemyFire(e){
  const t=TYPES[e.type];
  const start=e.mesh.position.clone();
  const target=playerMesh.position.clone().add(new THREE.Vector3((Math.random()-.5)*75,(Math.random()-.5)*55,(Math.random()-.5)*75));
  const dir=target.sub(start).normalize();
- const mesh=new THREE.Mesh(enemyShotGeometry,enemyShotMaterials[e.type]);mesh.position.copy(start).addScaledVector(dir,48);scene.add(mesh);
- enemyShots.push({mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?420:480),life:2.1,damage:t.damage});
+ const mesh=new THREE.Mesh(enemyShotGeometry,enemyShotMaterials[e.type]);mesh.position.copy(start).addScaledVector(dir,48);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
+ enemyShots.push({mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?1050:1250),life:1.4,damage:t.damage});
 }
 function updateEnemyShots(dt){
  for(let i=enemyShots.length-1;i>=0;i--){
