@@ -543,7 +543,7 @@ function updateExplorer(dt,now){
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
-deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=105',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=111',gltf=>{
  const source=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3());
