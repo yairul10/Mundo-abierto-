@@ -387,6 +387,28 @@ deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=105',
   for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
  }
 },undefined,err=>console.warn('Modelo scout GLB no disponible; se conserva la nave básica original.',err));
+// Apariencia 3D del segundo enemigo (raider). Solo sustituye la parte visual:
+// conserva vida, daño, velocidad, IA, colisiones, disparos y recompensas.
+deferredModelLoad(modelLoader,'./assets/models/raider_spacecraft.glb?v=112',gltf=>{
+ const original=gltf.scene;
+ original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+ const box=new THREE.Box3().setFromObject(original);
+ const size=box.getSize(new THREE.Vector3());
+ const center=box.getCenter(new THREE.Vector3());
+ const maxSpan=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(maxSpan)||maxSpan<.001)return;
+ for(const e of enemies){
+  if(e.type!=='raider')continue;
+  const visual=original.clone(true);
+  visual.position.copy(center).multiplyScalar(-1);
+  visual.scale.setScalar(100/maxSpan);
+  const pivot=new THREE.Group();
+  pivot.rotation.y=Math.PI; // El modelo mira hacia +Z; los enemigos avanzan hacia -Z.
+  pivot.add(visual);
+  e.mesh.add(pivot);
+  for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
+ }
+},undefined,err=>console.warn('Modelo raider GLB no disponible; se conserva la nave básica original.',err));
 // Dos drones de apoyo: acompañan al jugador y disparan proyectiles reales.
 const supportDrones=[];
 const MAX_DRONES=8;
