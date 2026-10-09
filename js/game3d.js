@@ -485,68 +485,55 @@ deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
 },undefined,error=>{console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error);lootToast('⚠️ No se pudo cargar el modelo 3D de la mascota');});
 // Movimiento de compañía: paseos suaves alrededor de la nave, con pequeñas pausas.
 const explorerCompanion={
- nextChange:0,angle:0,radius:0,altitude:26,
- destination:new THREE.Vector3(),lastPlayer:new THREE.Vector3(),initialized:false
+ nextChange:0,destination:new THREE.Vector3(),initialized:false,targetDrop:null
 };
 function updateExplorer(dt,now){
  explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
- if(!explorerMesh.visible)return;
- const t=now*.001;
- const range=explorerRange();
- // Explora dentro del alcance comprado, sin abandonar nunca el radio de la nave.
- const safeRadius=Math.max(120,range-65);
- const companion=explorerCompanion;
- if(!companion.initialized){
-  companion.lastPlayer.copy(playerMesh.position);
-  companion.destination.copy(playerMesh.position).add(new THREE.Vector3(55,28,-40));
-  explorerMesh.position.copy(companion.destination);
-  companion.initialized=true;
+ if(!explorerMesh.visible){explorerCompanion.initialized=false;return}
+ const c=explorerCompanion,t=now*.001,range=explorerRange();
+ const radius=Math.max(120,range-45);
+ if(!c.initialized){
+  explorerMesh.position.copy(playerMesh.position).add(new THREE.Vector3(65,24,-40));
+  c.destination.copy(explorerMesh.position);
+  c.nextChange=0;c.initialized=true;
  }
- // Replanificar si la nave se ha desplazado mucho: evita dejar atrás la mascota.
- const playerMoved=playerMesh.position.distanceTo(companion.lastPlayer);
- if(t>=companion.nextChange||playerMoved>safeRadius*.45){
-  companion.lastPlayer.copy(playerMesh.position);
-  companion.angle=Math.random()*Math.PI*2;
-  // Alterna exploraciones lejanas con visitas cerca de la nave.
-  const visitHome=Math.random()<.25;
-  companion.radius=(visitHome?.12:(.35+Math.random()*.55))*safeRadius;
-  companion.altitude=18+Math.random()*60;
-  companion.destination.copy(playerMesh.position).add(new THREE.Vector3(
-   Math.cos(companion.angle)*companion.radius,
-   companion.altitude*(Math.random()<.5?-1:1),
-   Math.sin(companion.angle)*companion.radius
-  ));
-  companion.nextChange=t+(visitHome?3:5)+Math.random()*5;
- }
- // Los materiales próximos atraen a la mascota de manera visual, sin afectar
- // la recogida automática que se calcula desde la nave.
- let target=companion.destination;
- let nearest=null,nearestDistance=Infinity;
+ // Priorizar recursos dentro del alcance adquirido, aunque estén lejos del dron.
+ let nearest=null,best=Infinity;
  for(const drop of drops){
-  if(drop.mesh.position.distanceTo(playerMesh.position)>safeRadius)continue;
-  const d=drop.mesh.position.distanceTo(explorerMesh.position);
-  if(d<nearestDistance){nearestDistance=d;nearest=drop}
+  if(drop.mesh.position.distanceTo(playerMesh.position)>range)continue;
+  const distance=drop.mesh.position.distanceTo(explorerMesh.position);
+  if(distance<best){best=distance;nearest=drop}
  }
- if(nearest&&nearestDistance<170)target=nearest.mesh.position;
- const toTarget=target.clone().sub(explorerMesh.position);
- const distance=toTarget.length();
- const speed=Math.min(170,45+distance*.7);
- if(distance>2)explorerMesh.position.addScaledVector(toTarget,Math.min(distance,speed*dt)/distance);
- // Contención suave en el borde del alcance, sin teletransportes durante el vuelo.
- const offset=explorerMesh.position.clone().sub(playerMesh.position);
- const separation=offset.length();
- if(separation>safeRadius){
-  const limit=playerMesh.position.clone().addScaledVector(offset,safeRadius/separation);
-  explorerMesh.position.lerp(limit,Math.min(1,dt*4));
+ c.targetDrop=nearest;
+ if(!nearest&&(t>=c.nextChange||explorerMesh.position.distanceTo(c.destination)<30)){
+  const angle=Math.random()*Math.PI*2;
+  const r=radius*(.28+Math.random()*.57);
+  c.destination.copy(playerMesh.position).add(new THREE.Vector3(
+   Math.cos(angle)*r,(Math.random()-.5)*100,Math.sin(angle)*r
+  ));
+  c.nextChange=t+5+Math.random()*6;
  }
- if(separation>range+220)explorerMesh.position.copy(playerMesh.position).add(new THREE.Vector3(45,24,0));
- // Orientación suave hacia el sentido de desplazamiento.
+ // El objetivo del botín cambia dinámicamente; la exploración normal usa destinos estables.
+ const target=nearest?nearest.mesh.position:c.destination;
+ const distanceToPlayer=explorerMesh.position.distanceTo(playerMesh.position);
+ // Cuando la nave se desplaza, el dron regresa hacia el radio de cobertura.
+ let goal=target;
+ if(distanceToPlayer>radius){
+  goal=playerMesh.position.clone().addScaledVector(
+   explorerMesh.position.clone().sub(playerMesh.position).normalize(),radius*.72);
+  if(!nearest)c.nextChange=0;
+ }
+ const motion=goal.clone().sub(explorerMesh.position);
+ const distance=motion.length();
+ const speed=nearest?Math.min(420,180+distance*.55):Math.min(235,85+distance*.35);
+ if(distance>2)explorerMesh.position.addScaledVector(motion,Math.min(distance,speed*dt)/distance);
+ if(distanceToPlayer>range+260)explorerMesh.position.copy(playerMesh.position).add(new THREE.Vector3(45,25,-35));
  if(distance>8){
-  const desiredYaw=Math.atan2(-toTarget.x,-toTarget.z);
-  explorerMesh.rotation.y+=Math.atan2(Math.sin(desiredYaw-explorerMesh.rotation.y),Math.cos(desiredYaw-explorerMesh.rotation.y))*Math.min(1,dt*2.5);
+  const desiredYaw=Math.atan2(-motion.x,-motion.z);
+  explorerMesh.rotation.y+=Math.atan2(Math.sin(desiredYaw-explorerMesh.rotation.y),Math.cos(desiredYaw-explorerMesh.rotation.y))*Math.min(1,dt*3);
  }
- explorerMesh.rotation.z=Math.sin(t*1.5)*.05;
- explorerMesh.rotation.x=Math.sin(t*1.2)*.035;
+ explorerMesh.rotation.z=Math.sin(t*1.6)*.055;
+ explorerMesh.rotation.x=Math.sin(t*1.15)*.035;
 }
 // Sustituye la geometría provisional cuando esté disponible el GLB de Sloyd.
 // Conserva el cañón lógico, la formación, los disparos y las compras existentes.
@@ -862,7 +849,7 @@ function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
   const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*.65;d.mesh.rotation.z+=dt*.14;
   d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
-  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&d.mesh.position.distanceTo(playerMesh.position)<explorerRange())){
+  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&explorerMesh.visible&&d.mesh.position.distanceTo(explorerMesh.position)<45)){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
    scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot');save();
