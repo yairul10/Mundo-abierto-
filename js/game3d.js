@@ -432,9 +432,30 @@ modelLoader.load('./assets/models/scifidrone.glb?v=3d-20261008-88',gltf=>{
  const glow=new THREE.PointLight(0x30baff,3.5,55);
  glow.position.set(0,0,-12);
  pivot.add(glow);
+ // Mantener un núcleo visible aunque el GLB tenga materiales incompatibles
+ // o sea descartado por el frustum culling del navegador móvil.
+ visual.traverse(part=>{
+  if(!part.isMesh)return;
+  part.visible=true;
+  part.frustumCulled=false;
+  const mats=Array.isArray(part.material)?part.material:[part.material];
+  for(const mat of mats)if(mat){
+   mat.side=THREE.DoubleSide;
+   mat.transparent=false;
+   mat.opacity=1;
+   mat.depthWrite=true;
+   mat.needsUpdate=true;
+  }
+ });
  explorerMesh.add(pivot);
  explorerMesh.scale.setScalar(1);
- for(const part of explorerMesh.children)if(part!==pivot)part.visible=false;
+ // El núcleo permanece como respaldo visual, en azul y de tamaño reducido.
+ explorerShell.material.color.setHex(0x2279c8);
+ explorerShell.material.emissive.setHex(0x0753a0);
+ explorerShell.scale.set(.48,.32,.58);
+ explorerEye.material.color.setHex(0x65edff);
+ explorerEye.position.z=-9;
+ explorerEye.scale.setScalar(.65);
 },undefined,error=>{console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error);lootToast('⚠️ No se pudo cargar el modelo 3D de la mascota');});
 function updateExplorer(dt,now){
  explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
