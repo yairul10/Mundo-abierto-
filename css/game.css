@@ -92,3 +92,42 @@ body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,b
 #targetHpText{display:block;font-size:10px;color:#ffb7bb}
 #targetHpTrack{height:5px;background:#401b28;border-radius:6px;overflow:hidden;margin-top:3px}
 #targetHpFill{display:block;height:100%;width:100%;background:#ed4955;transition:width .1s linear}
+
+/* Versión horizontal: bloquear la interacción cuando el teléfono está en vertical. */
+#orientationGate{display:none;position:fixed;inset:0;z-index:10000;background:radial-gradient(ellipse at center,#193957 0%,#07111f 75%);color:#f0faff;align-items:center;justify-content:center;text-align:center;padding:24px}
+.orientation-card{max-width:420px;display:grid;gap:13px;justify-items:center}
+.orientation-icon{font-size:66px;line-height:1.3}.orientation-icon span{font-size:38px;color:#73dbff}
+.orientation-card h2{margin:0;font-size:26px}.orientation-card p{margin:0;line-height:1.5;color:#c9dcec}
+.orientation-card button{background:#e3b341;color:#091522;border:0;border-radius:12px;padding:14px 20px;font-weight:800;font-size:15px}
+.orientation-card small{font-size:12px;line-height:1.4;color:#a8bfd1}
+body.portrait-blocked #orientationGate{display:flex}
+body.portrait-blocked #game{visibility:hidden;pointer-events:none}
+@media (orientation:landscape) and (pointer:coarse){
+ #hud{top:7px;left:max(8px,env(safe-area-inset-left));width:auto;max-width:min(275px,35vw);padding:7px 35px 7px 9px;font-size:12px}
+ #hudToggle{right:4px;top:4px}
+ #hud .bar{height:12px;margin-top:4px}
+ #hud .stats{gap:8px;margin-top:4px;font-size:12px}
+ #hud .xp-line{margin-top:4px}
+ #hud.collapsed{width:auto;padding:6px 35px 6px 8px}
+ #characterBtn{right:max(8px,env(safe-area-inset-right));top:8px;width:42px;height:42px;font-size:21px}
+ #questToggle{left:auto;right:calc(max(8px,env(safe-area-inset-right)) + 52px);top:9px;width:40px;height:40px}
+ #questTracker{top:56px;left:auto;right:12px;width:min(260px,38vw);max-width:38vw;font-size:12px}
+ #radarWidget{top:56px;right:max(10px,env(safe-area-inset-right));transform:scale(.65);transform-origin:top right}
+ #joystick{left:max(22px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));width:104px;height:104px}
+ #stick{width:46px;height:46px;left:27px;top:27px}
+ #combatControls{right:calc(max(12px,env(safe-area-inset-right)) + 6px);bottom:max(16px,env(safe-area-inset-bottom));gap:13px}
+ #combatControls button{width:58px;height:58px;font-size:22px}
+ #zoomControls{right:max(12px,env(safe-area-inset-right));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 90px);gap:6px}
+ #zoomControls button{width:34px;height:34px;font-size:21px}
+ #dockBtn{bottom:12%;max-width:45vw}
+ .panel{inset:5% 18%;max-width:620px;max-height:90dvh;overflow-y:auto;padding:15px 20px}
+ .dialogue{max-height:85dvh;overflow:auto;width:min(550px,68vw)}
+ .hangar-inner{max-width:650px;max-height:calc(100dvh - 18px);padding:16px 22px}
+ #targetInfo{top:26%;font-size:12px}
+}
+@media (orientation:landscape) and (pointer:coarse) and (max-height:420px){
+ #hud:not(.collapsed) #hudDetails{max-height:42dvh;overflow:auto}
+ #radarWidget{transform:scale(.54);top:48px}
+ #combatControls button{width:52px;height:52px}
+ #joystick{width:94px;height:94px}#stick{left:24px;top:24px;width:42px;height:42px}
+}
