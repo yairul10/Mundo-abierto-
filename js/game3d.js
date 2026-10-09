@@ -218,9 +218,12 @@ for(const x of [-19,19]){
 // Planeta y luna provisionales eliminados: ahora solo existe planeta_aurora.glb.
 function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
 let auroraModelReady=false,auroraLandingModel=null;
+let modularStationReady=false;
 // La plataforma de aterrizaje y sus luces permanecen en las mismas coordenadas
 // para no alterar el piloto automático ni el acceso al hangar.
 modelLoader.load('./assets/models/estacion_aurora.glb?v=1',gltf=>{
+ // Evitar que una descarga lenta reemplace la estación modular ya montada.
+ if(modularStationReady)return;
  const model=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(model);
  const size=bounds.getSize(new THREE.Vector3());
@@ -248,7 +251,6 @@ modelLoader.load('./assets/models/estacion_aurora.glb?v=1',gltf=>{
 },undefined,()=>console.info('Estación Aurora GLB pendiente: se conserva la estación original.'));
 // Estación Aurora modular: tres GLB independientes, con estación antigua como respaldo.
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
-let modularStationReady=false;
 const modularLandingPads=[];
 const modularPaths=[
  './assets/models/scififortress_optimizado.glb',
