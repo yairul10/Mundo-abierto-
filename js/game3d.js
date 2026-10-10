@@ -299,7 +299,14 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
   core.position.z=.5;
   const glow=new THREE.Mesh(new THREE.CircleGeometry(r*1.45,24),glowMaterial);
   glow.position.z=.6;
-  engine.add(rim,ring,core,glow);pivot.add(engine);
+  const flameGeometry=new THREE.ConeGeometry(r*.55,40,12,1,true);
+ flameGeometry.translate(0,20,0);
+ const flame=new THREE.Mesh(flameGeometry,new THREE.MeshBasicMaterial({color:0xff9a20,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
+ flame.rotation.x=Math.PI/2;flame.position.z=.7;
+ flame.visible=false;
+ if(!pivot.userData.engineFlames)pivot.userData.engineFlames=[];
+ pivot.userData.engineFlames.push(flame);
+ engine.add(rim,ring,core,glow,flame);pivot.add(engine);
  }
  mountPlayerModel(pivot,'titanModel');
 },undefined,err=>console.warn('Modelo Titán no disponible; se conserva la apariencia original.',err));
@@ -332,13 +339,13 @@ modelLoader.load('./assets/models/x_wing_starfighter.glb?v=105',gltf=>{
 },undefined,err=>{console.warn('X-Wing no disponible; cargando Aurora-S1.',err);loadAuroraFallback()});
 // El X-Wing tiene dos turbinas visibles: situar los efectos en ellas, no en los
 // cuatro soportes del motor del modelo anterior. Sin discos blancos opacos.
-const engineLights=[],engineTrails=[];
+const engineLights=[],engineTrails=[],engineGlows=[];
 for(const x of [-19,19]){
  const y=-2,z=39;
  const l=new THREE.PointLight(0x27aaff,10,105,2);
  l.position.set(x,y,z+5);playerMesh.add(l);engineLights.push(l);
  const glow=new THREE.Mesh(new THREE.CircleGeometry(4.1,24),new THREE.MeshBasicMaterial({color:0x4bbfff,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));
- glow.position.set(x,y,z+1);playerMesh.add(glow);
+ glow.position.set(x,y,z+1);playerMesh.add(glow);engineGlows.push(glow);
  const trail=new THREE.Mesh(new THREE.ConeGeometry(3.1,40,12,1,true),new THREE.MeshBasicMaterial({color:0x168dff,transparent:true,opacity:.38,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
  trail.rotation.x=Math.PI/2;trail.position.set(x,y,z+23);playerMesh.add(trail);engineTrails.push(trail);
 }
@@ -1447,7 +1454,18 @@ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuO
 playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
 updateSectorBoundary(dt);
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
-for(const l of engineLights)l.intensity=18+Math.abs(throttle)*48;for(const t of engineTrails){t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58;}
+const titanVisual=playerMesh.userData.titanModel;
+const titanEnginesActive=player.shipId==='titan'&&!!titanVisual?.visible;
+for(const glow of engineGlows)glow.visible=!titanEnginesActive;
+for(const l of engineLights){l.visible=!titanEnginesActive;l.intensity=18+Math.abs(throttle)*48}
+for(const t of engineTrails){t.visible=!titanEnginesActive;t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58}
+for(const flame of titanVisual?.userData.engineFlames||[]){
+ const power=Math.abs(throttle);
+ flame.visible=titanEnginesActive&&power>.02&&!docked&&!landing;
+ const flicker=1+Math.sin(now*.035+flame.id)*.08;
+ flame.scale.set(.8+power*.2,.15+power*1.35*flicker,.8+power*.2);
+ flame.material.opacity=.25+power*.45;
+}
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
