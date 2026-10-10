@@ -323,6 +323,22 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  const pivot=new THREE.Group();
  pivot.rotation.y=Math.PI/2;
  pivot.add(source);
+ // Cinco salidas traseras de Espectro, alineadas con su eje longitudinal X.
+ pivot.userData.engineFlames=[];
+ for(const [side,height,radius,length] of [[-31,-7,3.5,1],[-17,-7,3,1.05],[0,3,4.5,1.3],[17,-7,3,1.05],[31,-7,3.5,1]]){
+  const engine=new THREE.Group();
+  engine.position.set(-size.x*scale*.5-1,height,side);
+  engine.rotation.y=-Math.PI/2;
+  const glow=new THREE.Mesh(new THREE.CircleGeometry(radius,24),new THREE.MeshBasicMaterial({color:0x55e4ff,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
+  const geometry=new THREE.ConeGeometry(radius*.8,46,12,1,true);
+  geometry.translate(0,23,0);
+  const flame=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0x27baff,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
+  flame.rotation.x=Math.PI/2;flame.position.z=.7;flame.visible=false;
+  flame.userData.lengthFactor=length;
+  pivot.userData.engineFlames.push(flame);
+  engine.add(glow,flame);pivot.add(engine);
+ }
+
  mountPlayerModel(pivot,'espectroModel');
 },undefined,err=>console.warn('Modelo Espectro no disponible; se conserva la apariencia original.',err));
 function loadAuroraFallback(){
@@ -1454,17 +1470,21 @@ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuO
 playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
 updateSectorBoundary(dt);
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
-const titanVisual=playerMesh.userData.titanModel;
+const titanVisual=playerMesh.userData.titanModel,espectroVisual=playerMesh.userData.espectroModel;
 const titanEnginesActive=player.shipId==='titan'&&!!titanVisual?.visible;
-for(const glow of engineGlows)glow.visible=!titanEnginesActive;
-for(const l of engineLights){l.visible=!titanEnginesActive;l.intensity=18+Math.abs(throttle)*48}
-for(const t of engineTrails){t.visible=!titanEnginesActive;t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58}
-for(const flame of titanVisual?.userData.engineFlames||[]){
- const power=Math.abs(throttle);
- flame.visible=titanEnginesActive&&power>.02&&!docked&&!landing;
- const flicker=1+Math.sin(now*.035+flame.id)*.08;
- flame.scale.set(.8+power*.2,.15+power*1.35*flicker,.8+power*.2);
- flame.material.opacity=.25+power*.45;
+const espectroEnginesActive=player.shipId==='espectro'&&!!espectroVisual?.visible;
+const customEnginesActive=titanEnginesActive||espectroEnginesActive;
+for(const glow of engineGlows)glow.visible=!customEnginesActive;
+for(const l of engineLights){l.visible=!customEnginesActive;l.intensity=18+Math.abs(throttle)*48}
+for(const t of engineTrails){t.visible=!customEnginesActive;t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58}
+for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,espectroEnginesActive]]){
+ for(const flame of visual?.userData.engineFlames||[]){
+  const power=Math.abs(throttle);
+  flame.visible=active&&power>.02&&!docked&&!landing;
+  const flicker=1+Math.sin(now*.035+flame.id)*.08;
+  flame.scale.set(.8+power*.2,(.15+power*1.35*flicker)*(flame.userData.lengthFactor||1),.8+power*.2);
+  flame.material.opacity=.25+power*.45;
+ }
 }
 updateLoot(dt);
 drawRadar(dt);
