@@ -639,6 +639,14 @@ const TYPES={
  raider:{hp:70,damage:10,speed:150,xp:36,gold:10,loot:2,color:0xe78b45},
  sentinel:{hp:140,damage:20,speed:90,xp:72,gold:20,loot:4,color:0xb86bd9}
 };
+// Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
+// para principiantes y ganan resistencia a medida que progresa el jugador.
+function enemyDifficultyScale(){
+ const level=Math.max(1,Math.floor(Number(player.level)||1));
+ return Math.min(5,1+Math.max(0,level-1)*.10);
+}
+function enemyMaxHp(type){return Math.round(TYPES[type].hp*enemyDifficultyScale())}
+function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
 const enemyKinds=[...Array(8).fill('scout'),...Array(7).fill('raider'),...Array(5).fill('sentinel')];
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
@@ -648,7 +656,7 @@ function randomEnemyHome(type){
 const enemies=enemyKinds.map((type,i)=>{
  const t=TYPES[type],mesh=ship(t.color,type);scene.add(mesh);
  const home=randomEnemyHome(type);mesh.position.copy(home);
- return {type,mesh,home,hp:t.hp,maxHp:t.hp,dead:0,angle:i,fireTimer:1+Math.random()*2};
+ const maxHp=enemyMaxHp(type);return {type,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,fireTimer:1+Math.random()*2};
 });
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
 // mantiene posición, IA, colisiones, disparos y recompensas intactos.
@@ -1001,7 +1009,7 @@ function updateTargetLock(){
   lockFrame.style.left=((screen.x+1)*50)+'%';
   lockFrame.style.top=((1-screen.y)*50)+'%';
   const info={scout:['Explorador',1],raider:['Asaltante',3],sentinel:['Guardián',5]}[candidate.type]||['Enemigo',1];
-  $('targetName').textContent=info[0]+' · Nv. '+info[1];
+  $('targetName').textContent=info[0]+' · Nv. '+Math.max(info[1],Math.floor(Number(player.level)||1));
   $('targetHpText').textContent=Math.max(0,Math.ceil(candidate.hp))+'/'+candidate.maxHp;
   $('targetHpFill').style.width=(100*Math.max(0,Math.min(1,candidate.hp/candidate.maxHp)))+'%';
  }else lockFrame.classList.add('hidden');
@@ -1343,7 +1351,7 @@ function updateLoot(dt){
   }else if(d.age>90){scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1)}
  }
 }
-function kill(e){const t=TYPES[e.type];missionEvent(e.type);e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
+function kill(e){const t=TYPES[e.type],reward=enemyRewardScale(),gold=Math.round(t.gold*reward),xp=Math.round(t.xp*reward);missionEvent(e.type);e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(xp);lootToast('+'+gold+' créditos · +'+xp+' XP · '+t.loot+' recursos');save()}
 // Modelo 3D del misil. La geometría anterior permanece como respaldo.
 let rocketTemplate=null;
 deferredModelLoad(new GLTFLoader(),'./assets/models/rocket.glb?v=114',gltf=>{
@@ -1760,7 +1768,7 @@ for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,e
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<650&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>170)e.mesh.position.addScaledVector(dir,t.speed*dt);else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d<570&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<650&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>170)e.mesh.position.addScaledVector(dir,t.speed*dt);else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d<570&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
 updateEnemyShots(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile){
