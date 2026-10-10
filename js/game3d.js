@@ -286,7 +286,7 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
    if(material.map)material.map.anisotropy=maxAnisotropy;
    material.onBeforeCompile=shader=>{
     shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
-     '#include <map_fragment>\\nfloat titanLuma=dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));\\ndiffuseColor.rgb=clamp(mix(vec3(titanLuma),diffuseColor.rgb,1.45),0.0,1.0);');
+     '#include <map_fragment>\nfloat titanLuma=dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));\ndiffuseColor.rgb=clamp(mix(vec3(titanLuma),diffuseColor.rgb,1.45),0.0,1.0);');
    };
    material.customProgramCacheKey=()=> 'titan-satin-metal-v1';
    material.needsUpdate=true;
