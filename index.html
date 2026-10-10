@@ -16,11 +16,21 @@
  addEventListener('orientationchange',sync);
  sync();
 })();
-</script><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+</script><script>
+// Si el CDN principal falla (por red, bloqueo o caída), se reintenta con un segundo proveedor.
+const threeCdn=new URLSearchParams(location.search).get('threecdn')==='backup'
+ ?'https://unpkg.com/three@0.180.0'
+ :'https://cdn.jsdelivr.net/npm/three@0.180.0';
+window.THREE_CDN=threeCdn;
+const threeMap=document.createElement('script');
+threeMap.type='importmap';
+threeMap.textContent=JSON.stringify({imports:{three:threeCdn+'/build/three.module.js'}});
+document.currentScript.after(threeMap);
+</script>
 <script type="module">
 // GitHub Pages puede servir HTML cacheado: comprobamos la versión publicada
 // con una petición que evita caché y actualizamos una sola vez si cambió.
-const GAME_BUILD='3d-20261009-118';
+const GAME_BUILD='3d-20261010-119';
 const status=document.getElementById('bootStatus');
 try {
  const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store'});
@@ -43,10 +53,16 @@ try{
   const THREE=await import('three');
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
-  await import('./js/game3d.js?v=3d-20261009-118');
+  await import('./js/game3d.js?v=3d-20261010-119');
   status.remove();
 }catch(err){
-  status.textContent='ERROR 3D: '+(err?.message||err);
+  if(!new URLSearchParams(location.search).has('threecdn') && /fetch|module|network|load/i.test(String(err?.message||err))){
+    const next=new URL(location.href);next.searchParams.set('threecdn','backup');
+    status.textContent='Cambiando servidor del motor 3D…';
+    location.replace(next.href);
+  }else{
+    status.textContent='ERROR 3D: '+(err?.message||err);
+  }
   status.classList.add('error');
   console.error(err);
 }
