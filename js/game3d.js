@@ -1088,9 +1088,9 @@ player.shipId=SHIP_TYPES[player.shipId]&&player.ownedShips[player.shipId]?player
 player.shipSpecializations=player.shipSpecializations&&typeof player.shipSpecializations==='object'?player.shipSpecializations:{};
 // Habilidades de clase: duración y recarga solo durante la sesión de vuelo.
 const SHIP_ABILITIES={
- aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:30},
- titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:35},
- espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:35}
+ aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:20,energy:40},
+ titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:25,energy:55},
+ espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:25,energy:65}
 };
 const SPECIAL_UPGRADES={
  aurora:[['energy','Reactor eficiente','Regeneración de energía +4 % por nivel'],['overload','Sobrecarga avanzada','Duración +0,25 s por nivel'],['shield','Escudos recuperadores','Recupera 0,3 % del casco por segundo durante Sobrecarga']],
@@ -1108,7 +1108,9 @@ function abilityDuration(){
 }
 function activateClassAbility(){
  if(classAbilityCd>0||classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
- const a=SHIP_ABILITIES[player.shipId];classAbilityTime=abilityDuration();classAbilityCd=a.cooldown;
+ const a=SHIP_ABILITIES[player.shipId];
+ if(player.energy<a.energy){lootToast('🔋 Energía insuficiente: '+a.energy+' necesarios');return}
+ player.energy-=a.energy;classAbilityTime=abilityDuration();classAbilityCd=a.cooldown;hud();
  lootToast(a.icon+' '+a.name+' activada');
 }
 function classAbilityActive(id){return player.shipId===id&&classAbilityTime>0}
@@ -1134,7 +1136,7 @@ function updateClassAbility(dt){
  if(player.shipId==='titan'&&specialLevel('repair')>0&&performance.now()/1000-lastHitAt>5&&!docked)
   player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.0015*specialLevel('repair')*dt);
  const btn=$('classAbilityBtn'),label=$('classAbilityCd');
- if(btn){const a=SHIP_ABILITIES[player.shipId];btn.firstChild.textContent=a.icon;btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityCd>0||classAbilityTime>0;
+ if(btn){const a=SHIP_ABILITIES[player.shipId];btn.firstChild.textContent=a.icon;btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityCd>0||classAbilityTime>0||player.energy<a.energy;
  if(label)label.textContent=classAbilityTime>0?Math.ceil(classAbilityTime)+'s':classAbilityCd>0?Math.ceil(classAbilityCd)+'s':''}
 }
 function renderSpecialUpgrades(){
@@ -1731,7 +1733,7 @@ $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;playe
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
+let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
