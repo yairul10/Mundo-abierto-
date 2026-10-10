@@ -643,9 +643,9 @@ for(let i=0;i<100;i++){
 }
 // Tres tipos de nave actuales: cada escalón duplica vida, daño y recompensas.
 const TYPES={
- scout:{hp:35,damage:5,speed:120,xp:18,gold:5,loot:1,color:0xe65757},
- raider:{hp:70,damage:10,speed:150,xp:36,gold:10,loot:2,color:0xe78b45},
- sentinel:{hp:140,damage:20,speed:90,xp:72,gold:20,loot:4,color:0xb86bd9}
+ scout:{hp:35,damage:5,speed:120,xp:18,gold:10,loot:1,color:0xe65757},
+ raider:{hp:70,damage:10,speed:150,xp:36,gold:20,loot:2,color:0xe78b45},
+ sentinel:{hp:140,damage:20,speed:90,xp:72,gold:40,loot:4,color:0xb86bd9},destroyer:{hp:280,damage:35,speed:110,xp:130,gold:80,loot:6,color:0xff3d9b}
 };
 // Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
 // para principiantes y ganan resistencia a medida que progresa el jugador.
@@ -653,9 +653,9 @@ function enemyDifficultyScale(){
  const level=Math.max(1,Math.floor(Number(player.level)||1));
  return Math.min(5,1+Math.max(0,level-1)*.10);
 }
-function enemyMaxHp(type){return Math.round(TYPES[type].hp*enemyDifficultyScale()*(typeof activeSector!=='undefined'&&activeSector==='belt'?2.5:1))}
-function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)*(typeof activeSector!=='undefined'&&activeSector==='belt'?2:1)}
-const enemyKinds=[...Array(11).fill('scout'),...Array(10).fill('raider'),...Array(7).fill('sentinel')]; // 28 enemigos: +40 % frente a los 20 anteriores.
+function enemyMaxHp(type){return Math.round(TYPES[type].hp*enemyDifficultyScale())}
+function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
+const enemyKinds=[...Array(14).fill('scout'),...Array(14).fill('raider'),...Array(14).fill('sentinel'),...Array(14).fill('destroyer')]; // 28 enemigos activos por sector.
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
  const min=type==='scout'?850:type==='raider'?1200:1700;
@@ -663,7 +663,7 @@ function randomEnemyHome(type){
 }
 const enemies=enemyKinds.map((type,i)=>{
  const t=TYPES[type],mesh=ship(t.color,type);scene.add(mesh);
- const home=randomEnemyHome(type);mesh.position.copy(home);
+ const home=randomEnemyHome(type);mesh.position.copy(home);mesh.visible=type==='scout'||type==='raider';
  const maxHp=enemyMaxHp(type);return {type,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,fireTimer:1+Math.random()*2};
 });
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
@@ -987,7 +987,7 @@ function enemyFire(e){
 function updateEnemyShots(dt){
  for(let i=enemyShots.length-1;i>=0;i--){
   const p=enemyShots[i];p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;
-  if(!docked&&!landing&&!inSafeZone(playerMesh.position)&&p.mesh.position.distanceTo(playerMesh.position)<45){
+  if(!docked&&!landing&&!(activeSector==='aurora'&&inSafeZone(playerMesh.position))&&p.mesh.position.distanceTo(playerMesh.position)<45){
    applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0;
   }
   if(p.life<=0){scene.remove(p.mesh);enemyShots.splice(i,1)}
@@ -1456,7 +1456,7 @@ function inSafeZone(position){return position.distanceTo(SAFE_ZONE_CENTER)<SAFE_
 let lastZoneLabel='',zoneToastTimer=null;
 function updateZone(){
  const safe=activeSector==='aurora'&&inSafeZone(playerMesh.position);
- const label=safe?'ESTACIÓN AURORA|Zona segura':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 20+':'SECTOR AURORA|Espacio abierto';
+ const label=safe?'ESTACIÓN AURORA|Zona segura':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
   const [title,subtitle]=label.split('|'),el=$('targetInfo');
   el.replaceChildren(document.createTextNode(title),document.createElement('br'));
@@ -1706,33 +1706,39 @@ const SECTOR_AURORA={x:0,z:-650,radius:3000,warning:600,damagePerSecond:8};
 const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
 let activeSector=player.sector==='belt'?'belt':'aurora';
 const currentSector=()=>activeSector==='belt'?SECTOR_BELT:SECTOR_AURORA;
-MAP_CENTER_X=currentSector().x;
-const portalButton=document.createElement('button');
-portalButton.type='button';
-portalButton.textContent='🌀 Cinturón Perdido · Nv. 20';
-portalButton.style.cssText='position:fixed;right:12px;top:74px;z-index:36;border:1px solid #a887ff;border-radius:13px;padding:10px 12px;color:white;background:#27154bdc;font:600 12px system-ui;box-shadow:0 3px 15px #0009;cursor:pointer;display:none';
-document.body.appendChild(portalButton);
-function updateSectorPortal(){
- const nearStation=playerMesh.position.distanceTo(auroraStation.position)<900;
- const available=activeSector==='belt'||(nearStation&&!landing&&!docked);
- portalButton.style.display=available?'block':'none';
- portalButton.textContent=activeSector==='belt'?'🌀 Regresar a Aurora':'🌀 Cinturón Perdido · Nv. 20';
- portalButton.disabled=activeSector==='aurora'&&player.level<20;
- portalButton.style.opacity=portalButton.disabled?'.5':'1';
-}
-portalButton.onclick=()=>{
- if(landing||docked)return;
- if(activeSector==='aurora'&&player.level<20){lootToast('🔒 Necesitas nivel 20 para entrar al Cinturón Perdido');return}
+MAP_CENTER_X=currentSector().x;MAP_CENTER_Z=currentSector().z;
+for(const e of enemies)e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');
+// Portal visible entre la estación y el planeta, a 250 m del borde esférico.
+const portalDir=new THREE.Vector3(2150,950,-5200).sub(new THREE.Vector3(0,0,-650)).normalize();
+const auroraPortal=new THREE.Vector3(0,0,-650).addScaledVector(portalDir,2750);
+const beltPortal=new THREE.Vector3(SECTOR_BELT.x,0,SECTOR_BELT.z+2450);
+const portalMat=new THREE.MeshBasicMaterial({color:0x8a65ff,transparent:true,opacity:.9,side:THREE.DoubleSide});
+const portalFill=new THREE.MeshBasicMaterial({color:0x6241da,transparent:true,opacity:.25,side:THREE.DoubleSide,depthWrite:false});
+const portalMesh=new THREE.Group(),portalRing=new THREE.Mesh(new THREE.TorusGeometry(30,4,12,56),portalMat);
+portalMesh.add(portalRing,new THREE.Mesh(new THREE.CircleGeometry(26,56),portalFill));
+const portalLight=new THREE.PointLight(0x8a65ff,20,180);portalMesh.add(portalLight);scene.add(portalMesh);
+const portalMessage=document.createElement('div');portalMessage.style.cssText='position:fixed;left:50%;top:24%;transform:translateX(-50%);z-index:40;background:#170e35ec;color:white;border:1px solid #9c83ff;border-radius:12px;padding:12px 16px;font:700 15px system-ui;text-align:center;pointer-events:none;display:none';document.body.appendChild(portalMessage);
+let portalCountdown=0,portalLastTick=performance.now();
+function switchSector(){
  activeSector=activeSector==='aurora'?'belt':'aurora';
  const sector=currentSector();MAP_CENTER_X=sector.x;MAP_CENTER_Z=sector.z;
- playerMesh.position.set(sector.x,110,sector.z+480);
+ playerMesh.position.copy(activeSector==='belt'?beltPortal.clone().add(new THREE.Vector3(0,0,-110)):auroraPortal.clone().addScaledVector(portalDir,-110));
  for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,2950));
- for(const e of enemies){e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.mesh.visible=true;e.fireTimer=1+Math.random()*2}
+ for(const e of enemies){e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');e.fireTimer=1+Math.random()*2}
  for(const shot of enemyShots)scene.remove(shot.mesh);enemyShots.length=0;
  for(const shot of shots)scene.remove(shot.mesh);shots.length=0;
- player.sector=activeSector;save();updateSectorPortal();
- lootToast(activeSector==='belt'?'🪨 Has llegado al Cinturón Perdido':'🌌 Has regresado al Sector Aurora');
-};
+ player.sector=activeSector;portalCountdown=0;save();lootToast(activeSector==='belt'?'🪨 Cinturón Perdido':'🌌 Sector Aurora');
+}
+function updateSectorPortal(){
+ const dt=Math.min(.1,(performance.now()-portalLastTick)/1000);portalLastTick=performance.now();
+ const pos=activeSector==='aurora'?auroraPortal:beltPortal;portalMesh.position.copy(pos);portalMesh.lookAt(playerMesh.position);
+ const distance=playerMesh.position.distanceTo(pos),near=distance<=75,unlocked=activeSector==='belt'||player.level>=10;
+ const charging=distance<=10&&unlocked&&!docked&&!landing;
+ if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector();portalMessage.style.display='none';return}}else portalCountdown=0;
+ portalRing.rotation.z+=dt*(charging?3:.35);portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=charging?.8:.25;portalLight.intensity=charging?90:20;
+ portalMessage.style.display=near&&!docked&&!landing?'block':'none';
+ if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel 10 para desbloquear':charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 Acércate a 10 m para viajar';
+}
 
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
 sectorNotice.style.cssText='position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
@@ -1743,7 +1749,7 @@ if(sectorDistance()>currentSector().radius){const sector=currentSector();playerM
 function updateSectorBoundary(dt){
  if(docked||landing){sectorNotice.style.display='none';return}
  const sector=currentSector(),d=sectorDistance(),remaining=sector.radius-d;
- if(remaining>SECTOR_AURORA.warning){sectorNotice.style.display='none';return}
+ if(remaining>sector.warning){sectorNotice.style.display='none';return}
  sectorNotice.style.display='block';
  if(remaining>=0){sectorNotice.textContent='⚠️ Límite de '+(activeSector==='belt'?'Cinturón Perdido':'Sector Aurora')+' a '+Math.ceil(remaining)+' m';return}
  player.hp=Math.max(0,player.hp-sector.damagePerSecond*dt);
@@ -1807,7 +1813,7 @@ for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,e
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<1200&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');e.fireTimer=1+Math.random()*2}continue}if(!e.mesh.visible)continue;const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<1200&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
 updateEnemyShots(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile){
