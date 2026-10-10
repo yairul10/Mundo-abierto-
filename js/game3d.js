@@ -744,7 +744,7 @@ function fire(mult=1,count=1){
   shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
- fireCd=.34; // Doble intervalo entre disparos para equilibrar nave y drones.
+ fireCd=.68; // Intervalo duplicado nuevamente; disparo conjunto de nave y drones.
 }
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
@@ -941,6 +941,34 @@ function createMissileMesh(){
  return new THREE.Mesh(new THREE.ConeGeometry(7,33,8),
   new THREE.MeshStandardMaterial({color:0xf3f3f3,emissive:0xff7629,emissiveIntensity:.7,metalness:.35,roughness:.4}));
 }
+// Efectos ligeros: una llama anclada al misil y una estela de 12 puntos.
+const missileFlameGeometry=new THREE.ConeGeometry(5,23,7);
+const missileFlameMaterial=new THREE.MeshBasicMaterial({color:0xff8526,transparent:true,opacity:.88,depthWrite:false});
+function addMissileEffects(mesh){
+ const flame=new THREE.Mesh(missileFlameGeometry,missileFlameMaterial);
+ flame.rotation.z=Math.PI;flame.position.y=-23;
+ mesh.add(flame);
+ const positions=new Float32Array(12*3);
+ for(let i=0;i<12;i++){positions[i*3]=mesh.position.x;positions[i*3+1]=mesh.position.y;positions[i*3+2]=mesh.position.z}
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+ const material=new THREE.LineBasicMaterial({color:0xffa34c,transparent:true,opacity:.8,depthWrite:false});
+ const trail=new THREE.Line(geometry,material);
+ trail.frustumCulled=false;scene.add(trail);
+ return {flame,trail,positions};
+}
+function updateMissileEffects(p,dt){
+ if(!p.missileEffects)return;
+ const fx=p.missileEffects,coords=fx.positions;
+ for(let j=coords.length-3;j>=3;j-=3){coords[j]=coords[j-3];coords[j+1]=coords[j-2];coords[j+2]=coords[j-1]}
+ coords[0]=p.mesh.position.x;coords[1]=p.mesh.position.y;coords[2]=p.mesh.position.z;
+ fx.trail.geometry.attributes.position.needsUpdate=true;
+ fx.flame.scale.setScalar(.8+Math.random()*.45);
+}
+function removeMissileEffects(p){
+ if(!p.missileEffects)return;
+ const fx=p.missileEffects;scene.remove(fx.trail);fx.trail.geometry.dispose();fx.trail.material.dispose();
+}
 // Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
 function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
@@ -957,14 +985,20 @@ function skill(){
  for(let i=0;i<count;i++){
   const side=i%2===0?1:-1;
   const row=Math.floor(i/2);
-  const start=playerMesh.position.clone().addScaledVector(forward,55).addScaledVector(right,side*(35+row*9));
+  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
+  // Cada pareja se abre a mayor distancia, alternando alturas y ángulos.
+  const elevation=(row%2===0?1:-1)*(.16+row*.08);
+  const start=playerMesh.position.clone().addScaledVector(forward,35-row*6)
+   .addScaledVector(right,side*(43+row*18)).addScaledVector(up,elevation*38);
   const dir=aim.clone().sub(start).normalize();
-  const launchDir=dir.clone().addScaledVector(right,side*.65).addScaledVector(new THREE.Vector3(0,1,0),.10).normalize();
+  const launchDir=dir.clone().addScaledVector(right,side*(.95+row*.25))
+   .addScaledVector(up,elevation).normalize();
   const mesh=createMissileMesh();
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),launchDir);
   mesh.position.copy(start);scene.add(mesh);
+  const missileEffects=addMissileEffects(mesh);
   shots.push({mesh,vel:launchDir.multiplyScalar(650),life:4,damage:player.attack*3,missile:true,target,
-   missileAim:target?null:aim.clone(),missileAge:0,missileSide:side});
+   missileAim:target?null:aim.clone(),missileAge:0,missileSide:side,missileEffects});
  }
  player.energy-=25;skillCd=7;
 }
@@ -1284,9 +1318,9 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile){
   p.missileAge=(p.missileAge||0)+dt;
   const aim=p.target&&!p.target.dead&&p.target.mesh.visible?p.target.mesh.position:p.missileAim;
-  if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<.3?1.5:3.7)))}
+  if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<.55?.6:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
- }p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
+ }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
