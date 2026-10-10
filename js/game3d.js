@@ -1733,11 +1733,11 @@ function updateSectorPortal(){
  const dt=Math.min(.1,(performance.now()-portalLastTick)/1000);portalLastTick=performance.now();
  const pos=activeSector==='aurora'?auroraPortal:beltPortal;portalMesh.position.copy(pos);portalMesh.lookAt(playerMesh.position);
  const distance=playerMesh.position.distanceTo(pos),near=distance<=75,unlocked=activeSector==='belt'||player.level>=10;
- const charging=distance<=10&&unlocked&&!docked&&!landing;
+ const charging=distance<=100&&unlocked&&!docked&&!landing;
  if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector();portalMessage.style.display='none';return}}else portalCountdown=0;
  portalRing.rotation.z+=dt*(charging?3:.35);portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=charging?.8:.25;portalLight.intensity=charging?90:20;
  portalMessage.style.display=near&&!docked&&!landing?'block':'none';
- if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel 10 para desbloquear':charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 Acércate a 10 m para viajar';
+ if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel 10 para desbloquear':charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 Acércate a 100 m para viajar';
 }
 
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
