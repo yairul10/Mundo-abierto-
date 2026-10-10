@@ -1715,7 +1715,39 @@ const beltPortal=new THREE.Vector3(SECTOR_BELT.x,0,SECTOR_BELT.z+2450);
 const portalMat=new THREE.MeshBasicMaterial({color:0x8a65ff,transparent:true,opacity:.9,side:THREE.DoubleSide});
 const portalFill=new THREE.MeshBasicMaterial({color:0x6241da,transparent:true,opacity:.25,side:THREE.DoubleSide,depthWrite:false});
 const portalMesh=new THREE.Group(),portalRing=new THREE.Mesh(new THREE.TorusGeometry(30,4,12,56),portalMat);
-portalMesh.add(portalRing,new THREE.Mesh(new THREE.CircleGeometry(26,56),portalFill));
+const portalDisk=new THREE.Mesh(new THREE.CircleGeometry(26,56),portalFill);
+portalMesh.add(portalRing,portalDisk);
+// El anillo provisional sigue visible hasta que termina de cargar el modelo.
+const portalHalo=new THREE.Mesh(new THREE.TorusGeometry(23,.45,6,64),new THREE.MeshBasicMaterial({color:0x4fcfff,transparent:true,opacity:.25,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
+portalHalo.visible=false;portalMesh.add(portalHalo);
+deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
+ const model=gltf.scene;
+ const box=new THREE.Box3().setFromObject(model);
+ const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+ const span=Math.max(size.x,size.y);
+ if(!Number.isFinite(span)||span<.001)return;
+ const scale=68/span;
+ model.scale.multiplyScalar(scale);model.position.sub(center.multiplyScalar(scale));
+ const anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ model.traverse(o=>{
+  if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;
+  for(const material of Array.isArray(o.material)?o.material:[o.material]){
+   if(!material?.isMeshStandardMaterial)continue;
+   material.metalnessMap=null;material.roughnessMap=null;
+   material.metalness=.35;material.roughness=.6;
+   material.normalScale.set(.4,.4);
+   if(material.map){
+    material.map.anisotropy=anisotropy;
+    material.emissiveMap=material.map;material.emissive.setHex(0x17446b);material.emissiveIntensity=.35;
+   }
+   material.needsUpdate=true;
+  }
+ });
+ portalMesh.add(model);portalMesh.userData.portalModel=model;
+ portalRing.visible=false;portalDisk.visible=false;
+ portalHalo.position.z=size.z*scale*.5+.3;portalHalo.visible=true;
+ portalLight.color.setHex(0x3bafff);
+},undefined,err=>console.warn('Modelo de portal no disponible; se conserva el portal provisional.',err));
 const portalLight=new THREE.PointLight(0x8a65ff,20,180);portalMesh.add(portalLight);scene.add(portalMesh);
 const portalMessage=document.createElement('div');portalMessage.style.cssText='position:fixed;left:50%;top:24%;transform:translateX(-50%);z-index:40;background:#170e35ec;color:white;border:1px solid #9c83ff;border-radius:12px;padding:12px 16px;font:700 15px system-ui;text-align:center;pointer-events:none;display:none';document.body.appendChild(portalMessage);
 let portalCountdown=0,portalLastTick=performance.now();
@@ -1736,6 +1768,10 @@ function updateSectorPortal(){
  const charging=distance<=100&&unlocked&&!docked&&!landing;
  if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector();portalMessage.style.display='none';return}}else portalCountdown=0;
  portalRing.rotation.z+=dt*(charging?3:.35);portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=charging?.8:.25;portalLight.intensity=charging?90:20;
+ if(portalMesh.userData.portalModel){
+  portalHalo.material.opacity=charging?.8:unlocked?.25:.08;
+  portalHalo.scale.setScalar(charging?1+Math.sin(performance.now()*.012)*.025:1);
+ }
  portalMessage.style.display=near&&!docked&&!landing?'block':'none';
  if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel 10 para desbloquear':charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 Acércate a 100 m para viajar';
 }
