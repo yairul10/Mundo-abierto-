@@ -982,7 +982,7 @@ function enemyFire(e){
  const target=playerMesh.position.clone().add(new THREE.Vector3((Math.random()-.5)*75,(Math.random()-.5)*55,(Math.random()-.5)*75));
  const dir=target.sub(start).normalize();
  const mesh=new THREE.Mesh(enemyShotGeometry,enemyShotMaterials[e.type]);mesh.position.copy(start).addScaledVector(dir,48);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
- enemyShots.push({mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?1050:1250),life:1.4,damage:t.damage});
+ enemyShots.push({mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?1050:1250),life:1.8,damage:t.damage});
 }
 function updateEnemyShots(dt){
  for(let i=enemyShots.length-1;i>=0;i--){
@@ -1005,7 +1005,7 @@ function updateTargetLock(){
  for(const e of enemies){
   if(e.dead||!e.mesh.visible)continue;
   const to=e.mesh.position.clone().sub(camera.position),distance=to.length();
-  if(distance>1550||distance<40||to.dot(forwardView)<=0)continue;
+  if(distance>1200||distance<40||to.dot(forwardView)<=0)continue;
   const p=e.mesh.position.clone().project(camera);
   if(p.z<-1||p.z>1||Math.abs(p.x)>.34||Math.abs(p.y)>.30)continue;
   const score=p.x*p.x+p.y*p.y+distance/18000;
@@ -1776,7 +1776,7 @@ for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,e
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<650&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>170)e.mesh.position.addScaledVector(dir,t.speed*dt);else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d<570&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<1200&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
 updateEnemyShots(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile){
