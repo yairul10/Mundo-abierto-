@@ -618,7 +618,7 @@ for(let variant=0;variant<5;variant++){
 }
 // Distribución radial en todo el Sector Aurora (3 km), evitando el hangar.
 // Aleatorio estable por sesión para no reconstruir el escenario en cada fotograma.
-const MAP_CENTER_X=0,MAP_CENTER_Z=-650,MAP_RADIUS=3000,MAP_SAFE_RADIUS=830;
+let MAP_CENTER_X=0,MAP_CENTER_Z=-650;const MAP_RADIUS=3000,MAP_SAFE_RADIUS=830;
 function randomSectorPosition(minRadius=MAP_SAFE_RADIUS,maxRadius=MAP_RADIUS-100){
  // Distribución volumétrica uniforme dentro de una corona esférica:
  // cubre arriba, abajo y todos los lados sin concentrar objetos en el ecuador.
@@ -653,8 +653,8 @@ function enemyDifficultyScale(){
  const level=Math.max(1,Math.floor(Number(player.level)||1));
  return Math.min(5,1+Math.max(0,level-1)*.10);
 }
-function enemyMaxHp(type){return Math.round(TYPES[type].hp*enemyDifficultyScale())}
-function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
+function enemyMaxHp(type){return Math.round(TYPES[type].hp*enemyDifficultyScale()*(typeof activeSector!=='undefined'&&activeSector==='belt'?2.5:1))}
+function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)*(typeof activeSector!=='undefined'&&activeSector==='belt'?2:1)}
 const enemyKinds=[...Array(11).fill('scout'),...Array(10).fill('raider'),...Array(7).fill('sentinel')]; // 28 enemigos: +40 % frente a los 20 anteriores.
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
@@ -1455,8 +1455,8 @@ const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
 function inSafeZone(position){return position.distanceTo(SAFE_ZONE_CENTER)<SAFE_ZONE_RADIUS}
 let lastZoneLabel='',zoneToastTimer=null;
 function updateZone(){
- const safe=inSafeZone(playerMesh.position);
- const label=safe?'ESTACIÓN AURORA|Zona segura':'SECTOR AURORA|Espacio abierto';
+ const safe=activeSector==='aurora'&&inSafeZone(playerMesh.position);
+ const label=safe?'ESTACIÓN AURORA|Zona segura':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 20+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
   const [title,subtitle]=label.split('|'),el=$('targetInfo');
   el.replaceChildren(document.createTextNode(title),document.createElement('br'));
@@ -1698,25 +1698,56 @@ fireButton.onpointercancel=releaseFire;
 fireButton.onlostpointercapture=()=>{if(fireTouchId===null){fireHeld=false;firePointerId=null;bankInput=0}};
 $('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
 $('classAbilityBtn').onpointerdown=()=>{if(panel.classList.contains('hidden'))activateClassAbility()};
-function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;return safeStorageSet(SAVE_KEY,JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
+function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;player.sector=activeSector;return safeStorageSet(SAVE_KEY,JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
 // Límite del Sector Aurora. Otros planetas podrán definir su propio centro/radio.
 const SECTOR_AURORA={x:0,z:-650,radius:3000,warning:600,damagePerSecond:8};
+const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
+let activeSector=player.sector==='belt'?'belt':'aurora';
+const currentSector=()=>activeSector==='belt'?SECTOR_BELT:SECTOR_AURORA;
+MAP_CENTER_X=currentSector().x;
+const portalButton=document.createElement('button');
+portalButton.type='button';
+portalButton.textContent='🌀 Cinturón Perdido · Nv. 20';
+portalButton.style.cssText='position:fixed;right:12px;top:74px;z-index:36;border:1px solid #a887ff;border-radius:13px;padding:10px 12px;color:white;background:#27154bdc;font:600 12px system-ui;box-shadow:0 3px 15px #0009;cursor:pointer;display:none';
+document.body.appendChild(portalButton);
+function updateSectorPortal(){
+ const nearStation=playerMesh.position.distanceTo(auroraStation.position)<900;
+ const available=activeSector==='belt'||(nearStation&&!landing&&!docked);
+ portalButton.style.display=available?'block':'none';
+ portalButton.textContent=activeSector==='belt'?'🌀 Regresar a Aurora':'🌀 Cinturón Perdido · Nv. 20';
+ portalButton.disabled=activeSector==='aurora'&&player.level<20;
+ portalButton.style.opacity=portalButton.disabled?'.5':'1';
+}
+portalButton.onclick=()=>{
+ if(landing||docked)return;
+ if(activeSector==='aurora'&&player.level<20){lootToast('🔒 Necesitas nivel 20 para entrar al Cinturón Perdido');return}
+ activeSector=activeSector==='aurora'?'belt':'aurora';
+ const sector=currentSector();MAP_CENTER_X=sector.x;MAP_CENTER_Z=sector.z;
+ playerMesh.position.set(sector.x,110,sector.z+480);
+ for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,2950));
+ for(const e of enemies){e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.mesh.visible=true;e.fireTimer=1+Math.random()*2}
+ for(const shot of enemyShots)scene.remove(shot.mesh);enemyShots.length=0;
+ for(const shot of shots)scene.remove(shot.mesh);shots.length=0;
+ player.sector=activeSector;save();updateSectorPortal();
+ lootToast(activeSector==='belt'?'🪨 Has llegado al Cinturón Perdido':'🌌 Has regresado al Sector Aurora');
+};
+
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
 sectorNotice.style.cssText='position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
 document.body.appendChild(sectorNotice);
-function sectorDistance(){return Math.hypot(playerMesh.position.x-SECTOR_AURORA.x,playerMesh.position.y,playerMesh.position.z-SECTOR_AURORA.z)}
+function sectorDistance(){const sector=currentSector();return Math.hypot(playerMesh.position.x-sector.x,playerMesh.position.y,playerMesh.position.z-sector.z)}
 // Recuperar partidas anteriores guardadas muy lejos, sin borrar su progreso.
-if(sectorDistance()>SECTOR_AURORA.radius){playerMesh.position.set(0,110,-200);player.x=0;player.y=-200;player.z=110}
+if(sectorDistance()>currentSector().radius){const sector=currentSector();playerMesh.position.set(sector.x,110,sector.z+450);player.x=sector.x;player.y=sector.z+450;player.z=110}
 function updateSectorBoundary(dt){
  if(docked||landing){sectorNotice.style.display='none';return}
- const d=sectorDistance(),remaining=SECTOR_AURORA.radius-d;
+ const sector=currentSector(),d=sectorDistance(),remaining=sector.radius-d;
  if(remaining>SECTOR_AURORA.warning){sectorNotice.style.display='none';return}
  sectorNotice.style.display='block';
- if(remaining>=0){sectorNotice.textContent='⚠️ Límite del Sector Aurora a '+Math.ceil(remaining)+' m';return}
- player.hp=Math.max(0,player.hp-SECTOR_AURORA.damagePerSecond*dt);
- sectorNotice.textContent='☢️ Fuera del Sector Aurora · -8 casco/s · Regresa hacia la estación';
+ if(remaining>=0){sectorNotice.textContent='⚠️ Límite de '+(activeSector==='belt'?'Cinturón Perdido':'Sector Aurora')+' a '+Math.ceil(remaining)+' m';return}
+ player.hp=Math.max(0,player.hp-sector.damagePerSecond*dt);
+ sectorNotice.textContent='☢️ Fuera del sector · -8 casco/s · Regresa al interior';
 }
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
 function hud(){const compact=$('hudCompactHealthFill');if(compact)compact.style.width=Math.max(0,Math.min(100,100*player.hp/player.maxHp))+'%';$('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
@@ -1755,7 +1786,7 @@ if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
 const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*strafe*dt/movementScale);advanceLanding(dt);
 // Vuelo libre en los tres ejes: el límite esférico del sector sustituye al antiguo techo/suelo.
-updateSectorBoundary(dt);
+updateSectorBoundary(dt);updateSectorPortal();
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
 const titanVisual=playerMesh.userData.titanModel,espectroVisual=playerMesh.userData.espectroModel;
 const titanEnginesActive=player.shipId==='titan'&&!!titanVisual?.visible;
