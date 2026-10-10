@@ -1107,10 +1107,10 @@ function abilityDuration(){
  return a.duration+specialLevel(key)*(player.shipId==='titan'?.3:.25);
 }
 function activateClassAbility(){
- if(classAbilityCd>0||classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
+ if(classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
  const a=SHIP_ABILITIES[player.shipId];
  if(player.energy<a.energy){lootToast('🔋 Energía insuficiente: '+a.energy+' necesarios');return}
- player.energy-=a.energy;classAbilityTime=abilityDuration();classAbilityCd=a.cooldown;hud();
+ player.energy-=a.energy;classAbilityTime=abilityDuration();hud();
  lootToast(a.icon+' '+a.name+' activada');
 }
 function classAbilityActive(id){return player.shipId===id&&classAbilityTime>0}
@@ -1136,8 +1136,8 @@ function updateClassAbility(dt){
  if(player.shipId==='titan'&&specialLevel('repair')>0&&performance.now()/1000-lastHitAt>5&&!docked)
   player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.0015*specialLevel('repair')*dt);
  const btn=$('classAbilityBtn'),label=$('classAbilityCd');
- if(btn){const a=SHIP_ABILITIES[player.shipId];btn.firstChild.textContent=a.icon;btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityCd>0||classAbilityTime>0||player.energy<a.energy;
- if(label)label.textContent=classAbilityTime>0?Math.ceil(classAbilityTime)+'s':classAbilityCd>0?Math.ceil(classAbilityCd)+'s':''}
+ if(btn){const a=SHIP_ABILITIES[player.shipId];btn.firstChild.textContent=a.icon;btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityTime>0||player.energy<a.energy;
+ if(label)label.textContent=classAbilityTime>0?Math.ceil(classAbilityTime)+'s':player.energy<a.energy?a.energy+'⚡':''}
 }
 function renderSpecialUpgrades(){
  const fleet=$('hangarShipFleet');if(!fleet)return;
@@ -1399,7 +1399,7 @@ function removeMissileEffects(p){
 function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
 function skill(){
- if(skillCd>0||player.energy<25||docked||landing||inSafeZone(playerMesh.position))return;
+ if(player.energy<25||docked||landing||inSafeZone(playerMesh.position))return;
  updateTargetLock();
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
@@ -1432,7 +1432,7 @@ function skill(){
   shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*3,missile:true,target,
    missileAim:target?null:aim.clone(),missileAge:0,missileSpeed,missileGuideDelay,missileEffects});
  }
- player.energy-=25;skillCd=7;
+ player.energy-=25;skillCd=0;
 }
 // Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
 const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
