@@ -1706,7 +1706,7 @@ const SECTOR_AURORA={x:0,z:-650,radius:3000,warning:600,damagePerSecond:8};
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
 sectorNotice.style.cssText='position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
 document.body.appendChild(sectorNotice);
-function sectorDistance(){return Math.hypot(playerMesh.position.x-SECTOR_AURORA.x,playerMesh.position.z-SECTOR_AURORA.z)}
+function sectorDistance(){return Math.hypot(playerMesh.position.x-SECTOR_AURORA.x,playerMesh.position.y,playerMesh.position.z-SECTOR_AURORA.z)}
 // Recuperar partidas anteriores guardadas muy lejos, sin borrar su progreso.
 if(sectorDistance()>SECTOR_AURORA.radius){playerMesh.position.set(0,110,-200);player.x=0;player.y=-200;player.z=110}
 function updateSectorBoundary(dt){
@@ -1754,7 +1754,7 @@ const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThr
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
 const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*strafe*dt/movementScale);advanceLanding(dt);
-playerMesh.position.y=THREE.MathUtils.clamp(playerMesh.position.y,-900,1200);
+// Vuelo libre en los tres ejes: el límite esférico del sector sustituye al antiguo techo/suelo.
 updateSectorBoundary(dt);
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
 const titanVisual=playerMesh.userData.titanModel,espectroVisual=playerMesh.userData.espectroModel;
