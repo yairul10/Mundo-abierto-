@@ -907,6 +907,29 @@ function updateLoot(dt){
  }
 }
 function kill(e){const t=TYPES[e.type];missionEvent(e.type);e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
+// Modelo 3D del misil. La geometría anterior permanece como respaldo.
+let rocketTemplate=null;
+deferredModelLoad(new GLTFLoader(),'./assets/models/rocket.glb?v=113',gltf=>{
+ const model=gltf.scene;
+ const bounds=new THREE.Box3().setFromObject(model);
+ const dimensions=bounds.getSize(new THREE.Vector3());
+ const longest=Math.max(dimensions.x,dimensions.y,dimensions.z);
+ if(!Number.isFinite(longest)||longest<.00001)throw new Error('Modelo de misil vacío');
+ // Centrar el modelo y normalizar su eje longitudinal hacia +Y.
+ const center=bounds.getCenter(new THREE.Vector3());
+ model.position.sub(center);
+ model.scale.setScalar(32/longest);
+ rocketTemplate=model;
+},undefined,error=>console.warn('Misil 3D no disponible; se conserva respaldo',error));
+function createMissileMesh(){
+ if(rocketTemplate){
+  const group=new THREE.Group();
+  group.add(rocketTemplate.clone(true));
+  return group;
+ }
+ return new THREE.Mesh(new THREE.ConeGeometry(7,33,8),
+  new THREE.MeshStandardMaterial({color:0xf3f3f3,emissive:0xff7629,emissiveIntensity:.7,metalness:.35,roughness:.4}));
+}
 // Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
 function skill(){
  if(skillCd>0||player.energy<25||docked||landing||inSafeZone(playerMesh.position))return;
@@ -916,7 +939,7 @@ function skill(){
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
  const aim=lockedEnemy?lockedEnemy.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1700);
  const dir=aim.sub(start).normalize();
- const mesh=new THREE.Mesh(new THREE.ConeGeometry(7,33,8),new THREE.MeshStandardMaterial({color:0xf3f3f3,emissive:0xff7629,emissiveIntensity:.7,metalness:.35,roughness:.4}));
+ const mesh=createMissileMesh();
  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
  mesh.position.copy(start);scene.add(mesh);
  shots.push({mesh,vel:dir.multiplyScalar(650),life:3,damage:player.attack*3,missile:true,target:lockedEnemy});
