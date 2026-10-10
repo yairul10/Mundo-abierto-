@@ -30,7 +30,7 @@ document.currentScript.after(threeMap);
 <script type="module">
 // GitHub Pages puede servir HTML cacheado: comprobamos la versión publicada
 // con una petición que evita caché y actualizamos una sola vez si cambió.
-const GAME_BUILD='3d-20261010-119';
+const GAME_BUILD='3d-20261010-120';
 const status=document.getElementById('bootStatus');
 try {
  const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store'});

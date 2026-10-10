@@ -396,6 +396,64 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
   pivot.userData.engineFlames.push(flame);engine.add(face,core,glow,flame);
  }
 
+ // Cubierta superior independiente; no altera el carenado trasero ni sus motores.
+ const dorsal=new THREE.Group();pivot.add(dorsal);
+ source.updateWorldMatrix(true,true);
+ const deckRay=new THREE.Raycaster();
+ const deckDirection=new THREE.Vector3(0,-1,0).transformDirection(pivot.matrixWorld);
+ const deckHeights=new Map();
+ function deckHeight(x,z){
+  const key=x.toFixed(3)+','+z.toFixed(3);
+  if(deckHeights.has(key))return deckHeights.get(key);
+  const origin=pivot.localToWorld(new THREE.Vector3(x,40,z));
+  deckRay.set(origin,deckDirection);
+  const hit=deckRay.intersectObject(source,true)[0];
+  const height=hit?pivot.worldToLocal(hit.point.clone()).y:Math.max(-4,15-Math.abs(z)*.4-Math.max(0,x)*.25);
+  // Mantener las placas bajo el perfil del carenado visto directamente desde atrás.
+  const ceiling=Math.abs(z)<10?19:19-Math.abs(z)*.38;
+  const fitted=Math.min(height+.45,ceiling-1.8);
+  deckHeights.set(key,fitted);return fitted;
+ }
+ function deckPlate(points,material,thickness=1.2,lift=0){
+  const shape=new THREE.Shape();
+  points.forEach(([x,z],i)=>i?shape.lineTo(x,z):shape.moveTo(x,z));shape.closePath();
+  const geometry=new THREE.ExtrudeGeometry(shape,{depth:thickness,bevelEnabled:false,curveSegments:1});
+  const positions=geometry.attributes.position;
+  for(let i=0;i<positions.count;i++){
+   const x=positions.getX(i),z=positions.getY(i),depth=positions.getZ(i);
+   positions.setXYZ(i,x,deckHeight(x,z)+depth+lift,z);
+  }
+  // El intercambio de Y y Z invierte el orden de los triángulos.
+  for(let i=0;i<positions.count;i+=3){
+   const x=positions.getX(i+1),y=positions.getY(i+1),z=positions.getZ(i+1);
+   positions.setXYZ(i+1,positions.getX(i+2),positions.getY(i+2),positions.getZ(i+2));
+   positions.setXYZ(i+2,x,y,z);
+  }
+  geometry.computeVertexNormals();geometry.computeBoundingBox();
+  const mesh=new THREE.Mesh(geometry,material);dorsal.add(mesh);return mesh;
+ }
+ // Espina dorsal, proa afilada y cabina roja facetada.
+ deckPlate([[-28,-6],[-28,6],[-9,8],[12,7],[39,4],[59,0],[39,-4],[12,-7],[-9,-8]],darkMetal,1.6);
+ deckPlate([[-25,-4.8],[-25,4.8],[-5,6],[10,4.5],[15,0],[10,-4.5],[-5,-6]],whiteArmor,1.1,.7);
+ deckPlate([[12,-6],[12,6],[29,5],[45,2.8],[57,0],[45,-2.8],[29,-5]],whiteArmor,1.1,.6);
+ deckPlate([[18,-4],[18,4],[25,4.8],[36,2.7],[42,0],[36,-2.7],[25,-4.8]],redArmor,1.8,1);
+ deckPlate([[44,-2],[44,2],[60,0]],redArmor,1.1,.7);
+ // Blindaje simétrico: paneles blancos separados por canales de metal oscuro.
+ for(const sign of [-1,1]){
+  const pts=points=>points.map(([x,z])=>[x,z*sign]);
+  deckPlate(pts([[-28,10],[-26,21],[-7,25],[16,18],[29,10],[8,9],[-12,9]]),darkMetal,1.5);
+  deckPlate(pts([[-26,11],[-23,19],[-7,22],[12,17],[24,11],[5,11],[-12,10.8]]),whiteArmor,1.1,.6);
+  deckPlate(pts([[-24,19],[-8,23],[12,18],[21,13],[13,15],[-8,20],[-23,17]]),redArmor,1,.8);
+  deckPlate(pts([[-27,26],[-25,35],[-15,40],[7,31],[16,24],[-6,25]]),darkMetal,1.3);
+  deckPlate(pts([[-25,27],[-23,33],[-14,37],[3,30],[11,26],[-7,27]]),whiteArmor,1,.6);
+  deckPlate(pts([[-24,33],[-15,40],[7,31],[14,25],[6,29],[-14,36],[-24,31]]),redArmor,1.1,.7);
+  // Pequeñas luces rojas encastradas, sin añadir luces dinámicas.
+  for(const [x,z] of [[-15,14],[2,21],[-14,31]]){
+   deckPlate(pts([[x-3,z-.9],[x-3,z+.9],[x+3,z+.9],[x+3,z-.9]]),darkMetal,.8,1);
+   deckPlate(pts([[x-2.3,z-.4],[x-2.3,z+.4],[x+2.3,z+.4],[x+2.3,z-.4]]),redLight,.35,1.8);
+  }
+ }
+
  mountPlayerModel(pivot,'espectroModel');
 },undefined,err=>console.warn('Modelo Espectro no disponible; se conserva la apariencia original.',err));
 function loadAuroraFallback(){
