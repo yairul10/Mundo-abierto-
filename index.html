@@ -20,7 +20,7 @@
 <script type="module">
 // GitHub Pages puede servir HTML cacheado: comprobamos la versión publicada
 // con una petición que evita caché y actualizamos una sola vez si cambió.
-const GAME_BUILD='3d-20261009-113';
+const GAME_BUILD='3d-20261009-114';
 const status=document.getElementById('bootStatus');
 try {
  const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store'});
@@ -43,7 +43,7 @@ try{
   const THREE=await import('three');
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
-  await import('./js/game3d.js?v=3d-20261009-113');
+  await import('./js/game3d.js?v=3d-20261009-114');
   status.remove();
 }catch(err){
   status.textContent='ERROR 3D: '+(err?.message||err);
