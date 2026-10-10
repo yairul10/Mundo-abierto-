@@ -973,7 +973,7 @@ function updateEnemyShots(dt){
  for(let i=enemyShots.length-1;i>=0;i--){
   const p=enemyShots[i];p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;
   if(!docked&&!landing&&!inSafeZone(playerMesh.position)&&p.mesh.position.distanceTo(playerMesh.position)<45){
-   player.hp=Math.max(0,player.hp-Math.max(1,p.damage-player.defense*.25));p.life=0;
+   applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0;
   }
   if(p.life<=0){scene.remove(p.mesh);enemyShots.splice(i,1)}
  }
@@ -1029,10 +1029,10 @@ function fire(mult=1,count=1){
   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false}));
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5});
+  shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
- fireCd=.68; // Intervalo duplicado nuevamente; disparo conjunto de nave y drones.
+ fireCd=classAbilityActive('aurora')?.68/1.3:.68; // Sobrecarga aumenta la cadencia.
 }
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
@@ -1087,6 +1087,74 @@ player.ownedShips=player.ownedShips&&typeof player.ownedShips==='object'?player.
 player.ownedShips.aurora=true;
 player.shipId=SHIP_TYPES[player.shipId]&&player.ownedShips[player.shipId]?player.shipId:'aurora';
 player.shipSpecializations=player.shipSpecializations&&typeof player.shipSpecializations==='object'?player.shipSpecializations:{};
+// Habilidades de clase: duración y recarga solo durante la sesión de vuelo.
+const SHIP_ABILITIES={
+ aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:30},
+ titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:35},
+ espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:35}
+};
+const SPECIAL_UPGRADES={
+ aurora:[['energy','Reactor eficiente','Regeneración de energía +4 % por nivel'],['overload','Sobrecarga avanzada','Duración +0,25 s por nivel'],['shield','Escudos recuperadores','Recupera 0,3 % del casco por segundo durante Sobrecarga']],
+ titan:[['armor','Blindaje pesado','Reducción de daño +1 % por nivel'],['fortress','Fortaleza extendida','Duración +0,3 s por nivel'],['repair','Reparación táctica','Regenera 0,15 % del casco por segundo fuera de combate']],
+ espectro:[['crit','Precisión letal','Probabilidad de crítico +1 % por nivel'],['fury','Furia prolongada','Duración +0,25 s por nivel'],['evasion','Maniobras evasivas','Probabilidad de evasión +0,8 % por nivel']]
+};
+let classAbilityCd=0,classAbilityTime=0,lastHitAt=-100;
+function specialLevel(key,id=player.shipId){
+ const levels=player.shipSpecializations?.[id]||{};
+ return Math.max(0,Math.min(10,Math.floor(Number(levels[key])||0)));
+}
+function abilityDuration(){
+ const a=SHIP_ABILITIES[player.shipId],key=player.shipId==='aurora'?'overload':player.shipId==='titan'?'fortress':'fury';
+ return a.duration+specialLevel(key)*(player.shipId==='titan'?.3:.25);
+}
+function activateClassAbility(){
+ if(classAbilityCd>0||classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
+ const a=SHIP_ABILITIES[player.shipId];classAbilityTime=abilityDuration();classAbilityCd=a.cooldown;
+ lootToast(a.icon+' '+a.name+' activada');
+}
+function classAbilityActive(id){return player.shipId===id&&classAbilityTime>0}
+function applyPlayerDamage(amount){
+ if(docked||landing||inSafeZone(playerMesh.position))return;
+ if(player.shipId==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
+ let damage=Math.max(0,amount);
+ if(player.shipId==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
+ if(classAbilityActive('titan'))damage*=.3;
+ if(classAbilityActive('espectro'))damage*=1.3;
+ player.hp=Math.max(0,player.hp-damage);lastHitAt=performance.now()/1000;
+}
+function classDamageMultiplier(){
+ return classAbilityActive('espectro')?1.6:1;
+}
+function classCritMultiplier(){
+ return player.shipId==='espectro'&&Math.random()<.15+specialLevel('crit')*.01?1.5:1;
+}
+function updateClassAbility(dt){
+ classAbilityCd=Math.max(0,classAbilityCd-dt);
+ classAbilityTime=Math.max(0,classAbilityTime-dt);
+ if(classAbilityActive('aurora')&&specialLevel('shield')>0)player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.003*specialLevel('shield')*dt);
+ if(player.shipId==='titan'&&specialLevel('repair')>0&&performance.now()/1000-lastHitAt>5&&!docked)
+  player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.0015*specialLevel('repair')*dt);
+ const btn=$('classAbilityBtn'),label=$('classAbilityCd');
+ if(btn){const a=SHIP_ABILITIES[player.shipId];btn.firstChild.textContent=a.icon;btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityCd>0||classAbilityTime>0;
+ if(label)label.textContent=classAbilityTime>0?Math.ceil(classAbilityTime)+'s':classAbilityCd>0?Math.ceil(classAbilityCd)+'s':''}
+}
+function renderSpecialUpgrades(){
+ const fleet=$('hangarShipFleet');if(!fleet)return;
+ let box=$('hangarSpecialUpgrades');
+ if(!box){box=document.createElement('div');box.id='hangarSpecialUpgrades';fleet.after(box)}
+ box.innerHTML='<h3>✨ Mejoras exclusivas · '+SHIP_TYPES[player.shipId].name+'</h3>'+SPECIAL_UPGRADES[player.shipId].map(([key,name,desc])=>{
+  const level=specialLevel(key),cost=20000*(level+1),material=2+level,can=level<10&&player.gold>=cost&&(Number(player.loot?.aleacion)||0)>=material;
+  return '<div class="upgrade-card"><div><strong>'+name+'</strong><small>'+desc+'</small><small>Nivel '+level+'/10 · '+(level===10?'Máximo':cost.toLocaleString('es')+' créditos + '+material+' aleación')+'</small></div><button data-special="'+key+'" '+(!can?'disabled':'')+'>'+(level===10?'Máximo':'Mejorar')+'</button></div>';
+ }).join('');
+ box.querySelectorAll('button[data-special]').forEach(b=>b.onclick=()=>{
+  const key=b.dataset.special,level=specialLevel(key),cost=20000*(level+1),material=2+level;
+  if(level>=10||!SPECIAL_UPGRADES[player.shipId].some(x=>x[0]===key)||player.gold<cost||(Number(player.loot?.aleacion)||0)<material)return;
+  player.gold-=cost;player.loot.aleacion-=material;
+  if(!player.shipSpecializations[player.shipId])player.shipSpecializations[player.shipId]={};
+  player.shipSpecializations[player.shipId][key]=level+1;
+  save();hud();renderInventory();hangarRefresh();
+ });
+}
 function shipBonuses(id){
  const t=SHIP_TYPES[id]||SHIP_TYPES.aurora;
  return {maxHp:Math.round(player.shipBaseStats.maxHp*(t.hp-1)),
@@ -1113,7 +1181,7 @@ function changeShip(id){
  const previous=shipBonuses(player.shipId);
  ensureShipBaseStats();
  for(const stat of ['maxHp','attack','defense','speed'])player.shipBaseStats[stat]=player[stat]-previous[stat];
- player.shipId=id;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
+ player.shipId=id;classAbilityCd=0;classAbilityTime=0;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
  lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
 }
 function renderShips(){
@@ -1132,6 +1200,7 @@ function renderShips(){
   }
   changeShip(id);save();renderShips();hangarRefresh();
  });
+ renderSpecialUpgrades();
 }
 ensureShipBaseStats();
 if(player.shipId!=='aurora')syncShipStats();
@@ -1602,6 +1671,7 @@ fireButton.onpointerup=releaseFire;
 fireButton.onpointercancel=releaseFire;
 fireButton.onlostpointercapture=()=>{if(fireTouchId===null){fireHeld=false;firePointerId=null;bankInput=0}};
 $('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
+$('classAbilityBtn').onpointerdown=()=>{if(panel.classList.contains('hidden'))activateClassAbility()};
 function save(){player.x=playerMesh.position.x;player.y=playerMesh.position.z;player.z=playerMesh.position.y;player.yaw=yaw;player.pitch=pitch;return safeStorageSet(SAVE_KEY,JSON.stringify(player))}setInterval(save,5000);addEventListener('beforeunload',save);
 playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
@@ -1653,7 +1723,7 @@ $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;playe
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt);
+let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+8*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
@@ -1680,7 +1750,7 @@ for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,e
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<650&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>170)e.mesh.position.addScaledVector(dir,t.speed*dt);else if(d<65)player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d<570&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<650&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>170)e.mesh.position.addScaledVector(dir,t.speed*dt);else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d<570&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
 updateEnemyShots(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile){
