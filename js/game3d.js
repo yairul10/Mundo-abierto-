@@ -403,7 +403,7 @@ deferredModelLoad(modelLoader,'./assets/models/raider_spacecraft.glb?v=112',gltf
   visual.position.copy(center).multiplyScalar(-1);
   visual.scale.setScalar(100/maxSpan);
   const pivot=new THREE.Group();
-  pivot.rotation.y=Math.PI; // El modelo mira hacia +Z; los enemigos avanzan hacia -Z.
+  pivot.rotation.y=0; // Orientación del segundo enemigo corregida 180 grados.
   pivot.add(visual);
   e.mesh.add(pivot);
   for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
