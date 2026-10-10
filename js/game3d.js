@@ -259,36 +259,17 @@ function syncPlayerShipVisuals(){
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
 deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
  const source=gltf.scene;
- // Reflejos suaves exclusivos de Titán: acero satinado y detalles dorados.
- const reflectionFaces=Array.from({length:6},(_,i)=>{
-  const face=document.createElement('canvas');face.width=face.height=128;
-  const ctx=face.getContext('2d'),gradient=ctx.createLinearGradient(0,0,128,128);
-  gradient.addColorStop(0,i===2?'#e4edff':'#34475c');
-  gradient.addColorStop(.38,'#aebdd0');
-  gradient.addColorStop(.48,'#f5f7ff');
-  gradient.addColorStop(.58,'#52677e');
-  gradient.addColorStop(1,'#182334');
-  ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);return face;
- });
- const metalEnvironment=new THREE.CubeTexture(reflectionFaces);
- metalEnvironment.colorSpace=THREE.SRGBColorSpace;metalEnvironment.needsUpdate=true;
+ // Acabado metálico moderado con el material estándar de Three.js.
  const maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  source.traverse(o=>{
   if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;
   const materials=Array.isArray(o.material)?o.material:[o.material];
   for(const material of materials){
    if(!material?.isMeshStandardMaterial)continue;
-   // El mapa original casi anulaba el metal; conservar color y relieve.
    material.metalnessMap=null;material.roughnessMap=null;
-   material.metalness=.72;material.roughness=.4;
+   material.metalness=.45;material.roughness=.5;
    material.normalScale.set(.35,.35);
-   material.envMap=metalEnvironment;material.envMapIntensity=.85;
    if(material.map)material.map.anisotropy=maxAnisotropy;
-   material.onBeforeCompile=shader=>{
-    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
-     '#include <map_fragment>\nfloat titanLuma=dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));\ndiffuseColor.rgb=clamp(mix(vec3(titanLuma),diffuseColor.rgb,1.45),0.0,1.0);');
-   };
-   material.customProgramCacheKey=()=> 'titan-satin-metal-v1';
    material.needsUpdate=true;
   }
  });
