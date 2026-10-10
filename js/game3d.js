@@ -283,6 +283,24 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
  const pivot=new THREE.Group();
  pivot.rotation.y=Math.PI;
  pivot.add(source);
+ // Motores traseros ámbar: detalles visuales vinculados al modelo Titán.
+ const nozzleMetal=new THREE.MeshStandardMaterial({color:0x34261a,metalness:.7,roughness:.5});
+ const amberRing=new THREE.MeshBasicMaterial({color:0xff8c12,toneMapped:false});
+ const amberCore=new THREE.MeshBasicMaterial({color:0xffd66b,toneMapped:false});
+ const glowMaterial=new THREE.MeshBasicMaterial({color:0xff9d22,transparent:true,opacity:.16,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
+ for(const [x,y,r] of [[-24,-7,7],[24,-7,7],[-13,8,4],[13,8,4]]){
+  const engine=new THREE.Group();
+  engine.position.set(x,y,-size.z*scale*.5-1);
+  engine.rotation.y=Math.PI;
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(r,.85,8,24),nozzleMetal);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(r*.62,r*.9,24),amberRing);
+  ring.position.z=.4;
+  const core=new THREE.Mesh(new THREE.CircleGeometry(r*.52,24),amberCore);
+  core.position.z=.5;
+  const glow=new THREE.Mesh(new THREE.CircleGeometry(r*1.45,24),glowMaterial);
+  glow.position.z=.6;
+  engine.add(rim,ring,core,glow);pivot.add(engine);
+ }
  mountPlayerModel(pivot,'titanModel');
 },undefined,err=>console.warn('Modelo Titán no disponible; se conserva la apariencia original.',err));
 deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
