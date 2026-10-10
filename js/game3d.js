@@ -1,4 +1,4 @@
-import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
+const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
 const THREE=window.THREE;if(!THREE)throw new Error('Three.js no disponible');
 const $=id=>document.getElementById(id), canvas=$('world');
 let storageWarningShown=false;
