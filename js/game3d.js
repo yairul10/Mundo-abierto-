@@ -983,22 +983,28 @@ function skill(){
  if(right.lengthSq()<.1)right.set(1,0,0);
  const count=missileCount();
  for(let i=0;i<count;i++){
-  const side=i%2===0?1:-1;
-  const row=Math.floor(i/2);
   const up=new THREE.Vector3().crossVectors(right,forward).normalize();
-  // Cada pareja se abre a mayor distancia, alternando alturas y ángulos.
-  const elevation=(row%2===0?1:-1)*(.16+row*.08);
-  const start=playerMesh.position.clone().addScaledVector(forward,35-row*6)
-   .addScaledVector(right,side*(43+row*18)).addScaledVector(up,elevation*38);
+  // Salva irregular: posición, rumbo, velocidad y guiado independientes.
+  // Distribución angular sin parejas espejo y con variación en cada lanzamiento.
+  const angle=(i*2.399963229728653+Math.random()*.95)%(Math.PI*2);
+  const spread=.95+Math.random()*.85;
+  const lateral=Math.cos(angle),vertical=Math.sin(angle);
+  const start=playerMesh.position.clone().addScaledVector(forward,30+Math.random()*35)
+   .addScaledVector(right,lateral*(45+Math.random()*55))
+   .addScaledVector(up,vertical*(35+Math.random()*65));
   const dir=aim.clone().sub(start).normalize();
-  const launchDir=dir.clone().addScaledVector(right,side*(.95+row*.25))
-   .addScaledVector(up,elevation).normalize();
+  const launchDir=dir.clone().multiplyScalar(.32)
+   .addScaledVector(right,lateral*spread)
+   .addScaledVector(up,vertical*spread*.85)
+   .addScaledVector(forward,.28+Math.random()*.45).normalize();
+  const missileSpeed=440+Math.random()*410;
+  const missileGuideDelay=.42+Math.random()*.8;
   const mesh=createMissileMesh();
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),launchDir);
   mesh.position.copy(start);scene.add(mesh);
   const missileEffects=addMissileEffects(mesh);
-  shots.push({mesh,vel:launchDir.multiplyScalar(650),life:4,damage:player.attack*3,missile:true,target,
-   missileAim:target?null:aim.clone(),missileAge:0,missileSide:side,missileEffects});
+  shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*3,missile:true,target,
+   missileAim:target?null:aim.clone(),missileAge:0,missileSpeed,missileGuideDelay,missileEffects});
  }
  player.energy-=25;skillCd=7;
 }
@@ -1318,7 +1324,9 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile){
   p.missileAge=(p.missileAge||0)+dt;
   const aim=p.target&&!p.target.dead&&p.target.mesh.visible?p.target.mesh.position:p.missileAim;
-  if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<.55?.6:3.7)))}
+  if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(p.missileSpeed||650);
+   const delay=p.missileGuideDelay||.55;
+   p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
  }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
