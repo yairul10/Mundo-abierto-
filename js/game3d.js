@@ -1415,7 +1415,7 @@ function removeMissileEffects(p){
 function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
 function skill(){
- if(player.energy<25||docked||landing||inSafeZone(playerMesh.position))return;
+ if(skillCd>0||docked||landing||inSafeZone(playerMesh.position))return;
  updateTargetLock();
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
@@ -1448,7 +1448,7 @@ function skill(){
   shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*3,missile:true,target,
    missileAim:target?null:aim.clone(),missileAge:0,missileSpeed,missileGuideDelay,missileEffects});
  }
- player.energy-=25;skillCd=0;
+ skillCd=7;
 }
 // Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
 const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
