@@ -792,8 +792,8 @@ function renderDrones(){
 // Flota: las mejoras generales permanecen en el perfil; las especializaciones son por nave.
 const SHIP_TYPES={
  aurora:{name:'Aurora',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Equilibrada · tu nave original'},
- titan:{name:'Titán',level:15,cost:15000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
- espectro:{name:'Espectro',level:25,cost:35000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'}
+ titan:{name:'Titán',level:15,cost:2000000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
+ espectro:{name:'Espectro',level:25,cost:2000000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'}
 };
 player.ownedShips=player.ownedShips&&typeof player.ownedShips==='object'?player.ownedShips:{};
 player.ownedShips.aurora=true;
