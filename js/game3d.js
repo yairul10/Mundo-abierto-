@@ -336,20 +336,64 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  const pivot=new THREE.Group();
  pivot.rotation.y=Math.PI/2;
  pivot.add(source);
- // Cinco salidas traseras de Espectro, alineadas con su eje longitudinal X.
+ // Carenado trasero: tres turbinas metálicas y aletas rojas como la referencia.
+ const rear=new THREE.Group();
+ rear.position.set(-size.x*scale*.34,0,0);
+ rear.rotation.y=-Math.PI/2;
+ pivot.add(rear);
+ const darkMetal=new THREE.MeshStandardMaterial({color:0x161a20,metalness:.7,roughness:.38});
+ const steel=new THREE.MeshStandardMaterial({color:0x555d67,metalness:.65,roughness:.4});
+ const whiteArmor=new THREE.MeshStandardMaterial({color:0xe6e8eb,metalness:.45,roughness:.38});
+ const redArmor=new THREE.MeshStandardMaterial({color:0xc41423,metalness:.55,roughness:.3});
+ const redLight=new THREE.MeshBasicMaterial({color:0xff2810,toneMapped:false});
+ const hotCore=new THREE.MeshBasicMaterial({color:0xffe6a0,toneMapped:false});
+ function rearPlate(points,material,depth=1.8,z=3){
+  const shape=new THREE.Shape();
+  points.forEach(([x,y],i)=>i?shape.lineTo(x,y):shape.moveTo(x,y));shape.closePath();
+  const mesh=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false}),material);
+  mesh.position.z=z;rear.add(mesh);return mesh;
+ }
+ // Las nuevas placas cubren las antiguas cinco bocas y definen una silueta más angular.
+ rearPlate([[-33,-12],[-32,9],[-15,17],[0,20],[15,17],[32,9],[33,-12],[13,-17],[-13,-17]],darkMetal,6,-4);
+ for(const sign of [-1,1]){
+  const pts=points=>points.map(([x,y])=>[x*sign,y]);
+  rearPlate(pts([[13,8],[19,16],[30,11],[49,-2],[36,2],[25,7]]),whiteArmor);
+  rearPlate(pts([[27,10],[35,8],[51,-4],[43,-2],[33,5]]),redArmor,1.6,5);
+  rearPlate(pts([[18,10],[20,35],[24,12],[23,7]]),redArmor,2,0);
+  rearPlate(pts([[20,13],[21,28],[22,13]]),darkMetal,1,2.2);
+  rearPlate(pts([[17,-9],[25,-10],[29,-28],[20,-20]]),redArmor,2,2);
+  const strip=new THREE.Mesh(new THREE.BoxGeometry(8,1.2,1),redLight);
+  strip.position.set(sign*34,2,6);strip.rotation.z=-sign*.25;rear.add(strip);
+ }
+ rearPlate([[-12,14],[-8,20],[8,20],[12,14],[8,11],[-8,11]],whiteArmor,2,4);
+ const topLight=new THREE.Mesh(new THREE.BoxGeometry(10,1.5,1),redLight);
+ topLight.position.set(0,13,7);rear.add(topLight);
  pivot.userData.engineFlames=[];
- for(const [side,height,radius,length] of [[-25,-7,3.5,1],[-13.5,-7,3,1.05],[0,3,4.5,1.3],[13.5,-7,3,1.05],[25,-7,3.5,1]]){
-  const engine=new THREE.Group();
-  engine.position.set(-size.x*scale*.31,height,side);
-  engine.rotation.y=-Math.PI/2;
-  const glow=new THREE.Mesh(new THREE.CircleGeometry(radius,24),new THREE.MeshBasicMaterial({color:0xff4820,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
-  const geometry=new THREE.ConeGeometry(radius*.8,46,12,1,true);
-  geometry.translate(0,23,0);
+ for(const [side,height,radius,length] of [[-22,-5,9,1],[0,-2,12,1.3],[22,-5,9,1]]){
+  const engine=new THREE.Group();engine.position.set(side,height,7);rear.add(engine);
+  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius*1.05,9,24),darkMetal);
+  barrel.rotation.x=Math.PI/2;barrel.position.z=-3;engine.add(barrel);
+  for(const [r,t,z,material] of [[radius,.95,2,steel],[radius*.79,.8,2.5,darkMetal],[radius*.6,.7,3,redLight]]){
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(r,t,6,32),material);
+   ring.position.z=z;engine.add(ring);
+  }
+  for(let i=0;i<12;i++){
+   const angle=i*Math.PI/6;
+   const rib=new THREE.Mesh(new THREE.BoxGeometry(1.3,radius*.28,1.4),steel);
+   rib.position.set(Math.sin(angle)*radius*.87,Math.cos(angle)*radius*.87,2.7);
+   rib.rotation.z=-angle;engine.add(rib);
+   const segment=new THREE.Mesh(new THREE.BoxGeometry(1,radius*.16,.6),redLight);
+   segment.position.set(Math.sin(angle)*radius*.69,Math.cos(angle)*radius*.69,3.5);
+   segment.rotation.z=-angle;engine.add(segment);
+  }
+  const face=new THREE.Mesh(new THREE.CircleGeometry(radius*.55,32),redLight);face.position.z=3.6;
+  const core=new THREE.Mesh(new THREE.CircleGeometry(radius*.29,24),hotCore);core.position.z=3.7;
+  const glow=new THREE.Mesh(new THREE.CircleGeometry(radius*.8,32),new THREE.MeshBasicMaterial({color:0xff3b0a,transparent:true,opacity:.25,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
+  glow.position.z=3.9;
+  const geometry=new THREE.ConeGeometry(radius*.4,46,12,1,true);geometry.translate(0,23,0);
   const flame=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0xff581c,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
-  flame.rotation.x=Math.PI/2;flame.position.z=.7;flame.visible=false;
-  flame.userData.lengthFactor=length;
-  pivot.userData.engineFlames.push(flame);
-  engine.add(glow,flame);pivot.add(engine);
+  flame.rotation.x=Math.PI/2;flame.position.z=4;flame.visible=false;flame.userData.lengthFactor=length;
+  pivot.userData.engineFlames.push(flame);engine.add(face,core,glow,flame);
  }
 
  mountPlayerModel(pivot,'espectroModel');
