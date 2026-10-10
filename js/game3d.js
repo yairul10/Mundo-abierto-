@@ -308,6 +308,82 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
  pivot.userData.engineFlames.push(flame);
  engine.add(rim,ring,core,glow,flame);pivot.add(engine);
  }
+ // Blindaje Titán: paneles sólidos blancos y amarillos sobre el casco original.
+ const armor=new THREE.Group();pivot.add(armor);
+ const titanWhite=new THREE.MeshStandardMaterial({color:0xe5e8ec,metalness:.5,roughness:.38});
+ const titanYellow=new THREE.MeshStandardMaterial({color:0xffb900,metalness:.5,roughness:.34});
+ const titanDark=new THREE.MeshStandardMaterial({color:0x181c23,metalness:.65,roughness:.42});
+ const titanSteel=new THREE.MeshStandardMaterial({color:0x626971,metalness:.7,roughness:.36});
+ const titanGlass=new THREE.MeshStandardMaterial({color:0x713a04,metalness:.55,roughness:.2,emissive:0x301200,emissiveIntensity:.3});
+ const titanLight=new THREE.MeshBasicMaterial({color:0xffb323,toneMapped:false});
+ source.updateWorldMatrix(true,true);
+ const armorRay=new THREE.Raycaster();
+ const armorDirection=new THREE.Vector3(0,-1,0).transformDirection(pivot.matrixWorld);
+ const armorHeights=new Map();
+ function titanRoof(x,z){
+  const key=x.toFixed(3)+','+z.toFixed(3);
+  if(armorHeights.has(key))return armorHeights.get(key);
+  armorRay.set(pivot.localToWorld(new THREE.Vector3(x,50,z)),armorDirection);
+  const hit=armorRay.intersectObject(source,true)[0];
+  const height=hit?pivot.worldToLocal(hit.point.clone()).y:12-Math.max(0,z)*.35-Math.abs(x)*.2;
+  armorHeights.set(key,height+.4);return height+.4;
+ }
+ function titanPanel(points,material,thickness=1.2,lift=0){
+  const shape=new THREE.Shape();
+  points.forEach(([x,z],i)=>i?shape.lineTo(x,z):shape.moveTo(x,z));shape.closePath();
+  const geometry=new THREE.ExtrudeGeometry(shape,{depth:thickness,bevelEnabled:false,curveSegments:1});
+  const p=geometry.attributes.position;
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),z=p.getY(i),depth=p.getZ(i);
+   p.setXYZ(i,x,titanRoof(x,z)+depth+lift,z);
+  }
+  for(let i=0;i<p.count;i+=3){
+   const x=p.getX(i+1),y=p.getY(i+1),z=p.getZ(i+1);
+   p.setXYZ(i+1,p.getX(i+2),p.getY(i+2),p.getZ(i+2));p.setXYZ(i+2,x,y,z);
+  }
+  geometry.computeVertexNormals();geometry.computeBoundingBox();
+  const panel=new THREE.Mesh(geometry,material);armor.add(panel);return panel;
+ }
+ // Espina central y cabina facetada con marco dorado.
+ titanPanel([[-7,-48],[7,-48],[9,-31],[9,10],[6,43],[0,58],[-6,43],[-9,10],[-9,-31]],titanDark,1.4);
+ titanPanel([[-5.5,-46],[5.5,-46],[7,-30],[6,-6],[0,0],[-6,-6],[-7,-30]],titanWhite,1.2,.6);
+ titanPanel([[-6,-2],[6,-2],[7,9],[5,33],[0,42],[-5,33],[-7,9]],titanYellow,1.4,.7);
+ titanPanel([[-4.3,2],[4.3,2],[5,10],[3.5,28],[0,35],[-3.5,28],[-5,10]],titanGlass,2.2,1);
+ titanPanel([[-5,38],[5,38],[4,45],[0,56],[-4,45]],titanWhite,1.2,.7);
+ titanPanel([[-1.1,44],[1.1,44],[0,56]],titanYellow,1,.9);
+ // Laterales anchos: placas rectas y bandas amarillas, sin mover las toberas.
+ for(const sign of [-1,1]){
+  const pts=points=>points.map(([x,z])=>[x*sign,z]);
+  titanPanel(pts([[11,-40],[18,-40],[22,-29],[21,15],[15,40],[10,31],[10,-16]]),titanDark,1.5);
+  titanPanel(pts([[12,-37],[17,-37],[19,-26],[18,14],[14,34],[12,28],[12,-15]]),titanWhite,1.2,.7);
+  titanPanel(pts([[17,-28],[20,-24],[19,7],[16,17],[16,4]]),titanYellow,1,.9);
+  titanPanel(pts([[23,-33],[31,-30],[34,-19],[33,21],[29,38],[23,34],[21,18],[21,-19]]),titanDark,1.5);
+  titanPanel(pts([[24,-29],[29,-27],[31,-18],[30,19],[27,32],[24,29],[23,17],[23,-18]]),titanWhite,1.3,.8);
+  titanPanel(pts([[28,-25],[31,-20],[30,7],[27,14],[27,-8]]),titanYellow,1.1,1);
+  titanPanel(pts([[25,18],[29,19],[27,34],[24,29]]),titanYellow,1.1,.9);
+  // Panel técnico oscuro y luz del módulo lateral.
+  titanPanel(pts([[24,-20],[29,-19],[29,-10],[24,-11]]),titanDark,.8,1.6);
+  titanPanel(pts([[24.5,25],[27.5,25],[27,28],[24,28]]),titanLight,.5,2);
+  // Aletas rectas con inserto amarillo; quedan por delante de las cuatro salidas.
+  const finShape=new THREE.Shape();
+  [[-57,12],[-57,27],[-46,26],[-31,12]].forEach(([z,y],i)=>i?finShape.lineTo(z,y):finShape.moveTo(z,y));finShape.closePath();
+  const finGeometry=new THREE.ExtrudeGeometry(finShape,{depth:3.4,bevelEnabled:false});
+  const fin=new THREE.Mesh(finGeometry,titanWhite);
+  fin.rotation.y=-Math.PI/2;fin.position.x=sign*21+1.7;armor.add(fin);
+  const insertShape=new THREE.Shape();
+  [[-54,15],[-54,24.5],[-47,24],[-36,15]].forEach(([z,y],i)=>i?insertShape.lineTo(z,y):insertShape.moveTo(z,y));insertShape.closePath();
+  const insertGeometry=new THREE.ExtrudeGeometry(insertShape,{depth:3.6,bevelEnabled:false});
+  const insert=new THREE.Mesh(insertGeometry,titanYellow);
+  insert.rotation.y=-Math.PI/2;insert.position.x=sign*21+1.8;armor.add(insert);
+ }
+ // Tres respiraderos de metal con separadores, sin texturas nuevas.
+ for(const z of [-36,-22,-8]){
+  titanPanel([[-2.7,z-3],[2.7,z-3],[2.7,z+3],[-2.7,z+3]],titanDark,.7,1.4);
+  for(const dz of [-1.5,0,1.5]){
+   titanPanel([[-2.1,z+dz-.2],[2.1,z+dz-.2],[2.1,z+dz+.2],[-2.1,z+dz+.2]],titanSteel,.3,2.2);
+  }
+ }
+
  mountPlayerModel(pivot,'titanModel');
 },undefined,err=>console.warn('Modelo Titán no disponible; se conserva la apariencia original.',err));
 deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
