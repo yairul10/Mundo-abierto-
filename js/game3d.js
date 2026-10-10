@@ -746,7 +746,7 @@ function fire(mult=1,count=1){
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  fireCd=.68; // Intervalo duplicado nuevamente; disparo conjunto de nave y drones.
 }
-function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
+function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
  {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común',description:'Restos recuperados de naves y drones. Material básico de fabricación.'},
@@ -789,6 +789,64 @@ function renderDrones(){
   if(docked)hangarRefresh();
  };}
 }
+// Flota: las mejoras generales permanecen en el perfil; las especializaciones son por nave.
+const SHIP_TYPES={
+ aurora:{name:'Aurora',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Equilibrada · tu nave original'},
+ titan:{name:'Titán',level:15,cost:15000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
+ espectro:{name:'Espectro',level:25,cost:35000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'}
+};
+player.ownedShips=player.ownedShips&&typeof player.ownedShips==='object'?player.ownedShips:{};
+player.ownedShips.aurora=true;
+player.shipId=SHIP_TYPES[player.shipId]&&player.ownedShips[player.shipId]?player.shipId:'aurora';
+player.shipSpecializations=player.shipSpecializations&&typeof player.shipSpecializations==='object'?player.shipSpecializations:{};
+function shipBonuses(id){
+ const t=SHIP_TYPES[id]||SHIP_TYPES.aurora;
+ return {maxHp:Math.round(player.shipBaseStats.maxHp*(t.hp-1)),
+  attack:Math.round(player.shipBaseStats.attack*(t.attack-1)),
+  defense:Math.round(player.shipBaseStats.defense*(t.defense-1)),
+  speed:Math.round(player.shipBaseStats.speed*(t.speed-1))};
+}
+function ensureShipBaseStats(){
+ if(player.shipBaseStats)return;
+ player.shipBaseStats={maxHp:player.maxHp,attack:player.attack,defense:player.defense,speed:player.speed};
+}
+function syncShipStats(){
+ ensureShipBaseStats();
+ const bonus=shipBonuses(player.shipId);
+ const ratio=player.maxHp>0?player.hp/player.maxHp:1;
+ player.maxHp=Math.max(1,player.shipBaseStats.maxHp+bonus.maxHp);
+ player.attack=Math.max(1,player.shipBaseStats.attack+bonus.attack);
+ player.defense=Math.max(0,player.shipBaseStats.defense+bonus.defense);
+ player.speed=Math.max(50,player.shipBaseStats.speed+bonus.speed);
+ player.hp=Math.max(1,Math.min(player.maxHp,Math.round(ratio*player.maxHp)));
+}
+function changeShip(id){
+ if(!SHIP_TYPES[id]||!player.ownedShips[id]||player.shipId===id)return;
+ const previous=shipBonuses(player.shipId);
+ ensureShipBaseStats();
+ for(const stat of ['maxHp','attack','defense','speed'])player.shipBaseStats[stat]=player[stat]-previous[stat];
+ player.shipId=id;syncShipStats();save();hud();renderShips();hangarRefresh();
+ lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
+}
+function renderShips(){
+ const hangarShop=$('hangarUpgradeShop');if(!hangarShop)return;
+ let fleet=$('hangarShipFleet');
+ if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.parentElement.insertBefore(fleet,hangarShop)}
+ fleet.innerHTML='<h3>🚀 Flota de naves</h3>'+Object.entries(SHIP_TYPES).map(([id,t])=>{
+  const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=player.level>=t.level&&player.gold>=t.cost;
+  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small><small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small></div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':'Comprar')+'</button></div>';
+ }).join('');
+ fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
+  const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t)return;
+  if(!player.ownedShips[id]){
+   if(player.level<t.level||player.gold<t.cost)return;
+   player.gold-=t.cost;player.ownedShips[id]=true;
+  }
+  changeShip(id);save();renderShips();hangarRefresh();
+ });
+}
+ensureShipBaseStats();
+if(player.shipId!=='aurora')syncShipStats();
 function renderUpgrades(){
  const containers=[$('hangarUpgradeShop')].filter(Boolean);if(!containers.length)return;
  const html=UPGRADES.map(u=>{
@@ -816,6 +874,7 @@ function buyUpgrade(id){
  if(lv>=10||(Number(player.loot[u.material])||0)<need||player.gold<price)return;
  player.loot[u.material]-=need;player.gold-=price;player.upgrades[id]=lv+1;
  player[u.stat]+=u.amount;
+ if(player.shipBaseStats)player.shipBaseStats[u.stat]+=u.amount;
  if(u.stat==='maxHp')player.hp=Math.min(player.maxHp,player.hp+u.amount);
  missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
 }
@@ -1083,7 +1142,7 @@ function hangarRefresh(){
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
  $('hangarMessage').textContent=missing&&player.gold<cost?'Necesitas '+cost+' créditos para reparar.':'';
- renderDrones();renderUpgrades();
+ renderDrones();renderUpgrades();renderShips();
 }
 function resetDockControls(){
  joy.throttle=0;joy.strafe=0;$('stick').style.transform='';
@@ -1289,7 +1348,7 @@ hudToggle.onclick=()=>{
  hudToggle.setAttribute('aria-expanded',String(!folded));
  hudToggle.setAttribute('aria-label',folded?'Desplegar información de vida':'Plegar información de vida');
 };
-const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;renderInventory();renderUpgrades();renderDrones();box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp+upgradeBonus('maxHp');player.hp=player.maxHp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack+upgradeBonus('attack');player.defense=c.defense+upgradeBonus('defense');player.speed=c.speed+upgradeBonus('speed');hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
+const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{const box=panel.querySelector('.class-grid');$('nameInput').value=player.name;$('statList').innerHTML='Nivel: '+player.level+'<br>Casco: '+player.maxHp+'<br>Energía: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense;renderInventory();renderUpgrades();renderDrones();box.innerHTML=Object.entries(CLASSES).map(([id,c])=>'<button class="class-card '+(id===player.classId?'selected':'')+'" data-id="'+id+'"><b>'+c.name+'</b><small>Casco '+c.hp+' · Potencia '+c.attack+' · Escudo '+c.defense+'</small></button>').join('');box.querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=CLASSES[b.dataset.id];player.classId=b.dataset.id;player.maxHp=c.hp+upgradeBonus('maxHp');player.hp=player.maxHp;player.maxEnergy=c.energy;player.energy=c.energy;player.attack=c.attack+upgradeBonus('attack');player.defense=c.defense+upgradeBonus('defense');player.speed=c.speed+upgradeBonus('speed');player.shipBaseStats={maxHp:player.maxHp,attack:player.attack,defense:player.defense,speed:player.speed};if(player.shipId!=='aurora')syncShipStats();hud();closeCharacterPanel()});panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
 const qaSwitch=$('qaSwitch'),qaTools=$('qaTools');
 qaSwitch.textContent=qaActive?'Volver a partida normal':'Entrar a partida QA';
 qaTools.classList.toggle('hidden',!qaActive);
