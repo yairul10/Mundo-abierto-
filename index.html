@@ -53,7 +53,7 @@ try{
   const THREE=await import('three');
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
-  await import('./js/game3d.js?v=3d-20261010-123');
+  await import('./js/game3d.js?v=3d-20261010-124');
   status.remove();
 }catch(err){
   if(!new URLSearchParams(location.search).has('threecdn') && /fetch|module|network|load/i.test(String(err?.message||err))){
