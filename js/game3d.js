@@ -312,7 +312,20 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
 },undefined,err=>console.warn('Modelo Titán no disponible; se conserva la apariencia original.',err));
 deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  const source=gltf.scene;
- source.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+ const maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ source.traverse(o=>{
+  if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;
+  for(const material of Array.isArray(o.material)?o.material:[o.material]){
+   if(!material?.isMeshStandardMaterial)continue;
+   material.metalnessMap=null;material.roughnessMap=null;
+   material.metalness=.4;material.roughness=.42;
+   material.normalScale.set(.3,.3);
+   // Conservar los paneles blancos, rojos y oscuros de la textura original.
+   material.color.setRGB(1.12,1.04,1.04);
+   if(material.map)material.map.anisotropy=maxAnisotropy;
+   material.needsUpdate=true;
+  }
+ });
  const box=new THREE.Box3().setFromObject(source);
  const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
  const span=Math.max(size.x,size.z);
@@ -329,10 +342,10 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
   const engine=new THREE.Group();
   engine.position.set(-size.x*scale*.5-1,height,side);
   engine.rotation.y=-Math.PI/2;
-  const glow=new THREE.Mesh(new THREE.CircleGeometry(radius,24),new THREE.MeshBasicMaterial({color:0x55e4ff,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
+  const glow=new THREE.Mesh(new THREE.CircleGeometry(radius,24),new THREE.MeshBasicMaterial({color:0xff4820,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
   const geometry=new THREE.ConeGeometry(radius*.8,46,12,1,true);
   geometry.translate(0,23,0);
-  const flame=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0x27baff,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
+  const flame=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0xff581c,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
   flame.rotation.x=Math.PI/2;flame.position.z=.7;flame.visible=false;
   flame.userData.lengthFactor=length;
   pivot.userData.engineFlames.push(flame);
