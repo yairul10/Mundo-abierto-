@@ -389,7 +389,7 @@ deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=105',
 },undefined,err=>console.warn('Modelo scout GLB no disponible; se conserva la nave básica original.',err));
 // Apariencia 3D del segundo enemigo (raider). Solo sustituye la parte visual:
 // conserva vida, daño, velocidad, IA, colisiones, disparos y recompensas.
-deferredModelLoad(modelLoader,'./assets/models/raider_spacecraft.glb?v=112',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/sci_fi_combat_vessel.glb?v=113',gltf=>{
  const original=gltf.scene;
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  const box=new THREE.Box3().setFromObject(original);
@@ -400,15 +400,37 @@ deferredModelLoad(modelLoader,'./assets/models/raider_spacecraft.glb?v=112',gltf
  for(const e of enemies){
   if(e.type!=='raider')continue;
   const visual=original.clone(true);
-  visual.position.copy(center).multiplyScalar(-1);
+  visual.position.copy(center).multiplyScalar(-100/maxSpan);
   visual.scale.setScalar(100/maxSpan);
   const pivot=new THREE.Group();
-  pivot.rotation.y=0; // Orientación del segundo enemigo corregida 180 grados.
+  pivot.rotation.y=0; // Orientación del modelo de combate.
   pivot.add(visual);
   e.mesh.add(pivot);
   for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
  }
 },undefined,err=>console.warn('Modelo raider GLB no disponible; se conserva la nave básica original.',err));
+// Apariencia 3D del tercer enemigo (sentinel). Solo sustituye la parte visual:
+// conserva vida, daño, velocidad, IA, colisiones, disparos y recompensas.
+deferredModelLoad(modelLoader,'./assets/models/raider_spacecraft.glb?v=112',gltf=>{
+ const original=gltf.scene;
+ original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+ const box=new THREE.Box3().setFromObject(original);
+ const size=box.getSize(new THREE.Vector3());
+ const center=box.getCenter(new THREE.Vector3());
+ const maxSpan=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(maxSpan)||maxSpan<.001)return;
+ for(const e of enemies){
+  if(e.type!=='sentinel')continue;
+  const visual=original.clone(true);
+  visual.position.copy(center).multiplyScalar(-100/maxSpan);
+  visual.scale.setScalar(100/maxSpan);
+  const pivot=new THREE.Group();
+  pivot.rotation.y=0; // Orientación del modelo raider conservada.
+  pivot.add(visual);
+  e.mesh.add(pivot);
+  for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
+ }
+},undefined,err=>console.warn('Modelo sentinel GLB no disponible; se conserva la nave básica original.',err));
 // Dos drones de apoyo: acompañan al jugador y disparan proyectiles reales.
 const supportDrones=[];
 const MAX_DRONES=8;
