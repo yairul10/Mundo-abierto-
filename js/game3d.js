@@ -909,7 +909,7 @@ function updateLoot(dt){
 function kill(e){const t=TYPES[e.type];missionEvent(e.type);e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=t.gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(t.xp);lootToast('+'+t.gold+' créditos · +'+t.xp+' XP · '+t.loot+' recursos');save()}
 // Modelo 3D del misil. La geometría anterior permanece como respaldo.
 let rocketTemplate=null;
-deferredModelLoad(new GLTFLoader(),'./assets/models/rocket.glb?v=113',gltf=>{
+deferredModelLoad(new GLTFLoader(),'./assets/models/rocket.glb?v=114',gltf=>{
  const model=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(model);
  const dimensions=bounds.getSize(new THREE.Vector3());
