@@ -338,9 +338,9 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  pivot.add(source);
  // Cinco salidas traseras de Espectro, alineadas con su eje longitudinal X.
  pivot.userData.engineFlames=[];
- for(const [side,height,radius,length] of [[-31,-7,3.5,1],[-17,-7,3,1.05],[0,3,4.5,1.3],[17,-7,3,1.05],[31,-7,3.5,1]]){
+ for(const [side,height,radius,length] of [[-25,-7,3.5,1],[-13.5,-7,3,1.05],[0,3,4.5,1.3],[13.5,-7,3,1.05],[25,-7,3.5,1]]){
   const engine=new THREE.Group();
-  engine.position.set(-size.x*scale*.5-1,height,side);
+  engine.position.set(-size.x*scale*.31,height,side);
   engine.rotation.y=-Math.PI/2;
   const glow=new THREE.Mesh(new THREE.CircleGeometry(radius,24),new THREE.MeshBasicMaterial({color:0xff4820,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
   const geometry=new THREE.ConeGeometry(radius*.8,46,12,1,true);
