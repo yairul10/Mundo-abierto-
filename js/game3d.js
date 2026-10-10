@@ -321,7 +321,7 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  source.scale.multiplyScalar(scale);
  source.position.sub(center.multiplyScalar(scale));
  const pivot=new THREE.Group();
- pivot.rotation.y=Math.PI;
+ pivot.rotation.y=Math.PI/2;
  pivot.add(source);
  mountPlayerModel(pivot,'espectroModel');
 },undefined,err=>console.warn('Modelo Espectro no disponible; se conserva la apariencia original.',err));
