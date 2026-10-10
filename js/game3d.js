@@ -243,7 +243,33 @@ function fitPlayerModel(model,yaw=0){
  model.position.sub(center);model.scale.multiplyScalar(124/Math.max(size.x,size.z));model.rotation.y=yaw;
  return model;
 }
-function mountPlayerModel(model,key){playerMesh.add(model);proceduralShip.visible=false;playerMesh.userData[key]=model}
+function syncPlayerShipVisuals(){
+ const titan=playerMesh.userData.titanModel;
+ const showTitan=player.shipId==='titan'&&!!titan;
+ if(titan)titan.visible=showTitan;
+ let hasOriginal=false;
+ for(const key of ['xWingModel','auroraModel']){
+  const model=playerMesh.userData[key];
+  if(model){model.visible=!showTitan;hasOriginal=true}
+ }
+ proceduralShip.visible=!showTitan&&!hasOriginal;
+}
+function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
+deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
+ const source=gltf.scene;
+ source.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+ const box=new THREE.Box3().setFromObject(source);
+ const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+ const span=Math.max(size.x,size.z);
+ if(!Number.isFinite(span)||span<.001)return;
+ const scale=124/span;
+ source.scale.multiplyScalar(scale);
+ source.position.sub(center.multiplyScalar(scale));
+ const pivot=new THREE.Group();
+ pivot.rotation.y=Math.PI;
+ pivot.add(source);
+ mountPlayerModel(pivot,'titanModel');
+},undefined,err=>console.warn('Modelo Titán no disponible; se conserva la apariencia original.',err));
 function loadAuroraFallback(){
  modelLoader.load('./assets/models/aurora_s1.glb?v=105',gltf=>{
   const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
@@ -825,7 +851,7 @@ function changeShip(id){
  const previous=shipBonuses(player.shipId);
  ensureShipBaseStats();
  for(const stat of ['maxHp','attack','defense','speed'])player.shipBaseStats[stat]=player[stat]-previous[stat];
- player.shipId=id;syncShipStats();save();hud();renderShips();hangarRefresh();
+ player.shipId=id;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
  lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
 }
 function renderShips(){
