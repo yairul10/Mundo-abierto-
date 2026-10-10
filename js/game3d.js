@@ -620,9 +620,17 @@ for(let variant=0;variant<5;variant++){
 // Aleatorio estable por sesión para no reconstruir el escenario en cada fotograma.
 const MAP_CENTER_X=0,MAP_CENTER_Z=-650,MAP_RADIUS=3000,MAP_SAFE_RADIUS=830;
 function randomSectorPosition(minRadius=MAP_SAFE_RADIUS,maxRadius=MAP_RADIUS-100){
+ // Distribución volumétrica uniforme dentro de una corona esférica:
+ // cubre arriba, abajo y todos los lados sin concentrar objetos en el ecuador.
  const angle=Math.random()*Math.PI*2;
- const r=Math.sqrt(minRadius*minRadius+Math.random()*(maxRadius*maxRadius-minRadius*minRadius));
- return new THREE.Vector3(MAP_CENTER_X+Math.cos(angle)*r,(Math.random()-.5)*760,MAP_CENTER_Z+Math.sin(angle)*r);
+ const vertical=2*Math.random()-1;
+ const horizontal=Math.sqrt(1-vertical*vertical);
+ const radius=Math.cbrt(minRadius**3+Math.random()*(maxRadius**3-minRadius**3));
+ return new THREE.Vector3(
+  MAP_CENTER_X+Math.cos(angle)*horizontal*radius,
+  vertical*radius,
+  MAP_CENTER_Z+Math.sin(angle)*horizontal*radius
+ );
 }
 const asteroidField=new THREE.Group();scene.add(asteroidField);
 for(let i=0;i<100;i++){
@@ -647,7 +655,7 @@ function enemyDifficultyScale(){
 }
 function enemyMaxHp(type){return Math.round(TYPES[type].hp*enemyDifficultyScale())}
 function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
-const enemyKinds=[...Array(8).fill('scout'),...Array(7).fill('raider'),...Array(5).fill('sentinel')];
+const enemyKinds=[...Array(11).fill('scout'),...Array(10).fill('raider'),...Array(7).fill('sentinel')]; // 28 enemigos: +40 % frente a los 20 anteriores.
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
  const min=type==='scout'?850:type==='raider'?1200:1700;
