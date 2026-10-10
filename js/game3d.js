@@ -744,7 +744,7 @@ function fire(mult=1,count=1){
   shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
- fireCd=.17;
+ fireCd=.34; // Doble intervalo entre disparos para equilibrar nave y drones.
 }
 function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++;player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
@@ -797,7 +797,18 @@ function renderUpgrades(){
   const resource=LOOT_TYPES.find(t=>t.id===u.material);
   return '<div class="upgrade-card"><div><strong>'+u.icon+' '+u.name+'</strong><small>Nivel '+lv+'/10 · +'+u.amount+' '+({maxHp:'casco',defense:'escudo',attack:'potencia',speed:'velocidad'}[u.stat])+' por nivel</small><small>'+ (max?'Mejora máxima':'Costo: '+need+' '+resource.name+' + '+price+' créditos')+'</small></div><button data-upgrade="'+u.id+'" '+(max||!available?'disabled':'')+'>'+(max?'Máximo':'Mejorar')+'</button></div>';
  }).join('');
- for(const el of containers){el.innerHTML=html;el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));}
+ const missileLv=upgradeLevel('missiles'),missileCost=missileUpgradeCost();
+ const missileAvailable=player.gold>=missileCost.credits&&(Number(player.loot.aleacion)||0)>=missileCost.material;
+ const missileHtml='<div class="upgrade-card"><div><strong>🚀 Lanzamisiles múltiples</strong><small>Nivel '+missileLv+'/9 · '+(missileLv+1)+' misil(es) por lanzamiento, desde ambos lados de la nave.</small><small>'+(missileLv>=9?'Mejora máxima':'Costo: '+missileCost.material+' aleación + '+missileCost.credits.toLocaleString('es')+' créditos')+'</small></div><button class="buyMissileUpgrade" '+(missileLv>=9||!missileAvailable?'disabled':'')+'>'+(missileLv>=9?'Máximo':'Mejorar')+'</button></div>';
+ for(const el of containers){el.innerHTML=html+missileHtml;el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));
+ el.querySelector('.buyMissileUpgrade').onclick=()=>{
+  const lv=upgradeLevel('missiles'),cost=missileUpgradeCost();
+  if(lv>=9||player.gold<cost.credits||(Number(player.loot.aleacion)||0)<cost.material)return;
+  player.gold-=cost.credits;player.loot.aleacion-=cost.material;player.upgrades.missiles=lv+1;
+  missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
+  lootToast('🚀 Misiles por lanzamiento: '+missileCount());
+ };
+ }
 }
 function buyUpgrade(id){
  const u=UPGRADES.find(v=>v.id===id);if(!u)return;
@@ -931,18 +942,30 @@ function createMissileMesh(){
   new THREE.MeshStandardMaterial({color:0xf3f3f3,emissive:0xff7629,emissiveIntensity:.7,metalness:.35,roughness:.4}));
 }
 // Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
+function missileCount(){return 1+upgradeLevel('missiles')}
+function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
 function skill(){
  if(skillCd>0||player.energy<25||docked||landing||inSafeZone(playerMesh.position))return;
  updateTargetLock();
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
- const start=playerMesh.position.clone().addScaledVector(forward,65);
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
- const aim=lockedEnemy?lockedEnemy.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1700);
- const dir=aim.sub(start).normalize();
- const mesh=createMissileMesh();
- mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
- mesh.position.copy(start);scene.add(mesh);
- shots.push({mesh,vel:dir.multiplyScalar(650),life:3,damage:player.attack*3,missile:true,target:lockedEnemy});
+ const target=lockedEnemy;
+ const aim=target?target.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1700);
+ const right=new THREE.Vector3().crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
+ if(right.lengthSq()<.1)right.set(1,0,0);
+ const count=missileCount();
+ for(let i=0;i<count;i++){
+  const side=i%2===0?1:-1;
+  const row=Math.floor(i/2);
+  const start=playerMesh.position.clone().addScaledVector(forward,55).addScaledVector(right,side*(35+row*9));
+  const dir=aim.clone().sub(start).normalize();
+  const launchDir=dir.clone().addScaledVector(right,side*.65).addScaledVector(new THREE.Vector3(0,1,0),.10).normalize();
+  const mesh=createMissileMesh();
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),launchDir);
+  mesh.position.copy(start);scene.add(mesh);
+  shots.push({mesh,vel:launchDir.multiplyScalar(650),life:4,damage:player.attack*3,missile:true,target,
+   missileAim:target?null:aim.clone(),missileAge:0,missileSide:side});
+ }
  player.energy-=25;skillCd=7;
 }
 // Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
@@ -1258,7 +1281,12 @@ const playerSafe=updateZone();updateDock();
 for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=true;e.fireTimer=1+Math.random()*2}continue}const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<650&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>170)e.mesh.position.addScaledVector(dir,t.speed*dt);else if(d<65)player.hp=Math.max(0,player.hp-Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d<570&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
 updateEnemyShots(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);
- for(const p of shots){if(p.missile&&p.target&&!p.target.dead&&p.target.mesh.visible){const desired=p.target.mesh.position.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.vel.lerp(desired,Math.min(1,dt*2.8));p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize())}p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
+ for(const p of shots){if(p.missile){
+  p.missileAge=(p.missileAge||0)+dt;
+  const aim=p.target&&!p.target.dead&&p.target.mesh.visible?p.target.mesh.position:p.missileAim;
+  if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<.3?1.5:3.7)))}
+  p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
+ }p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
