@@ -795,7 +795,7 @@ function enemyDifficultyScale(){
 }
 function enemyMaxHp(type){return Math.round(TYPES[type].hp*enemyDifficultyScale())}
 function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
-const enemyKinds=[...Array(14).fill('scout'),...Array(14).fill('raider'),...Array(14).fill('sentinel'),...Array(14).fill('destroyer')]; // 28 enemigos activos por sector.
+const enemyKinds=[...Array(24).fill('scout'),...Array(14).fill('raider'),...Array(14).fill('sentinel'),...Array(14).fill('destroyer')]; // 38 enemigos activos en Aurora y 28 en el Cinturón.
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
  const min=type==='scout'?850:type==='raider'?1200:1700;
@@ -1641,6 +1641,9 @@ function missionEvent(type,context={}){
    lootToast('🏆 '+m.title+' completada · +'+m.reward+' créditos · +'+m.xp+' XP');
   }
  }
+ // Validar compras previas también al desbloquear la siguiente misión.
+ const inventorySatisfied=missions=>{const m=missions[(missions===MISSIONS?campaign:beltCampaign).index];return m&&(m.event==='drone'&&ownedDrones()>=m.goal||m.event==='missileUpgrade'&&upgradeLevel('missiles')>=1)};
+ if(inventorySatisfied(MISSIONS)||(player.level>=10&&inventorySatisfied(BELT_MISSIONS))){missionEvent('inventory');return}
  renderMission();save();
 }
 let missionExploreElapsed=0;
