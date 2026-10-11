@@ -874,6 +874,27 @@ deferredModelLoad(modelLoader,'./assets/models/raider_spacecraft.glb?v=112',gltf
   for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
  }
 },undefined,err=>console.warn('Modelo sentinel GLB no disponible; se conserva la nave básica original.',err));
+
+deferredModelLoad(modelLoader,'./assets/models/gunship_optimizado.glb?v=148',gltf=>{
+ const original=gltf.scene;
+ original.traverse(obj=>{
+  if(!obj.isMesh)return;obj.castShadow=false;obj.receiveShadow=false;
+  for(const material of Array.isArray(obj.material)?obj.material:[obj.material]){
+   if(!material?.isMeshStandardMaterial)continue;
+   material.metalnessMap=null;material.roughnessMap=null;material.metalness=.65;material.roughness=.62;
+  }
+ });
+ const box=new THREE.Box3().setFromObject(original),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+ const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
+ for(const e of enemies){
+  if(e.type!=='destroyer')continue;
+  const visual=original.clone(true),factor=130/span;
+  visual.scale.setScalar(factor);visual.position.copy(center).multiplyScalar(-factor);
+  const pivot=new THREE.Group();pivot.add(visual);e.mesh.add(pivot);
+  for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
+ }
+},undefined,error=>console.warn('Gunship no disponible; se conserva el cuarto enemigo original.',error));
+
 // Dos drones de apoyo: acompañan al jugador y disparan proyectiles reales.
 const supportDrones=[];
 const MAX_DRONES=8;
@@ -1117,6 +1138,8 @@ const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff})};
 function enemyFire(e){
+ lastIncomingAttackAt=performance.now()/1000;
+ repairRobot.visible=repairBeam.visible=false;
  const t=TYPES[e.type];
  const start=e.mesh.position.clone();
  const target=playerMesh.position.clone().add(new THREE.Vector3((Math.random()-.5)*75,(Math.random()-.5)*55,(Math.random()-.5)*75));
@@ -1166,6 +1189,7 @@ function updateTargetLock(){
 }
 function fire(mult=1,count=1){
  if(fireCd>0)return;
+ lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  updateTargetLock();
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
  const aimPoint=lockedEnemy?lockedEnemy.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1600);
@@ -1216,8 +1240,13 @@ function renderDrones(){
  const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Cada dron agrega un láser extra a tu nave cuando disparas. Apunta hacia tu misma mira y conserva la misma precisión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
  const rangeLevel=player.explorerRangeLevel,rangeMax=rangeLevel>=10,rangePrice=explorerUpgradePrice();
  const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Dron Explorador · 9.º especial</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirido y equipado':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Requiere 8 drones')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||count<8||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipado':'Comprar')+'</button></div>';
+ const repairHtml='<div class="upgrade-card"><div><strong>🔧 Robot reparador</strong><small>Compra permanente independiente. Repara 5 % del casco por segundo tras 2 s sin disparar ni recibir ataques. No ocupa espacios de drones.</small><small>'+(player.repairRobot?'Adquirido · reparación automática':'Precio: '+REPAIR_ROBOT_PRICE.toLocaleString('es')+' créditos')+'</small></div><button class="buyRepairRobot" '+(player.repairRobot||player.gold<REPAIR_ROBOT_PRICE?'disabled':'')+'>'+(player.repairRobot?'Adquirido':'Comprar')+'</button></div>';
  const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance del Explorador · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
- for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml;
+ for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml;
+ el.querySelector('.buyRepairRobot').onclick=()=>{
+  if(!docked||player.repairRobot||player.gold<REPAIR_ROBOT_PRICE)return;
+  player.gold-=REPAIR_ROBOT_PRICE;player.repairRobot=true;save();hud();hangarRefresh();lootToast('🔧 Robot reparador adquirido');
+ };
  el.querySelector('.buyExplorerRange').onclick=()=>{
   const price=explorerUpgradePrice();if(!player.explorerDrone||player.explorerRangeLevel>=10||player.gold<price)return;
   player.gold-=price;player.explorerRangeLevel++;save();hud();renderDrones();lootToast('📡 Explorador: alcance '+explorerRange()+' m');if(docked)hangarRefresh();
@@ -1256,6 +1285,43 @@ const SPECIAL_UPGRADES={
  espectro:[['crit','Precisión letal','Probabilidad de crítico +1 % por nivel'],['fury','Furia prolongada','Duración +0,25 s por nivel'],['evasion','Maniobras evasivas','Probabilidad de evasión +0,8 % por nivel']]
 };
 let classAbilityCd=0,classAbilityTime=0,lastHitAt=-100;
+
+const REPAIR_ROBOT_PRICE=5000;
+player.repairRobot=player.repairRobot===true;
+let lastAttackAt=-100,lastIncomingAttackAt=-100,repairUiElapsed=0;
+const repairRobot=new THREE.Group();repairRobot.visible=false;playerMesh.add(repairRobot);
+const repairMetal=new THREE.MeshStandardMaterial({color:0xc4d1cc,metalness:.55,roughness:.6});
+const repairGreen=new THREE.MeshBasicMaterial({color:0x5dff91});
+const robotBody=new THREE.Mesh(new THREE.BoxGeometry(12,10,9),repairMetal);repairRobot.add(robotBody);
+const robotEye=new THREE.Mesh(new THREE.BoxGeometry(8,2.5,1),repairGreen);robotEye.position.set(0,1,-5);repairRobot.add(robotEye);
+for(const side of [-1,1]){
+ const arm=new THREE.Mesh(new THREE.BoxGeometry(2,3,10),repairMetal);arm.position.set(side*8,-3,-4);arm.rotation.y=side*.4;repairRobot.add(arm);
+ const tool=new THREE.Mesh(new THREE.SphereGeometry(2,8,6),repairGreen);tool.position.set(side*10,-3,-9);repairRobot.add(tool);
+}
+const repairAura=new THREE.Mesh(new THREE.SphereGeometry(17,12,8),new THREE.MeshBasicMaterial({color:0x42f58a,transparent:true,opacity:.14,depthWrite:false}));
+repairRobot.add(repairAura);
+const repairBeam=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,1,6),new THREE.MeshBasicMaterial({color:0x67ffa2,transparent:true,opacity:.8,depthWrite:false}));
+playerMesh.add(repairBeam);repairBeam.visible=false;
+function canRobotRepair(now){
+ return player.repairRobot&&player.hp>0&&player.hp<player.maxHp&&!landing&&!fireHeld&&
+  now-Math.max(lastHitAt,lastAttackAt,lastIncomingAttackAt)>=2&&sectorDistance()<=currentSector().radius;
+}
+function updateRepairRobot(dt,now){
+ const repairing=canRobotRepair(now);
+ repairRobot.visible=repairBeam.visible=repairing;
+ if(!repairing)return;
+ player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.05*dt);
+ repairRobot.position.set(64+Math.sin(now*1.8)*5,14+Math.sin(now*3)*3,8);
+ repairRobot.rotation.y=Math.sin(now*2)*.15;
+ repairAura.material.opacity=.12+.04*(.5+.5*Math.sin(now*5));
+ const destination=new THREE.Vector3(24,1,0),origin=repairRobot.position.clone().add(new THREE.Vector3(-8,-3,-8));
+ const beamDirection=destination.clone().sub(origin);
+ repairBeam.position.copy(origin).add(destination).multiplyScalar(.5);
+ repairBeam.scale.y=beamDirection.length();
+ repairBeam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),beamDirection.normalize());
+ repairUiElapsed+=dt;if(docked&&repairUiElapsed>.5){repairUiElapsed=0;hangarRefresh();}
+}
+
 function specialLevel(key,id=player.shipId){
  const levels=player.shipSpecializations?.[id]||{};
  return Math.max(0,Math.min(10,Math.floor(Number(levels[key])||0)));
@@ -1280,6 +1346,7 @@ function applyPlayerDamage(amount){
  if(classAbilityActive('titan'))damage*=.3;
  if(classAbilityActive('espectro'))damage*=1.3;
  player.hp=Math.max(0,player.hp-damage);lastHitAt=performance.now()/1000;
+ repairRobot.visible=repairBeam.visible=false;
 }
 function classDamageMultiplier(){
  return classAbilityActive('espectro')?1.6:1;
@@ -1558,6 +1625,7 @@ function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
 function skill(){
  if(skillCd>0||docked||landing||inSafeZone(playerMesh.position))return;
+ lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  updateTargetLock();
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
@@ -2035,6 +2103,6 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
  }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
-const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
+const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 hud();
