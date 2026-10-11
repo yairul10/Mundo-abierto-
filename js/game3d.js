@@ -896,7 +896,7 @@ function spawnCarrierAdd(type,guard=false,snapshot=null){
   e={type,mesh,home:new THREE.Vector3(),bossAdd:true};enemies.push(e);
  }
  const maxHp=enemyMaxHp(type);
- e.launchRemaining=0;e.launchAge=0;
+ e.launchRemaining=0;e.launchAge=0;e.launchSlot=null;e.launchWait=0;
  e.maxHp=maxHp;e.hp=snapshot?THREE.MathUtils.clamp(Number(snapshot.hp)||maxHp,1,maxHp):maxHp;e.dead=0;e.guard=guard;e.aggressive=true;e.fireTimer=1+Math.random();
  const angle=Math.random()*Math.PI*2,radius=340+Math.random()*220;
  const position=snapshot?.position;
@@ -905,8 +905,13 @@ function spawnCarrierAdd(type,guard=false,snapshot=null){
   const slot=(carrierMesh.userData.nextHangar||0)%4;carrierMesh.userData.nextHangar=slot+1;
   carrierMesh.updateMatrixWorld(true);
   e.mesh.position.copy(carrierMesh.localToWorld(carrierMesh.userData.hangarExits[slot].clone()));
-  e.launchStart=e.mesh.position.clone();e.launchDirection=new THREE.Vector3(slot<2?-1:1,0,0);e.launchRemaining=2.2;
+  e.launchStart=e.mesh.position.clone();e.launchDirection=new THREE.Vector3(slot<2?-1:1,0,0).transformDirection(carrierMesh.matrixWorld);e.launchRemaining=3;
+  e.launchSlot=slot;e.launchWait=enemies.filter(other=>other!==e&&other.launchRemaining>0&&other.launchSlot===slot).reduce((wait,other)=>Math.max(wait,other.launchWait+other.launchRemaining),0);
  }else e.mesh.position.copy(carrierMesh.position).add(new THREE.Vector3(Math.cos(angle)*radius,(Math.random()-.5)*200,Math.sin(angle)*radius));
+ if(snapshot?.launch&&Array.isArray(snapshot.launch.start)&&snapshot.launch.start.length===3&&snapshot.launch.start.every(Number.isFinite)&&Array.isArray(snapshot.launch.direction)&&snapshot.launch.direction.length===3&&snapshot.launch.direction.every(Number.isFinite)){
+  e.launchStart=new THREE.Vector3().fromArray(snapshot.launch.start);e.launchDirection=new THREE.Vector3().fromArray(snapshot.launch.direction).normalize();
+  e.launchAge=THREE.MathUtils.clamp(Number(snapshot.launch.age)||0,0,3);e.launchRemaining=3-e.launchAge;e.launchWait=THREE.MathUtils.clamp(Number(snapshot.launch.wait)||0,0,120);e.launchSlot=Number(snapshot.launch.slot)||0;
+ }
  e.home.copy(e.mesh.position);e.mesh.visible=false;return e;
 }
 if(Array.isArray(rawBoss.adds)){
@@ -914,7 +919,7 @@ if(Array.isArray(rawBoss.adds)){
 }
 function persistCarrierState(){
  player.carrierState={hp:bossState.hp,phases:[...bossState.phases],rewarded:bossState.rewarded,respawnAt:bossState.respawnAt,position:carrierMesh.position.toArray(),
- adds:enemies.filter(e=>e.bossAdd&&!e.dead&&e.hp>0).map(e=>({type:e.type,hp:e.hp,guard:!!e.guard,position:e.mesh.position.toArray()}))};
+ adds:enemies.filter(e=>e.bossAdd&&!e.dead&&e.hp>0).map(e=>({type:e.type,hp:e.hp,guard:!!e.guard,position:e.mesh.position.toArray(),...(e.launchRemaining>0?{launch:{start:e.launchStart.toArray(),direction:e.launchDirection.toArray(),age:e.launchAge,wait:e.launchWait,slot:e.launchSlot}}:{})}))};
 }
 function triggerCarrierWaves(){
  if(bossState.hp<=0)return;
@@ -934,9 +939,14 @@ function respawnCarrier(){
  save();if(activeSector==='ember')lootToast('🚨 El Coloso Portanaves ha reaparecido');
 }
 function advanceCarrierLaunch(e,dt){
- e.launchAge+=dt;e.launchRemaining=Math.max(0,2.2-e.launchAge);
- e.mesh.visible=activeSector==='ember'&&e.launchAge>=.8;
- e.mesh.position.copy(e.launchStart).addScaledVector(e.launchDirection,Math.max(0,e.launchAge-.8)*170);
+ if(activeSector!=='ember'){e.mesh.visible=false;return}
+ const panel=carrierPanels[e.launchSlot];
+ // Esperar a que la abertura esté despejada y dejar salir una nave por hangar.
+ if(bossState.hp>0&&panel&&Math.abs(panel.hinge.rotation[panel.axis||'z'])<1.1){e.mesh.visible=false;return}
+ if(e.launchWait>0){e.launchWait=Math.max(0,e.launchWait-dt);e.mesh.visible=false;return}
+ e.launchAge=Math.min(3,e.launchAge+dt);e.launchRemaining=3-e.launchAge;
+ e.mesh.visible=true;
+ e.mesh.position.copy(e.launchStart).addScaledVector(e.launchDirection,e.launchAge*150);
  e.mesh.lookAt(e.mesh.position.clone().add(e.launchDirection));e.home.copy(e.mesh.position);
 }
 function patrolCarrierAdd(e,dt,now){
@@ -1014,7 +1024,7 @@ function assembleColosoModels(){
   for(const dz of [-3.15,3.15]){
    const light=new THREE.Mesh(new THREE.BoxGeometry(.10,2.6,.07),lamp);light.position.set(side*7.3,-.3,z+dz);visual.add(light);
   }
-  exits.push(new THREE.Vector3(side*8.0,-.25,z).sub(center).multiplyScalar(factor));
+  exits.push(new THREE.Vector3(side*3.9,-.25,z).sub(center).multiplyScalar(factor));
  }
  for(const x of [-3.4,3.4])for(const y of [-1.5,1.6]){
   const glow=new THREE.Mesh(new THREE.TorusGeometry(.85,.10,8,20),lamp);glow.position.set(x,y,-12.82);visual.add(glow);
