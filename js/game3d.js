@@ -896,11 +896,17 @@ function spawnCarrierAdd(type,guard=false,snapshot=null){
   e={type,mesh,home:new THREE.Vector3(),bossAdd:true};enemies.push(e);
  }
  const maxHp=enemyMaxHp(type);
+ e.launchRemaining=0;e.launchAge=0;
  e.maxHp=maxHp;e.hp=snapshot?THREE.MathUtils.clamp(Number(snapshot.hp)||maxHp,1,maxHp):maxHp;e.dead=0;e.guard=guard;e.aggressive=true;e.fireTimer=1+Math.random();
  const angle=Math.random()*Math.PI*2,radius=340+Math.random()*220;
  const position=snapshot?.position;
  if(Array.isArray(position)&&position.length===3&&position.every(Number.isFinite)&&Math.hypot(position[0]-SECTOR_EMBER.x,position[1],position[2]-SECTOR_EMBER.z)<4700)e.mesh.position.fromArray(position);
- else e.mesh.position.copy(carrierMesh.position).add(new THREE.Vector3(Math.cos(angle)*radius,(Math.random()-.5)*200,Math.sin(angle)*radius));
+ else if(carrierMesh.userData.hangarExits?.length){
+  const slot=(carrierMesh.userData.nextHangar||0)%4;carrierMesh.userData.nextHangar=slot+1;
+  carrierMesh.updateMatrixWorld(true);
+  e.mesh.position.copy(carrierMesh.localToWorld(carrierMesh.userData.hangarExits[slot].clone()));
+  e.launchStart=e.mesh.position.clone();e.launchDirection=new THREE.Vector3(slot<2?-1:1,0,0);e.launchRemaining=2.2;
+ }else e.mesh.position.copy(carrierMesh.position).add(new THREE.Vector3(Math.cos(angle)*radius,(Math.random()-.5)*200,Math.sin(angle)*radius));
  e.home.copy(e.mesh.position);e.mesh.visible=false;return e;
 }
 if(Array.isArray(rawBoss.adds)){
@@ -917,7 +923,7 @@ function triggerCarrierWaves(){
  for(const phase of phases){
   if(bossState.phases.includes(phase.at)||phase.at!==0&&percent>phase.at)continue;
   bossState.phases.push(phase.at);
-  for(let i=0;i<phase.count;i++){const e=spawnCarrierAdd(phase.type);e.mesh.visible=activeSector==='ember'}
+  for(let i=0;i<phase.count;i++){const e=spawnCarrierAdd(phase.type);e.mesh.visible=activeSector==='ember'&&!e.launchRemaining}
  }
 }
 function respawnCarrier(){
@@ -926,6 +932,12 @@ function respawnCarrier(){
  carrierEnemy.home.copy(carrierMesh.position);carrierEnemy.hp=carrierEnemy.maxHp=20000;carrierEnemy.dead=0;carrierEnemy.mesh.visible=activeSector==='ember';
  bossState.hp=20000;bossState.phases=[];bossState.rewarded=false;bossState.respawnAt=0;
  save();if(activeSector==='ember')lootToast('🚨 El Coloso Portanaves ha reaparecido');
+}
+function advanceCarrierLaunch(e,dt){
+ e.launchAge+=dt;e.launchRemaining=Math.max(0,2.2-e.launchAge);
+ e.mesh.visible=activeSector==='ember'&&e.launchAge>=.8;
+ e.mesh.position.copy(e.launchStart).addScaledVector(e.launchDirection,Math.max(0,e.launchAge-.8)*170);
+ e.mesh.lookAt(e.mesh.position.clone().add(e.launchDirection));e.home.copy(e.mesh.position);
 }
 function patrolCarrierAdd(e,dt,now){
  if(!e.patrolTarget||now>=e.nextPatrol||e.mesh.position.distanceTo(e.patrolTarget)<60){
@@ -938,10 +950,10 @@ function patrolCarrierAdd(e,dt,now){
 }
 function updateCarrier(dt){
  if(bossState.hp<=0&&Date.now()>=bossState.respawnAt)respawnCarrier();
- for(const {hinge,side}of carrierPanels)hinge.rotation.z=THREE.MathUtils.lerp(hinge.rotation.z,bossState.phases.includes(0)?-side*.62:0,Math.min(1,dt*2));
+ for(const {hinge,side,axis='z',openAngle=-side*.62}of carrierPanels)hinge.rotation[axis]=THREE.MathUtils.lerp(hinge.rotation[axis],bossState.phases.includes(0)?openAngle:0,Math.min(1,dt*2));
  if(activeSector!=='ember'||bossState.hp<=0||!bossState.phases.includes(10))return;
  let alive=enemies.filter(e=>e.bossAdd&&e.guard&&e.type==='sentinel'&&!e.dead).length;
- while(alive++<10){const e=spawnCarrierAdd('sentinel',true);e.mesh.visible=true}
+ while(alive++<10){const e=spawnCarrierAdd('sentinel',true);e.mesh.visible=!e.launchRemaining}
 }
 function damageEnemy(e,damage,missile=false){
  if(e.dead||!e.mesh.visible)return;
@@ -954,6 +966,67 @@ function clearCombatShots(){
  for(const p of enemyShots)scene.remove(p.mesh);enemyShots.length=0;
  for(const p of shots){removeMissileEffects(p);scene.remove(p.mesh)}shots.length=0;
 }
+
+
+let colosoHullTemplate=null,colosoDoorTemplate=null;
+function finishColosoMaterials(model){
+ model.traverse(o=>{
+  if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;
+  for(const material of Array.isArray(o.material)?o.material:[o.material]){
+   if(!material?.isMeshStandardMaterial)continue;
+   material.metalnessMap=null;material.roughnessMap=null;material.metalness=.65;material.roughness=.62;
+   if(material.map)material.map.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+   material.onBeforeCompile=shader=>{
+    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+#ifdef USE_MAP
+ float colosoWarm=smoothstep(0.04,0.20,diffuseColor.r-diffuseColor.b)*smoothstep(0.02,0.12,diffuseColor.g-diffuseColor.b);
+ float colosoBrightness=max(diffuseColor.r,max(diffuseColor.g,diffuseColor.b));
+ diffuseColor.rgb=mix(diffuseColor.rgb,vec3(1.0,0.32,0.055)*colosoBrightness,colosoWarm*0.85);
+#endif
+`);
+   };
+   material.customProgramCacheKey=()=> 'coloso-orange-metal-v159';material.needsUpdate=true;
+  }
+ });
+}
+function assembleColosoModels(){
+ if(!colosoHullTemplate||!colosoDoorTemplate||carrierMesh.userData.colosoVisual)return;
+ finishColosoMaterials(colosoHullTemplate);finishColosoMaterials(colosoDoorTemplate);
+ const hull=colosoHullTemplate.clone(true),bounds=new THREE.Box3().setFromObject(hull),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const factor=620/size.z;if(!Number.isFinite(factor)||factor<=0)return;
+ const visual=new THREE.Group();visual.scale.setScalar(factor);visual.position.copy(center).multiplyScalar(-factor);visual.add(hull);
+ const doorBounds=new THREE.Box3().setFromObject(colosoDoorTemplate),doorSize=doorBounds.getSize(new THREE.Vector3()),doorCenter=doorBounds.getCenter(new THREE.Vector3());
+ if(doorSize.x<.001||doorSize.y<.001)return;
+ for(const child of carrierMesh.children)child.visible=false;
+ carrierPanels.length=0;
+ const exits=[],lamp=new THREE.MeshBasicMaterial({color:0xff8a20,toneMapped:false});
+ for(const side of [-1,1])for(const z of [-3.55,7.8]){
+  const socket=new THREE.Group();socket.position.set(side*7.24,1.13,z);socket.rotation.y=side*Math.PI/2;visual.add(socket);
+  const hinge=new THREE.Group();socket.add(hinge);
+  const fit=new THREE.Group();fit.scale.set(6.75/doorSize.x,2.85/doorSize.y,.32/Math.max(.01,doorSize.z));hinge.add(fit);
+  const panel=colosoDoorTemplate.clone(true);panel.position.set(-doorCenter.x,-doorBounds.max.y,-doorCenter.z);fit.add(panel);
+  hinge.rotation.x=bossState.phases.includes(0)?-1.35:0;
+  carrierPanels.push({hinge,axis:'x',openAngle:-1.35});
+  // Luces insertadas en el marco fijo, sin iluminar toda la pintura del casco.
+  for(const y of [1.0,-1.6]){
+   const light=new THREE.Mesh(new THREE.BoxGeometry(.10,.07,6.3),lamp);light.position.set(side*7.3,y,z);visual.add(light);
+  }
+  for(const dz of [-3.15,3.15]){
+   const light=new THREE.Mesh(new THREE.BoxGeometry(.10,2.6,.07),lamp);light.position.set(side*7.3,-.3,z+dz);visual.add(light);
+  }
+  exits.push(new THREE.Vector3(side*8.0,-.25,z).sub(center).multiplyScalar(factor));
+ }
+ for(const x of [-3.4,3.4])for(const y of [-1.5,1.6]){
+  const glow=new THREE.Mesh(new THREE.TorusGeometry(.85,.10,8,20),lamp);glow.position.set(x,y,-12.82);visual.add(glow);
+ }
+ carrierMesh.add(visual);carrierMesh.userData.colosoVisual=visual;carrierMesh.userData.hangarExits=exits;carrierMesh.userData.hitRadius=255;
+}
+deferredModelLoad(modelLoader,'./assets/models/spacecruiser_optimizado.glb?v=159',gltf=>{
+ colosoHullTemplate=gltf.scene;assembleColosoModels();
+},undefined,error=>console.warn('Casco Coloso no disponible; se conserva el respaldo.',error));
+deferredModelLoad(modelLoader,'./assets/models/scifipanelcrate_optimizado.glb?v=159',gltf=>{
+ colosoDoorTemplate=gltf.scene;assembleColosoModels();
+},undefined,error=>console.warn('Compuerta Coloso no disponible; se conserva el respaldo.',error));
 
 // Apariencia 3D opcional de los enemigos básicos (scout). El grupo original
 // mantiene posición, IA, colisiones, disparos y recompensas intactos.
@@ -2310,7 +2383,7 @@ function resetSectorPopulation(){
  for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,currentSector().radius-50));
  const counts={};
  for(const e of enemies){
-  if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead;continue}
+  if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead&&!e.launchRemaining;continue}
   if(e.type==='carrier'){e.hp=bossState.hp;e.dead=bossState.hp>0?0:Infinity;e.mesh.visible=activeSector==='ember'&&bossState.hp>0;continue}
   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.aggressive=e.type!=='devastator';
   counts[e.type]=(counts[e.type]||0)+1;e.spawnRank=counts[e.type];e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;
@@ -2522,6 +2595,7 @@ for(const e of enemies){
   }
   continue;
  }
+ if(e.bossAdd&&e.launchRemaining>0){advanceCarrierLaunch(e,dt);continue}
  if(!e.mesh.visible||e.type==='carrier')continue;
  const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);
  if(e.aggressive&&d<COMBAT_RANGE&&!playerSafe&&!docked&&!landing){
@@ -2542,7 +2616,7 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);upda
    const delay=p.missileGuideDelay||.55;
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
- }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&e.mesh.visible&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?205:p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
+ }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&e.mesh.visible&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?(carrierMesh.userData.hitRadius||205):p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,350));explorerThreat=null;clearCombatShots();player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});

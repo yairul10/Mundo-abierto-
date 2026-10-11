@@ -1,5 +1,5 @@
 # Enemigos de Mundo Abierto
-Datos del código del juego, versión 158.
+Datos del código del juego, versión 159.
 
 | Característica | Explorador | Asaltante | Guardián | Destructor |
 |---|---:|---:|---:|---:|
@@ -85,3 +85,9 @@ Al destruirlo, los refuerzos vivos permanecen rondando Ascuas; no reaparecen cua
 ## Mascota exploradora: defensa automática
 En todos los mapas responde al último enemigo que comienza a atacar al jugador, incluidos disparos y contacto. Sigue disparando cada 0,68 s aunque el jugador deje de disparar, mientras el objetivo siga vivo, visible, agresivo y a 1200 m o menos.
 Daño por láser: 20 % del ataque del jugador. Se detiene al perder el objetivo, atracar, aterrizar o entrar en la zona segura. Los drones de combate conservan el disparo sincronizado con el jugador.
+
+## Modelos del Coloso
+Casco `assets/models/spacecruiser_optimizado.glb`: 427.512 bytes (−92,3 %).
+Compuerta `assets/models/scifipanelcrate_optimizado.glb`: 305.792 bytes (−96,0 %).
+Geometría conservada; texturas WebP de hasta 1024 px y oclusión de 512 px. Acabado metálico con metalness 0,65 y roughness 0,62.
+Cuatro compuertas independientes con bisagra superior; abren hacia afuera y arriba al activarse el Coloso. Luces naranjas en los marcos y motores. Los refuerzos salen alternadamente desde los cuatro hangares con espera inicial de 0,8 s.
