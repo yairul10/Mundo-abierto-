@@ -1,18 +1,22 @@
-# App Android de pruebas
-APK de depuración para Android 7 o superior. Abre la versión de GitHub Pages con internet, en horizontal y pantalla completa.
-El guardado es propio de la app; no importa automáticamente la partida de Chrome. Las mejoras web llegan sin reinstalar el APK.
-Esta configuración con URL remota es para pruebas, no para publicar en Google Play.
+# Mundo Abierto Offline
+APK de prueba para Android 7 o superior, con los tres mapas, modelos, imágenes y Three.js 0.180.0 incluidos. No necesita red ni una primera carga conectada.
+El juego usa el contenido local de Capacitor, sin URL remota. Una política de contenido bloquea solicitudes externas en la pantalla del juego.
 
 ## Descargar
-En GitHub > Actions > Android APK de prueba, abrir la ejecución correcta y descargar el artefacto Mundo-Abierto-pruebas-APK. Descomprimir e instalar app-debug.apk.
-El workflow se inicia cuando cambia esta carpeta; también se puede ejecutar manualmente con Run workflow.
+GitHub > Actions > Android APK offline > artefacto Mundo-Abierto-Offline-APK. Descomprimir e instalar app-debug.apk.
+La app tiene un identificador distinto de la antigua versión online. Su partida es propia y no se transfiere automáticamente desde Chrome o la app online.
+Para recibir cambios hay que instalar un APK nuevo. El workflow conserva la clave de prueba en caché para permitir actualizar sin borrar datos mientras esa caché siga disponible.
 
 ## Compilar
-Node 22+, Java 21 y Android SDK 36:
+Node 22+, Java 21, SDK Android 36:
 ```sh
-npm install
+npm ci
 npm run android:prepare
 cd android
 bash gradlew assembleDebug
 ```
-La carpeta android se genera a partir de Capacitor 8.0.0. No se incluye una firma de producción. Los APK de distintas ejecuciones usan claves debug distintas; no borrar la app con una partida importante para reinstalar. Mantener este primer APK mientras se actualiza el juego web.
+El paquete web se crea desde los archivos vigentes del repositorio. El empaquetador comprueba que no falten recursos y que los GLB no dependan de archivos externos.
+El workflow se ejecuta con cambios en mobile/test-app o su propio YAML y se puede ejecutar manualmente para incorporar actualizaciones del juego.
+
+## Prueba en dispositivo
+Instalar, activar modo avión antes de abrir, comprobar entrada, los tres mapas, portal, bases, enemigos, Coloso, luna, combate y guardado al cerrar y abrir. Compilar e inspeccionar el paquete no sustituye esta prueba gráfica.
