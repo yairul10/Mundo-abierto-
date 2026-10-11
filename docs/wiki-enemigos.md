@@ -65,7 +65,7 @@ Vida base 196; vida real = redondear(vida real de un Destructor × 0,70). Daño 
 No persigue ni dispara hasta recibir daño. Créditos base 120, XP base 195, 6 cajas; recompensas con el mismo escalado por nivel que los enemigos normales.
 
 ### Coloso Portanaves (enemigo 6)
-20.000 de vida fija, inmóvil, sin disparos ni daño de contacto. Abre las compuertas al recibir el primer ataque.
+40.000 de vida fija, inmóvil, sin disparos ni daño de contacto. Abre las compuertas al recibir el primer ataque.
 La vida no se regenera al dejar de atacarlo, morir, salir del mapa o recargar la partida. Se guardan sus fases y los refuerzos vivos.
 
 | Activación | Refuerzos nuevos |
@@ -80,7 +80,7 @@ La vida no se regenera al dejar de atacarlo, morir, salir del mapa o recargar la
 Las fases anteriores se activan una sola vez, incluso si un impacto cruza varios umbrales.
 Los refuerzos de oleadas anteriores pueden seguir vivos: el grupo permanente de 10 es adicional.
 Recompensa final fija: 10.000 créditos, 15.000 XP y 30 cajas, además del botín de los refuerzos. Prima aproximada de 60–75 % sobre la proporción de vida/recompensa base del Destructor.
-Al destruirlo, los refuerzos vivos permanecen rondando Ascuas; no reaparecen cuando son eliminados. El Coloso reaparece tras 120 segundos en una posición aleatoria, con 20.000 de vida y sus fases reiniciadas. Cada derrota vuelve a otorgar su premio, una sola vez por aparición. El temporizador, posición y refuerzos se guardan; el tiempo transcurrido fuera del juego también cuenta. La base de Ascuas incorpora una nueva pieza modular central con cuatro puertos para conectar ductos.
+Al destruirlo, los refuerzos vivos permanecen rondando Ascuas; no reaparecen cuando son eliminados. El Coloso reaparece tras 120 segundos en una posición aleatoria, con 40.000 de vida y sus fases reiniciadas. Cada derrota vuelve a otorgar su premio, una sola vez por aparición. El temporizador, posición y refuerzos se guardan; el tiempo transcurrido fuera del juego también cuenta. La base de Ascuas incorpora una nueva pieza modular central con cuatro puertos para conectar ductos.
 
 ## Mascota exploradora: defensa automática
 En todos los mapas responde al último enemigo que comienza a atacar al jugador, incluidos disparos y contacto. Sigue disparando cada 0,68 s aunque el jugador deje de disparar, mientras el objetivo siga vivo, visible, agresivo y a 1200 m o menos.
@@ -90,4 +90,6 @@ Daño por láser: 20 % del ataque del jugador. Se detiene al perder el objetivo,
 Casco `assets/models/spacecruiser_optimizado.glb`: 427.512 bytes (−92,3 %).
 Compuerta `assets/models/scifipanelcrate_optimizado.glb`: 305.792 bytes (−96,0 %).
 Geometría conservada; texturas WebP de hasta 1024 px y oclusión de 512 px. Acabado metálico con metalness 0,65 y roughness 0,62.
-Cuatro compuertas independientes con bisagra superior; abren hacia afuera y arriba al activarse el Coloso. Luces naranjas en los marcos y motores. Los refuerzos salen alternadamente desde los cuatro hangares con espera inicial de 0,8 s.
+Coloso al doble de tamaño. Alcance de daño láser limitado a 1200 m desde el jugador, además del límite de recorrido del proyectil.
+
+Cuatro compuertas independientes con bisagra superior; abren hacia afuera y arriba al activarse el Coloso. Luces naranjas en los marcos y motores. Los refuerzos salen alternadamente desde los cuatro hangares desde dentro del casco, esperando a que abran las puertas y por turnos en cada hangar.

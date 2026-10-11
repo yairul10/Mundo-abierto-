@@ -94,9 +94,37 @@ new THREE.TextureLoader().load('./assets/models/fondo_espacial_cinturon.webp?v=1
  texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace;
  beltBackground=texture;syncSectorEnvironment();
 },undefined,()=>console.info('Fondo Cinturón no disponible; usando respaldo espacial.'));
-new THREE.TextureLoader().load('./assets/models/fondo_espacial_ascuas.webp?v=157',texture=>{
+// Mezclar la costura longitudinal y suavizar los polos del panorama al cargarlo.
+function seamlessSectorPanorama(image){
+ const canvas=document.createElement('canvas');canvas.width=1536;canvas.height=768;
+ const ctx=canvas.getContext('2d');if(!ctx)return null;
+ ctx.drawImage(image,0,0,canvas.width,canvas.height);
+ const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),data=pixels.data,source=new Uint8ClampedArray(data),w=canvas.width,h=canvas.height;
+ const smooth=t=>t*t*(3-2*t),band=Math.round(w*.12);
+ for(let y=0;y<h;y++)for(let x=0;x<band;x++){
+  const blend=1-smooth(x/(band-1)),left=(y*w+x)*4,right=(y*w+w-1-x)*4;
+  for(let c=0;c<3;c++){
+   const shared=(source[left+c]+source[right+c])/2;
+   data[left+c]=source[left+c]*(1-blend)+shared*blend;
+   data[right+c]=source[right+c]*(1-blend)+shared*blend;
+  }
+ }
+ const pole=Math.round(h*.09);
+ for(const top of [true,false]){
+  const edge=top?0:h-1,average=[0,0,0];
+  for(let x=0;x<w;x++)for(let c=0;c<3;c++)average[c]+=data[(edge*w+x)*4+c]/w;
+  for(let row=0;row<pole;row++){
+   const y=top?row:h-1-row,blend=1-smooth(row/(pole-1));
+   for(let x=0;x<w;x++)for(let c=0;c<3;c++){const i=(y*w+x)*4+c;data[i]=data[i]*(1-blend)+average[c]*blend}
+  }
+ }
+ ctx.putImageData(pixels,0,0);
+ const texture=new THREE.CanvasTexture(canvas);texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace;
+ return texture;
+}
+new THREE.TextureLoader().load('./assets/models/fondo_espacial_ascuas.webp?v=161',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace;
- emberBackground=texture;syncSectorEnvironment();
+ const panorama=seamlessSectorPanorama(texture.image);emberBackground=panorama||texture;if(panorama)texture.dispose();syncSectorEnvironment();
 },undefined,()=>console.info('Fondo Ascuas no disponible; usando respaldo espacial.'));
 // Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=105',texture=>{
@@ -826,7 +854,7 @@ const TYPES={
  raider:{hp:70,damage:10,speed:150,xp:36,gold:20,loot:2,color:0xe78b45},
  sentinel:{hp:140,damage:20,speed:90,xp:72,gold:40,loot:4,color:0xb86bd9},destroyer:{hp:280,damage:35,speed:110,xp:130,gold:80,loot:6,color:0xff3d9b},
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
- carrier:{hp:20000,damage:0,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
+ carrier:{hp:40000,damage:0,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
 };
 // Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
 // para principiantes y ganan resistencia a medida que progresa el jugador.
@@ -834,7 +862,7 @@ function enemyDifficultyScale(){
  const level=Math.max(1,Math.floor(Number(player.level)||1));
  return Math.min(5,1+Math.max(0,level-1)*.10);
 }
-function enemyMaxHp(type){return type==='carrier'?20000:type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
+function enemyMaxHp(type){return type==='carrier'?40000:type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
 function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
 const enemyKinds=[...Array(24).fill('scout'),...Array(14).fill('raider'),...Array(14).fill('sentinel'),...Array(16).fill('destroyer'),...Array(10).fill('devastator')]; // 38 enemigos activos en Aurora y 28 en el Cinturón.
 function randomEnemyHome(type){
@@ -862,7 +890,7 @@ for(const e of enemies.filter(e=>e.type==='devastator')){
  }
 }
 const rawBoss=player.carrierState&&typeof player.carrierState==='object'?player.carrierState:{};
-const bossState={hp:Number.isFinite(+rawBoss.hp)?THREE.MathUtils.clamp(+rawBoss.hp,0,20000):20000,
+const bossState={hp:Number.isFinite(+rawBoss.hp)?THREE.MathUtils.clamp(+rawBoss.hp*(rawBoss.maxHp===40000?1:2),0,40000):40000,
  respawnAt:Number.isFinite(+rawBoss.respawnAt)?+rawBoss.respawnAt:0,
  phases:Array.isArray(rawBoss.phases)?[...new Set(rawBoss.phases.filter(x=>[0,90,70,50,30,10].includes(x)))]:[],rewarded:!!rawBoss.rewarded};
 if(bossState.rewarded)bossState.hp=0;
@@ -885,8 +913,8 @@ for(const x of [-65,65]){
 }
 carrierMesh.position.set(SECTOR_EMBER.x,180,SECTOR_EMBER.z-2400);
 if(Array.isArray(rawBoss.position)&&rawBoss.position.length===3&&rawBoss.position.every(Number.isFinite)&&Math.hypot(rawBoss.position[0]-SECTOR_EMBER.x,rawBoss.position[1],rawBoss.position[2]-SECTOR_EMBER.z)<4300)carrierMesh.position.fromArray(rawBoss.position);
-carrierMesh.visible=false;scene.add(carrierMesh);
-const carrierEnemy={type:'carrier',mesh:carrierMesh,home:carrierMesh.position.clone(),hp:bossState.hp,maxHp:20000,dead:bossState.hp>0?0:Infinity,fireTimer:Infinity};
+carrierMesh.scale.setScalar(2);carrierMesh.visible=false;scene.add(carrierMesh);
+const carrierEnemy={type:'carrier',mesh:carrierMesh,home:carrierMesh.position.clone(),hp:bossState.hp,maxHp:40000,dead:bossState.hp>0?0:Infinity,fireTimer:Infinity};
 enemies.push(carrierEnemy);
 function spawnCarrierAdd(type,guard=false,snapshot=null){
  let e=enemies.find(e=>e.bossAdd&&e.dead&&e.type===type);
@@ -918,13 +946,13 @@ if(Array.isArray(rawBoss.adds)){
  for(const add of rawBoss.adds)if(['raider','sentinel','destroyer'].includes(add.type))spawnCarrierAdd(add.type,!!add.guard,add);
 }
 function persistCarrierState(){
- player.carrierState={hp:bossState.hp,phases:[...bossState.phases],rewarded:bossState.rewarded,respawnAt:bossState.respawnAt,position:carrierMesh.position.toArray(),
+ player.carrierState={hp:bossState.hp,maxHp:TYPES.carrier.hp,phases:[...bossState.phases],rewarded:bossState.rewarded,respawnAt:bossState.respawnAt,position:carrierMesh.position.toArray(),
  adds:enemies.filter(e=>e.bossAdd&&!e.dead&&e.hp>0).map(e=>({type:e.type,hp:e.hp,guard:!!e.guard,position:e.mesh.position.toArray(),...(e.launchRemaining>0?{launch:{start:e.launchStart.toArray(),direction:e.launchDirection.toArray(),age:e.launchAge,wait:e.launchWait,slot:e.launchSlot}}:{})}))};
 }
 function triggerCarrierWaves(){
  if(bossState.hp<=0)return;
  const phases=[{at:0,type:'sentinel',count:2},{at:90,type:'raider',count:5},{at:70,type:'sentinel',count:4},{at:50,type:'sentinel',count:8},{at:30,type:'destroyer',count:7},{at:10,type:'sentinel',count:0}];
- const percent=bossState.hp/200;
+ const percent=100*bossState.hp/TYPES.carrier.hp;
  for(const phase of phases){
   if(bossState.phases.includes(phase.at)||phase.at!==0&&percent>phase.at)continue;
   bossState.phases.push(phase.at);
@@ -934,8 +962,8 @@ function triggerCarrierWaves(){
 function respawnCarrier(){
  const angle=Math.random()*Math.PI*2,y=(Math.random()-.5)*.8,radius=1800+Math.random()*2300,horizontal=Math.sqrt(1-y*y);
  carrierMesh.position.set(SECTOR_EMBER.x+Math.cos(angle)*horizontal*radius,y*radius,SECTOR_EMBER.z+Math.sin(angle)*horizontal*radius);
- carrierEnemy.home.copy(carrierMesh.position);carrierEnemy.hp=carrierEnemy.maxHp=20000;carrierEnemy.dead=0;carrierEnemy.mesh.visible=activeSector==='ember';
- bossState.hp=20000;bossState.phases=[];bossState.rewarded=false;bossState.respawnAt=0;
+ carrierEnemy.home.copy(carrierMesh.position);carrierEnemy.hp=carrierEnemy.maxHp=40000;carrierEnemy.dead=0;carrierEnemy.mesh.visible=activeSector==='ember';
+ bossState.hp=40000;bossState.phases=[];bossState.rewarded=false;bossState.respawnAt=0;
  save();if(activeSector==='ember')lootToast('🚨 El Coloso Portanaves ha reaparecido');
 }
 function advanceCarrierLaunch(e,dt){
@@ -2626,7 +2654,7 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);upda
    const delay=p.missileGuideDelay||.55;
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
- }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&e.mesh.visible&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?(carrierMesh.userData.hitRadius||205):p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
+ }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>COMBAT_RANGE)p.life=0}p.life-=dt;for(const e of enemies){if(!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=COMBAT_RANGE)&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,350));explorerThreat=null;clearCombatShots();player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
