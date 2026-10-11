@@ -1925,7 +1925,12 @@ let activeSector=player.sector==='belt'?'belt':'aurora';
 const currentSector=()=>activeSector==='belt'?SECTOR_BELT:SECTOR_AURORA;
  syncStationVisibility();
 MAP_CENTER_X=currentSector().x;MAP_CENTER_Z=currentSector().z;
-for(const e of enemies)e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');
+function resetSectorPopulation(){
+ for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,2950));
+ for(const e of enemies){e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');e.fireTimer=1+Math.random()*2}
+}
+// Aplicar también al cargar una partida guardada, antes de empezar el vuelo.
+resetSectorPopulation();
 // Portal visible entre la estación y el planeta, a 250 m del borde esférico.
 const portalDir=new THREE.Vector3(2150,950,-5200).sub(new THREE.Vector3(0,0,-650)).normalize();
 const auroraPortal=new THREE.Vector3(0,0,-650).addScaledVector(portalDir,2750);
@@ -1994,8 +1999,7 @@ function switchSector(){
  syncStationVisibility();
  const sector=currentSector();MAP_CENTER_X=sector.x;MAP_CENTER_Z=sector.z;
  playerMesh.position.copy(activeSector==='belt'?beltPortal.clone().add(new THREE.Vector3(0,0,-110)):auroraPortal.clone().addScaledVector(portalDir,-110));
- for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,2950));
- for(const e of enemies){e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');e.fireTimer=1+Math.random()*2}
+ resetSectorPopulation();
  for(const shot of enemyShots)scene.remove(shot.mesh);enemyShots.length=0;
  for(const shot of shots)scene.remove(shot.mesh);shots.length=0;
  player.sector=activeSector;portalCountdown=0;portalCharge.visible=false;portalChargeMaterial.opacity=0;save();lootToast(activeSector==='belt'?'🪨 Cinturón Perdido':'🌌 Sector Aurora');
