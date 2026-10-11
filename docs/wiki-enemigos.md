@@ -1,5 +1,5 @@
 # Enemigos de Mundo Abierto
-Datos del código del juego, versión 156.
+Datos del código del juego, versión 157.
 
 | Característica | Explorador | Asaltante | Guardián | Destructor |
 |---|---:|---:|---:|---:|
@@ -53,3 +53,35 @@ Las cajas de la misión 2 se pueden recoger en cualquiera de los dos mapas, tamb
 | 5 | 100 Asaltantes y 20 Destructores | 72000 | 9000 |
 
 Premio adicional por objetivo: Explorador 200 créditos/25 XP, Asaltante 400/50, Guardián 800/100, Destructor 1600/200, caja 100/10. Estas recompensas son fijas y se suman a las recompensas normales por cada baja.
+
+## Ascuas: tercer mapa
+- Centro independiente, radio 4500 m (50 % más que los 3000 m de los mapas anteriores).
+- Fondo de nebulosa roja optimizado en WebP, estación propia con dos plataformas y portal de retorno.
+- Nuevo portal desde Cinturón Perdido: nivel mínimo 30; activación a 100 m durante 3 s.
+- Población normal: 16 Destructores y 10 Devastadores. Un único Coloso Portanaves.
+
+### Devastador (enemigo 5)
+Vida base 196; vida real = redondear(vida real de un Destructor × 0,70). Daño base 70 (doble del Destructor); velocidad 155 m/s; intervalo de disparo 1,5–2,2 s.
+No persigue ni dispara hasta recibir daño. Créditos base 120, XP base 195, 6 cajas; recompensas con el mismo escalado por nivel que los enemigos normales.
+
+### Coloso Portanaves (enemigo 6)
+20.000 de vida fija, inmóvil, sin disparos ni daño de contacto. Abre las compuertas al recibir el primer ataque.
+La vida no se regenera al dejar de atacarlo, morir, salir del mapa o recargar la partida. Se guardan sus fases y los refuerzos vivos.
+
+| Activación | Refuerzos nuevos |
+|---|---|
+| Primer impacto | 2 Guardianes |
+| Vida ≤90 % | 5 Asaltantes |
+| Vida ≤70 % | 4 Guardianes |
+| Vida ≤50 % | 8 Guardianes |
+| Vida ≤30 % | 7 Destructores |
+| Vida ≤10 % | Mantiene un grupo adicional de 10 Guardianes; reemplaza las bajas |
+
+Las fases anteriores se activan una sola vez, incluso si un impacto cruza varios umbrales.
+Los refuerzos de oleadas anteriores pueden seguir vivos: el grupo permanente de 10 es adicional.
+Recompensa final fija: 10.000 créditos, 15.000 XP y 30 cajas, además del botín de los refuerzos. Prima aproximada de 60–75 % sobre la proporción de vida/recompensa base del Destructor.
+Al destruirlo desaparecen sus refuerzos. La derrota se guarda y el Coloso no reaparece; el premio final no se duplica.
+
+## Mascota exploradora: defensa automática
+En todos los mapas responde al último enemigo que comienza a atacar al jugador, incluidos disparos y contacto. Sigue disparando cada 0,68 s aunque el jugador deje de disparar, mientras el objetivo siga vivo, visible, agresivo y a 1200 m o menos.
+Daño por láser: 20 % del ataque del jugador. Se detiene al perder el objetivo, atracar, aterrizar o entrar en la zona segura. Los drones de combate conservan el disparo sincronizado con el jugador.
