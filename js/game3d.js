@@ -580,7 +580,28 @@ const emberStation=new THREE.Group();emberStation.position.set(SECTOR_EMBER.x,0,
 const emberLandingPads=[];
 const emberMetal=new THREE.MeshStandardMaterial({color:0x566271,metalness:.6,roughness:.55});
 const emberLamp=new THREE.MeshBasicMaterial({color:0xffbd64});
-const emberHub=new THREE.Mesh(new THREE.CylinderGeometry(90,110,80,24),emberMetal);emberHub.position.y=-35;emberStation.add(emberHub);
+function createStationJunction(){
+ const piece=new THREE.Group();
+ const metal=new THREE.MeshStandardMaterial({color:0x7b8997,metalness:.65,roughness:.55});
+ const dark=new THREE.MeshStandardMaterial({color:0x243340,metalness:.6,roughness:.6});
+ const lamp=new THREE.MeshBasicMaterial({color:0x65dfff});
+ const shell=new THREE.Mesh(new THREE.CylinderGeometry(90,110,80,8),metal);shell.position.y=-35;piece.add(shell);
+ const top=new THREE.Mesh(new THREE.CylinderGeometry(62,88,24,8),dark);top.position.y=17;piece.add(top);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(68,3,8,32),lamp);ring.rotation.x=Math.PI/2;ring.position.y=31;piece.add(ring);
+ for(const [x,z]of [[1,0],[-1,0],[0,1],[0,-1]]){
+  const port=new THREE.Group();port.position.set(x*105,-10,z*105);port.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(x,0,z));
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(22,22,50,12),dark);port.add(tube);
+  const collar=new THREE.Mesh(new THREE.TorusGeometry(23,4,8,16),metal);collar.rotation.x=Math.PI/2;collar.position.y=24;port.add(collar);
+  const glow=new THREE.Mesh(new THREE.TorusGeometry(18,2,6,16),lamp);glow.rotation.x=Math.PI/2;glow.position.y=26;port.add(glow);
+  piece.add(port);
+ }
+ for(const side of [-1,1]){
+  const antenna=new THREE.Mesh(new THREE.BoxGeometry(5,42,5),metal);antenna.position.set(side*35,47,25);piece.add(antenna);
+ }
+ return piece;
+}
+
+const emberHub=createStationJunction();emberStation.add(emberHub);
 for(const x of [-270,270]){
  const pad=new THREE.Group();pad.position.set(x,-10,0);pad.userData.landingRadius=165;
  pad.add(new THREE.Mesh(new THREE.CylinderGeometry(180,180,18,40),emberMetal));
@@ -842,8 +863,10 @@ for(const e of enemies.filter(e=>e.type==='devastator')){
 }
 const rawBoss=player.carrierState&&typeof player.carrierState==='object'?player.carrierState:{};
 const bossState={hp:Number.isFinite(+rawBoss.hp)?THREE.MathUtils.clamp(+rawBoss.hp,0,20000):20000,
+ respawnAt:Number.isFinite(+rawBoss.respawnAt)?+rawBoss.respawnAt:0,
  phases:Array.isArray(rawBoss.phases)?[...new Set(rawBoss.phases.filter(x=>[0,90,70,50,30,10].includes(x)))]:[],rewarded:!!rawBoss.rewarded};
 if(bossState.rewarded)bossState.hp=0;
+if(bossState.hp<=0&&!bossState.respawnAt)bossState.respawnAt=Date.now()+120000;
 const carrierMesh=new THREE.Group(),carrierPanels=[];
 const carrierMetal=new THREE.MeshStandardMaterial({color:0x687584,metalness:.65,roughness:.55});
 const carrierDark=new THREE.MeshStandardMaterial({color:0x17222c,metalness:.55,roughness:.65});
@@ -860,7 +883,9 @@ const carrierTower=new THREE.Mesh(new THREE.BoxGeometry(110,55,120),carrierMetal
 for(const x of [-65,65]){
  const engine=new THREE.Mesh(new THREE.CylinderGeometry(25,25,25,16),carrierGlow);engine.rotation.x=Math.PI/2;engine.position.set(x,0,240);carrierMesh.add(engine);
 }
-carrierMesh.position.set(SECTOR_EMBER.x,180,SECTOR_EMBER.z-2400);carrierMesh.visible=false;scene.add(carrierMesh);
+carrierMesh.position.set(SECTOR_EMBER.x,180,SECTOR_EMBER.z-2400);
+if(Array.isArray(rawBoss.position)&&rawBoss.position.length===3&&rawBoss.position.every(Number.isFinite)&&Math.hypot(rawBoss.position[0]-SECTOR_EMBER.x,rawBoss.position[1],rawBoss.position[2]-SECTOR_EMBER.z)<4300)carrierMesh.position.fromArray(rawBoss.position);
+carrierMesh.visible=false;scene.add(carrierMesh);
 const carrierEnemy={type:'carrier',mesh:carrierMesh,home:carrierMesh.position.clone(),hp:bossState.hp,maxHp:20000,dead:bossState.hp>0?0:Infinity,fireTimer:Infinity};
 enemies.push(carrierEnemy);
 function spawnCarrierAdd(type,guard=false,snapshot=null){
@@ -878,11 +903,11 @@ function spawnCarrierAdd(type,guard=false,snapshot=null){
  else e.mesh.position.copy(carrierMesh.position).add(new THREE.Vector3(Math.cos(angle)*radius,(Math.random()-.5)*200,Math.sin(angle)*radius));
  e.home.copy(e.mesh.position);e.mesh.visible=false;return e;
 }
-if(bossState.hp>0&&Array.isArray(rawBoss.adds)){
- for(const add of rawBoss.adds.slice(0,60))if(['raider','sentinel','destroyer'].includes(add.type))spawnCarrierAdd(add.type,!!add.guard,add);
+if(Array.isArray(rawBoss.adds)){
+ for(const add of rawBoss.adds)if(['raider','sentinel','destroyer'].includes(add.type))spawnCarrierAdd(add.type,!!add.guard,add);
 }
 function persistCarrierState(){
- player.carrierState={hp:bossState.hp,phases:[...bossState.phases],rewarded:bossState.rewarded,
+ player.carrierState={hp:bossState.hp,phases:[...bossState.phases],rewarded:bossState.rewarded,respawnAt:bossState.respawnAt,position:carrierMesh.position.toArray(),
  adds:enemies.filter(e=>e.bossAdd&&!e.dead&&e.hp>0).map(e=>({type:e.type,hp:e.hp,guard:!!e.guard,position:e.mesh.position.toArray()}))};
 }
 function triggerCarrierWaves(){
@@ -895,7 +920,24 @@ function triggerCarrierWaves(){
   for(let i=0;i<phase.count;i++){const e=spawnCarrierAdd(phase.type);e.mesh.visible=activeSector==='ember'}
  }
 }
+function respawnCarrier(){
+ const angle=Math.random()*Math.PI*2,y=(Math.random()-.5)*.8,radius=1800+Math.random()*2300,horizontal=Math.sqrt(1-y*y);
+ carrierMesh.position.set(SECTOR_EMBER.x+Math.cos(angle)*horizontal*radius,y*radius,SECTOR_EMBER.z+Math.sin(angle)*horizontal*radius);
+ carrierEnemy.home.copy(carrierMesh.position);carrierEnemy.hp=carrierEnemy.maxHp=20000;carrierEnemy.dead=0;carrierEnemy.mesh.visible=activeSector==='ember';
+ bossState.hp=20000;bossState.phases=[];bossState.rewarded=false;bossState.respawnAt=0;
+ save();if(activeSector==='ember')lootToast('🚨 El Coloso Portanaves ha reaparecido');
+}
+function patrolCarrierAdd(e,dt,now){
+ if(!e.patrolTarget||now>=e.nextPatrol||e.mesh.position.distanceTo(e.patrolTarget)<60){
+  const angle=Math.random()*Math.PI*2,y=(Math.random()-.5)*.9,radius=1100+Math.random()*3100,horizontal=Math.sqrt(1-y*y);
+  e.patrolTarget=new THREE.Vector3(SECTOR_EMBER.x+Math.cos(angle)*horizontal*radius,y*radius,SECTOR_EMBER.z+Math.sin(angle)*horizontal*radius);e.nextPatrol=now+12+Math.random()*12;
+ }
+ const delta=e.patrolTarget.clone().sub(e.mesh.position),distance=delta.length();
+ if(distance>1)e.mesh.position.addScaledVector(delta,Math.min(distance,TYPES[e.type].speed*.65*dt)/distance);
+ e.mesh.lookAt(e.patrolTarget);
+}
 function updateCarrier(dt){
+ if(bossState.hp<=0&&Date.now()>=bossState.respawnAt)respawnCarrier();
  for(const {hinge,side}of carrierPanels)hinge.rotation.z=THREE.MathUtils.lerp(hinge.rotation.z,bossState.phases.includes(0)?-side*.62:0,Math.min(1,dt*2));
  if(activeSector!=='ember'||bossState.hp<=0||!bossState.phases.includes(10))return;
  let alive=enemies.filter(e=>e.bossAdd&&e.guard&&e.type==='sentinel'&&!e.dead).length;
@@ -1902,7 +1944,8 @@ function kill(e,missile=false){
   bossState.hp=0;
   if(bossState.rewarded)return;
   bossState.rewarded=true;
-  for(const add of enemies.filter(add=>add.bossAdd)){add.dead=Infinity;add.mesh.visible=false}
+  bossState.respawnAt=Date.now()+120000;
+  for(const add of enemies.filter(add=>add.bossAdd&&!add.dead)){add.guard=false;add.nextPatrol=0}
  }
  e.dead=e.bossAdd||e.type==='carrier'?Infinity:performance.now()/1000+8;e.mesh.visible=false;
  missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});
@@ -2267,7 +2310,7 @@ function resetSectorPopulation(){
  for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,currentSector().radius-50));
  const counts={};
  for(const e of enemies){
-  if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead&&bossState.hp>0;continue}
+  if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead;continue}
   if(e.type==='carrier'){e.hp=bossState.hp;e.dead=bossState.hp>0?0:Infinity;e.mesh.visible=activeSector==='ember'&&bossState.hp>0;continue}
   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.aggressive=e.type!=='devastator';
   counts[e.type]=(counts[e.type]||0)+1;e.spawnRank=counts[e.type];e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;
@@ -2487,7 +2530,8 @@ for(const e of enemies){
   else if(d<65){registerExplorerThreat(e);applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt)}
   e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}
  }
- e.mesh.lookAt(playerMesh.position);
+ if(e.bossAdd&&(d>=COMBAT_RANGE||playerSafe||docked||landing))patrolCarrierAdd(e,dt,now/1000);
+ else e.mesh.lookAt(playerMesh.position);
 }
 updateEnemyShots(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);updateCarrier(dt);

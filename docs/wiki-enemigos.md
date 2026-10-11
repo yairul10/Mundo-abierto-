@@ -1,5 +1,5 @@
 # Enemigos de Mundo Abierto
-Datos del código del juego, versión 157.
+Datos del código del juego, versión 158.
 
 | Característica | Explorador | Asaltante | Guardián | Destructor |
 |---|---:|---:|---:|---:|
@@ -80,7 +80,7 @@ La vida no se regenera al dejar de atacarlo, morir, salir del mapa o recargar la
 Las fases anteriores se activan una sola vez, incluso si un impacto cruza varios umbrales.
 Los refuerzos de oleadas anteriores pueden seguir vivos: el grupo permanente de 10 es adicional.
 Recompensa final fija: 10.000 créditos, 15.000 XP y 30 cajas, además del botín de los refuerzos. Prima aproximada de 60–75 % sobre la proporción de vida/recompensa base del Destructor.
-Al destruirlo desaparecen sus refuerzos. La derrota se guarda y el Coloso no reaparece; el premio final no se duplica.
+Al destruirlo, los refuerzos vivos permanecen rondando Ascuas; no reaparecen cuando son eliminados. El Coloso reaparece tras 120 segundos en una posición aleatoria, con 20.000 de vida y sus fases reiniciadas. Cada derrota vuelve a otorgar su premio, una sola vez por aparición. El temporizador, posición y refuerzos se guardan; el tiempo transcurrido fuera del juego también cuenta. La base de Ascuas incorpora una nueva pieza modular central con cuatro puertos para conectar ductos.
 
 ## Mascota exploradora: defensa automática
 En todos los mapas responde al último enemigo que comienza a atacar al jugador, incluidos disparos y contacto. Sigue disparando cada 0,68 s aunque el jugador deje de disparar, mientras el objetivo siga vivo, visible, agresivo y a 1200 m o menos.
