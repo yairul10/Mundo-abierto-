@@ -1202,8 +1202,8 @@ deferredModelLoad(modelLoader,'./assets/models/gunship_optimizado.glb?v=148',glt
 const supportDrones=[];
 const MAX_DRONES=8;
 // Los primeros dos mantienen su precio original; los siguientes son progresión futura.
-const DRONE_PRICES=[100,200,5000,20000,80000,300000,1000000,4000000];
-const EXPLORER_PRICE=DRONE_PRICES[7]*2/10;
+const DRONE_PRICES=[100,200,1000,5000,15000,40000,100000,200000];
+const EXPLORER_PRICE=300000;
 player.explorerDrone=player.explorerDrone===true;
 player.explorerRangeLevel=Math.max(1,Math.min(10,Math.floor(Number(player.explorerRangeLevel)||1)));
 function explorerRange(){return 450+player.explorerRangeLevel*100}
@@ -2607,7 +2607,29 @@ document.body.appendChild(sectorNotice);
 function sectorDistance(){const sector=currentSector();return Math.hypot(playerMesh.position.x-sector.x,playerMesh.position.y,playerMesh.position.z-sector.z)}
 // Recuperar partidas anteriores guardadas muy lejos, sin borrar su progreso.
 if(sectorDistance()>currentSector().radius){const sector=currentSector();playerMesh.position.set(sector.x,110,sector.z+450);player.x=sector.x;player.y=sector.z+450;player.z=110}
+
+// Membrana del límite: una esfera fija, visible suavemente solo al acercarse.
+const zoneMembraneMaterial=new THREE.ShaderMaterial({
+ transparent:true,depthWrite:false,side:THREE.BackSide,
+ uniforms:{tint:{value:new THREE.Color(0x91d9ff)},strength:{value:0}},
+ vertexShader:`varying vec3 worldPoint; varying vec3 worldNormal;
+ void main(){vec4 p=modelMatrix*vec4(position,1.0);worldPoint=p.xyz;worldNormal=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*p;}`,
+ fragmentShader:`uniform vec3 tint;uniform float strength;varying vec3 worldPoint;varying vec3 worldNormal;
+ void main(){vec3 viewDirection=normalize(cameraPosition-worldPoint);float rim=pow(1.0-abs(dot(normalize(worldNormal),viewDirection)),2.0);gl_FragColor=vec4(tint,strength*(0.018+0.09*rim));}`
+});
+const zoneMembrane=new THREE.Mesh(new THREE.SphereGeometry(1,48,32),zoneMembraneMaterial);
+zoneMembrane.name='Membrana del límite del sector';zoneMembrane.frustumCulled=false;scene.add(zoneMembrane);
+function updateZoneMembrane(){
+ const sector=currentSector(),distance=sectorDistance();
+ zoneMembrane.position.set(sector.x,0,sector.z);zoneMembrane.scale.setScalar(sector.radius);
+ zoneMembraneMaterial.uniforms.tint.value.set(activeSector==='ember'?0xffba96:0x91d9ff);
+ const proximity=THREE.MathUtils.clamp(1-Math.abs(sector.radius-distance)/800,0,1);
+ zoneMembraneMaterial.uniforms.strength.value=proximity*proximity*(3-2*proximity);
+ zoneMembrane.visible=!docked&&!landing&&proximity>0;
+}
+
 function updateSectorBoundary(dt){
+ updateZoneMembrane();
  if(docked||landing){sectorNotice.style.display='none';return}
  const sector=currentSector(),d=sectorDistance(),remaining=sector.radius-d;
  if(remaining>sector.warning){sectorNotice.style.display='none';return}
