@@ -607,6 +607,43 @@ function buildBeltStationFallback(){
  const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.y=100;beltStation.add(beacon);
 }
 buildBeltStationFallback();
+
+// Luz de relleno desde arriba y abajo; sin sombras adicionales para móviles.
+const beltLightTarget=new THREE.Object3D();beltLightTarget.position.y=-35;beltStation.add(beltLightTarget);
+for(const [color,intensity,x,y,z] of [[0xc9e5ff,1.7,350,500,250],[0x88b8e8,1.15,-300,-350,-200]]){
+ const light=new THREE.DirectionalLight(color,intensity);light.position.set(x,y,z);light.target=beltLightTarget;beltStation.add(light);
+}
+function illuminateBeltMaterials(assembly){
+ const copies=new Map();
+ assembly.traverse(mesh=>{
+  if(!mesh.isMesh)return;
+  const enhance=source=>{
+   if(!source?.isMeshStandardMaterial)return source;
+   if(copies.has(source))return copies.get(source);
+   const material=source.clone();copies.set(source,material);
+   material.metalness=Math.min(material.metalness,.55);
+   material.roughness=Math.max(material.roughness,.48);
+   if(material.map){
+    material.emissiveMap=material.map;material.emissive.set(0xffffff);material.emissiveIntensity=1.35;
+    material.onBeforeCompile=shader=>{
+     shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`
+#ifdef USE_EMISSIVEMAP
+ vec3 stationLamp=texture2D(emissiveMap,vEmissiveMapUv).rgb;
+ float blueLamp=smoothstep(0.04,0.22,stationLamp.b-max(stationLamp.r,stationLamp.g)*0.75);
+ float amberLamp=smoothstep(0.04,0.22,min(stationLamp.r,stationLamp.g*1.8)-stationLamp.b*1.8);
+ float lampBrightness=smoothstep(0.08,0.35,max(stationLamp.r,max(stationLamp.g,stationLamp.b)));
+ totalEmissiveRadiance*=stationLamp*max(blueLamp,amberLamp)*lampBrightness;
+#endif
+`);
+    };
+    material.customProgramCacheKey=()=> 'belt-station-lamps-v146';
+   }
+   return material;
+  };
+  mesh.material=Array.isArray(mesh.material)?mesh.material.map(enhance):enhance(mesh.material);
+ });
+}
+
 // Medir la boca exterior y su altura real, incluidos los tubos que sobresalen.
 function stationConnector(model,direction,band=8,lateralLimit=Infinity){
  model.updateWorldMatrix(true,true);
@@ -654,7 +691,8 @@ function buildBeltStation(hubSource,padSource,bridgeSource,fitted){
   assembly.add(bridge,pad);pads.push(pad);
  }
  // Las copias comparten geometrías y texturas: no se descargan assets duplicados.
- for(const child of [...beltStation.children])if(!child.isLight)beltStation.remove(child);
+ for(const child of [...beltStation.children])if(!child.isLight&&child!==beltLightTarget)beltStation.remove(child);
+ illuminateBeltMaterials(assembly);
  beltStation.add(assembly);beltLandingPads.splice(0,beltLandingPads.length,...pads);
  beltStationReady=true;syncStationVisibility();
  console.info('Estación Cinturón montada: núcleo, 2 plataformas grandes y corredores en L.');
