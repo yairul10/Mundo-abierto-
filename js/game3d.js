@@ -88,6 +88,7 @@ if(spaceBackground)scene.background=spaceBackground;
 function syncSectorEnvironment(){
  scene.background=activeSector==='ember'?emberBackground:activeSector==='belt'?beltBackground:auroraBackground;
  auroraPlanetPivot.visible=activeSector==='aurora';
+ emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=activeSector==='ember';
  sectorStars.position.set(currentSector().x,0,currentSector().z);
 }
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_cinturon.webp?v=145',texture=>{
@@ -134,6 +135,22 @@ new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=105
 },undefined,()=>console.info('Fondo espacial personalizado pendiente; usando fondo original.'));
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
 scene.add(new THREE.HemisphereLight(0x7bbcff,0x050713,1.8));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
+ // Luna alta de Ascuas: brillo visible y luz real para los objetos del sector.
+const emberMoonPivot=new THREE.Group();emberMoonPivot.position.set(21500,5800,-2150);emberMoonPivot.visible=false;scene.add(emberMoonPivot);
+const emberMoonLight=new THREE.DirectionalLight(0xffc0a0,2.6);emberMoonLight.position.copy(emberMoonPivot.position);
+emberMoonLight.target.position.set(23000,0,-650);emberMoonLight.visible=false;scene.add(emberMoonLight,emberMoonLight.target);
+const emberMoonFill=new THREE.HemisphereLight(0xffe0cc,0x7b6861,1.2);emberMoonFill.visible=false;scene.add(emberMoonFill);
+const emberMoonFallback=new THREE.Mesh(new THREE.SphereGeometry(600,32,20),new THREE.MeshStandardMaterial({color:0xd7806a,emissive:0xff6440,emissiveIntensity:.7,roughness:1,metalness:0,fog:false}));
+emberMoonPivot.add(emberMoonFallback);
+const moonGlowCanvas=document.createElement('canvas');moonGlowCanvas.width=moonGlowCanvas.height=128;
+const moonGlowContext=moonGlowCanvas.getContext('2d');
+if(moonGlowContext){
+ const glow=moonGlowContext.createRadialGradient(64,64,36,64,64,64);glow.addColorStop(0,'rgba(255,95,55,0.0)');glow.addColorStop(.25,'rgba(255,105,65,0.24)');glow.addColorStop(1,'rgba(255,75,35,0)');
+ moonGlowContext.fillStyle=glow;moonGlowContext.fillRect(0,0,128,128);
+ const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(moonGlowCanvas),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,fog:false}));
+ halo.scale.set(1800,1800,1);emberMoonPivot.add(halo);
+}
+
 const starsGeo=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1600;i++)sp.push((Math.random()-.5)*8000,(Math.random()-.5)*4500,(Math.random()-.5)*8000);starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));const sectorStars=new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xbad9ff,size:3,sizeAttenuation:true}));scene.add(sectorStars);
 // Planeta lejano del Sector Aurora: decorativo, sin colisiones ni viajes aún.
 // Materiales sin niebla para conservar su silueta desde la zona jugable.
@@ -279,6 +296,22 @@ function auroraMaterial(mesh){
  mesh.castShadow=false;mesh.receiveShadow=false;
 }
 const modelLoader=new GLTFLoader();
+deferredModelLoad(modelLoader,'./assets/models/moon_optimizada.glb?v=163',gltf=>{
+ const model=gltf.scene,bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.0001)return;
+ const factor=1200/span;model.scale.setScalar(factor);model.position.copy(center).multiplyScalar(-factor);
+ model.traverse(o=>{
+  if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;
+  for(const material of Array.isArray(o.material)?o.material:[o.material]){
+   if(!material?.isMeshStandardMaterial)continue;
+   material.color.set(0xffb099);material.metalnessMap=null;material.roughnessMap=null;material.metalness=0;material.roughness=.95;
+   material.emissive.set(0xff7048);material.emissiveMap=material.map;material.emissiveIntensity=.85;material.fog=false;
+   if(material.map)material.map.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());material.needsUpdate=true;
+  }
+ });
+ emberMoonPivot.add(model);emberMoonFallback.visible=false;
+},undefined,error=>console.warn('Luna Ascuas no disponible; se conserva la esfera iluminada.',error));
+
 function fitPlayerModel(model,yaw=0){
  const box=new THREE.Box3().setFromObject(model),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
  model.position.sub(center);model.scale.multiplyScalar(124/Math.max(size.x,size.z));model.rotation.y=yaw;
