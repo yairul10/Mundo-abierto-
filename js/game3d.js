@@ -2285,7 +2285,7 @@ const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t)};
 function hangarRefresh(){
  const tag=hangar.querySelector('.hangar-tag');if(tag)tag.textContent=currentStationName().toLocaleUpperCase('es');
  hangar.setAttribute('aria-label','Hangar '+currentStationName());
- const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=1000;
+ const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=Math.ceil(missing*.3);
  hangarStats.textContent='Casco: '+Math.ceil(player.hp)+' / '+player.maxHp+' · Energía: '+Math.ceil(player.energy)+' / '+player.maxEnergy+' · Créditos: '+player.gold;
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
@@ -2385,8 +2385,8 @@ function leaveHangar(){
 $('launchBtn').onclick=leaveHangar;
 $('repairBtn').onclick=()=>{
  if(!docked)return;
- const cost=1000;
- if(player.hp>=player.maxHp||player.gold<cost)return;
+ const cost=Math.ceil(Math.max(0,player.maxHp-player.hp)*.3);
+ if(!cost||player.gold<cost)return;
  player.gold-=cost;player.hp=player.maxHp;hangarRefresh();save();hud();
 };
 function updateDock(){
@@ -2732,7 +2732,7 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);upda
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
  }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>COMBAT_RANGE)p.life=0}p.life-=dt;for(const e of enemies){if(!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=COMBAT_RANGE)&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
-if(player.hp<=0){playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,350));explorerThreat=null;clearCombatShots();player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
+if(player.hp<=0){const recoveryCost=Math.min(1000,Math.max(0,player.gold));player.gold-=recoveryCost;playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,350));explorerThreat=null;clearCombatShots();player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';lootToast('🔧 Nave recuperada en la base · -'+recoveryCost+' créditos');save()}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 hud();
