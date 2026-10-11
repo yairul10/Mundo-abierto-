@@ -148,3 +148,11 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 /* Avisos de zona en franja superior, separados de la mira y la nave. */
 #targetInfo.zone-visible{position:absolute!important;top:12px!important;bottom:auto!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;max-width:min(44vw,470px)!important;min-width:0!important;padding:7px 15px!important;font-size:13px!important;line-height:1.25!important;z-index:24!important}
 #targetInfo.zone-visible small{font-size:11px!important;margin-top:2px!important}
+
+/* Panel de misiones a la izquierda: deja libre el radar del lado derecho. */
+#questTracker{left:12px;right:auto;top:76px;width:min(310px,calc(100vw - 210px));max-width:calc(100vw - 210px);max-height:calc(100dvh - 100px);overflow-y:auto;background:#071322f5}
+.mission-tabs{display:flex;gap:6px;margin-bottom:8px}
+.mission-tabs button{flex:1;border:1px solid #ffffff33;border-radius:7px;background:#152840;color:#d9e8f7;padding:6px;font-size:11px}
+.mission-tabs button.selected{border-color:#d5a22d;background:#3b321a;color:#fff2be}
+.mission-tabs button:disabled{opacity:.5}
+@media(orientation:landscape) and (max-height:540px){#questTracker{left:12px;right:auto;top:66px;width:min(280px,calc(100vw - 210px));max-width:calc(100vw - 210px);max-height:calc(100dvh - 88px);font-size:12px}}

@@ -1215,7 +1215,7 @@ function fire(mult=1,count=1){
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  fireCd=classAbilityActive('aurora')?.68/1.3:.68; // Sobrecarga aumenta la cadencia.
 }
-function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}}
+function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
  {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común',description:'Restos recuperados de naves y drones. Material básico de fabricación.'},
@@ -1260,7 +1260,7 @@ function renderDrones(){
  };el.querySelector('.buyDroneBtn').onclick=()=>{
   const owned=ownedDrones(),cost=DRONE_PRICES[owned];
   if(owned>=MAX_DRONES||player.gold<cost)return;
-  player.gold-=cost;player.droneCount=owned+1;save();hud();renderDrones();
+  player.gold-=cost;player.droneCount=owned+1;missionEvent('drone');save();hud();renderDrones();
   lootToast('🤖 Dron '+player.droneCount+' adquirido y equipado');
   if(docked)hangarRefresh();
  };}
@@ -1506,7 +1506,7 @@ function renderUpgrades(){
  el.querySelector('.buyMissileUpgrade').onclick=()=>{
   const lv=upgradeLevel('missiles'),cost=missileUpgradeCost();
   if(lv>=9||player.gold<cost.credits||(Number(player.loot.aleacion)||0)<cost.material)return;
-  player.gold-=cost.credits;player.loot.aleacion-=cost.material;player.upgrades.missiles=lv+1;
+  player.gold-=cost.credits;player.loot.aleacion-=cost.material;player.upgrades.missiles=lv+1;missionEvent('missileUpgrade');
   missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
   lootToast('🚀 Misiles por lanzamiento: '+missileCount());
  };
@@ -1524,49 +1524,92 @@ function buyUpgrade(id){
 }
 // Campaña inicial del Sector Aurora: progreso persistente por perfil.
 const MISSIONS=[
- {title:'Primer contacto',description:'Destruye 5 exploradoras enemigas',goal:5,reward:500,xp:75},
- {title:'Recuperación espacial',description:'Recoge 3 cajas de botín',goal:3,reward:800,xp:110},
- {title:'Regreso a la base',description:'Atraca en la estación Aurora y compra una mejora',goal:2,reward:1500,xp:160}
+ {title:'Primer contacto',description:'Destruye 5 exploradoras enemigas',event:'scout',goal:5,reward:500,xp:75},
+ {title:'Recuperación espacial',description:'Recoge 3 cajas de botín',event:'loot',goal:3,reward:800,xp:110},
+ {title:'Regreso a la base',description:'Atraca en Aurora y compra una mejora',event:'baseUpgrade',goal:2,reward:1500,xp:160},
+ {title:'Escolta de combate',description:'Compra tu primer dron de combate en el hangar',event:'drone',goal:1,reward:1200,xp:120},
+ {title:'Frena a los asaltantes',description:'Destruye 6 enemigos del segundo tipo: Asaltantes',event:'raider',goal:6,reward:1800,xp:180},
+ {title:'Patrulla del borde',description:'Acércate a 200 m del borde de Aurora y vuelve a su zona segura',event:'edgeReturn',goal:2,reward:2000,xp:200},
+ {title:'Arsenal de misiles',description:'Mejora el lanzamisiles al nivel 1 o superior',event:'missileUpgrade',goal:1,reward:1600,xp:160},
+ {title:'Impacto decisivo',description:'Destruye 5 enemigos con el golpe final de un misil',event:'missileKill',goal:5,reward:2500,xp:240},
+ {title:'Flota de apoyo',description:'Compra y equipa al menos 2 drones de combate',event:'drone',goal:2,reward:2500,xp:250}
+];
+const BELT_MISSIONS=[
+ {title:'La puerta estelar',description:'Acércate a menos de 350 m del portal de Aurora',event:'portalNear',goal:1,reward:2200,xp:220},
+ {title:'Cruza el portal',description:'Viaja al Cinturón Perdido mediante el portal',event:'travelBelt',goal:1,reward:3000,xp:280},
+ {title:'Guardianes del Cinturón',description:'Destruye 6 guardianes del tercer tipo en el mapa 2',event:'sentinel',goal:6,reward:4000,xp:350},
+ {title:'Recursos del nuevo sector',description:'Recoge 8 cajas de botín en el mapa 2',event:'loot',goal:8,reward:4500,xp:380},
+ {title:'Amenaza pesada',description:'Destruye 4 enemigos del cuarto tipo en el mapa 2',event:'destroyer',goal:4,reward:5500,xp:450},
+ {title:'Misiles en el Cinturón',description:'Destruye 5 enemigos del mapa 2 con misiles',event:'missileKill',goal:5,reward:6000,xp:500},
+ {title:'Refugio del Cinturón',description:'Aterriza en la estación del mapa 2',event:'dock',goal:1,reward:3500,xp:300},
+ {title:'Exploración completa',description:'Acércate a 200 m del borde del mapa 2 y vuelve a su zona segura',event:'edgeReturn',goal:2,reward:6000,xp:500}
 ];
 player.quests=player.quests&&typeof player.quests==='object'?player.quests:{};
-const campaign=player.quests.aurora&&typeof player.quests.aurora==='object'?player.quests.aurora:{index:0,progress:0,docked:false};
-campaign.index=Math.max(0,Math.min(MISSIONS.length,Math.floor(Number(campaign.index)||0)));
-campaign.progress=Math.max(0,Math.floor(Number(campaign.progress)||0));
-campaign.docked=!!campaign.docked;
-player.quests.aurora=campaign;
-let questCollapsed=true;
+function loadCampaign(key,missions){
+ const c=player.quests[key]&&typeof player.quests[key]==='object'?player.quests[key]:{};
+ c.index=Math.max(0,Math.min(missions.length,Math.floor(Number(c.index)||0)));
+ c.progress=Math.max(0,Math.floor(Number(c.progress)||0));c.docked=!!c.docked;c.edgeVisited=!!c.edgeVisited;
+ player.quests[key]=c;return c;
+}
+const campaign=loadCampaign('aurora',MISSIONS),beltCampaign=loadCampaign('belt',BELT_MISSIONS);
+let questCollapsed=true,questTrack=player.sector==='belt'&&player.level>=10?'belt':'aurora';
 function renderMission(){
  const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
  el.classList.toggle('hidden',questCollapsed);
  toggle.textContent='📋';toggle.setAttribute('aria-expanded',String(!questCollapsed));toggle.setAttribute('aria-label',questCollapsed?'Abrir misiones':'Cerrar misiones');
- if(campaign.index>=MISSIONS.length){
-  $('questTitle').textContent='🏆 Sector Aurora completado';
-  $('questObjective').textContent='Las tres misiones iniciales están completas.';
+ for(const button of document.querySelectorAll('[data-mission-track]')){
+  button.disabled=button.dataset.missionTrack==='belt'&&player.level<10;
+  button.classList.toggle('selected',button.dataset.missionTrack===questTrack);
+  if(button.dataset.missionTrack==='belt')button.textContent=player.level>=10?'Nivel 10+':'🔒 Nivel 10';
+ }
+ const missions=questTrack==='belt'?BELT_MISSIONS:MISSIONS,c=questTrack==='belt'?beltCampaign:campaign;
+ if(c.index>=missions.length){
+  $('questTitle').textContent='🏆 '+(questTrack==='belt'?'Cinturón':'Aurora')+' completado';
+  $('questObjective').textContent='Todas las misiones de esta campaña están completas.';
   $('questProgressBar').style.width='100%';$('questReward').textContent='¡Buen trabajo!';return;
  }
- const m=MISSIONS[campaign.index];
- $('questTitle').textContent='🎯 '+(campaign.index+1)+'/3 · '+m.title;
- $('questObjective').textContent=m.description+(campaign.index===2?' · '+(campaign.docked?'Estación visitada':'Visita la estación'):'');
- $('questProgressBar').style.width=(100*Math.min(m.goal,campaign.progress)/m.goal)+'%';
- $('questReward').textContent=campaign.progress+'/'+m.goal+' · Premio: '+m.reward.toLocaleString('es')+' créditos + '+m.xp+' XP';
+ const m=missions[c.index];
+ $('questTitle').textContent='🎯 '+(c.index+1)+'/'+missions.length+' · '+m.title;
+ $('questObjective').textContent=m.description+(m.event==='baseUpgrade'?' · '+(c.docked?'Estación visitada':'Visita la estación'):'')+(m.event==='edgeReturn'&&c.edgeVisited?' · Borde visitado: regresa a la base':'');
+ $('questProgressBar').style.width=(100*Math.min(m.goal,c.progress)/m.goal)+'%';
+ $('questReward').textContent=Math.min(c.progress,m.goal)+'/'+m.goal+' · Premio: '+m.reward.toLocaleString('es')+' créditos + '+m.xp+' XP';
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
-function missionEvent(type){
- if(campaign.index>=MISSIONS.length)return;
- if(campaign.index===0&&type==='scout')campaign.progress++;
- else if(campaign.index===1&&type==='loot')campaign.progress++;
- else if(campaign.index===2){
-  if(type==='dock'){campaign.docked=true;campaign.progress=Math.max(1,campaign.progress)}
-  else if(type==='upgrade'&&campaign.docked)campaign.progress=2;
-  else return;
- }else return;
- const m=MISSIONS[campaign.index];
- if(campaign.progress>=m.goal){
-  player.gold+=m.reward;gainXp(m.xp);
-  lootToast('🏆 '+m.title+' completada · +'+m.reward+' créditos · +'+m.xp+' XP');
-  campaign.index++;campaign.progress=0;campaign.docked=false;
+for(const button of document.querySelectorAll('[data-mission-track]'))button.onclick=()=>{
+ if(button.dataset.missionTrack==='belt'&&player.level<10)return;
+ questTrack=button.dataset.missionTrack;renderMission();
+};
+function missionEvent(type,context={}){
+ const sector=context.sector||player.sector||'aurora';
+ for(const [key,c,missions] of [['aurora',campaign,MISSIONS],['belt',beltCampaign,BELT_MISSIONS]]){
+  if(key==='belt'&&player.level<10)continue;
+  const m=missions[c.index];if(!m)continue;
+  const matchingSector=key==='aurora'?sector==='aurora':sector==='belt';
+  if(m.event==='drone')c.progress=Math.min(m.goal,ownedDrones());
+  else if(m.event==='missileUpgrade')c.progress=upgradeLevel('missiles')>=1?1:0;
+  else if(m.event==='baseUpgrade'&&matchingSector){
+   if(type==='dock'){c.docked=true;c.progress=Math.max(1,c.progress)}
+   if(type==='upgrade'&&c.docked)c.progress=2;
+  }else if(m.event==='edgeReturn'&&matchingSector){
+   if(type==='edgeNear'){c.edgeVisited=true;c.progress=1}
+   if(type==='baseReturn'&&c.edgeVisited)c.progress=2;
+  }else if(m.event===type&&(matchingSector||type==='portalNear'&&sector==='aurora'))c.progress++;
+  if(c.progress>=m.goal){
+   // Avanzar antes de XP: desbloqueos y refrescos no pueden duplicar el premio.
+   c.index++;c.progress=0;c.docked=false;c.edgeVisited=false;
+   player.gold+=m.reward;gainXp(m.xp);
+   lootToast('🏆 '+m.title+' completada · +'+m.reward+' créditos · +'+m.xp+' XP');
+  }
  }
  renderMission();save();
+}
+let missionExploreElapsed=0;
+function updateExplorationMissions(dt){
+ missionExploreElapsed+=dt;if(missionExploreElapsed<.5)return;missionExploreElapsed=0;
+ const key=activeSector==='belt'?'belt':'aurora',c=key==='belt'?beltCampaign:campaign,missions=key==='belt'?BELT_MISSIONS:MISSIONS;
+ if(missions[c.index]?.event!=='edgeReturn')return;
+ if(currentSector().radius-sectorDistance()<=200)missionEvent('edgeNear',{sector:activeSector});
+ else if(c.edgeVisited&&inSafeZone(playerMesh.position))missionEvent('baseReturn',{sector:activeSector});
 }
 renderMission();
 function renderInventory(){
@@ -1601,7 +1644,7 @@ function spawnLoot(e){
  scene.add(mesh);
  // Sin marcador geométrico flotante: solo se ve la caja real.
 
- drops.push({mesh,item,age:0,baseY:mesh.position.y});
+ drops.push({mesh,item,sector:activeSector,age:0,baseY:mesh.position.y});
 }
 function lootToast(message){
  const el=$('lootToast');if(!el)return;
@@ -1616,11 +1659,11 @@ function updateLoot(dt){
   if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&explorerMesh.visible&&d.mesh.position.distanceTo(explorerMesh.position)<45)){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
-   scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot');save();
+   scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot',{sector:d.sector||activeSector});save();
   }else if(d.age>90){scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1)}
  }
 }
-function kill(e){const t=TYPES[e.type],reward=enemyRewardScale(),gold=Math.round(t.gold*reward),xp=Math.round(t.xp*reward);missionEvent(e.type);e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(xp);lootToast('+'+gold+' créditos · +'+xp+' XP · '+t.loot+' recursos');save()}
+function kill(e,missile=false){const t=TYPES[e.type],reward=enemyRewardScale(),gold=Math.round(t.gold*reward),xp=Math.round(t.xp*reward);missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});e.dead=performance.now()/1000+8;e.mesh.visible=false;player.gold+=gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(xp);lootToast('+'+gold+' créditos · +'+xp+' XP · '+t.loot+' recursos');save()}
 // Modelo 3D del misil. La geometría anterior permanece como respaldo.
 let rocketTemplate=null;
 deferredModelLoad(new GLTFLoader(),'./assets/models/rocket.glb?v=114',gltf=>{
@@ -1802,7 +1845,7 @@ function finishLanding(){
  resetDockControls();dockBtn.classList.add('hidden');
  document.body.classList.remove('landing');document.body.classList.add('docked');
  player.energy=player.maxEnergy;hangar.classList.remove('hidden');
- hangarRefresh();missionEvent('dock');save();
+ hangarRefresh();missionEvent('dock',{sector:activeSector});save();
 }
 // Solo aceptar una superficie horizontal realmente situada debajo de la nave.
 // No usar posiciones antiguas si no existe una plataforma detectable.
@@ -1978,6 +2021,11 @@ function resetSectorPopulation(){
 }
 // Aplicar también al cargar una partida guardada, antes de empezar el vuelo.
 resetSectorPopulation();
+missionEvent('inventory');
+if(activeSector==='belt'&&player.level>=10){
+ missionEvent('portalNear',{sector:'aurora'});
+ missionEvent('travelBelt',{sector:'belt'});
+}
 // Portal visible entre la estación y el planeta, a 250 m del borde esférico.
 const portalDir=new THREE.Vector3(2150,950,-5200).sub(new THREE.Vector3(0,0,-650)).normalize();
 const auroraPortal=new THREE.Vector3(0,0,-650).addScaledVector(portalDir,2750);
@@ -2049,12 +2097,13 @@ function switchSector(){
  resetSectorPopulation();
  for(const shot of enemyShots)scene.remove(shot.mesh);enemyShots.length=0;
  for(const shot of shots)scene.remove(shot.mesh);shots.length=0;
- player.sector=activeSector;portalCountdown=0;portalCharge.visible=false;portalChargeMaterial.opacity=0;save();lootToast(activeSector==='belt'?'🪨 Cinturón Perdido':'🌌 Sector Aurora');
+ player.sector=activeSector;questTrack=activeSector==='belt'?'belt':'aurora';missionEvent(activeSector==='belt'?'travelBelt':'travelAurora',{sector:activeSector});portalCountdown=0;portalCharge.visible=false;portalChargeMaterial.opacity=0;save();lootToast(activeSector==='belt'?'🪨 Cinturón Perdido':'🌌 Sector Aurora');
 }
 function updateSectorPortal(){
  const dt=Math.min(.1,(performance.now()-portalLastTick)/1000);portalLastTick=performance.now();
  const pos=activeSector==='aurora'?auroraPortal:beltPortal;portalMesh.position.copy(pos);portalMesh.quaternion.copy(activeSector==='aurora'?auroraPortalRotation:beltPortalRotation);
  const distance=playerMesh.position.distanceTo(pos),near=distance<=350,unlocked=activeSector==='belt'||player.level>=10;
+ if(activeSector==='aurora'&&player.level>=10&&distance<=350&&BELT_MISSIONS[beltCampaign.index]?.event==='portalNear')missionEvent('portalNear',{sector:'aurora'});
  const charging=distance<=100&&unlocked&&!docked&&!landing;
  if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector();portalMessage.style.display='none';return}}else portalCountdown=0;
  const pulse=charging?portalChargePulse(portalCountdown):0;
@@ -2157,8 +2206,8 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);
    const delay=p.missileGuideDelay||.55;
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
- }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
+ }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);p.life-=dt;for(const e of enemies){if(!e.dead&&p.life>0&&p.mesh.position.distanceTo(e.mesh.position)<(p.missile?44:30)){e.hp-=p.damage;p.life=0;if(e.hp<=0)kill(e,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){playerMesh.position.set(0,110,-200);player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';save()}
-const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
+const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 hud();
