@@ -1353,20 +1353,60 @@ function canRobotRepair(now){
  return player.repairRobot&&player.hp>0&&player.hp<player.maxHp&&!landing&&!fireHeld&&
   now-Math.max(lastHitAt,lastAttackAt,lastIncomingAttackAt)>=2&&sectorDistance()<=currentSector().radius;
 }
+
+const repairSurfaceRay=new THREE.Raycaster();
+let repairSurfaceModel=null,repairSurfaceMeshes=[],repairSurfaceBounds=new THREE.Box3(),repairSurfaceTick=0;
+const repairSurfacePoint=new THREE.Vector3();
+function updateRepairSurface(dt,now){
+ const model=['titanModel','espectroModel','auroraModel','xWingModel'].map(key=>playerMesh.userData[key]).find(obj=>obj?.visible)||proceduralShip;
+ playerMesh.updateWorldMatrix(true,true);
+ if(model!==repairSurfaceModel){
+  repairSurfaceModel=model;repairSurfaceMeshes=[];repairSurfaceBounds.makeEmpty();
+  const inverse=new THREE.Matrix4().copy(playerMesh.matrixWorld).invert();
+  model.traverse(obj=>{
+   if(!obj.isMesh||obj.material?.transparent)return;
+   repairSurfaceMeshes.push(obj);
+   if(!obj.geometry.boundingBox)obj.geometry.computeBoundingBox();
+   const localMatrix=new THREE.Matrix4().multiplyMatrices(inverse,obj.matrixWorld);
+   repairSurfaceBounds.union(obj.geometry.boundingBox.clone().applyMatrix4(localMatrix));
+  });
+  repairSurfaceTick=1;
+ }
+ repairSurfaceTick+=dt;if(repairSurfaceTick<.18)return;repairSurfaceTick=0;
+ if(repairSurfaceBounds.isEmpty()){repairSurfacePoint.set(0,8,0);return}
+ const size=repairSurfaceBounds.getSize(new THREE.Vector3()),center=repairSurfaceBounds.getCenter(new THREE.Vector3());
+ // Recorrer alas y fuselaje y buscar la superficie real desde arriba.
+ const localOrigin=new THREE.Vector3(center.x+Math.sin(now*.55)*size.x*.24,repairSurfaceBounds.max.y+35,center.z+Math.sin(now*.85)*size.z*.27);
+ const cast=origin=>{
+  repairSurfaceRay.set(playerMesh.localToWorld(origin.clone()),new THREE.Vector3(0,-1,0).transformDirection(playerMesh.matrixWorld));
+  return repairSurfaceRay.intersectObjects(repairSurfaceMeshes,false)[0];
+ };
+ let hit=cast(localOrigin);
+ if(!hit)hit=cast(new THREE.Vector3(center.x,localOrigin.y,center.z));
+ if(hit)repairSurfacePoint.copy(playerMesh.worldToLocal(hit.point.clone()));
+ else repairSurfacePoint.set(center.x,repairSurfaceBounds.max.y,center.z);
+}
+
 function updateRepairRobot(dt,now){
  const repairing=canRobotRepair(now);
  repairRobot.visible=repairBeam.visible=repairing;
- if(!repairing)return;
+ if(!repairing){repairRobot.userData.repairing=false;return}
+ updateRepairSurface(dt,now);
  player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.01*player.repairRobotLevel*dt);
- repairRobot.position.set(64+Math.sin(now*1.8)*5,14+Math.sin(now*3)*3,8);
- repairRobot.rotation.y=Math.PI/2+Math.sin(now*2)*.15;
+ const destination=repairSurfacePoint.clone();
+ const desiredPosition=destination.clone().add(new THREE.Vector3(0,14+Math.sin(now*3)*.8,3));
+ if(!repairRobot.userData.repairing)repairRobot.position.copy(desiredPosition);
+ else repairRobot.position.lerp(desiredPosition,1-Math.exp(-dt*4));
+ repairRobot.userData.repairing=true;
+ const facing=destination.clone().sub(repairRobot.position).normalize();
+ repairRobot.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),facing);
  for(let i=0;i<repairRobotBones.length;i++){
   const bone=repairRobotBones[i],side=i%2===0?1:-1;
-  bone.rotation.z=side*(.18+.12*Math.sin(now*4+i*.7));
-  bone.rotation.y=.08*Math.sin(now*3+i);
+  bone.rotation.z=side*(.06+.07*Math.sin(now*4+i*.7));
+  bone.rotation.y=-side*(1.18+.10*Math.sin(now*3+i));
  }
  repairAura.material.opacity=.12+.04*(.5+.5*Math.sin(now*5));
- const destination=new THREE.Vector3(24,1,0),origin=repairRobot.position.clone().add(new THREE.Vector3(-8,-3,-8));
+ const origin=repairRobot.position.clone().addScaledVector(facing,10);
  const beamDirection=destination.clone().sub(origin);
  repairBeam.position.copy(origin).add(destination).multiplyScalar(.5);
  repairBeam.scale.y=beamDirection.length();
