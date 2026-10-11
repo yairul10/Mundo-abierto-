@@ -1,5 +1,5 @@
 # Enemigos de Mundo Abierto
-Datos del código del juego, versión 155.
+Datos del código del juego, versión 156.
 
 | Característica | Explorador | Asaltante | Guardián | Destructor |
 |---|---:|---:|---:|---:|
@@ -39,14 +39,17 @@ Cada caja elige de forma independiente: Chatarra espacial 53 %, Aleación reforz
 Las cajas duran 90 s; la nave las recoge a menos de 90 m. El dron explorador recoge a menos de 45 m.
 
 ## Contratos largos
-Se desbloquean al completar las 9 misiones de Aurora y las 8 de nivel 10/Cinturón.
-Una misión activa por perfil; puede cancelarse perdiendo su progreso, sin cobrar premio.
-Cada contrato se completa una sola vez. La recompensa es adicional a las recompensas normales por cada enemigo.
+Se desbloquean al completar las 9 misiones de Aurora y las 8 del Cinturón.
+Toda la lista aparece a la vez; solo se puede aceptar una misión. Sus objetivos avanzan simultáneamente, en cualquier orden, después de aceptarla. Cancelar borra el progreso y no da recompensa.
+El progreso persiste al cerrar o cambiar de mapa. Cada contrato se completa una sola vez.
+Las cajas de la misión 2 se pueden recoger en cualquiera de los dos mapas, también mediante el dron explorador.
 
-| Exploradores del mapa 1 | Créditos del contrato | XP del contrato |
-|---:|---:|---:|
-| 50 | 10000 | 1250 |
-| 100 | 20000 | 2500 |
-| 200 | 40000 | 5000 |
-| 400 | 80000 | 10000 |
-| 800 | 160000 | 20000 |
+| Misión | Objetivos | Créditos extra | XP extra |
+|---|---|---:|---:|
+| 1 | 20 Asaltantes y 30 Exploradores | 14000 | 1750 |
+| 2 | 50 Exploradores, 10 Asaltantes y 40 cajas | 18000 | 2150 |
+| 3 | 50 Guardianes | 40000 | 5000 |
+| 4 | 30 Destructores, 20 Guardianes y 80 Exploradores | 80000 | 10000 |
+| 5 | 100 Asaltantes y 20 Destructores | 72000 | 9000 |
+
+Premio adicional por objetivo: Explorador 200 créditos/25 XP, Asaltante 400/50, Guardián 800/100, Destructor 1600/200, caja 100/10. Estas recompensas son fijas y se suman a las recompensas normales por cada baja.

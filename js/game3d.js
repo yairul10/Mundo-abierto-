@@ -1594,29 +1594,43 @@ function loadCampaign(key,missions){
 const campaign=loadCampaign('aurora',MISSIONS),beltCampaign=loadCampaign('belt',BELT_MISSIONS);
 let questCollapsed=true,questTrack=player.sector==='belt'&&player.level>=10?'belt':'aurora';
 
-// Contratos largos: una misión activa, progreso persistente y premio único.
-const LONG_MISSIONS=[50,100,200,400,800].map(goal=>({id:'scouts-'+goal,title:'Caza de '+goal+' exploradores',event:'scout',sector:'aurora',goal,reward:goal*200,xp:goal*25}));
+// Contratos largos: objetivos simultáneos, una misión activa y premio único.
+const LONG_MISSIONS=[
+ {id:'mixed-1',title:'1 · Limpieza de Aurora',objectives:[{event:'raider',sector:'aurora',goal:20,label:'Asaltantes'},{event:'scout',sector:'aurora',goal:30,label:'Exploradores'}]},
+ {id:'mixed-2',title:'2 · Recuperación de suministros',objectives:[{event:'scout',sector:'aurora',goal:50,label:'Exploradores'},{event:'raider',sector:'aurora',goal:10,label:'Asaltantes'},{event:'loot',goal:40,label:'Cajas recogidas (cualquier mapa)'}]},
+ {id:'mixed-3',title:'3 · Caza de guardianes',objectives:[{event:'sentinel',sector:'belt',goal:50,label:'Guardianes'}]},
+ {id:'mixed-4',title:'4 · Operación entre sectores',objectives:[{event:'destroyer',sector:'belt',goal:30,label:'Destructores'},{event:'sentinel',sector:'belt',goal:20,label:'Guardianes'},{event:'scout',sector:'aurora',goal:80,label:'Exploradores'}]},
+ {id:'mixed-5',title:'5 · Ofensiva pesada',objectives:[{event:'raider',sector:'aurora',goal:100,label:'Asaltantes'},{event:'destroyer',sector:'belt',goal:20,label:'Destructores'}]}
+].map(m=>{
+ const weights={scout:[200,25],raider:[400,50],sentinel:[800,100],destroyer:[1600,200],loot:[100,10]};
+ return {...m,reward:m.objectives.reduce((n,o)=>n+o.goal*weights[o.event][0],0),xp:m.objectives.reduce((n,o)=>n+o.goal*weights[o.event][1],0)};
+});
 const longState=player.quests.contracts&&typeof player.quests.contracts==='object'?player.quests.contracts:{};
+if(longState.active?.startsWith('scouts-')||longState.completed?.some?.(id=>typeof id==='string'&&id.startsWith('scouts-'))){
+ player.quests.legacyExplorerContracts={active:longState.active,progress:longState.progress,completed:longState.completed};
+}
 longState.completed=Array.isArray(longState.completed)?[...new Set(longState.completed.filter(id=>LONG_MISSIONS.some(m=>m.id===id)))]:[];
 longState.active=LONG_MISSIONS.some(m=>m.id===longState.active)&&!longState.completed.includes(longState.active)?longState.active:null;
-longState.progress=Math.max(0,Math.min(LONG_MISSIONS.find(m=>m.id===longState.active)?.goal||0,Math.floor(Number(longState.progress)||0)));
+const savedContract=LONG_MISSIONS.find(m=>m.id===longState.active);
+longState.progress=savedContract?savedContract.objectives.map((o,i)=>Math.max(0,Math.min(o.goal,Math.floor(Number(longState.progress?.[i])||0)))):[];
 player.quests.contracts=longState;
 function longMissionsUnlocked(){return campaign.index>=MISSIONS.length&&beltCampaign.index>=BELT_MISSIONS.length}
 function acceptLongMission(id){
- if(!longMissionsUnlocked()||longState.active||longState.completed.includes(id)||!LONG_MISSIONS.some(m=>m.id===id))return false;
- longState.active=id;longState.progress=0;renderMission();save();return true;
+ const m=LONG_MISSIONS.find(m=>m.id===id);
+ if(!longMissionsUnlocked()||longState.active||longState.completed.includes(id)||!m)return false;
+ longState.active=id;longState.progress=m.objectives.map(()=>0);renderMission();save();return true;
 }
 function cancelLongMission(){
  if(!longState.active)return false;
- longState.active=null;longState.progress=0;renderMission();save();return true;
+ longState.active=null;longState.progress=[];renderMission();save();return true;
 }
 function longMissionEvent(type,sector){
  if(!longMissionsUnlocked())return;
  const m=LONG_MISSIONS.find(m=>m.id===longState.active);
- if(!m||m.event!==type||m.sector!==sector)return;
- longState.progress=Math.min(m.goal,longState.progress+1);
- if(longState.progress===m.goal){
-  longState.completed.push(m.id);longState.active=null;longState.progress=0;
+ if(!m)return;
+ m.objectives.forEach((o,i)=>{if(o.event===type&&(!o.sector||o.sector===sector))longState.progress[i]=Math.min(o.goal,longState.progress[i]+1)});
+ if(m.objectives.every((o,i)=>longState.progress[i]>=o.goal)){
+  longState.completed.push(m.id);longState.active=null;longState.progress=[];
   player.gold+=m.reward;gainXp(m.xp);
   lootToast('🏆 '+m.title+' · +'+m.reward+' créditos · +'+m.xp+' XP');
  }
@@ -1625,7 +1639,8 @@ function renderLongMissions(){
  const list=$('longMissionList');if(!list)return;
  list.innerHTML=LONG_MISSIONS.map(m=>{
   const done=longState.completed.includes(m.id),active=longState.active===m.id;
-  return '<div style="padding:10px 0;border-top:1px solid #ffffff30"><strong>'+m.title+'</strong><small>Mapa 1 · '+m.reward.toLocaleString('es')+' créditos + '+m.xp.toLocaleString('es')+' XP</small><small>'+(done?'Completada':active?longState.progress+'/'+m.goal:'Disponible')+'</small><button type="button" data-contract="'+m.id+'" '+(done||longState.active&&!active?'disabled':'')+'>'+(done?'Completada':active?'Cancelar':'Aceptar')+'</button></div>';
+  const objectives=m.objectives.map((o,i)=>'<small>'+o.label+': '+(done?o.goal:active?longState.progress[i]:0)+'/'+o.goal+'</small>').join('');
+  return '<div style="padding:10px 0;border-top:1px solid #ffffff30"><strong>'+m.title+'</strong>'+objectives+'<small>'+m.reward.toLocaleString('es')+' créditos + '+m.xp.toLocaleString('es')+' XP</small><button type="button" data-contract="'+m.id+'" '+(done||longState.active&&!active?'disabled':'')+'>'+(done?'Completada':active?'Cancelar':'Aceptar')+'</button></div>';
  }).join('');
  for(const button of list.querySelectorAll('[data-contract]'))button.onclick=()=>{if(longState.active===button.dataset.contract)cancelLongMission();else acceptLongMission(button.dataset.contract)};
 }
@@ -1644,7 +1659,7 @@ function renderMission(){
   button.classList.toggle('selected',button.dataset.missionTrack===questTrack);
   if(button.dataset.missionTrack==='belt')button.textContent=player.level>=10?'Nivel 10+':'🔒 Nivel 10';
  }
- if(unlocked){$('questTitle').textContent='Contratos de exploradores';renderLongMissions();return}
+ if(unlocked){$('questTitle').textContent='Contratos de combate';renderLongMissions();return}
  const missions=questTrack==='belt'?BELT_MISSIONS:MISSIONS,c=questTrack==='belt'?beltCampaign:campaign;
  if(c.index>=missions.length){
   $('questTitle').textContent='🏆 '+(questTrack==='belt'?'Cinturón':'Aurora')+' completado';
