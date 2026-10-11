@@ -1240,12 +1240,14 @@ function renderDrones(){
  const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Cada dron agrega un láser extra a tu nave cuando disparas. Apunta hacia tu misma mira y conserva la misma precisión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
  const rangeLevel=player.explorerRangeLevel,rangeMax=rangeLevel>=10,rangePrice=explorerUpgradePrice();
  const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Dron Explorador · 9.º especial</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirido y equipado':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Requiere 8 drones')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||count<8||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipado':'Comprar')+'</button></div>';
- const repairHtml='<div class="upgrade-card"><div><strong>🔧 Robot reparador</strong><small>Compra permanente independiente. Repara 5 % del casco por segundo tras 2 s sin disparar ni recibir ataques. No ocupa espacios de drones.</small><small>'+(player.repairRobot?'Adquirido · reparación automática':'Precio: '+REPAIR_ROBOT_PRICE.toLocaleString('es')+' créditos')+'</small></div><button class="buyRepairRobot" '+(player.repairRobot||player.gold<REPAIR_ROBOT_PRICE?'disabled':'')+'>'+(player.repairRobot?'Adquirido':'Comprar')+'</button></div>';
+ const repairLevel=player.repairRobotLevel,repairMax=repairLevel>=5,repairPrice=repairRobotPrice();
+ const repairHtml='<div class="upgrade-card"><div><strong>🔧 Robot reparador · Nivel '+repairLevel+'/5</strong><small>Repara '+(repairLevel||1)+' % del casco por segundo tras 2 s sin disparar ni recibir ataques. Cada nivel añade 1 %. No ocupa espacios de drones.</small><small>'+(repairMax?'Nivel máximo · 5 % por segundo':(repairLevel?'Mejorar a nivel '+(repairLevel+1):'Compra permanente')+': '+repairPrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyRepairRobot" '+(repairMax||player.gold<repairPrice?'disabled':'')+'>'+(repairMax?'Máximo':repairLevel?'Mejorar':'Comprar')+'</button></div>';
  const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance del Explorador · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
  for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml;
  el.querySelector('.buyRepairRobot').onclick=()=>{
-  if(!docked||player.repairRobot||player.gold<REPAIR_ROBOT_PRICE)return;
-  player.gold-=REPAIR_ROBOT_PRICE;player.repairRobot=true;save();hud();hangarRefresh();lootToast('🔧 Robot reparador adquirido');
+  const price=repairRobotPrice();
+  if(!docked||player.repairRobotLevel>=5||!price||player.gold<price)return;
+  player.gold-=price;player.repairRobotLevel++;player.repairRobot=true;save();hud();hangarRefresh();lootToast('🔧 Robot reparador · Nivel '+player.repairRobotLevel);
  };
  el.querySelector('.buyExplorerRange').onclick=()=>{
   const price=explorerUpgradePrice();if(!player.explorerDrone||player.explorerRangeLevel>=10||player.gold<price)return;
@@ -1286,8 +1288,11 @@ const SPECIAL_UPGRADES={
 };
 let classAbilityCd=0,classAbilityTime=0,lastHitAt=-100;
 
-const REPAIR_ROBOT_PRICE=5000;
-player.repairRobot=player.repairRobot===true;
+const REPAIR_ROBOT_PRICES=[5000,10000,20000,40000,80000];
+player.repairRobotLevel=Math.max(0,Math.min(5,Math.floor(Number(player.repairRobotLevel)||0)));
+if(player.repairRobot===true&&player.repairRobotLevel===0)player.repairRobotLevel=1;
+player.repairRobot=player.repairRobotLevel>0;
+function repairRobotPrice(){return REPAIR_ROBOT_PRICES[player.repairRobotLevel]||0}
 let lastAttackAt=-100,lastIncomingAttackAt=-100,repairUiElapsed=0;
 const repairRobot=new THREE.Group();repairRobot.visible=false;playerMesh.add(repairRobot);
 const repairMetal=new THREE.MeshStandardMaterial({color:0xc4d1cc,metalness:.55,roughness:.6});
@@ -1310,7 +1315,7 @@ function updateRepairRobot(dt,now){
  const repairing=canRobotRepair(now);
  repairRobot.visible=repairBeam.visible=repairing;
  if(!repairing)return;
- player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.05*dt);
+ player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.01*player.repairRobotLevel*dt);
  repairRobot.position.set(64+Math.sin(now*1.8)*5,14+Math.sin(now*3)*3,8);
  repairRobot.rotation.y=Math.sin(now*2)*.15;
  repairAura.material.opacity=.12+.04*(.5+.5*Math.sin(now*5));
