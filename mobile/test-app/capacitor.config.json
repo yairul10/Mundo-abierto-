@@ -1,0 +1,15 @@
+{
+  "appId": "io.github.yairul10.mundoabierto.test",
+  "appName": "Mundo Abierto Pruebas",
+  "webDir": "www",
+  "backgroundColor": "#020611",
+  "server": {
+    "url": "https://yairul10.github.io/Mundo-abierto-/?app=android",
+    "errorPath": "offline.html",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": true
+  }
+}

@@ -1497,7 +1497,7 @@ function fire(mult=1,count=1){
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  fireCd=classAbilityActive('aurora')?.68/1.3:.68; // Sobrecarga aumenta la cadencia.
 }
-function xpNeed(){return 100+(player.level-1)*65}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
+function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
  {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común',description:'Restos recuperados de naves y drones. Material básico de fabricación.'},
