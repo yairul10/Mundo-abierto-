@@ -27,3 +27,21 @@ const gradlePath='android/app/build.gradle';
 const code=Number(process.env.GITHUB_RUN_NUMBER)||2;
 let gradle=readFileSync(gradlePath,'utf8').replace(/versionCode\s+1/,'versionCode '+code).replace(/versionName\s+"1.0"/,'versionName "0.2.0"');
 writeFileSync(gradlePath,gradle);
+
+if(process.env.MUNDO_KEYSTORE){
+ let signed=readFileSync(gradlePath,'utf8');
+ signed=signed.replace('android {',`android {
+    signingConfigs {
+        permanent {
+            storeFile file(System.getenv("MUNDO_KEYSTORE"))
+            storePassword System.getenv("MUNDO_KEY_PASSWORD")
+            keyAlias System.getenv("MUNDO_KEY_ALIAS")
+            keyPassword System.getenv("MUNDO_KEY_PASSWORD")
+        }
+    }
+`);
+ signed=signed.replace(/buildTypes\s*\{/, 'buildTypes {\n        debug { signingConfig signingConfigs.permanent }');
+ writeFileSync(gradlePath,signed);
+}else if(process.env.CI){
+ throw new Error('No se permite compilar en CI sin firma permanente');
+}

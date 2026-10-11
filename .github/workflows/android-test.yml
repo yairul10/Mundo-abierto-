@@ -37,10 +37,10 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Instalar Capacitor
         run: npm ci --no-audit --no-fund
-      - uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: mundo-abierto-offline-debug-key-v1
+      - name: Preparar firma permanente
+        env:
+          ANDROID_SIGNING_BUNDLE: ${{ secrets.ANDROID_SIGNING_BUNDLE }}
+        run: node prepare-signing.mjs
       - name: Preparar Android
         run: npm run android:prepare
       - name: Compilar APK
