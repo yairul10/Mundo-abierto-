@@ -1307,6 +1307,48 @@ const repairAura=new THREE.Mesh(new THREE.SphereGeometry(17,12,8),new THREE.Mesh
 repairRobot.add(repairAura);
 const repairBeam=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,1,6),new THREE.MeshBasicMaterial({color:0x67ffa2,transparent:true,opacity:.8,depthWrite:false}));
 playerMesh.add(repairBeam);repairBeam.visible=false;
+
+let repairRobotBones=[];
+function rigRepairRobotMesh(source){
+ const geometry=source.geometry.clone(),positions=geometry.attributes.position;
+ const bounds=new THREE.Box3().setFromBufferAttribute(positions),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const root=new THREE.Bone(),left=new THREE.Bone(),right=new THREE.Bone();
+ left.position.set(center.x-size.x*.19,center.y+size.y*.14,center.z);
+ right.position.set(center.x+size.x*.19,center.y+size.y*.14,center.z);
+ root.add(left,right);
+ const indices=new Uint16Array(positions.count*4),weights=new Float32Array(positions.count*4);
+ for(let i=0;i<positions.count;i++){
+  const x=positions.getX(i)-center.x,y=positions.getY(i)-center.y;
+  const armWeight=y<size.y*.29?THREE.MathUtils.smoothstep(Math.abs(x),size.x*.16,size.x*.25):0;
+  indices[i*4]=0;indices[i*4+1]=x<0?1:2;
+  weights[i*4]=1-armWeight;weights[i*4+1]=armWeight;
+ }
+ geometry.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(indices,4));
+ geometry.setAttribute('skinWeight',new THREE.Float32BufferAttribute(weights,4));
+ const skinned=new THREE.SkinnedMesh(geometry,source.material);
+ skinned.position.copy(source.position);skinned.quaternion.copy(source.quaternion);skinned.scale.copy(source.scale);
+ skinned.add(root);skinned.bind(new THREE.Skeleton([root,left,right]));skinned.frustumCulled=false;
+ repairRobotBones.push(left,right);return skinned;
+}
+deferredModelLoad(modelLoader,'./assets/models/robot_reparador_optimizado.glb?v=151',gltf=>{
+ const model=gltf.scene,meshes=[];
+ model.traverse(obj=>{if(obj.isMesh)meshes.push(obj)});
+ for(const mesh of meshes){
+  for(const material of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
+   if(!material?.isMeshStandardMaterial)continue;
+   material.metalnessMap=null;material.roughnessMap=null;material.metalness=.5;material.roughness=.7;
+  }
+  const rigged=rigRepairRobotMesh(mesh);mesh.parent.add(rigged);mesh.parent.remove(mesh);
+ }
+ model.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
+ const visual=new THREE.Group(),factor=34/span;
+ model.position.sub(center);visual.add(model);visual.scale.setScalar(factor);
+ for(const child of repairRobot.children)if(child!==repairAura)child.visible=false;
+ repairRobot.add(visual);repairRobot.userData.loadedModel=visual;
+},undefined,error=>console.warn('Robot GLB no disponible; se conserva robot de respaldo.',error));
+
 function canRobotRepair(now){
  return player.repairRobot&&player.hp>0&&player.hp<player.maxHp&&!landing&&!fireHeld&&
   now-Math.max(lastHitAt,lastAttackAt,lastIncomingAttackAt)>=2&&sectorDistance()<=currentSector().radius;
@@ -1317,7 +1359,12 @@ function updateRepairRobot(dt,now){
  if(!repairing)return;
  player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.01*player.repairRobotLevel*dt);
  repairRobot.position.set(64+Math.sin(now*1.8)*5,14+Math.sin(now*3)*3,8);
- repairRobot.rotation.y=Math.sin(now*2)*.15;
+ repairRobot.rotation.y=Math.PI/2+Math.sin(now*2)*.15;
+ for(let i=0;i<repairRobotBones.length;i++){
+  const bone=repairRobotBones[i],side=i%2===0?1:-1;
+  bone.rotation.z=side*(.18+.12*Math.sin(now*4+i*.7));
+  bone.rotation.y=.08*Math.sin(now*3+i);
+ }
  repairAura.material.opacity=.12+.04*(.5+.5*Math.sin(now*5));
  const destination=new THREE.Vector3(24,1,0),origin=repairRobot.position.clone().add(new THREE.Vector3(-8,-3,-8));
  const beamDirection=destination.clone().sub(origin);
