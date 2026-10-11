@@ -89,6 +89,7 @@ function syncSectorEnvironment(){
  scene.background=activeSector==='ember'?emberBackground:activeSector==='belt'?beltBackground:auroraBackground;
  auroraPlanetPivot.visible=activeSector==='aurora';
  emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=activeSector==='ember';
+ for(const light of beltSectorLights)light.visible=activeSector==='belt';
  sectorStars.position.set(currentSector().x,0,currentSector().z);
 }
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_cinturon.webp?v=145',texture=>{
@@ -136,6 +137,15 @@ new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=105
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
 scene.add(new THREE.HemisphereLight(0x7bbcff,0x050713,1.8));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
  // Luna alta de Ascuas: brillo visible y luz real para los objetos del sector.
+
+const beltSectorLights=[
+ new THREE.HemisphereLight(0xe6eaff,0x737c8e,1.15),
+ new THREE.DirectionalLight(0xffd2ac,2.1),
+ new THREE.DirectionalLight(0xcabaff,1.65)
+];
+beltSectorLights[1].position.set(8000,3200,-3200);beltSectorLights[2].position.set(12000,2200,-1800);
+for(const light of beltSectorLights){light.visible=false;if(light.target){light.target.position.set(10000,0,-650);scene.add(light.target)}scene.add(light)}
+
 const emberMoonPivot=new THREE.Group();emberMoonPivot.position.set(21500,5800,-2150);emberMoonPivot.visible=false;scene.add(emberMoonPivot);
 const emberMoonLight=new THREE.DirectionalLight(0xffc0a0,2.6);emberMoonLight.position.copy(emberMoonPivot.position);
 emberMoonLight.target.position.set(23000,0,-650);emberMoonLight.visible=false;scene.add(emberMoonLight,emberMoonLight.target);
@@ -897,7 +907,7 @@ function enemyDifficultyScale(){
 }
 function enemyMaxHp(type){return type==='carrier'?40000:type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
 function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
-const enemyKinds=[...Array(24).fill('scout'),...Array(14).fill('raider'),...Array(14).fill('sentinel'),...Array(16).fill('destroyer'),...Array(10).fill('devastator')]; // 38 enemigos activos en Aurora y 28 en el Cinturón.
+const enemyKinds=[...Array(34).fill('scout'),...Array(19).fill('raider'),...Array(20).fill('sentinel'),...Array(19).fill('destroyer'),...Array(10).fill('devastator')]; // Aproximadamente +40%: 53 enemigos en Aurora y 39 en Cinturón; Ascuas conserva 16 Destructores.
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
  const min=type==='scout'?850:type==='raider'?1200:1700;
@@ -912,8 +922,8 @@ const enemies=enemyKinds.map((type,i)=>{
 function enemyBelongsToSector(e,rank=1){
  if(e.bossAdd||e.type==='carrier')return activeSector==='ember';
  if(activeSector==='aurora')return e.type==='scout'||e.type==='raider';
- if(activeSector==='belt')return e.type==='sentinel'||e.type==='destroyer'&&rank<=14;
- return e.type==='destroyer'||e.type==='devastator';
+ if(activeSector==='belt')return e.type==='sentinel'||e.type==='destroyer'&&rank<=19;
+ return e.type==='destroyer'&&rank<=16||e.type==='devastator';
 }
 // Diseño propio del Devastador: casco metálico cobrizo y dos alas largas.
 for(const e of enemies.filter(e=>e.type==='devastator')){
@@ -1193,7 +1203,7 @@ const supportDrones=[];
 const MAX_DRONES=8;
 // Los primeros dos mantienen su precio original; los siguientes son progresión futura.
 const DRONE_PRICES=[100,200,5000,20000,80000,300000,1000000,4000000];
-const EXPLORER_PRICE=DRONE_PRICES[7]*2;
+const EXPLORER_PRICE=DRONE_PRICES[7]*2/10;
 player.explorerDrone=player.explorerDrone===true;
 player.explorerRangeLevel=Math.max(1,Math.min(10,Math.floor(Number(player.explorerRangeLevel)||1)));
 function explorerRange(){return 450+player.explorerRangeLevel*100}
@@ -1554,7 +1564,7 @@ function renderDrones(){
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
  const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Cada dron agrega un láser extra a tu nave cuando disparas. Apunta hacia tu misma mira y conserva la misma precisión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
  const rangeLevel=player.explorerRangeLevel,rangeMax=rangeLevel>=10,rangePrice=explorerUpgradePrice();
- const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Dron Explorador · 9.º especial</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirido y equipado':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Requiere 8 drones')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||count<8||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipado':'Comprar')+'</button></div>';
+ const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Dron Explorador · 9.º especial</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirido y equipado':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Compra independiente')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipado':'Comprar')+'</button></div>';
  const repairLevel=player.repairRobotLevel,repairMax=repairLevel>=5,repairPrice=repairRobotPrice();
  const repairHtml='<div class="upgrade-card"><div><strong>🔧 Robot reparador · Nivel '+repairLevel+'/5</strong><small>Repara '+(repairLevel||1)+' % del casco por segundo tras 2 s sin disparar ni recibir ataques. Cada nivel añade 1 %. No ocupa espacios de drones.</small><small>'+(repairMax?'Nivel máximo · 5 % por segundo':(repairLevel?'Mejorar a nivel '+(repairLevel+1):'Compra permanente')+': '+repairPrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyRepairRobot" '+(repairMax||player.gold<repairPrice?'disabled':'')+'>'+(repairMax?'Máximo':repairLevel?'Mejorar':'Comprar')+'</button></div>';
  const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance del Explorador · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
@@ -1569,7 +1579,7 @@ function renderDrones(){
   player.gold-=price;player.explorerRangeLevel++;save();hud();renderDrones();lootToast('📡 Explorador: alcance '+explorerRange()+' m');if(docked)hangarRefresh();
  };
  el.querySelector('.buyExplorerBtn').onclick=()=>{
-  if(player.explorerDrone||ownedDrones()<8||player.gold<EXPLORER_PRICE)return;
+  if(player.explorerDrone||player.gold<EXPLORER_PRICE)return;
   player.gold-=EXPLORER_PRICE;player.explorerDrone=true;save();hud();renderDrones();lootToast('🛰️ Dron Explorador equipado');
   if(docked)hangarRefresh();
  };el.querySelector('.buyDroneBtn').onclick=()=>{
@@ -1583,8 +1593,8 @@ function renderDrones(){
 // Flota: las mejoras generales permanecen en el perfil; las especializaciones son por nave.
 const SHIP_TYPES={
  aurora:{name:'Aurora',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Equilibrada · tu nave original'},
- titan:{name:'Titán',level:15,cost:2000000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
- espectro:{name:'Espectro',level:25,cost:2000000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'}
+ titan:{name:'Titán',level:15,cost:200000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
+ espectro:{name:'Espectro',level:25,cost:200000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'}
 };
 player.ownedShips=player.ownedShips&&typeof player.ownedShips==='object'?player.ownedShips:{};
 player.ownedShips.aurora=true;
@@ -1899,6 +1909,16 @@ const BELT_MISSIONS=[
  {title:'Refugio del Cinturón',description:'Aterriza en la estación del mapa 2',event:'dock',goal:1,reward:3500,xp:300},
  {title:'Exploración completa',description:'Acércate a 200 m del borde del mapa 2 y vuelve a su zona segura',event:'edgeReturn',goal:2,reward:6000,xp:500}
 ];
+const EMBER_MISSIONS=[
+ {title:'Bienvenido a Ascuas',description:'Viaja al mapa 3 (nivel 30)',event:'travelEmber',goal:1,reward:6000,xp:1200},
+ {title:'Refugio entre llamas',description:'Aterriza en la estación de Ascuas',event:'dock',goal:1,reward:8000,xp:1600},
+ {title:'Despeja la ruta',description:'Destruye 8 Destructores en Ascuas',event:'destroyer',goal:8,reward:16000,xp:3200},
+ {title:'Suministros de Ascuas',description:'Recoge 20 cajas de botín en el mapa 3',event:'loot',goal:20,reward:10000,xp:2000},
+ {title:'Caza de Devastadores',description:'Destruye 6 Devastadores en Ascuas',event:'devastator',goal:6,reward:24000,xp:4800},
+ {title:'Misiles entre cenizas',description:'Destruye 8 enemigos del mapa 3 con misiles',event:'missileKill',goal:8,reward:20000,xp:4000},
+ {title:'Frontera ardiente',description:'Acércate a 200 m del borde de Ascuas y vuelve a la zona segura',event:'edgeReturn',goal:2,reward:15000,xp:3000},
+ {title:'Caída del Coloso',description:'Destruye al Coloso Portanaves en Ascuas',event:'carrier',goal:1,reward:60000,xp:20000}
+];
 player.quests=player.quests&&typeof player.quests==='object'?player.quests:{};
 function loadCampaign(key,missions){
  const c=player.quests[key]&&typeof player.quests[key]==='object'?player.quests[key]:{};
@@ -1906,8 +1926,8 @@ function loadCampaign(key,missions){
  c.progress=Math.max(0,Math.floor(Number(c.progress)||0));c.docked=!!c.docked;c.edgeVisited=!!c.edgeVisited;
  player.quests[key]=c;return c;
 }
-const campaign=loadCampaign('aurora',MISSIONS),beltCampaign=loadCampaign('belt',BELT_MISSIONS);
-let questCollapsed=true,questTrack=player.sector==='belt'&&player.level>=10?'belt':'aurora';
+const campaign=loadCampaign('aurora',MISSIONS),beltCampaign=loadCampaign('belt',BELT_MISSIONS),emberCampaign=loadCampaign('ember',EMBER_MISSIONS);
+let questCollapsed=true,questTrack=player.sector==='ember'&&player.level>=30?'ember':player.sector==='belt'&&player.level>=10?'belt':'aurora';
 
 // Contratos largos: objetivos simultáneos, una misión activa y premio único.
 const LONG_MISSIONS=[
@@ -1964,20 +1984,22 @@ function renderMission(){
  const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
  el.classList.toggle('hidden',questCollapsed);
  toggle.textContent='📋';toggle.setAttribute('aria-expanded',String(!questCollapsed));toggle.setAttribute('aria-label',questCollapsed?'Abrir misiones':'Cerrar misiones');
- const unlocked=longMissionsUnlocked();
+ const contractsUnlocked=longMissionsUnlocked(),unlocked=contractsUnlocked&&!(questTrack==='ember'&&emberCampaign.index<EMBER_MISSIONS.length);
  $('longMissionList')?.classList.toggle('hidden',!unlocked);
  for(const id of ['questObjective','questReward'])$(id)?.classList.toggle('hidden',unlocked);
  $('questProgressBar')?.parentElement?.classList.toggle('hidden',unlocked);
  for(const button of document.querySelectorAll('[data-mission-track]')){
-  button.hidden=unlocked;
-  button.disabled=button.dataset.missionTrack==='belt'&&player.level<10;
+  const track=button.dataset.missionTrack;
+  button.hidden=track==='contracts'?!contractsUnlocked:contractsUnlocked&&track!=='ember'||track==='ember'&&emberCampaign.index>=EMBER_MISSIONS.length;
+  button.disabled=track==='belt'&&player.level<10||track==='ember'&&player.level<30;
   button.classList.toggle('selected',button.dataset.missionTrack===questTrack);
   if(button.dataset.missionTrack==='belt')button.textContent=player.level>=10?'Nivel 10+':'🔒 Nivel 10';
+  if(track==='ember')button.textContent=player.level>=30?'Ascuas':'🔒 Nivel 30';
  }
  if(unlocked){$('questTitle').textContent='Contratos de combate';renderLongMissions();return}
- const missions=questTrack==='belt'?BELT_MISSIONS:MISSIONS,c=questTrack==='belt'?beltCampaign:campaign;
+ const missions=questTrack==='ember'?EMBER_MISSIONS:questTrack==='belt'?BELT_MISSIONS:MISSIONS,c=questTrack==='ember'?emberCampaign:questTrack==='belt'?beltCampaign:campaign;
  if(c.index>=missions.length){
-  $('questTitle').textContent='🏆 '+(questTrack==='belt'?'Cinturón':'Aurora')+' completado';
+  $('questTitle').textContent='🏆 '+(questTrack==='ember'?'Ascuas':questTrack==='belt'?'Cinturón':'Aurora')+' completado';
   $('questObjective').textContent='Todas las misiones de esta campaña están completas.';
   $('questProgressBar').style.width='100%';$('questReward').textContent='¡Buen trabajo!';return;
  }
@@ -1989,17 +2011,18 @@ function renderMission(){
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
 for(const button of document.querySelectorAll('[data-mission-track]'))button.onclick=()=>{
- if(button.dataset.missionTrack==='belt'&&player.level<10)return;
+ if(button.dataset.missionTrack==='belt'&&player.level<10||button.dataset.missionTrack==='ember'&&player.level<30)return;
  questTrack=button.dataset.missionTrack;renderMission();
 };
 function missionEvent(type,context={}){
  const sector=context.sector||player.sector||'aurora';
  longMissionEvent(type,sector);
- for(const [key,c,missions] of [['aurora',campaign,MISSIONS],['belt',beltCampaign,BELT_MISSIONS]]){
-  if(key==='belt'&&player.level<10)continue;
+ for(const [key,c,missions] of [['aurora',campaign,MISSIONS],['belt',beltCampaign,BELT_MISSIONS],['ember',emberCampaign,EMBER_MISSIONS]]){
+  if(key==='belt'&&player.level<10||key==='ember'&&player.level<30)continue;
   const m=missions[c.index];if(!m)continue;
-  const matchingSector=key==='aurora'?sector==='aurora':sector==='belt';
-  if(m.event==='drone')c.progress=Math.min(m.goal,ownedDrones());
+  const matchingSector=key===sector;
+  if(m.event==='travelEmber'&&sector==='ember')c.progress=1;
+  else if(m.event==='drone')c.progress=Math.min(m.goal,ownedDrones());
   else if(m.event==='missileUpgrade')c.progress=upgradeLevel('missiles')>=1?1:0;
   else if(m.event==='baseUpgrade'&&matchingSector){
    if(type==='dock'){c.docked=true;c.progress=Math.max(1,c.progress)}
@@ -2023,8 +2046,7 @@ function missionEvent(type,context={}){
 let missionExploreElapsed=0;
 function updateExplorationMissions(dt){
  missionExploreElapsed+=dt;if(missionExploreElapsed<.5)return;missionExploreElapsed=0;
- if(activeSector==='ember')return;
- const key=activeSector==='belt'?'belt':'aurora',c=key==='belt'?beltCampaign:campaign,missions=key==='belt'?BELT_MISSIONS:MISSIONS;
+ const key=activeSector,c=key==='ember'?emberCampaign:key==='belt'?beltCampaign:campaign,missions=key==='ember'?EMBER_MISSIONS:key==='belt'?BELT_MISSIONS:MISSIONS;
  if(missions[c.index]?.event!=='edgeReturn')return;
  if(currentSector().radius-sectorDistance()<=200)missionEvent('edgeNear',{sector:activeSector});
  else if(c.edgeVisited&&inSafeZone(playerMesh.position))missionEvent('baseReturn',{sector:activeSector});
@@ -2556,7 +2578,7 @@ function switchSector(route){
  playerMesh.position.copy(route.arrival);
  resetSectorPopulation();clearCombatShots();
  for(const d of drops)scene.remove(d.mesh);drops.length=0;
- questTrack=activeSector==='belt'?'belt':'aurora';
+ questTrack=activeSector==='ember'?'ember':activeSector==='belt'?'belt':'aurora';
  missionEvent(activeSector==='belt'?'travelBelt':activeSector==='ember'?'travelEmber':'travelAurora',{sector:activeSector});
  portalCountdown=0;selectedPortalId=null;portalCharge.visible=false;portalChargeMaterial.opacity=0;save();lootToast('🌌 '+currentSectorName());
 }

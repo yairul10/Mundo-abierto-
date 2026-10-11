@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths:
       - 'mobile/test-app/**'
+      - 'js/**'
+      - 'css/**'
+      - 'assets/**'
+      - 'index.html'
+      - 'version.json'
       - '.github/workflows/android-test.yml'
 permissions:
   contents: read

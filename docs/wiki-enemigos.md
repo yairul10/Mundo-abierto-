@@ -1,11 +1,11 @@
 # Enemigos de Mundo Abierto
-Datos del código del juego, versión 159.
+Datos del código del juego, versión 164.
 
 | Característica | Explorador | Asaltante | Guardián | Destructor |
 |---|---:|---:|---:|---:|
 | Identificador interno | scout | raider | sentinel | destroyer |
 | Mapa | Aurora (1) | Aurora (1) | Cinturón Perdido (2) | Cinturón Perdido (2) |
-| Cantidad activa | 24 | 14 | 14 | 14 |
+| Cantidad activa | 34 | 19 | 20 | 19 |
 | Vida base | 35 | 70 | 140 | 280 |
 | Vida máxima con escalado | 175 | 350 | 700 | 1400 |
 | Daño base por disparo | 5 | 10 | 20 | 35 |
@@ -35,7 +35,7 @@ El nivel de la etiqueta es el mayor entre el nivel mínimo de la tabla y el nive
 - Las bajas de láseres, misiles y drones comparten la recompensa normal.
 
 ## Botín
-Cada caja elige de forma independiente: Chatarra espacial 53 %, Aleación reforzada 28 %, Núcleo de energía 15 %, Componente ancestral 4 %.
+Cada caja elige de forma independiente: Chatarra espacial 38 %, Aleación reforzada 28 %, Núcleo de energía 15 %, Componente ancestral 4 %.
 Las cajas duran 90 s; la nave las recoge a menos de 90 m. El dron explorador recoge a menos de 45 m.
 
 ## Contratos largos
@@ -93,3 +93,9 @@ Geometría conservada; texturas WebP de hasta 1024 px y oclusión de 512 px. Aca
 Coloso al doble de tamaño. Alcance de daño láser limitado a 1200 m desde el jugador, además del límite de recorrido del proyectil.
 
 Cuatro compuertas independientes con bisagra superior; abren hacia afuera y arriba al activarse el Coloso. Luces naranjas en los marcos y motores. Los refuerzos salen alternadamente desde los cuatro hangares desde dentro del casco, esperando a que abran las puertas y por turnos en cada hangar.
+
+
+## Ajustes de población y tienda (v164)
+Aurora: 34 Exploradores + 19 Asaltantes = 53 (antes 38). Cinturón: 20 Guardianes + 19 Destructores = 39 (antes 28). Ambos aumentan aproximadamente un 40 %, redondeando los totales. Ascuas conserva 16 Destructores, 10 Devastadores y el Coloso.
+Titán y Espectro: 200.000 créditos cada una. Dron Explorador especial: 800.000 créditos y compra independiente, sin exigir los ocho drones de combate.
+Ascuas incorpora una campaña de ocho misiones desde nivel 30: viaje, estación, ocho Destructores, veinte cajas, seis Devastadores, ocho bajas con misiles, borde y regreso, un Coloso. Los objetivos son exclusivos del sector; progreso y premios se guardan. Los contratos previos siguen disponibles tras las campañas originales.
