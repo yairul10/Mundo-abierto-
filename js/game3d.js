@@ -2285,7 +2285,7 @@ const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t)};
 function hangarRefresh(){
  const tag=hangar.querySelector('.hangar-tag');if(tag)tag.textContent=currentStationName().toLocaleUpperCase('es');
  hangar.setAttribute('aria-label','Hangar '+currentStationName());
- const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=Math.ceil(missing*.3);
+ const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=1000;
  hangarStats.textContent='Casco: '+Math.ceil(player.hp)+' / '+player.maxHp+' · Energía: '+Math.ceil(player.energy)+' / '+player.maxEnergy+' · Créditos: '+player.gold;
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
@@ -2385,8 +2385,8 @@ function leaveHangar(){
 $('launchBtn').onclick=leaveHangar;
 $('repairBtn').onclick=()=>{
  if(!docked)return;
- const cost=Math.ceil(Math.max(0,player.maxHp-player.hp)*.3);
- if(!cost||player.gold<cost)return;
+ const cost=1000;
+ if(player.hp>=player.maxHp||player.gold<cost)return;
  player.gold-=cost;player.hp=player.maxHp;hangarRefresh();save();hud();
 };
 function updateDock(){
