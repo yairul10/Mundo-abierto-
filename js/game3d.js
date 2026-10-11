@@ -559,6 +559,95 @@ for(const x of [-19,19]){
 function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
 let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
+
+const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
+const beltStation=new THREE.Group();
+beltStation.position.set(SECTOR_BELT.x,0,SECTOR_BELT.z);
+beltStation.scale.copy(auroraStation.scale);scene.add(beltStation);
+const beltLandingPads=[];
+let beltStationReady=false;
+function currentStation(){return activeSector==='belt'?beltStation:auroraStation}
+function currentStationName(){return activeSector==='belt'?'Estación Cinturón':'Estación Aurora'}
+function syncStationVisibility(){
+ auroraStation.visible=activeSector==='aurora';beltStation.visible=activeSector==='belt';
+}
+// Respaldo propio de la nueva estación mientras se cargan las mismas tres piezas.
+function buildBeltStationFallback(){
+ const assembly=new THREE.Group();
+ const metal=new THREE.MeshStandardMaterial({color:0x627487,metalness:.45,roughness:.55});
+ const light=new THREE.MeshBasicMaterial({color:0x44caff});
+ const hub=new THREE.Mesh(new THREE.CylinderGeometry(100,110,68,24),metal);hub.position.y=-38;assembly.add(hub);
+ const tower=new THREE.Mesh(new THREE.CylinderGeometry(25,50,105,12),metal);tower.position.y=38;assembly.add(tower);
+ for(const [x,z] of [[1,0],[-1,0],[0,1],[0,-1]]){
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(15,15,64,12),metal);
+  tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(x,0,z));
+  tube.position.set(x*125,-42,z*125);assembly.add(tube);
+ }
+ for(const [x,z] of [[450,0],[0,-450]]){
+  const pad=new THREE.Group();pad.position.set(x,-42,z);pad.userData.landingRadius=193.75;
+  const deck=new THREE.Mesh(new THREE.CylinderGeometry(156.25,156.25,16,48),metal);pad.add(deck);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(148,2.5,6,48),light);rim.rotation.x=Math.PI/2;rim.position.y=9;pad.add(rim);
+  assembly.add(pad);beltLandingPads.push(pad);
+  const bridge=new THREE.Mesh(new THREE.BoxGeometry(36,28,150),metal);
+  bridge.rotation.y=Math.atan2(x,z);bridge.position.set(x*.5,-42,z*.5);assembly.add(bridge);
+ }
+ beltStation.add(assembly);
+ const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.y=100;beltStation.add(beacon);
+}
+buildBeltStationFallback();
+// Medir la boca exterior y su altura real, incluidos los tubos que sobresalen.
+function stationConnector(model,direction,band=8,lateralLimit=Infinity){
+ model.updateWorldMatrix(true,true);
+ const bounds=new THREE.Box3().setFromObject(model),axis=Math.abs(direction.x)>.5?'x':'z';
+ const side=axis==='x'?'z':'x',sign=direction[axis];
+ const tip=sign>0?bounds.max[axis]:-bounds.min[axis];
+ const opening=new THREE.Box3(),point=new THREE.Vector3();
+ model.traverse(mesh=>{
+  const positions=mesh.isMesh?mesh.geometry?.attributes?.position:null;if(!positions)return;
+  for(let i=0;i<positions.count;i++){
+   point.fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld);
+   if(point[axis]*sign>=tip-band&&Math.abs(point[side])<=lateralLimit)opening.expandByPoint(point);
+  }
+ });
+ if(opening.isEmpty())throw new Error('No se encontró una conexión de la estación');
+ const center=opening.getCenter(new THREE.Vector3());center[axis]=tip*sign;
+ return {center,size:opening.getSize(new THREE.Vector3()),side};
+}
+function buildBeltStation(hubSource,padSource,bridgeSource,fitted){
+ const assembly=new THREE.Group(),hub=fitted(hubSource,315);
+ hub.name='Núcleo Cinturón';assembly.add(hub);
+ const pads=[];
+ for(const direction of [new THREE.Vector3(1,0,0),new THREE.Vector3(0,0,-1)]){
+  const port=stationConnector(hub,direction);
+  const pad=fitted(padSource,312.5); // 25 % más grande; núcleo idéntico al de Aurora.
+  const rim=stationConnector(pad,direction.clone().negate(),18,25);
+  pad.position.copy(direction).multiplyScalar(450);
+  pad.position.y=port.center.y-rim.center.y;
+  pad.position[port.side]=port.center[port.side]-rim.center[port.side];
+  pad.userData.landingRadius=193.75;pad.name='Plataforma Cinturón';
+  const padSocket=rim.center.clone().add(pad.position);
+  // Solapar ligeramente ambos extremos con las bocas para evitar fisuras.
+  const start=port.center.clone().addScaledVector(direction,-3);
+  const end=padSocket.clone().addScaledVector(direction,4);
+  const bridge=fitted(bridgeSource,start.distanceTo(end));
+  const size=new THREE.Box3().setFromObject(bridge).getSize(new THREE.Vector3());
+  const longX=size.x>size.z;
+  const width=Math.max(20,port.size[port.side]*1.12),height=Math.max(20,port.size.y*1.12);
+  if(longX)bridge.scale.z=width/size.z;else bridge.scale.x=width/size.x;
+  bridge.scale.y=height/size.y;
+  bridge.rotation.y=Math.atan2(direction.x,direction.z)+(longX?Math.PI/2:0);
+  bridge.position.copy(start).add(end).multiplyScalar(.5);
+  bridge.name='Corredor Cinturón';
+  bridge.userData.connectionStart=start;bridge.userData.connectionEnd=end;
+  assembly.add(bridge,pad);pads.push(pad);
+ }
+ // Las copias comparten geometrías y texturas: no se descargan assets duplicados.
+ for(const child of [...beltStation.children])if(!child.isLight)beltStation.remove(child);
+ beltStation.add(assembly);beltLandingPads.splice(0,beltLandingPads.length,...pads);
+ beltStationReady=true;syncStationVisibility();
+ console.info('Estación Cinturón montada: núcleo, 2 plataformas grandes y corredores en L.');
+}
+
 // Estación Aurora definitiva: tres GLB independientes unidos sobre el respaldo procedural.
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
@@ -601,8 +690,9 @@ Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLo
  LANDING_APPROACH.copy(padWorld).add(new THREE.Vector3(0,185,0));
  LANDING_TOUCHDOWN.copy(padWorld).add(new THREE.Vector3(0,52,0));
  landingArmed=true;
+ buildBeltStation(hubSource,padSource,bridgeSource,fitted);
  console.info('Estación Aurora modular montada: 1 núcleo, 4 plataformas y 4 corredores.');
-}).catch(err=>console.warn('Estación modular no disponible: se mantiene la estación anterior.',err));
+}).catch(err=>{beltStationReady=true;console.warn('Estación modular no disponible: se mantienen los respaldos de cada sector.',err)});
 // Asteroides rocosos: siluetas irregulares, tonos minerales y relieve de bajo costo.
 const asteroidMaterials=[0x77746e,0x8b7765,0x5d6571,0x948b80].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true,emissive:color,emissiveIntensity:.075}));
 const asteroidShapes=[];
@@ -987,7 +1077,7 @@ function enemyFire(e){
 function updateEnemyShots(dt){
  for(let i=enemyShots.length-1;i>=0;i--){
   const p=enemyShots[i];p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;
-  if(!docked&&!landing&&!(activeSector==='aurora'&&inSafeZone(playerMesh.position))&&p.mesh.position.distanceTo(playerMesh.position)<45){
+  if(!docked&&!landing&&!inSafeZone(playerMesh.position)&&p.mesh.position.distanceTo(playerMesh.position)<45){
    applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0;
   }
   if(p.life<=0){scene.remove(p.mesh);enemyShots.splice(i,1)}
@@ -1450,13 +1540,13 @@ function skill(){
  }
  skillCd=7;
 }
-// Estación centrada en (0,0,-650), con radio de protección independiente del minimapa.
-const SAFE_ZONE_CENTER=new THREE.Vector3(0,0,-650),SAFE_ZONE_RADIUS=760;
-function inSafeZone(position){return position.distanceTo(SAFE_ZONE_CENTER)<SAFE_ZONE_RADIUS}
+// Protección alrededor de la estación del sector activo.
+const SAFE_ZONE_RADIUS=760;
+function inSafeZone(position){return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
 let lastZoneLabel='',zoneToastTimer=null;
 function updateZone(){
- const safe=activeSector==='aurora'&&inSafeZone(playerMesh.position);
- const label=safe?'ESTACIÓN AURORA|Zona segura':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
+ const safe=inSafeZone(playerMesh.position);
+ const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
   const [title,subtitle]=label.split('|'),el=$('targetInfo');
   el.replaceChildren(document.createTextNode(title),document.createElement('br'));
@@ -1501,15 +1591,16 @@ function drawRadar(dt){
    dot(pet.x,pet.y,'#26edff',3.3);
   }
  }
- const station=radarPoint(SAFE_ZONE_CENTER.x,SAFE_ZONE_CENTER.z);
+ const base=currentStation();
+ const station=radarPoint(base.position.x,base.position.z);
  if(station.inside)dot(station.x,station.y,'#56e5ff',5);
  ctx.restore();
  // La estación permanece señalada en el borde aunque quede fuera del alcance.
  if(!station.inside){const a=station.angle;const x=78+Math.cos(a)*62,y=78+Math.sin(a)*62;ctx.save();ctx.translate(x,y);ctx.rotate(a+Math.PI/2);ctx.fillStyle='#56e5ff';ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(5,5);ctx.lineTo(-5,5);ctx.closePath();ctx.fill();ctx.restore()}
  ctx.fillStyle='#fff7a1';ctx.beginPath();ctx.moveTo(78,68);ctx.lineTo(71,87);ctx.lineTo(78,83);ctx.lineTo(85,87);ctx.closePath();ctx.fill();
  ctx.strokeStyle='#5bb9e4aa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(78,78,72,0,Math.PI*2);ctx.stroke();
- const distance=Math.hypot(playerMesh.position.x-SAFE_ZONE_CENTER.x,playerMesh.position.z-SAFE_ZONE_CENTER.z);
- radarDistance.textContent='Aurora · '+Math.round(distance)+' m';
+ const distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
+ radarDistance.textContent=(activeSector==='belt'?'Cinturón':'Aurora')+' · '+Math.round(distance)+' m';
 }
 // Paso 14: atraque asistido y hangar sin cambiar de escena ni perder progreso.
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
@@ -1520,6 +1611,8 @@ const LANDING_APPROACH=new THREE.Vector3(535,175,-650);
 const LANDING_TOUCHDOWN=new THREE.Vector3(535,24,-650);
 const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t)};
 function hangarRefresh(){
+ const tag=hangar.querySelector('.hangar-tag');if(tag)tag.textContent=currentStationName().toLocaleUpperCase('es');
+ hangar.setAttribute('aria-label','Hangar '+currentStationName());
  const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=Math.ceil(missing*.3);
  hangarStats.textContent='Casco: '+Math.ceil(player.hp)+' / '+player.maxHp+' · Energía: '+Math.ceil(player.energy)+' / '+player.maxEnergy+' · Créditos: '+player.gold;
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
@@ -1542,16 +1635,16 @@ function finishLanding(){
 // Solo aceptar una superficie horizontal realmente situada debajo de la nave.
 // No usar posiciones antiguas si no existe una plataforma detectable.
 function selectLandingPlatform(apply=false){
- if(!auroraModelReady)return false;
- if(modularStationReady){
-  auroraStation.updateMatrixWorld(true);
+ if(activeSector==='belt'?!beltStationReady:!auroraModelReady)return false;
+ if(activeSector==='belt'||modularStationReady){
+  currentStation().updateMatrixWorld(true);
   let nearest=null,best=Infinity;
-  for(const pad of modularLandingPads){
+  for(const pad of activeSector==='belt'?beltLandingPads:modularLandingPads){
    const bounds=new THREE.Box3().setFromObject(pad);
    const center=bounds.getCenter(new THREE.Vector3());
    const distance=Math.hypot(playerMesh.position.x-center.x,playerMesh.position.z-center.z);
    const deltaY=playerMesh.position.y-bounds.max.y;
-   if(distance<155&&deltaY>=-30&&deltaY<240&&distance<best){
+   if(distance<(pad.userData.landingRadius||155)&&deltaY>=-30&&deltaY<240&&distance<best){
     best=distance;nearest={center,top:bounds.max.y};
    }
   }
@@ -1591,7 +1684,7 @@ function beginLanding(){
 }
 dockBtn.onclick=()=>{
  if(dockBtn.disabled||dockBtn.classList.contains('hidden'))return;
- const distance=Math.hypot(playerMesh.position.x-auroraStation.position.x,playerMesh.position.z-auroraStation.position.z);
+ const base=currentStation(),distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
  if(distance<LANDING_RADIUS&&selectLandingPlatform())beginLanding();
 };
 function advanceLanding(dt){
@@ -1614,7 +1707,7 @@ function leaveHangar(){
  docked=false;landingArmed=false;
  hangar.classList.add('hidden');document.body.classList.remove('docked');
  // Salida fuera del pasillo de descenso, con altura suficiente sobre la plataforma.
- playerMesh.position.set(0,165,-330);yaw=0;pitch=0;
+ playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,320));yaw=0;pitch=0;
  resetDockControls();save();
 }
 $('launchBtn').onclick=leaveHangar;
@@ -1627,14 +1720,14 @@ $('repairBtn').onclick=()=>{
 function updateDock(){
  if(docked)return;
  if(landing){dockBtn.classList.remove('hidden');return}
- const distance=Math.hypot(playerMesh.position.x-auroraStation.position.x,playerMesh.position.z-auroraStation.position.z);
+ const base=currentStation(),distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
  if(distance>LANDING_RADIUS+110)landingArmed=true;
  // Activación sólo cerca de la plataforma, no en toda la zona segura.
  const inCorridor=distance<LANDING_RADIUS&&selectLandingPlatform();
  const available=inCorridor&&panel.classList.contains('hidden');
  dockBtn.classList.toggle('hidden',!available);
  dockBtn.disabled=!available;
- if(available)dockBtn.textContent='🛬 Aterrizar en Estación Aurora';
+ if(available)dockBtn.textContent='🛬 Aterrizar en '+currentStationName();
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
@@ -1703,9 +1796,9 @@ playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
 // Límite del Sector Aurora. Otros planetas podrán definir su propio centro/radio.
 const SECTOR_AURORA={x:0,z:-650,radius:3000,warning:600,damagePerSecond:8};
-const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
 let activeSector=player.sector==='belt'?'belt':'aurora';
 const currentSector=()=>activeSector==='belt'?SECTOR_BELT:SECTOR_AURORA;
+ syncStationVisibility();
 MAP_CENTER_X=currentSector().x;MAP_CENTER_Z=currentSector().z;
 for(const e of enemies)e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');
 // Portal visible entre la estación y el planeta, a 250 m del borde esférico.
@@ -1773,6 +1866,7 @@ function portalChargePulse(seconds){
 }
 function switchSector(){
  activeSector=activeSector==='aurora'?'belt':'aurora';
+ syncStationVisibility();
  const sector=currentSector();MAP_CENTER_X=sector.x;MAP_CENTER_Z=sector.z;
  playerMesh.position.copy(activeSector==='belt'?beltPortal.clone().add(new THREE.Vector3(0,0,-110)):auroraPortal.clone().addScaledVector(portalDir,-110));
  for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,2950));
