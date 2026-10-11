@@ -50,3 +50,8 @@ deployment.json conserva los metadatos de subida multipart de la API de Cloudfla
 
 ## Próxima integración
 Añadir cliente y arena separada en 3D, botones Buscar rival/Crear sala/Unirse, interpolación, reconexión y regreso a partida offline. En el APK se deberá permitir este host HTTPS/WSS en CSP connect-src; hoy el paquete offline permite solo el mismo origen.
+
+## Prueba de equipamiento local (0.2.0)
+La arena abre index.html?pvp=1 y usa game3d.js: los mismos controles, cámara, fijación, naves, drones, misiles, robot y habilidades de la partida normal. La reserva importa un perfil compacto del guardado local. Los proyectiles, impactos, daño, defensa, vida, energía y reparación los resuelve combat.mjs en el servidor. La partida PvP bloquea las escrituras del progreso offline. No hay recompensas ni cuentas; la propiedad de las mejoras locales aún no está autenticada, por lo que no es un modo competitivo seguro.
+
+Ejecutar en server/pvp: node test.mjs; node profile-test.mjs; node combat.test.mjs. Miniflare carga worker.mjs y combat.mjs como módulos explícitos.

@@ -12,7 +12,7 @@ if(!cdn.test(html))throw new Error('Cambió el arranque del motor; revisar el em
 html=html.replace(cdn,"window.MUNDO_OFFLINE=true;\nconst threeCdn=new URL('./vendor/three',location.href).href;");
 html=html.replace("if(!new URLSearchParams(location.search).has('threecdn')","if(!window.MUNDO_OFFLINE && !new URLSearchParams(location.search).has('threecdn')");
 html=html.replace("{imports:{three:threeCdn+'/build/three.module.js'}}", "{imports:{three:threeCdn+'/build/three.module.js','three/addons/':threeCdn+'/examples/jsm/'}}");
-html=html.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
+html=html.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://mundo-abierto-pvp.jairog940.workers.dev wss://mundo-abierto-pvp.jairog940.workers.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
 writeFileSync(join(out,'index.html'),html);
 let pvp=readFileSync(join(root,'pvp.html'),'utf8');
 if(!cdn.test(pvp))throw new Error('Revisar arranque offline de PvP');
@@ -27,7 +27,7 @@ const bundleText=[html,...readdirSync(join(out,'js')).filter(n=>n.endsWith('.js'
 for(const match of bundleText.matchAll(/(?:\.\/)?assets\/[a-zA-Z0-9_./-]+/g)){
  if(!existsSync(join(out,match[0])))throw new Error('Falta recurso: '+match[0]);
 }
-if(/https?:\/\//.test(html+'\n'+game))throw new Error('Quedaron dependencias remotas en el arranque');
+if(/https?:\/\//.test((html+'\n'+game).replaceAll('https://mundo-abierto-pvp.jairog940.workers.dev','')))throw new Error('Quedaron dependencias remotas en el arranque');
 let models=0;
 for(const name of readdirSync(join(out,'assets/models')).filter(n=>n.endsWith('.glb'))){
  const bytes=readFileSync(join(out,'assets/models',name));
