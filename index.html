@@ -30,7 +30,7 @@ document.currentScript.after(threeMap);
 <script type="module">
 // GitHub Pages puede servir HTML cacheado: comprobamos la versión publicada
 // con una petición que evita caché y actualizamos una sola vez si cambió.
-const GAME_BUILD='3d-20261010-142';
+const GAME_BUILD='3d-20261010-143';
 const status=document.getElementById('bootStatus');
 try {
  const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store'});
@@ -53,7 +53,7 @@ try{
   const THREE=await import('three');
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
-  await import('./js/game3d.js?v=3d-20261010-142');
+  await import('./js/game3d.js?v=3d-20261010-143');
   status.remove();
 }catch(err){
   if(!new URLSearchParams(location.search).has('threecdn') && /fetch|module|network|load/i.test(String(err?.message||err))){

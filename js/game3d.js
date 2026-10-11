@@ -1712,6 +1712,9 @@ for(const e of enemies)e.mesh.visible=activeSector==='aurora'?(e.type==='scout'|
 const portalDir=new THREE.Vector3(2150,950,-5200).sub(new THREE.Vector3(0,0,-650)).normalize();
 const auroraPortal=new THREE.Vector3(0,0,-650).addScaledVector(portalDir,2750);
 const beltPortal=new THREE.Vector3(SECTOR_BELT.x,0,SECTOR_BELT.z+2450);
+// Orientaciones fijas: cada portal mira hacia el interior de su sector.
+const auroraPortalRotation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),portalDir.clone().negate());
+const beltPortalRotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);
 const portalMat=new THREE.MeshBasicMaterial({color:0x8a65ff,transparent:true,opacity:.9,side:THREE.DoubleSide});
 const portalFill=new THREE.MeshBasicMaterial({color:0x6241da,transparent:true,opacity:.25,side:THREE.DoubleSide,depthWrite:false});
 const portalMesh=new THREE.Group(),portalRing=new THREE.Mesh(new THREE.TorusGeometry(30,4,12,56),portalMat);
@@ -1722,6 +1725,14 @@ portalMesh.add(portalRing,portalDisk);
 // El anillo provisional sigue visible hasta que termina de cargar el modelo.
 const portalHalo=new THREE.Mesh(new THREE.TorusGeometry(23,.45,6,64),new THREE.MeshBasicMaterial({color:0x4fcfff,transparent:true,opacity:.25,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
 portalHalo.visible=false;portalMesh.add(portalHalo);
+// Pulso del interior en ambas caras, sin cubrir la estructura exterior.
+const portalChargeMaterial=new THREE.MeshBasicMaterial({color:0x42bfff,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+const portalCharge=new THREE.Group();
+const portalChargeGeometry=new THREE.CircleGeometry(23,64);
+const portalChargeFront=new THREE.Mesh(portalChargeGeometry,portalChargeMaterial);
+const portalChargeBack=new THREE.Mesh(portalChargeGeometry,portalChargeMaterial);
+portalChargeFront.position.z=.8;portalChargeBack.position.z=-.8;portalChargeBack.rotation.y=Math.PI;
+portalCharge.add(portalChargeFront,portalChargeBack);portalCharge.visible=false;portalMesh.add(portalCharge);
 deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
  const model=gltf.scene;
  const box=new THREE.Box3().setFromObject(model);
@@ -1748,11 +1759,18 @@ deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
  portalMesh.add(model);portalMesh.userData.portalModel=model;
  portalRing.visible=false;portalDisk.visible=false;
  portalHalo.position.z=size.z*scale*.5+.3;portalHalo.visible=true;
+ portalChargeFront.position.z=size.z*scale*.5+.5;portalChargeBack.position.z=-size.z*scale*.5-.5;
  portalLight.color.setHex(0x3bafff);
 },undefined,err=>console.warn('Modelo de portal no disponible; se conserva el portal provisional.',err));
 const portalLight=new THREE.PointLight(0x8a65ff,20,180);portalMesh.add(portalLight);scene.add(portalMesh);
 const portalMessage=document.createElement('div');portalMessage.style.cssText='position:fixed;left:50%;top:24%;transform:translateX(-50%);z-index:40;background:#170e35ec;color:white;border:1px solid #9c83ff;border-radius:12px;padding:12px 16px;font:700 15px system-ui;text-align:center;pointer-events:none;display:none';document.body.appendChild(portalMessage);
 let portalCountdown=0,portalLastTick=performance.now();
+function portalChargePulse(seconds){
+ const t=Math.max(0,Math.min(3,seconds));
+ // Frecuencia continua: de 0,6 destellos/s al inicio a 5 destellos/s al final.
+ const phase=2*Math.PI*(.6*t+(4.4/6)*t*t);
+ return Math.pow(.5-.5*Math.cos(phase),1.6);
+}
 function switchSector(){
  activeSector=activeSector==='aurora'?'belt':'aurora';
  const sector=currentSector();MAP_CENTER_X=sector.x;MAP_CENTER_Z=sector.z;
@@ -1761,18 +1779,20 @@ function switchSector(){
  for(const e of enemies){e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');e.fireTimer=1+Math.random()*2}
  for(const shot of enemyShots)scene.remove(shot.mesh);enemyShots.length=0;
  for(const shot of shots)scene.remove(shot.mesh);shots.length=0;
- player.sector=activeSector;portalCountdown=0;save();lootToast(activeSector==='belt'?'🪨 Cinturón Perdido':'🌌 Sector Aurora');
+ player.sector=activeSector;portalCountdown=0;portalCharge.visible=false;portalChargeMaterial.opacity=0;save();lootToast(activeSector==='belt'?'🪨 Cinturón Perdido':'🌌 Sector Aurora');
 }
 function updateSectorPortal(){
  const dt=Math.min(.1,(performance.now()-portalLastTick)/1000);portalLastTick=performance.now();
- const pos=activeSector==='aurora'?auroraPortal:beltPortal;portalMesh.position.copy(pos);portalMesh.lookAt(playerMesh.position);
+ const pos=activeSector==='aurora'?auroraPortal:beltPortal;portalMesh.position.copy(pos);portalMesh.quaternion.copy(activeSector==='aurora'?auroraPortalRotation:beltPortalRotation);
  const distance=playerMesh.position.distanceTo(pos),near=distance<=350,unlocked=activeSector==='belt'||player.level>=10;
  const charging=distance<=100&&unlocked&&!docked&&!landing;
  if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector();portalMessage.style.display='none';return}}else portalCountdown=0;
- portalRing.rotation.z+=dt*(charging?3:.35);portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=charging?.8:.25;portalLight.intensity=charging?90:20;
+ const pulse=charging?portalChargePulse(portalCountdown):0;
+ portalCharge.visible=charging;portalChargeMaterial.opacity=pulse*.65;
+ portalRing.rotation.z=0;portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=.25;portalLight.intensity=charging?20+pulse*70:20;
  if(portalMesh.userData.portalModel){
-  portalHalo.material.opacity=charging?.8:unlocked?.25:.08;
-  portalHalo.scale.setScalar(charging?1+Math.sin(performance.now()*.012)*.025:1);
+  portalHalo.material.opacity=unlocked?.18:.08;
+  portalHalo.scale.setScalar(1);
  }
  portalMessage.style.display=near&&!docked&&!landing?'block':'none';
  if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel 10 para desbloquear':charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 Acércate a 100 m para viajar';
