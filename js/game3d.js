@@ -1513,7 +1513,7 @@ function updateTargetLock(){
  }else lockFrame.classList.add('hidden');
 }
 function fire(mult=1,count=1){
- if(fireCd>0)return;
+ if(player.hp<=0||recoveryPending||fireCd>0)return;
  lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  updateTargetLock();
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
@@ -2173,6 +2173,7 @@ function removeMissileEffects(p){
 function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
 function skill(){
+ if(player.hp<=0||recoveryPending)return;
  if(skillCd>0||docked||landing||inSafeZone(playerMesh.position))return;
  lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  updateTargetLock();
@@ -2675,7 +2676,38 @@ $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;playe
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-let last=performance.now();function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
+let last=performance.now();
+let recoveryPending=false;
+const recoveryPanel=document.createElement('div');
+recoveryPanel.style.cssText='position:fixed;inset:0;z-index:100;background:#020611dd;display:none;align-items:center;justify-content:center;padding:20px;color:white;font:16px system-ui';
+recoveryPanel.innerHTML='<div style="max-width:440px;padding:24px;background:#101c30;border:1px solid #68bdde;border-radius:18px;text-align:center"><h2>Nave destruida</h2><p>Elige dónde recuperar tu nave.</p><p id="recoveryBalance"></p><button id="recoverCurrent" style="display:block;width:100%;padding:14px;margin:12px 0">Reparar en este mapa · 1.000 créditos</button><button id="recoverAurora" style="display:block;width:100%;padding:14px;margin:12px 0">Volver a base Aurora · 100 créditos</button><small id="recoveryHelp"></small></div>';
+document.body.appendChild(recoveryPanel);
+function showRecovery(){
+ if(recoveryPending)return;
+ recoveryPending=true;resetDockControls();explorerThreat=null;clearCombatShots();
+ repairRobot.visible=repairBeam.visible=false;lockFrame.classList.add('hidden');
+ sectorNotice.style.display='none';portalMessage.style.display='none';portalCountdown=0;
+ $('recoveryBalance').textContent='Créditos disponibles: '+player.gold;
+ $('recoverCurrent').disabled=player.gold<1000;
+ $('recoverAurora').textContent=player.gold>=100?'Volver a base Aurora · 100 créditos':'Rescate a base Aurora · '+Math.max(0,player.gold)+' créditos';
+ $('recoveryHelp').textContent=player.gold<100?'Rescate de emergencia: se cobra solo tu saldo disponible.':'';
+ recoveryPanel.style.display='flex';save();
+}
+function recoverShip(inCurrentMap){
+ if(!recoveryPending||inCurrentMap&&player.gold<1000)return;
+ const cost=inCurrentMap?1000:Math.min(100,Math.max(0,player.gold));
+ player.gold-=cost;player.hp=player.maxHp;player.energy=player.maxEnergy;
+ docked=false;landing=false;landingArmed=false;hangar.classList.add('hidden');
+ if(!inCurrentMap&&activeSector!=='aurora')switchSector({to:'aurora',level:0,arrival:auroraStation.position.clone().add(new THREE.Vector3(0,165,350))});
+ else playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,350));
+ recoveryPending=false;recoveryPanel.style.display='none';clearCombatShots();explorerThreat=null;
+ camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));
+ lootToast('🔧 Nave reparada · -'+cost+' créditos');save();hud();
+}
+$('recoverCurrent').onclick=()=>recoverShip(true);
+$('recoverAurora').onclick=()=>recoverShip(false);
+
+function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
@@ -2732,7 +2764,7 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);upda
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
  }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>COMBAT_RANGE)p.life=0}p.life-=dt;for(const e of enemies){if(!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=COMBAT_RANGE)&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
-if(player.hp<=0){const recoveryCost=Math.min(1000,Math.max(0,player.gold));player.gold-=recoveryCost;playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,350));explorerThreat=null;clearCombatShots();player.hp=player.maxHp;player.energy=player.maxEnergy;sectorNotice.style.display='none';lootToast('🔧 Nave recuperada en la base · -'+recoveryCost+' créditos');save()}
+if(player.hp<=0){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 hud();
