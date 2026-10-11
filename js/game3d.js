@@ -82,17 +82,28 @@ function createSpaceBackground(){
  texture.colorSpace=THREE.SRGBColorSpace;
  return texture;
 }
-const spaceBackground=createSpaceBackground();if(spaceBackground)scene.background=spaceBackground;
+const spaceBackground=createSpaceBackground();
+let auroraBackground=spaceBackground,beltBackground=spaceBackground;
+if(spaceBackground)scene.background=spaceBackground;
+function syncSectorEnvironment(){
+ const belt=activeSector==='belt';
+ scene.background=belt?beltBackground:auroraBackground;
+ auroraPlanetPivot.visible=!belt;
+ sectorStars.position.set(currentSector().x,0,currentSector().z);
+}
+new THREE.TextureLoader().load('./assets/models/fondo_espacial_cinturon.webp?v=145',texture=>{
+ texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace;
+ beltBackground=texture;syncSectorEnvironment();
+},undefined,()=>console.info('Fondo Cinturón no disponible; usando respaldo espacial.'));
 // Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=105',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;
  texture.colorSpace=THREE.SRGBColorSpace;
- scene.background=texture;
- if(spaceBackground)spaceBackground.dispose();
+ auroraBackground=texture;syncSectorEnvironment();
 },undefined,()=>console.info('Fondo espacial personalizado pendiente; usando fondo original.'));
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
 scene.add(new THREE.HemisphereLight(0x7bbcff,0x050713,1.8));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
-const starsGeo=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1600;i++)sp.push((Math.random()-.5)*8000,(Math.random()-.5)*4500,(Math.random()-.5)*8000);starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xbad9ff,size:3,sizeAttenuation:true})));
+const starsGeo=new THREE.BufferGeometry(),sp=[];for(let i=0;i<1600;i++)sp.push((Math.random()-.5)*8000,(Math.random()-.5)*4500,(Math.random()-.5)*8000);starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));const sectorStars=new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xbad9ff,size:3,sizeAttenuation:true}));scene.add(sectorStars);
 // Planeta lejano del Sector Aurora: decorativo, sin colisiones ni viajes aún.
 // Materiales sin niebla para conservar su silueta desde la zona jugable.
 function createAuroraPlanet(){
@@ -120,9 +131,9 @@ function createAuroraPlanet(){
  const glow=new THREE.Mesh(new THREE.SphereGeometry(708,40,24),new THREE.MeshBasicMaterial({color:0x2c9ce5,transparent:true,opacity:.085,side:THREE.BackSide,depthWrite:false,fog:false}));planet.add(glow);
  const rings=new THREE.Mesh(new THREE.RingGeometry(845,1140,96),new THREE.MeshBasicMaterial({color:0x78a9c9,transparent:true,opacity:.24,side:THREE.DoubleSide,depthWrite:false,fog:false}));
  rings.rotation.x=1.18;rings.rotation.y=.26;planet.add(rings);
- scene.add(planet);
+ planet.position.sub(auroraPlanetPosition);auroraPlanetPivot.add(planet);
  const moon=new THREE.Mesh(new THREE.IcosahedronGeometry(145,3),new THREE.MeshStandardMaterial({color:0x9a9ba5,roughness:1,flatShading:true,emissive:0x20212a,emissiveIntensity:.18,fog:false}));
- moon.position.set(3350,1220,-5550);scene.add(moon);
+ moon.position.set(3350,1220,-5550).sub(auroraPlanetPosition);auroraPlanetPivot.add(moon);
 }
 // Planeta Aurora 3D: único planeta principal. No cargar el sprite 2D
 // ni el planeta procedural simultáneamente.
@@ -570,6 +581,7 @@ function currentStation(){return activeSector==='belt'?beltStation:auroraStation
 function currentStationName(){return activeSector==='belt'?'Estación Cinturón':'Estación Aurora'}
 function syncStationVisibility(){
  auroraStation.visible=activeSector==='aurora';beltStation.visible=activeSector==='belt';
+ syncSectorEnvironment();
 }
 // Respaldo propio de la nueva estación mientras se cargan las mismas tres piezas.
 function buildBeltStationFallback(){
@@ -1904,6 +1916,12 @@ function updateSectorBoundary(dt){
  if(remaining>sector.warning){sectorNotice.style.display='none';return}
  sectorNotice.style.display='block';
  if(remaining>=0){sectorNotice.textContent='⚠️ Límite de '+(activeSector==='belt'?'Cinturón Perdido':'Sector Aurora')+' a '+Math.ceil(remaining)+' m';return}
+ // Franja exterior de 200 m: conserva el daño de advertencia y evita volar a otro mapa.
+ const maximumDistance=sector.radius+200;
+ if(d>maximumDistance){
+  const center=new THREE.Vector3(sector.x,0,sector.z);
+  playerMesh.position.sub(center).multiplyScalar(maximumDistance/d).add(center);
+ }
  player.hp=Math.max(0,player.hp-sector.damagePerSecond*dt);
  sectorNotice.textContent='☢️ Fuera del sector · -8 casco/s · Regresa al interior';
 }
