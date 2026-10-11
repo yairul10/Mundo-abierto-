@@ -1136,6 +1136,7 @@ function updateEnemyShots(dt){
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
 let fireCd=0,skillCd=0,fireHeld=false,firePointerId=null;
 // Apuntado asistido: sólo objetivos vivos dentro del cono central de la pantalla.
+const COMBAT_RANGE=1200;
 let lockedEnemy=null;
 const lockFrame=$('targetLock');
 function updateTargetLock(){
@@ -1144,8 +1145,9 @@ function updateTargetLock(){
  const forwardView=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
  for(const e of enemies){
   if(e.dead||!e.mesh.visible)continue;
-  const to=e.mesh.position.clone().sub(camera.position),distance=to.length();
-  if(distance>1200||distance<40||to.dot(forwardView)<=0)continue;
+  const to=e.mesh.position.clone().sub(camera.position);
+  const distance=e.mesh.position.distanceTo(playerMesh.position);
+  if(distance>COMBAT_RANGE||to.length()<40||to.dot(forwardView)<=0)continue;
   const p=e.mesh.position.clone().project(camera);
   if(p.z<-1||p.z>1||Math.abs(p.x)>.34||Math.abs(p.y)>.30)continue;
   const score=p.x*p.x+p.y*p.y+distance/18000;
@@ -2021,7 +2023,7 @@ for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,e
 updateLoot(dt);
 drawRadar(dt);
 const playerSafe=updateZone();updateDock();
-for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');e.fireTimer=1+Math.random()*2}continue}if(!e.mesh.visible)continue;const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<1200&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
+for(const e of enemies){if(e.dead){if(now/1000>=e.dead){e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=activeSector==='aurora'?(e.type==='scout'||e.type==='raider'):(e.type==='sentinel'||e.type==='destroyer');e.fireTimer=1+Math.random()*2}continue}if(!e.mesh.visible)continue;const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);if(d<COMBAT_RANGE&&!playerSafe&&!docked&&!landing){const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));else if(d<65)applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt);e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}}e.mesh.lookAt(playerMesh.position)}
 updateEnemyShots(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);
  for(const p of shots){if(p.missile){
