@@ -1715,6 +1715,8 @@ const beltPortal=new THREE.Vector3(SECTOR_BELT.x,0,SECTOR_BELT.z+2450);
 const portalMat=new THREE.MeshBasicMaterial({color:0x8a65ff,transparent:true,opacity:.9,side:THREE.DoubleSide});
 const portalFill=new THREE.MeshBasicMaterial({color:0x6241da,transparent:true,opacity:.25,side:THREE.DoubleSide,depthWrite:false});
 const portalMesh=new THREE.Group(),portalRing=new THREE.Mesh(new THREE.TorusGeometry(30,4,12,56),portalMat);
+// Tamaño aumentado un 400 % (5 veces el original), incluyendo el GLB y los efectos.
+portalMesh.scale.setScalar(5);
 const portalDisk=new THREE.Mesh(new THREE.CircleGeometry(26,56),portalFill);
 portalMesh.add(portalRing,portalDisk);
 // El anillo provisional sigue visible hasta que termina de cargar el modelo.
@@ -1764,7 +1766,7 @@ function switchSector(){
 function updateSectorPortal(){
  const dt=Math.min(.1,(performance.now()-portalLastTick)/1000);portalLastTick=performance.now();
  const pos=activeSector==='aurora'?auroraPortal:beltPortal;portalMesh.position.copy(pos);portalMesh.lookAt(playerMesh.position);
- const distance=playerMesh.position.distanceTo(pos),near=distance<=75,unlocked=activeSector==='belt'||player.level>=10;
+ const distance=playerMesh.position.distanceTo(pos),near=distance<=350,unlocked=activeSector==='belt'||player.level>=10;
  const charging=distance<=100&&unlocked&&!docked&&!landing;
  if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector();portalMessage.style.display='none';return}}else portalCountdown=0;
  portalRing.rotation.z+=dt*(charging?3:.35);portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=charging?.8:.25;portalLight.intensity=charging?90:20;
