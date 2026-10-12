@@ -812,6 +812,59 @@ function buildBeltStation(hubSource,padSource,bridgeSource,fitted){
  console.info('Estación Cinturón montada: núcleo, 2 plataformas grandes y corredores en L.');
 }
 
+function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
+ const assembly=new THREE.Group(),hub=fitted(hubSource,315),pads=[];
+ hub.name='Núcleo Ascuas';assembly.add(hub);
+ for(const direction of [new THREE.Vector3(-1,0,0),new THREE.Vector3(1,0,0)]){
+  const port=stationConnector(hub,direction);
+  const pad=fitted(padSource,360);
+  const rim=stationConnector(pad,direction.clone().negate(),18,25);
+  pad.position.copy(direction).multiplyScalar(460);
+  pad.position.y=port.center.y-rim.center.y;
+  pad.position[port.side]=port.center[port.side]-rim.center[port.side];
+  pad.userData.landingRadius=216;pad.name='Plataforma Ascuas';
+  const padSocket=rim.center.clone().add(pad.position);
+  const start=port.center.clone().addScaledVector(direction,-3);
+  const end=padSocket.clone().addScaledVector(direction,4);
+  if(start.distanceTo(end)<20)throw new Error('Corredor Ascuas demasiado corto');
+  const bridge=fitted(bridgeSource,start.distanceTo(end));
+  const size=new THREE.Box3().setFromObject(bridge).getSize(new THREE.Vector3()),longX=size.x>size.z;
+  const width=Math.max(20,port.size[port.side]*1.12),height=Math.max(20,port.size.y*1.12);
+  if(longX)bridge.scale.z=width/size.z;else bridge.scale.x=width/size.x;
+  bridge.scale.y=height/size.y;
+  bridge.rotation.y=Math.atan2(direction.x,direction.z)+(longX?Math.PI/2:0);
+  bridge.position.copy(start).add(end).multiplyScalar(.5);
+  bridge.name='Corredor Ascuas';bridge.userData.connectionStart=start;bridge.userData.connectionEnd=end;
+  assembly.add(bridge,pad);pads.push(pad);
+ }
+ // Compartir geometrías/texturas, pero aislar el acabado y la luz de cada sector.
+ illuminateBeltMaterials(assembly);
+ const materials=new Set();assembly.traverse(mesh=>{if(mesh.isMesh)for(const material of Array.isArray(mesh.material)?mesh.material:[mesh.material])materials.add(material)});
+ for(const material of materials){
+  if(!material?.isMeshStandardMaterial)continue;
+  material.color.multiply(new THREE.Color(1,.94,.88));material.emissiveIntensity=1.65;
+  if(material.map){
+   material.onBeforeCompile=shader=>{
+    shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`
+#ifdef USE_EMISSIVEMAP
+ vec3 stationLamp=texture2D(emissiveMap,vEmissiveMapUv).rgb;
+ float blueLamp=smoothstep(0.04,0.22,stationLamp.b-max(stationLamp.r,stationLamp.g)*0.75);
+ float amberLamp=smoothstep(0.04,0.22,min(stationLamp.r,stationLamp.g*1.8)-stationLamp.b*1.8);
+ float lampBrightness=smoothstep(0.08,0.35,max(stationLamp.r,max(stationLamp.g,stationLamp.b)));
+ totalEmissiveRadiance*=vec3(1.0,0.58,0.20)*max(blueLamp,amberLamp)*lampBrightness;
+#endif
+`);
+   };material.customProgramCacheKey=()=> 'ember-station-lamps-v173';material.needsUpdate=true;
+  }
+ }
+ // Retirar la geometría simple solo cuando la estación detallada esté completa.
+ for(const child of [...emberStation.children])if(!child.isLight)emberStation.remove(child);
+ emberStation.add(assembly);emberLandingPads.splice(0,emberLandingPads.length,...pads);
+ const light=new THREE.PointLight(0xffc08a,220,1100,2);light.position.set(0,180,0);emberStation.add(light);
+ const fill=new THREE.PointLight(0xb7d9ff,90,850,2);fill.position.set(0,-100,0);emberStation.add(fill);
+ syncStationVisibility();console.info('Estación Ascuas montada: núcleo GLB, 2 plataformas detalladas y corredores conectados a los puertos.');
+}
+
 // Estación Aurora definitiva: tres GLB independientes unidos sobre el respaldo procedural.
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
@@ -854,7 +907,9 @@ Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLo
  LANDING_APPROACH.copy(padWorld).add(new THREE.Vector3(0,185,0));
  LANDING_TOUCHDOWN.copy(padWorld).add(new THREE.Vector3(0,52,0));
  landingArmed=true;
- buildBeltStation(hubSource,padSource,bridgeSource,fitted);
+ for(const [name,build]of [['Cinturón',buildBeltStation],['Ascuas',buildEmberStation]]){
+  try{build(hubSource,padSource,bridgeSource,fitted)}catch(error){console.warn('No se pudo montar la estación '+name+'; se conserva su respaldo.',error)}
+ }
  console.info('Estación Aurora modular montada: 1 núcleo, 4 plataformas y 4 corredores.');
 }).catch(err=>{beltStationReady=true;console.warn('Estación modular no disponible: se mantienen los respaldos de cada sector.',err)});
 // Asteroides rocosos: siluetas irregulares, tonos minerales y relieve de bajo costo.
