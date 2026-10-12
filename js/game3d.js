@@ -2,6 +2,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
+import {GRAVEYARD,createGraveyard,createScrapCombat} from './graveyard.js?v=178';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
@@ -92,7 +93,8 @@ const spaceBackground=createSpaceBackground();
 let auroraBackground=spaceBackground,beltBackground=spaceBackground,emberBackground=spaceBackground;
 if(spaceBackground)scene.background=spaceBackground;
 function syncSectorEnvironment(){
- scene.background=activeSector==='ember'?emberBackground:activeSector==='belt'?beltBackground:auroraBackground;
+ scene.background=activeSector==='graveyard'?graveyard.background:activeSector==='ember'?emberBackground:activeSector==='belt'?beltBackground:auroraBackground;
+ graveyard.environment.visible=activeSector==='graveyard'&&!PVP_MODE;
  auroraPlanetPivot.visible=activeSector==='aurora';
  emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=activeSector==='ember';
  for(const light of beltSectorLights)light.visible=activeSector==='belt';
@@ -656,6 +658,7 @@ function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d
 let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
 
+const graveyard=createGraveyard(THREE,scene);
 const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
 const SECTOR_EMBER={x:23000,z:-650,radius:4500,warning:900,damagePerSecond:8};
 const emberStation=new THREE.Group();emberStation.position.set(SECTOR_EMBER.x,0,SECTOR_EMBER.z);scene.add(emberStation);
@@ -697,10 +700,11 @@ beltStation.position.set(SECTOR_BELT.x,0,SECTOR_BELT.z);
 beltStation.scale.copy(auroraStation.scale);scene.add(beltStation);
 const beltLandingPads=[];
 let beltStationReady=false;
-function currentStation(){return activeSector==='ember'?emberStation:activeSector==='belt'?beltStation:auroraStation}
-function currentStationName(){return activeSector==='ember'?'Estación Ascuas':activeSector==='belt'?'Estación Cinturón':'Estación Aurora'}
-function currentSectorName(){return activeSector==='ember'?'Ascuas':activeSector==='belt'?'Cinturón Perdido':'Sector Aurora'}
+function currentStation(){return activeSector==='graveyard'?graveyard.station:activeSector==='ember'?emberStation:activeSector==='belt'?beltStation:auroraStation}
+function currentStationName(){return activeSector==='graveyard'?'Estación Recuperación':activeSector==='ember'?'Estación Ascuas':activeSector==='belt'?'Estación Cinturón':'Estación Aurora'}
+function currentSectorName(){return activeSector==='graveyard'?'Cementerio de Naves':activeSector==='ember'?'Ascuas':activeSector==='belt'?'Cinturón Perdido':'Sector Aurora'}
 function syncStationVisibility(){
+ graveyard.station.visible=activeSector==='graveyard'&&!PVP_MODE;
  auroraStation.visible=activeSector==='aurora';beltStation.visible=activeSector==='belt';emberStation.visible=activeSector==='ember';
  syncSectorEnvironment();
 }
@@ -963,6 +967,8 @@ const TYPES={
  raider:{hp:70,damage:10,speed:150,xp:36,gold:20,loot:2,color:0xe78b45},
  sentinel:{hp:140,damage:20,speed:90,xp:72,gold:40,loot:4,color:0xb86bd9},destroyer:{hp:280,damage:35,speed:110,xp:130,gold:80,loot:6,color:0xff3d9b},
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
+ catapult:{hp:380,damage:110,speed:75,xp:260,gold:170,loot:8,color:0x815942},
+ harpooner:{hp:250,damage:25,speed:130,xp:225,gold:145,loot:7,color:0x505b69},
  carrier:{hp:40000,damage:0,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
 };
 // Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
@@ -973,19 +979,20 @@ function enemyDifficultyScale(){
 }
 function enemyMaxHp(type){return type==='carrier'?40000:type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
 function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
-const enemyKinds=[...Array(34).fill('scout'),...Array(19).fill('raider'),...Array(20).fill('sentinel'),...Array(19).fill('destroyer'),...Array(10).fill('devastator')]; // Aproximadamente +40%: 53 enemigos en Aurora y 39 en Cinturón; Ascuas conserva 16 Destructores.
+const enemyKinds=[...Array(34).fill('scout'),...Array(19).fill('raider'),...Array(20).fill('sentinel'),...Array(19).fill('destroyer'),...Array(10).fill('devastator'),...Array(12).fill('catapult'),...Array(12).fill('harpooner')]; // Aproximadamente +40%: 53 enemigos en Aurora y 39 en Cinturón; Ascuas conserva 16 Destructores.
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
  const min=type==='scout'?850:type==='raider'?1200:1700;
- return randomSectorPosition(min,MAP_CENTER_X===SECTOR_EMBER.x?4420:2920);
+ return randomSectorPosition(min,MAP_CENTER_X===SECTOR_EMBER.x||MAP_CENTER_X===GRAVEYARD.x?4420:2920);
 }
 const enemies=enemyKinds.map((type,i)=>{
- const t=TYPES[type],mesh=ship(t.color,type);scene.add(mesh);
+ const t=TYPES[type],mesh=['catapult','harpooner'].includes(type)?graveyard.enemyVisual(type):ship(t.color,type);scene.add(mesh);
  const home=randomEnemyHome(type);mesh.position.copy(home);mesh.visible=type==='scout'||type==='raider';
  const maxHp=enemyMaxHp(type);return {type,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,aggressive:type!=='devastator',fireTimer:1+Math.random()*2};
 });
 
 function enemyBelongsToSector(e,rank=1){
+ if(activeSector==='graveyard')return e.type==='catapult'||e.type==='harpooner';
  if(e.bossAdd||e.type==='carrier')return activeSector==='ember';
  if(activeSector==='aurora')return e.type==='scout'||e.type==='raider';
  if(activeSector==='belt')return e.type==='sentinel'||e.type==='destroyer'&&rank<=19;
@@ -1128,6 +1135,7 @@ function damageEnemy(e,damage,missile=false){if(e.pvpRemote)return;
  else if(e.type==='carrier')save();
 }
 function clearCombatShots(){
+ scrapCombat.clear();
  for(const p of enemyShots)scene.remove(p.mesh);enemyShots.length=0;
  for(const p of shots){removeMissileEffects(p);scene.remove(p.mesh)}shots.length=0;
 }
@@ -1584,6 +1592,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
+const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:amount=>applyPlayerDamage(Math.max(1,amount-player.defense*.25)),notify:message=>lootToast(message)});
 const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff}),destroyer:new THREE.MeshBasicMaterial({color:0xff3d9b}),devastator:new THREE.MeshBasicMaterial({color:0xff7733})};
@@ -1592,6 +1601,7 @@ function enemyFire(e){
  repairRobot.visible=repairBeam.visible=false;
  const t=TYPES[e.type];
  registerExplorerThreat(e);
+ if(e.type==='catapult'||e.type==='harpooner'){scrapCombat.fire(e);return}
  const start=e.mesh.position.clone();
  const target=playerMesh.position.clone().add(new THREE.Vector3((Math.random()-.5)*75,(Math.random()-.5)*55,(Math.random()-.5)*75));
  const dir=target.sub(start).normalize();
@@ -1632,7 +1642,7 @@ function updateTargetLock(){
   lockFrame.classList.remove('hidden');
   lockFrame.style.left=((screen.x+1)*50)+'%';
   lockFrame.style.top=((1-screen.y)*50)+'%';
-  const info=candidate.pvpRemote?[candidate.pilotName,candidate.pilotLevel]:{scout:['Explorador',1],raider:['Asaltante',3],sentinel:['Guardián',5],destroyer:['Destructor',8],devastator:['Devastador',30],carrier:['Coloso Portanaves',30]}[candidate.type]||['Enemigo',1];
+  const info=candidate.pvpRemote?[candidate.pilotName,candidate.pilotLevel]:{scout:['Explorador',1],raider:['Asaltante',3],sentinel:['Guardián',5],destroyer:['Destructor',8],devastator:['Devastador',30],catapult:['Catapulta de Chatarra',40],harpooner:['Arponero',40],carrier:['Coloso Portanaves',30]}[candidate.type]||['Enemigo',1];
   $('targetName').textContent=info[0]+' · Nv. '+(candidate.pvpRemote?info[1]:Math.max(info[1],Math.floor(Number(player.level)||1)));
   $('targetHpText').textContent=Math.max(0,Math.ceil(candidate.hp))+'/'+candidate.maxHp;
   $('targetHpFill').style.width=(100*Math.max(0,Math.min(1,candidate.hp/candidate.maxHp)))+'%';
@@ -2056,7 +2066,7 @@ function loadCampaign(key,missions){
  player.quests[key]=c;return c;
 }
 const campaign=loadCampaign('aurora',MISSIONS),beltCampaign=loadCampaign('belt',BELT_MISSIONS),emberCampaign=loadCampaign('ember',EMBER_MISSIONS);
-let questCollapsed=true,questTrack=player.sector==='ember'&&player.level>=30?'ember':player.sector==='belt'&&player.level>=10?'belt':'aurora';
+let questCollapsed=true,questTrack=['ember','graveyard'].includes(player.sector)&&player.level>=30?'ember':player.sector==='belt'&&player.level>=10?'belt':'aurora';
 
 // Contratos largos: objetivos simultáneos, una misión activa y premio único.
 const LONG_MISSIONS=[
@@ -2174,6 +2184,7 @@ function missionEvent(type,context={}){
 }
 let missionExploreElapsed=0;
 function updateExplorationMissions(dt){
+ if(activeSector==='graveyard')return;
  missionExploreElapsed+=dt;if(missionExploreElapsed<.5)return;missionExploreElapsed=0;
  const key=activeSector,c=key==='ember'?emberCampaign:key==='belt'?beltCampaign:campaign,missions=key==='ember'?EMBER_MISSIONS:key==='belt'?BELT_MISSIONS:MISSIONS;
  if(missions[c.index]?.event!=='edgeReturn')return;
@@ -2346,7 +2357,7 @@ function inSafeZone(position){if(PVP_MODE)return false;return position.distanceT
 let lastZoneLabel='',zoneToastTimer=null;
 function updateZone(){if(PVP_MODE){$('targetInfo').textContent='ARENA PvP · Tu equipamiento';return false}
  const safe=inSafeZone(playerMesh.position);
- const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='ember'?'ASCUAS|Sector de nivel 30+':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
+ const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='graveyard'?'CEMENTERIO DE NAVES|Sector de nivel 40+':activeSector==='ember'?'ASCUAS|Sector de nivel 30+':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
   const [title,subtitle]=label.split('|'),el=$('targetInfo');
   el.replaceChildren(document.createTextNode(title),document.createElement('br'));
@@ -2403,7 +2414,7 @@ function drawRadar(dt){
  ctx.fillStyle='#fff7a1';ctx.beginPath();ctx.moveTo(78,68);ctx.lineTo(71,87);ctx.lineTo(78,83);ctx.lineTo(85,87);ctx.closePath();ctx.fill();
  ctx.strokeStyle='#5bb9e4aa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(78,78,72,0,Math.PI*2);ctx.stroke();
  const distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
- radarDistance.textContent=PVP_MODE?'Arena PvP':(activeSector==='ember'?'Ascuas':activeSector==='belt'?'Cinturón':'Aurora')+' · '+Math.round(distance)+' m';
+ radarDistance.textContent=PVP_MODE?'Arena PvP':currentSectorName()+' · '+Math.round(distance)+' m';
 }
 // Paso 14: atraque asistido y hangar sin cambiar de escena ni perder progreso.
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
@@ -2438,11 +2449,11 @@ function finishLanding(){
 // Solo aceptar una superficie horizontal realmente situada debajo de la nave.
 // No usar posiciones antiguas si no existe una plataforma detectable.
 function selectLandingPlatform(apply=false){
- if(activeSector==='ember'?false:activeSector==='belt'?!beltStationReady:!auroraModelReady)return false;
- if(activeSector==='ember'||activeSector==='belt'||modularStationReady){
+ if(activeSector==='graveyard'||activeSector==='ember'?false:activeSector==='belt'?!beltStationReady:!auroraModelReady)return false;
+ if(activeSector==='graveyard'||activeSector==='ember'||activeSector==='belt'||modularStationReady){
   currentStation().updateMatrixWorld(true);
   let nearest=null,best=Infinity;
-  for(const pad of activeSector==='ember'?emberLandingPads:activeSector==='belt'?beltLandingPads:modularLandingPads){
+  for(const pad of activeSector==='graveyard'?graveyard.pads:activeSector==='ember'?emberLandingPads:activeSector==='belt'?beltLandingPads:modularLandingPads){
    const bounds=new THREE.Box3().setFromObject(pad);
    const center=bounds.getCenter(new THREE.Vector3());
    const distance=Math.hypot(playerMesh.position.x-center.x,playerMesh.position.z-center.z);
@@ -2599,8 +2610,8 @@ playerMesh.position.set(player.x,player.z,player.y);
 if(!Number.isFinite(playerMesh.position.x)||!Number.isFinite(playerMesh.position.y)||!Number.isFinite(playerMesh.position.z))playerMesh.position.set(0,0,0);
 // Límite del Sector Aurora. Otros planetas podrán definir su propio centro/radio.
 const SECTOR_AURORA={x:0,z:-650,radius:3000,warning:600,damagePerSecond:8};
-let activeSector=PVP_MODE?'aurora':['belt','ember'].includes(player.sector)?player.sector:'aurora';
-const currentSector=()=>activeSector==='ember'?SECTOR_EMBER:activeSector==='belt'?SECTOR_BELT:SECTOR_AURORA;
+let activeSector=PVP_MODE?'aurora':['belt','ember','graveyard'].includes(player.sector)?player.sector:'aurora';
+const currentSector=()=>activeSector==='graveyard'?GRAVEYARD:activeSector==='ember'?SECTOR_EMBER:activeSector==='belt'?SECTOR_BELT:SECTOR_AURORA;
  syncStationVisibility();
 MAP_CENTER_X=currentSector().x;MAP_CENTER_Z=currentSector().z;
 function resetSectorPopulation(){
@@ -2684,9 +2695,13 @@ function refreshSecondaryPortal(){
 const beltEmberPortal=new THREE.Vector3(SECTOR_BELT.x+2450,300,SECTOR_BELT.z-800);
 const emberPortal=new THREE.Vector3(SECTOR_EMBER.x,0,SECTOR_EMBER.z+4000);
 const beltEmberRotation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),new THREE.Vector3(SECTOR_BELT.x,0,SECTOR_BELT.z).sub(beltEmberPortal).normalize());
+const emberGraveyardPortal=new THREE.Vector3(SECTOR_EMBER.x+3900,300,SECTOR_EMBER.z-800);
+const graveyardPortal=new THREE.Vector3(GRAVEYARD.x,0,GRAVEYARD.z+4000);
+const emberGraveyardRotation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),new THREE.Vector3(SECTOR_EMBER.x,0,SECTOR_EMBER.z).sub(emberGraveyardPortal).normalize());
 function sectorPortalRoutes(){
+ if(activeSector==='graveyard')return [{id:'graveyard-ember',pos:graveyardPortal,rotation:beltPortalRotation,to:'ember',level:0,arrival:emberGraveyardPortal.clone().add(new THREE.Vector3(-200,0,0))}];
  if(activeSector==='aurora')return [{id:'aurora-belt',pos:auroraPortal,rotation:auroraPortalRotation,to:'belt',level:10,arrival:beltPortal.clone().add(new THREE.Vector3(0,0,-140))}];
- if(activeSector==='ember')return [{id:'ember-belt',pos:emberPortal,rotation:beltPortalRotation,to:'belt',level:0,arrival:beltEmberPortal.clone().add(new THREE.Vector3(-140,0,0))}];
+ if(activeSector==='ember')return [{id:'ember-graveyard',pos:emberGraveyardPortal,rotation:emberGraveyardRotation,to:'graveyard',level:40,arrival:graveyardPortal.clone().add(new THREE.Vector3(0,0,-200))},{id:'ember-belt',pos:emberPortal,rotation:beltPortalRotation,to:'belt',level:0,arrival:beltEmberPortal.clone().add(new THREE.Vector3(-140,0,0))}];
  return [
   {id:'belt-aurora',pos:beltPortal,rotation:beltPortalRotation,to:'aurora',level:0,arrival:auroraPortal.clone().addScaledVector(portalDir,-140)},
   {id:'belt-ember',pos:beltEmberPortal,rotation:beltEmberRotation,to:'ember',level:30,arrival:emberPortal.clone().add(new THREE.Vector3(0,0,-140))}
@@ -2709,8 +2724,8 @@ function switchSector(route){
  playerMesh.position.copy(route.arrival);
  resetSectorPopulation();clearCombatShots();
  for(const d of drops)scene.remove(d.mesh);drops.length=0;
- questTrack=activeSector==='ember'?'ember':activeSector==='belt'?'belt':'aurora';
- missionEvent(activeSector==='belt'?'travelBelt':activeSector==='ember'?'travelEmber':'travelAurora',{sector:activeSector});
+ questTrack=['ember','graveyard'].includes(activeSector)?'ember':activeSector==='belt'?'belt':'aurora';
+ if(activeSector!=='graveyard')missionEvent(activeSector==='belt'?'travelBelt':activeSector==='ember'?'travelEmber':'travelAurora',{sector:activeSector});
  portalCountdown=0;selectedPortalId=null;portalCharge.visible=false;portalChargeMaterial.opacity=0;save();lootToast('🌌 '+currentSectorName());
 }
 function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display='none';return}
@@ -2729,7 +2744,7 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  portalRing.rotation.z=0;portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=.25;portalLight.intensity=charging?20+pulse*70:20;
  if(portalMesh.userData.portalModel){portalHalo.material.opacity=unlocked?.18:.08;portalHalo.scale.setScalar(1)}
  portalMessage.style.display=near&&!docked&&!landing?'block':'none';
- if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel '+route.level:charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 '+(route.to==='ember'?'Ascuas':route.to==='belt'?'Cinturón Perdido':'Aurora')+' · Acércate a 100 m';
+ if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel '+route.level:charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 '+(route.to==='graveyard'?'Cementerio de Naves':route.to==='ember'?'Ascuas':route.to==='belt'?'Cinturón Perdido':'Aurora')+' · Acércate a 100 m';
 }
 
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
@@ -2851,7 +2866,7 @@ function loop(now){const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
-const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],fireHeld,dt,now);
+const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],fireHeld,dt,now);
 // Vuelo libre en los tres ejes: el límite esférico del sector sustituye al antiguo techo/suelo.
 updateSectorBoundary(dt);updateSectorPortal();
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
@@ -2890,12 +2905,12 @@ for(const e of enemies){
   const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();
   if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));
   else if(d<65){registerExplorerThreat(e);applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt)}
-  e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}
+  e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='catapult'?6:e.type==='harpooner'?5:e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}
  }
  if(e.bossAdd&&(d>=COMBAT_RANGE||playerSafe||docked||landing))patrolCarrierAdd(e,dt,now/1000);
  else e.mesh.lookAt(playerMesh.position);
 }
-updateEnemyShots(dt);
+updateEnemyShots(dt);scrapCombat.update(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);updateCarrier(dt);
  for(const p of shots){if(p.missile){
   p.missileAge=(p.missileAge||0)+dt;
@@ -2920,7 +2935,7 @@ if(PVP_MODE){
  function cloneClean(source){const saved=[];source.traverse(o=>{saved.push([o,o.userData]);o.userData={}});let copy;try{copy=source.clone(true)}finally{for(const [o,data]of saved)o.userData=data}return copy}
  function remoteVisual(id){const key=id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===remoteSource)return;remoteSource=source;remoteMesh.clear();const visual=cloneClean(source);visual.visible=true;remoteMesh.add(visual);}
  function syncRemoteDrones(other){const count=other.profile?.droneCount||0;const source=supportDrones[0]?.mesh;const sourceStamp=source?.children.length;if(count!==remoteDroneCount||sourceStamp!==remoteDroneSource){remoteDrones.clear();for(let i=0;i<count;i++){const clone=cloneClean(source);clone.visible=true;remoteDrones.add(clone)}remoteDroneCount=count;remoteDroneSource=sourceStamp}remoteDrones.position.copy(remote.mesh.position);remoteDrones.rotation.copy(remote.mesh.rotation);for(let i=0;i<remoteDrones.children.length;i++){const d=remoteDrones.children[i],pair=Math.floor(i/2);d.position.set((i%2?1:-1)*[78,135,195,250][pair],14,-[125,165,190,210][pair]);d.rotation.set(0,0,0)}}
- function keepArena(){for(const light of emberSectorLights)light.visible=false;auroraStation.visible=beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';}
+ function keepArena(){graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;auroraStation.visible=beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,0,400);yaw=0;pitch=0;camera.position.set(0,105,685);camera.lookAt(0,0,185);
  for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  $('hint').textContent='PvP · Mismos controles de vuelo y combate';$('stationDistance').textContent='Arena PvP';
@@ -2942,4 +2957,5 @@ if(PVP_MODE){
  });
  keepArena();
 }
+
 
