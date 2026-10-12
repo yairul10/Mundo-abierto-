@@ -1,10 +1,11 @@
+import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=186';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=187';
 import {createCatapultRig} from './catapult-rig.js?v=182';
-import {createHarpoonRig} from './harpoon-rig.js?v=186';
+import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
@@ -1099,10 +1100,10 @@ function spawnCarrierAdd(type,guard=false,snapshot=null){
  const position=snapshot?.position;
  if(Array.isArray(position)&&position.length===3&&position.every(Number.isFinite)&&Math.hypot(position[0]-SECTOR_EMBER.x,position[1],position[2]-SECTOR_EMBER.z)<4700)e.mesh.position.fromArray(position);
  else if(carrierMesh.userData.hangarExits?.length){
-  const slot=(carrierMesh.userData.nextHangar||0)%4;carrierMesh.userData.nextHangar=slot+1;
+  const slot=(carrierMesh.userData.nextHangar||0)%carrierMesh.userData.hangarExits.length;carrierMesh.userData.nextHangar=slot+1;
   carrierMesh.updateMatrixWorld(true);
   e.mesh.position.copy(carrierMesh.localToWorld(carrierMesh.userData.hangarExits[slot].clone()));
-  e.launchStart=e.mesh.position.clone();e.launchDirection=new THREE.Vector3(slot<2?-1:1,0,0).transformDirection(carrierMesh.matrixWorld);e.launchRemaining=3;
+  e.launchStart=e.mesh.position.clone();e.launchDirection=carrierMesh.userData.hangarDirections[slot].clone().transformDirection(carrierMesh.matrixWorld);e.launchRemaining=3;
   e.launchSlot=slot;e.launchWait=enemies.filter(other=>other!==e&&other.launchRemaining>0&&other.launchSlot===slot).reduce((wait,other)=>Math.max(wait,other.launchWait+other.launchRemaining),0);
  }else e.mesh.position.copy(carrierMesh.position).add(new THREE.Vector3(Math.cos(angle)*radius,(Math.random()-.5)*200,Math.sin(angle)*radius));
  if(snapshot?.launch&&Array.isArray(snapshot.launch.start)&&snapshot.launch.start.length===3&&snapshot.launch.start.every(Number.isFinite)&&Array.isArray(snapshot.launch.direction)&&snapshot.launch.direction.length===3&&snapshot.launch.direction.every(Number.isFinite)){
@@ -1253,37 +1254,14 @@ function finishColosoMaterials(model){
 }
 function assembleColosoModels(){
  if(!colosoHullTemplate||!colosoDoorTemplate||carrierMesh.userData.colosoVisual)return;
- finishColosoMaterials(colosoHullTemplate);finishColosoMaterials(colosoDoorTemplate);
- const hull=colosoHullTemplate.clone(true),bounds=new THREE.Box3().setFromObject(hull),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
- const factor=620/size.z;if(!Number.isFinite(factor)||factor<=0)return;
- const visual=new THREE.Group();visual.scale.setScalar(factor);visual.position.copy(center).multiplyScalar(-factor);visual.add(hull);
- const doorBounds=new THREE.Box3().setFromObject(colosoDoorTemplate),doorSize=doorBounds.getSize(new THREE.Vector3()),doorCenter=doorBounds.getCenter(new THREE.Vector3());
- if(doorSize.x<.001||doorSize.y<.001)return;
+ finishColosoMaterials(colosoDoorTemplate);
+ const rig=createColosoRig(THREE,colosoHullTemplate,colosoDoorTemplate,bossState.phases.includes(0));
  for(const child of carrierMesh.children)child.visible=false;
- carrierPanels.length=0;
- const exits=[],lamp=new THREE.MeshBasicMaterial({color:0xff8a20,toneMapped:false});
- for(const side of [-1,1])for(const z of [-3.55,7.8]){
-  const socket=new THREE.Group();socket.position.set(side*7.24,1.13,z);socket.rotation.y=side*Math.PI/2;visual.add(socket);
-  const hinge=new THREE.Group();socket.add(hinge);
-  const fit=new THREE.Group();fit.scale.set(6.75/doorSize.x,2.85/doorSize.y,.32/Math.max(.01,doorSize.z));hinge.add(fit);
-  const panel=colosoDoorTemplate.clone(true);panel.position.set(-doorCenter.x,-doorBounds.max.y,-doorCenter.z);fit.add(panel);
-  hinge.rotation.x=bossState.phases.includes(0)?-1.35:0;
-  carrierPanels.push({hinge,axis:'x',openAngle:-1.35});
-  // Luces insertadas en el marco fijo, sin iluminar toda la pintura del casco.
-  for(const y of [1.0,-1.6]){
-   const light=new THREE.Mesh(new THREE.BoxGeometry(.10,.07,6.3),lamp);light.position.set(side*7.3,y,z);visual.add(light);
-  }
-  for(const dz of [-3.15,3.15]){
-   const light=new THREE.Mesh(new THREE.BoxGeometry(.10,2.6,.07),lamp);light.position.set(side*7.3,-.3,z+dz);visual.add(light);
-  }
-  exits.push(new THREE.Vector3(side*3.9,-.25,z).sub(center).multiplyScalar(factor));
- }
- for(const x of [-3.4,3.4])for(const y of [-1.5,1.6]){
-  const glow=new THREE.Mesh(new THREE.TorusGeometry(.85,.10,8,20),lamp);glow.position.set(x,y,-12.82);visual.add(glow);
- }
- carrierMesh.add(visual);carrierMesh.userData.colosoVisual=visual;carrierMesh.userData.hangarExits=exits;carrierMesh.userData.hitRadius=255;
+ carrierPanels.length=0;carrierPanels.push(...rig.panels);
+ carrierMesh.add(rig.root);carrierMesh.userData.colosoVisual=rig.root;
+ carrierMesh.userData.hangarExits=rig.exits;carrierMesh.userData.hangarDirections=rig.directions;carrierMesh.userData.hitRadius=255;
 }
-deferredModelLoad(modelLoader,'./assets/models/spacecruiser_optimizado.glb?v=159',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/coloso.glb?v=187',gltf=>{
  colosoHullTemplate=gltf.scene;assembleColosoModels();
 },undefined,error=>console.warn('Casco Coloso no disponible; se conserva el respaldo.',error));
 deferredModelLoad(modelLoader,'./assets/models/scifipanelcrate_optimizado.glb?v=159',gltf=>{
@@ -3041,9 +3019,3 @@ if(PVP_MODE){
  });
  keepArena();
 }
-
-
-
-
-
-

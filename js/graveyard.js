@@ -99,13 +99,13 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
    const rig=enemy.mesh.userData.harpoonRig;if(rig)rigs.add(rig);
    const start=rig?rig.launch():enemy.mesh.position.clone(),dir=position().clone().sub(start).normalize();
    const mesh=rig?rig.projectile():new THREE.Mesh(harpoonGeo,metal);mesh.position.copy(start);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,rig?0:1,rig?1:0),dir);scene.add(mesh);
-   const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([start,start]),cableMaterial.clone());scene.add(line);
+   const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([rig?rig.cableOrigin():start,start]),cableMaterial.clone());scene.add(line);
    projectiles.push({enemy,mesh,line,velocity:dir.multiplyScalar(650),life:2.2});
   }
  }
  function update(dt){
   immune=Math.max(0,immune-dt);for(const rig of rigs)rig.update(dt);
-  if(tether){if(tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else{const elapsed=Math.min(dt,tether.time);damage(50,elapsed);tether.time-=elapsed;if(tether.time<=1e-9)release();else tether.line.geometry.setFromPoints([tether.enemy.mesh.userData.harpoonRig?.origin()||tether.enemy.mesh.position,position()])}}
+  if(tether){if(tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else{const elapsed=Math.min(dt,tether.time);damage(50,elapsed);tether.time-=elapsed;if(tether.time<=1e-9)release();else tether.line.geometry.setFromPoints([tether.enemy.mesh.userData.harpoonRig?.cableOrigin()||tether.enemy.mesh.position,position()])}}
   for(let i=pending.length-1;i>=0;i--){const p=pending[i];p.time-=dt;updateImpactMarker(p.marker,p.time+1.5);
    const rig=p.enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(Math.min(1,(1.4-p.time)/1.4))}
    const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=-Math.min(1.1,(1.4-p.time)*.8);
@@ -119,7 +119,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
    if(p.bomb){p.age+=dt;updateImpactMarker(p.marker,p.duration-p.age);const t=Math.min(1,p.age/p.duration);p.mesh.position.lerpVectors(p.start,p.target,t);p.mesh.position.y+=Math.sin(t*Math.PI)*180;p.mesh.rotation.x+=dt*4;
     if(t>=1){if(canHit()&&position().distanceTo(p.target)<180)damage(300);
      const burst=new THREE.Mesh(new THREE.SphereGeometry(1,16,8),new THREE.MeshBasicMaterial({color:0xffa13b,transparent:true,opacity:.7,depthWrite:false}));burst.position.copy(p.target);scene.add(burst);effects.push({mesh:burst,time:.55});done=true}
-   }else{p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;p.line.geometry.setFromPoints([p.enemy.mesh.userData.harpoonRig?.origin()||p.enemy.mesh.position,p.mesh.position]);
+   }else{p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;p.line.geometry.setFromPoints([p.enemy.mesh.userData.harpoonRig?.cableOrigin()||p.enemy.mesh.position,p.mesh.position]);
     if(canHit()&&segmentDistance(previous,p.mesh.position,position())<45){if(!tether&&immune<=0&&!p.enemy.dead&&p.enemy.mesh.visible){tether={enemy:p.enemy,line:p.line,time:3};p.line=null;notify('⚓ Arpón enganchado · Inmovilizado 3 s · Puedes disparar');const partner=p.enemy.partner;if(partner&&!partner.dead&&partner.mesh.visible){fire(partner);partner.fireTimer=6}}done=true}
     if(p.life<=0||p.enemy.dead||!p.enemy.mesh.visible)done=true;
    }
@@ -133,7 +133,3 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
 
  return {fire,update,clear,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
-
-
-
-
