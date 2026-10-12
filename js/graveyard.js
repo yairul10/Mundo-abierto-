@@ -6,6 +6,21 @@ export function segmentDistance(a,b,p){
  const t=n?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy+(p.z-a.z)*dz)/n)):0;
  return Math.hypot(p.x-a.x-dx*t,p.y-a.y-dy*t,p.z-a.z-dz*t);
 }
+// Stable one-to-one squads survive resets and rejoin after respawning.
+export function linkScrapPairs(enemies){
+ const launchers=enemies.filter(e=>e.type==='catapult'),harpoons=enemies.filter(e=>e.type==='harpooner');
+ for(let i=0;i<Math.min(launchers.length,harpoons.length);i++){launchers[i].partner=harpoons[i];harpoons[i].partner=launchers[i]}
+}
+export function placeScrapPairs(enemies){
+ for(const e of enemies){if(e.type!=='harpooner'||!e.partner)continue;
+  e.home.copy(e.partner.home).addScaledVector({x:1,y:0,z:0},150);e.mesh.position.copy(e.home);
+ }
+}
+export function rejoinScrapPair(enemy){
+ if(enemy.partner&&!enemy.partner.dead&&enemy.partner.mesh.visible){
+  enemy.home.copy(enemy.partner.mesh.position).addScaledVector({x:1,y:0,z:0},enemy.type==='harpooner'?150:-150);enemy.mesh.position.copy(enemy.home);
+ }
+}
 export function createGraveyard(THREE,scene){
  const metal=[0x505b69,0x815942,0x373b49].map(color=>new THREE.MeshStandardMaterial({color,roughness:.88,metalness:.35}));
  const lamp=new THREE.MeshBasicMaterial({color:0x57dbff});
@@ -63,6 +78,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  function remove(object){scene.remove(object);object.geometry?.dispose();object.material?.dispose()}
  function release(){if(tether){remove(tether.line);tether=null;immune=5}}
  function fire(enemy){
+  if(enemy.type==='catapult'&&(pending.some(p=>p.enemy===enemy)||projectiles.some(p=>p.enemy===enemy&&p.bomb)))return;
   if(enemy.type==='catapult'){
    const target=position().clone();const marker=new THREE.Mesh(new THREE.SphereGeometry(180,16,8),new THREE.MeshBasicMaterial({color:0xff7733,wireframe:true,transparent:true,opacity:.25,depthWrite:false}));marker.position.copy(target);scene.add(marker);
    pending.push({enemy,target,marker,time:1.4});notify('⚠️ Catapulta cargando · Aléjate del área naranja');
@@ -75,7 +91,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  }
  function update(dt){
   immune=Math.max(0,immune-dt);
-  if(tether){tether.time-=dt;if(tether.time<=0||tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else tether.line.geometry.setFromPoints([tether.enemy.mesh.position,position()])}
+  if(tether){if(tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else{const elapsed=Math.min(dt,tether.time);damage(50,elapsed);tether.time-=elapsed;if(tether.time<=1e-9)release();else tether.line.geometry.setFromPoints([tether.enemy.mesh.position,position()])}}
   for(let i=pending.length-1;i>=0;i--){const p=pending[i];p.time-=dt;
    const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=-Math.min(1.1,(1.4-p.time)*.8);
    if(p.enemy.dead||!p.enemy.mesh.visible||!canHit()){remove(p.marker);if(arm)arm.rotation.x=0;pending.splice(i,1);continue}
@@ -86,10 +102,10 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
   }
   for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],previous=p.mesh.position.clone();let done=false;
    if(p.bomb){p.age+=dt;const t=Math.min(1,p.age/p.duration);p.mesh.position.lerpVectors(p.start,p.target,t);p.mesh.position.y+=Math.sin(t*Math.PI)*180;p.mesh.rotation.x+=dt*4;
-    if(t>=1){if(canHit()&&position().distanceTo(p.target)<180)damage(110);
+    if(t>=1){if(canHit()&&position().distanceTo(p.target)<180)damage(300);
      const burst=new THREE.Mesh(new THREE.SphereGeometry(1,16,8),new THREE.MeshBasicMaterial({color:0xffa13b,transparent:true,opacity:.7,depthWrite:false}));burst.position.copy(p.target);scene.add(burst);effects.push({mesh:burst,time:.55});done=true}
    }else{p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;p.line.geometry.setFromPoints([p.enemy.mesh.position,p.mesh.position]);
-    if(canHit()&&segmentDistance(previous,p.mesh.position,position())<45){damage(25);if(!tether&&immune<=0&&!p.enemy.dead&&p.enemy.mesh.visible){tether={enemy:p.enemy,line:p.line,time:2};p.line=null;notify('⚓ Arpón enganchado · Inmovilizado 2 s · Puedes disparar')}done=true}
+    if(canHit()&&segmentDistance(previous,p.mesh.position,position())<45){if(!tether&&immune<=0&&!p.enemy.dead&&p.enemy.mesh.visible){tether={enemy:p.enemy,line:p.line,time:3};p.line=null;notify('⚓ Arpón enganchado · Inmovilizado 3 s · Puedes disparar');const partner=p.enemy.partner;if(partner&&!partner.dead&&partner.mesh.visible){fire(partner);partner.fireTimer=6}}done=true}
     if(p.life<=0||p.enemy.dead||!p.enemy.mesh.visible)done=true;
    }
    if(done){scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker);projectiles.splice(i,1)}
@@ -101,3 +117,4 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  }
  return {fire,update,clear,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
+

@@ -2,7 +2,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {GRAVEYARD,createGraveyard,createScrapCombat} from './graveyard.js?v=178';
+import {GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=179';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
@@ -967,8 +967,8 @@ const TYPES={
  raider:{hp:70,damage:10,speed:150,xp:36,gold:20,loot:2,color:0xe78b45},
  sentinel:{hp:140,damage:20,speed:90,xp:72,gold:40,loot:4,color:0xb86bd9},destroyer:{hp:280,damage:35,speed:110,xp:130,gold:80,loot:6,color:0xff3d9b},
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
- catapult:{hp:380,damage:110,speed:75,xp:260,gold:170,loot:8,color:0x815942},
- harpooner:{hp:250,damage:25,speed:130,xp:225,gold:145,loot:7,color:0x505b69},
+ catapult:{hp:380,damage:300,speed:75,xp:260,gold:170,loot:8,color:0x815942},
+ harpooner:{hp:250,damage:50,speed:130,xp:225,gold:145,loot:7,color:0x505b69},
  carrier:{hp:40000,damage:0,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
 };
 // Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
@@ -991,6 +991,7 @@ const enemies=enemyKinds.map((type,i)=>{
  const maxHp=enemyMaxHp(type);return {type,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,aggressive:type!=='devastator',fireTimer:1+Math.random()*2};
 });
 
+linkScrapPairs(enemies);
 function enemyBelongsToSector(e,rank=1){
  if(activeSector==='graveyard')return e.type==='catapult'||e.type==='harpooner';
  if(e.bossAdd||e.type==='carrier')return activeSector==='ember';
@@ -1592,7 +1593,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
-const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:amount=>applyPlayerDamage(Math.max(1,amount-player.defense*.25)),notify:message=>lootToast(message)});
+const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1)=>applyPlayerDamage(Math.max(1,amount-player.defense*.25)*elapsed),notify:message=>lootToast(message)});
 const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff}),destroyer:new THREE.MeshBasicMaterial({color:0xff3d9b}),devastator:new THREE.MeshBasicMaterial({color:0xff7733})};
@@ -2623,6 +2624,7 @@ function resetSectorPopulation(){
   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.aggressive=e.type!=='devastator';
   counts[e.type]=(counts[e.type]||0)+1;e.spawnRank=counts[e.type];e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;
  }
+ placeScrapPairs(enemies);
  explorerThreat=null;
 }
 // Aplicar también al cargar una partida guardada, antes de empezar el vuelo.
@@ -2894,13 +2896,29 @@ for(const e of enemies){
  if(e.dead){
   if(!e.bossAdd&&e.type!=='carrier'&&now/1000>=e.dead){
    e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.aggressive=e.type!=='devastator';
-   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;
+   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;rejoinScrapPair(e);
   }
   continue;
  }
  if(e.bossAdd&&e.launchRemaining>0){advanceCarrierLaunch(e,dt);continue}
  if(!e.mesh.visible||e.type==='carrier')continue;
  const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);
+ if(e.partner){
+  // The launcher sets the squad's pace; the harpooner maintains its flank.
+  const partnerAlive=!e.partner.dead&&e.partner.mesh.visible;
+  if(e.type==='harpooner'&&partnerAlive){
+   const target=e.partner.mesh.position.clone().add(new THREE.Vector3(150,0,0)),delta=target.sub(e.mesh.position),distance=delta.length();
+   if(distance>1)e.mesh.position.addScaledVector(delta,Math.min(distance,t.speed*dt)/distance);
+  }else if(d<COMBAT_RANGE&&!playerSafe&&!docked&&!landing&&d>800){
+   e.mesh.position.addScaledVector(playerMesh.position.clone().sub(e.mesh.position).normalize(),Math.min(t.speed*dt,d-800));
+  }
+  if(d<COMBAT_RANGE&&!playerSafe&&!docked&&!landing){
+   e.fireTimer-=dt;
+   // A paired catapult waits for the cable to hit; a surviving one can attack alone.
+   if(e.fireTimer<=0&&d>80&&(e.type==='harpooner'||!partnerAlive)){enemyFire(e);e.fireTimer=e.type==='harpooner'?5:6}
+  }
+  e.mesh.lookAt(playerMesh.position);continue;
+ }
  if(e.aggressive&&d<COMBAT_RANGE&&!playerSafe&&!docked&&!landing){
   const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();
   if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));
@@ -2957,5 +2975,6 @@ if(PVP_MODE){
  });
  keepArena();
 }
+
 
 
