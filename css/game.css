@@ -156,3 +156,46 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 .mission-tabs button.selected{border-color:#d5a22d;background:#3b321a;color:#fff2be}
 .mission-tabs button:disabled{opacity:.5}
 @media(orientation:landscape) and (max-height:540px){#questTracker{left:12px;right:auto;top:66px;width:min(280px,calc(100vw - 210px));max-width:calc(100vw - 210px);max-height:calc(100dvh - 88px);font-size:12px}}
+
+
+/* Hangar: destinos independientes, planos y mercado. */
+#hangarPanel .hangar-inner{width:min(570px,100%);padding:22px;background:radial-gradient(ellipse at top right,#18436366,transparent 60%),linear-gradient(145deg,#101f32,#070f1b);border-color:#78cde666;box-shadow:0 24px 80px #0009;scrollbar-color:#375b73 #081320}
+#hangarPanel.expanded .hangar-inner{width:min(1080px,100%)}
+.hangar-destinations{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+#hangarPanel .hangar-destinations button{min-height:125px;text-align:left;background:linear-gradient(135deg,#173851,#102134);border:1px solid #78cde64d;color:#edfaff;padding:18px;margin:0}
+.hangar-destinations span{display:block;font-size:29px;margin-bottom:8px}.hangar-destinations strong{font-size:19px}.hangar-destinations small{display:block;font-weight:400;color:#adc8dd;margin-top:6px}
+#hangarPanel .subtle{background:#12283a;color:#c5e2f4;border:1px solid #68b8df42}
+.commerce-header{display:flex;align-items:center;gap:16px;margin:18px 0}.commerce-header h3{margin:3px 0;font-size:23px}
+#hangarPanel .commerce-header button{width:auto;margin:0;flex:none;padding:10px 14px}.hangar-eyebrow{font-size:10px;font-weight:800;color:#6dcbec;letter-spacing:1.8px}
+.commerce-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:9px}
+#hangarPanel .commerce-tabs button{width:auto;white-space:nowrap;flex:none;padding:10px 16px;margin:0;background:#122334;color:#a6c3d9;border:1px solid #54748b44}
+#hangarPanel .commerce-tabs button[aria-pressed="true"]{background:#194d64;border-color:#6fdbed;color:#e2fcff}
+#hangarStore{padding:16px;border-color:#7ac4df30;background:#060f1bad}
+#hangarStore .upgrade-card{padding:15px;background:linear-gradient(115deg,#172c40,#0b1b2b);border:1px solid #6e9bb533;border-radius:13px;margin:10px 0;gap:16px}
+#hangarStore .upgrade-card strong{font-size:15px}#hangarStore .upgrade-card small{font-size:12px;line-height:1.5}
+#hangarStore .upgrade-card button{background:#6de0ed;min-width:100px;color:#092032;margin:0}
+#hangarStore .upgrade-card button:disabled{background:#28445a;color:#a8bccb}
+.commerce-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.commerce-card{padding:20px;background:linear-gradient(145deg,#162d41,#0c1828);border:1px solid #6ba8c13d;border-radius:16px;min-width:0}.commerce-card h4{margin:10px 0;font-size:17px}.commerce-card p,.commerce-card small{font-size:12px;color:#b8cedf;line-height:1.5}.commerce-icon{font-size:29px}.commerce-card small{display:block}
+#hangarPanel .commerce-card button{margin-top:15px;background:#60d5e6;color:#092435}
+#hangarPanel .commerce-card input{width:100%;margin-top:6px;background:#081627;color:#e4f8ff;padding:12px;border:1px solid #53778f;border-radius:8px;font:inherit}.commerce-card label{font-size:12px;color:#b8cedf;display:block}.sale-total{color:#ffe5a1!important}
+.assembly-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start}
+#formationCatalog{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#hangarPanel .formation-tile{width:100%;padding:9px;margin:0;border:1px solid #6487a442;background:#0c1b2b;color:#e4f3fe;text-align:left;overflow:hidden;border-radius:12px}
+#hangarPanel .formation-tile.chosen{border-color:var(--formation-color);background:#183346;box-shadow:inset 0 0 16px #79dfff12}.formation-tile strong{display:block;font-size:12px;min-height:30px}.formation-tile small{display:block;font-size:10px;color:#afc8da;margin-top:3px;font-weight:500}
+.formation-preview{display:block;width:100%;height:90px;background:transparent}.assembly-hero .formation-preview{height:190px;max-width:235px;flex:0 0 38%}
+#assemblyDetail{padding:20px;background:linear-gradient(135deg,#142d40,#0a1827);border:1px solid #74bcdf33;border-radius:17px}
+.assembly-hero{display:flex;align-items:center;gap:14px}.assembly-hero h3{font-size:23px;margin:7px 0}.assembly-hero p{font-size:12px}.formation-perk{color:#a4f2d1;font-size:15px}.muted{color:#a0bbce!important;font-size:12px!important;line-height:1.5}
+.recipe-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:18px}
+#hangarPanel .recipe-slot{margin:0;min-height:145px;padding:13px 7px;background:#071726;color:#e4f2ff;border:1px dashed #5e8eaa}
+#hangarPanel .recipe-slot.filled{border-style:solid;border-color:#7dd7ae;background:#123a35}
+.recipe-slot strong,.recipe-slot b,.recipe-slot small,.recipe-slot em{display:block}.recipe-slot strong{font-size:11px;min-height:29px;margin-top:12px}.recipe-slot b{font-size:19px;margin:5px 0}.recipe-slot small{font-size:10px;font-weight:400;color:#bbd0df}.recipe-slot em{font-size:10px;font-style:normal;color:#79dcb7;margin-top:8px}
+.material-crystal{display:inline-block;width:21px;height:21px;transform:rotate(45deg);background:var(--gem);border:1px solid #ffffffa3;box-shadow:0 0 15px color-mix(in srgb,var(--gem),transparent 70%)}
+.recipe-price{font-size:21px!important;font-weight:800;color:#ffe1a1!important;margin-bottom:8px}.recipe-price span{display:block;font-size:12px;font-weight:400;color:#b3c9d9}.assembly-actions{display:flex;gap:12px}
+#hangarPanel .assembly-actions button{flex:1}#hangarPanel #assembleFormation,#hangarPanel #equipFormation{background:#75e4b6;color:#092c23}
+.hangar-credit-pill{margin:15px 0;color:#ffe1a1;font-size:14px;font-weight:800;text-align:right}.hangar-notice{padding:12px 16px;border:1px solid #69d1a873;background:#10382e;color:#c6ffdf;border-radius:10px;font-size:13px;margin:15px 0}
+.sale-confirm{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;background:#020712e8}.sale-confirm.hidden{display:none}.sale-confirm>div{width:min(430px,100%);padding:25px;background:#10253a;border:1px solid #6bc9dd;border-radius:17px}
+#boosterStatus{position:absolute;left:50%;bottom:59px;transform:translateX(-50%);z-index:12;border:1px solid #8cc9da55;background:#081a2ad9;padding:6px 12px;border-radius:18px;color:#c8f3ff;font-size:11px;pointer-events:none;white-space:nowrap}body.docked #boosterStatus,body.inventory-open #boosterStatus{visibility:hidden}
+#hangarPanel button:focus-visible{outline:2px solid #ffe19c;outline-offset:3px}
+@media(max-width:850px){#hangarPanel{padding:9px}#hangarPanel .hangar-inner{padding:15px;max-height:calc(100dvh - 18px)}.assembly-layout{grid-template-columns:170px minmax(0,1fr);gap:12px}#assemblyDetail{padding:13px}.assembly-hero{gap:9px}.assembly-hero .formation-preview{height:150px}.assembly-hero h3{font-size:19px}.recipe-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.recipe-slot strong{min-height:0}#hangarPanel .recipe-slot{min-height:115px}.formation-preview{height:67px}.commerce-card{padding:15px}.commerce-header h3{font-size:19px}}
+@media(max-width:550px){.assembly-layout{grid-template-columns:1fr}#formationCatalog{grid-template-columns:repeat(4,minmax(0,1fr))}.commerce-grid{grid-template-columns:1fr}.hangar-destinations{gap:9px}#hangarPanel .hangar-destinations button{padding:13px}.assembly-actions{flex-direction:column}.assembly-hero{display:block}.assembly-hero .formation-preview{max-width:none}}

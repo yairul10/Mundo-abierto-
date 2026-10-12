@@ -1,0 +1,44 @@
+import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
+const fmt=n=>Math.floor(n).toLocaleString('es-CL');
+const MATERIALS=[['chatarra','Chatarra espacial','#bac9d7'],['aleacion','Aleación reforzada','#55c6ff'],['nucleo','Núcleo de energía','#c783ff'],['reliquia','Componente ancestral','#ffca58']];
+const duration=n=>Math.ceil(Math.max(0,n)/60)+' min';
+export function formationPreview(id){
+ const f=FORMATIONS.find(x=>x.id===id)||FORMATIONS[0];
+ const dots=Array.from({length:8},(_,i)=>{const [x,y,z]=formationOffset(id,i,8,0);return '<g transform="translate('+(150+x*.42)+','+(150-y*.38-z*.45)+')"><path d="M0 -7 L6 5 L0 2 L-6 5Z" fill="#d7e7ef" stroke="'+f.color+'" stroke-width="1.5"/><circle cy="5" r="2" fill="'+f.color+'"/></g>'}).join('');
+ return '<svg class="formation-preview" viewBox="0 0 300 260" role="img" aria-label="Vista previa de '+f.name+'"><defs><radialGradient id="glow-'+id+'"><stop stop-color="'+f.color+'" stop-opacity=".14"/><stop offset="1" stop-color="#06101c" stop-opacity="0"/></radialGradient></defs><ellipse cx="150" cy="140" rx="128" ry="108" fill="url(#glow-'+id+')"/><path d="M150 23V238M28 143H272" stroke="#75bde0" stroke-opacity=".12" stroke-dasharray="3 8"/>'+dots+'<g transform="translate(150,143)"><path d="M0 -28L12 -8L32 14L9 10L7 24L-7 24L-9 10L-32 14L-12 -8Z" fill="#d7e6ee" stroke="#7c97ab" stroke-width="2"/><path d="M0 -20L4 5L0 12L-4 5Z" fill="#ee5c66"/><path d="M-20 9L-10 7M20 9L10 7" stroke="#ee5c66" stroke-width="3"/><circle cx="-7" cy="24" r="3" fill="#65dfff"/><circle cx="7" cy="24" r="3" fill="#65dfff"/></g></svg>';
+}
+export function mountHangarUI({player,isDocked,isOffline,equip,changed}){
+ const $=id=>document.getElementById(id);let selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='';
+ const note=text=>{message=text;const el=$('hangarNotice');el.textContent=text;el.hidden=!text};
+ function show(next){view=next;for(const v of ['home','shop','assembly'])$('hangar'+v[0].toUpperCase()+v.slice(1)+'View').classList.toggle('hidden',v!==view);$('hangarPanel').classList.toggle('expanded',view!=='home');note('');render(true)}
+ document.querySelectorAll('[data-hangar-view]').forEach(b=>b.onclick=()=>show(b.dataset.hangarView));
+ document.querySelectorAll('[data-shop-category]').forEach(b=>b.onclick=()=>{category=b.dataset.shopCategory;render(true)});
+ function sync(){changed();render(true)}
+ function render(force=false){
+  $('hangarCredits').textContent=fmt(player.gold)+' créditos';
+  const next=JSON.stringify([player.gold,player.loot,player.formations,player.droneFormation,player.droneCount,player.repairRobotLevel,player.boosters]);
+  if(!force&&next===stamp)return;stamp=next;
+  document.querySelectorAll('[data-shop-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.shopCategory===category)));
+  for(const c of ['ships','drones','upgrades','boosters','sell'])$('shop'+c[0].toUpperCase()+c.slice(1)).classList.toggle('hidden',c!==category);
+  const list=$('formationCatalog');list.innerHTML=FORMATIONS.map(f=>'<button class="formation-tile '+(f.id===selected?'chosen':'')+'" data-plan="'+f.id+'" aria-pressed="'+(f.id===selected)+'" style="--formation-color:'+f.color+'">'+formationPreview(f.id)+'<strong>'+f.name+'</strong><small>'+(player.droneFormation===f.id?'Equipada':player.formations[f.id]?'Disponible':'Por ensamblar')+'</small></button>').join('');
+  list.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>{selected=b.dataset.plan;draft.clear();note('');render(true)});
+  const f=FORMATIONS.find(x=>x.id===selected),owned=player.formations[f.id];
+  $('assemblyDetail').innerHTML='<div class="assembly-hero">'+formationPreview(f.id)+'<div><span class="hangar-eyebrow">'+(owned?'FORMACIÓN DISPONIBLE':'PLANO DE ENSAMBLAJE')+'</span><h3>'+f.name+'</h3><p>'+f.description+'</p><strong class="formation-perk">'+f.benefit+'</strong><p class="muted">Vista con ocho drones. En vuelo se usan los que tengas comprados. Las ventajas requieren al menos un dron de combate.</p></div></div>'+(owned?'<button id="equipFormation" '+(player.droneFormation===f.id?'disabled':'')+'>'+(player.droneFormation===f.id?'Equipada':'Equipar formación')+'</button>':'<div class="recipe-slots">'+MATERIALS.map(([id,name,color])=>'<button class="recipe-slot '+(draft.has(id)?'filled':'')+'" data-material="'+id+'" '+(!draft.has(id)&&(Number(player.loot[id])||0)<RECIPE[id]?'disabled':'')+'><span class="material-crystal" style="--gem:'+color+'"></span><strong>'+name+'</strong><b>'+RECIPE[id]+'</b><small>Tienes '+fmt(player.loot[id]||0)+'</small><em>'+(draft.has(id)?'✓ Agregado':'Agregar material')+'</em></button>').join('')+'</div><p class="recipe-price">'+fmt(RECIPE.credits)+' créditos <span>+ los cuatro materiales</span></p><p class="muted">Los materiales se descuentan únicamente al ensamblar. El desbloqueo es permanente.</p><div class="assembly-actions"><button id="fillRecipe" class="subtle">Agregar todos</button><button id="assembleFormation" '+(draft.size!==4||!canAssemble(player,f.id)?'disabled':'')+'>Ensamblar formación</button></div>');
+  $('assemblyDetail').querySelectorAll('[data-material]').forEach(b=>b.onclick=()=>{const id=b.dataset.material;if(draft.has(id))draft.delete(id);else if((Number(player.loot[id])||0)>=RECIPE[id])draft.add(id);render(true)});
+  if($('fillRecipe'))$('fillRecipe').onclick=()=>{for(const [id]of MATERIALS)if((Number(player.loot[id])||0)>=RECIPE[id])draft.add(id);render(true)};
+  if($('assembleFormation'))$('assembleFormation').onclick=()=>{if(!isOffline()||!isDocked()||draft.size!==4||!assemble(player,selected))return;draft.clear();note('Formación ensamblada. Ya puedes equiparla.');sync()};
+  if($('equipFormation'))$('equipFormation').onclick=()=>{if(!isDocked()||!isOffline()||!player.formations[selected])return;equip(selected);note(f.name+' equipada.');render(true)};
+  $('shopBoosters').innerHTML='<h3>Potenciadores de vuelo</h3><p class="muted">15 minutos de vuelo por compra. Se pausan al salir, abrir menús o atracar. Repetir la compra suma tiempo; la ventaja no se multiplica.</p><div class="commerce-grid">'+BOOSTERS.map(b=>'<article class="commerce-card"><span class="commerce-icon">'+b.icon+'</span><h4>'+b.name+'</h4><strong class="formation-perk">'+b.benefit+'</strong><p>'+fmt(b.price)+' créditos · 15 min</p><small>'+(player.boosters[b.id]>0?'Disponible: '+duration(player.boosters[b.id]):'Sin activar')+'</small><button data-booster="'+b.id+'" '+(player.gold<b.price||player.boosters[b.id]+b.seconds>86400?'disabled':'')+'>Comprar y activar</button></article>').join('')+'</div>';
+  $('shopBoosters').querySelectorAll('[data-booster]').forEach(b=>b.onclick=()=>{if(!isDocked()||!isOffline()||!buyBooster(player,b.dataset.booster))return;note('Potenciador activado. Su tiempo comienza al despegar.');sync()});
+  $('shopSell').innerHTML='<h3>Vender materiales</h3><p class="muted">Elige una cantidad y revisa el total antes de confirmar la venta.</p><div class="commerce-grid">'+MATERIALS.map(([id,name,color])=>'<article class="commerce-card"><span class="material-crystal" style="--gem:'+color+'"></span><h4>'+name+'</h4><p>Tienes '+fmt(player.loot[id]||0)+' · '+SELL_PRICES[id]+' créditos por unidad</p><label>Cantidad <input type="number" inputmode="numeric" min="1" max="'+Math.floor(player.loot[id]||0)+'" value="1" data-sell-quantity="'+id+'"></label><p class="sale-total" data-sale-total="'+id+'">Recibirás '+SELL_PRICES[id]+' créditos</p><button data-sell="'+id+'" '+(!(player.loot[id]>=1)?'disabled':'')+'>Revisar venta</button></article>').join('')+'</div>';
+  $('shopSell').querySelectorAll('[data-sell-quantity]').forEach(input=>input.oninput=()=>{const n=Number(input.value),id=input.dataset.sellQuantity,valid=Number.isSafeInteger(n)&&n>0&&n<=(Number(player.loot[id])||0);$('shopSell').querySelector('[data-sale-total="'+id+'"]').textContent=valid?'Recibirás '+fmt(n*SELL_PRICES[id])+' créditos':'Introduce una cantidad disponible';$('shopSell').querySelector('[data-sell="'+id+'"]').disabled=!valid});
+  $('shopSell').querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
+   const id=b.dataset.sell,n=Number($('shopSell').querySelector('[data-sell-quantity="'+id+'"]').value),name=MATERIALS.find(m=>m[0]===id)[1];
+   if(!isDocked()||!isOffline()||!Number.isSafeInteger(n)||n<1||n>(Number(player.loot[id])||0))return;
+   const dialog=$('saleConfirm');$('saleConfirmText').textContent='Vender '+fmt(n)+' de '+name+' por '+fmt(n*SELL_PRICES[id])+' créditos.';dialog.classList.remove('hidden');
+   $('cancelSale').onclick=()=>dialog.classList.add('hidden');
+   $('confirmSale').onclick=()=>{dialog.classList.add('hidden');if(!isDocked()||!isOffline()||!sellMaterial(player,id,n))return;note('Venta completada: +'+fmt(n*SELL_PRICES[id])+' créditos.');sync()};
+  });
+ }
+ return {render,show};
+}

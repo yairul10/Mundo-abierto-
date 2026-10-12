@@ -1,3 +1,5 @@
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
+import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
@@ -1328,7 +1330,16 @@ function explorerRange(){return 450+player.explorerRangeLevel*100}
 const EXPLORER_UPGRADE_PRICES=[1000,2500,5000,9000,14000,21000,29000,39000,50000]; // Mejoras del nivel 2 al 10.
 function explorerUpgradePrice(){return EXPLORER_UPGRADE_PRICES[player.explorerRangeLevel-1]||0}
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
-player.droneFormation=player.droneFormation==='shield'?'shield':'fan';
+normalizeHangar(player);
+const equippedBonus=()=>formationBonus(player,!PVP_MODE);
+const activeBooster=id=>boosterBonus(player,id,!PVP_MODE);
+const supportRange=()=>COMBAT_RANGE*equippedBonus().range;
+let hangarUI=null;
+function equipFormation(id){
+ if(PVP_MODE||!player.formations[id])return;
+ player.droneFormation=id;syncShipStats();save();hud();refreshFormationButton();
+ if(hangarUI)hangarUI.render(true);
+}
 function ownedDrones(){return player.droneCount}
 for(let i=0;i<MAX_DRONES;i++){
  const side=i%2===0?-1:1;
@@ -1443,7 +1454,7 @@ function updateExplorerCombat(dt){
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
- shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.2});
+ shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.2*activeBooster('damage')});
  if(pvpSession)pvpSession.shots('explorer',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  explorerMesh.lookAt(target.mesh.position);explorerFireCd=.68;
 }
@@ -1525,16 +1536,19 @@ deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=1
 const formationBtn=$('formationBtn');
 function refreshFormationButton(){
  if(!formationBtn)return;
- const shield=player.droneFormation==='shield';
- formationBtn.textContent=shield?'🛡️':'🔄';
- formationBtn.title=shield?'Escudo giratorio activo · Cambiar a abanico':'Abanico activo · Cambiar a escudo giratorio';
+ const f=FORMATIONS.find(f=>f.id===player.droneFormation)||FORMATIONS[0];
+ formationBtn.textContent=f.icon;
+ formationBtn.title=f.name+' · Cambiar entre formaciones disponibles';
  formationBtn.setAttribute('aria-label',formationBtn.title);
- formationBtn.setAttribute('aria-pressed',String(shield));
+ formationBtn.setAttribute('aria-pressed',String(f.id!=='fan'));
+ formationBtn.disabled=PVP_MODE;
 }
 if(formationBtn)formationBtn.onclick=()=>{
- player.droneFormation=player.droneFormation==='shield'?'fan':'shield';
- save();refreshFormationButton();
- lootToast(player.droneFormation==='shield'?'🛡️ Formación: Escudo giratorio':'🤖 Formación: Abanico');
+ if(PVP_MODE)return;
+ const available=FORMATIONS.filter(f=>player.formations[f.id]);
+ if(available.length===1){lootToast('Abanico equipado · Ensambla nuevas formaciones en el hangar');return}
+ const index=available.findIndex(f=>f.id===player.droneFormation),next=available[(index+1)%available.length];
+ equipFormation(next.id);lootToast('Formación: '+next.name);
 };
 refreshFormationButton();
 function updateSupportDrones(dt,now){
@@ -1543,27 +1557,8 @@ function updateSupportDrones(dt,now){
  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
  for(let i=0;i<supportDrones.length;i++){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
-  let desired;
-  if(player.droneFormation==='shield'){
-   // Dron central fijo y hasta siete drones girando a su alrededor.
-   // El radio compacto evita tapar la nave y mantiene el conjunto delante.
-   const count=ownedDrones();
-   desired=playerMesh.position.clone().addScaledVector(forward,125);
-   if(i>0){
-    const orbitCount=Math.max(1,count-1);
-    const angle=now*.00065+(i-1)*Math.PI*2/orbitCount;
-    const radius=66;
-    desired.addScaledVector(right,Math.cos(angle)*radius)
-     .addScaledVector(up,Math.sin(angle)*radius);
-   }
-   desired.addScaledVector(up,12);
-  }else{
-   const pair=Math.floor(i/2);
-   const sideOffset=[78,135,195,250][pair];
-   const backOffset=[-125,-165,-190,-210][pair];
-   desired=playerMesh.position.clone().addScaledVector(right,d.side*sideOffset).addScaledVector(forward,-backOffset);
-   desired.addScaledVector(up,14+Math.sin(now*.002+i)*4);
-  }
+  const [x,y,z]=formationOffset(PVP_MODE?'fan':player.droneFormation,i,ownedDrones(),now/1000);
+  const desired=playerMesh.position.clone().addScaledVector(right,x).addScaledVector(forward,y).addScaledVector(up,z);
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
  }
 }
@@ -1584,7 +1579,8 @@ function fireSupportDrones(aimPoint,locked,noseDir){
   const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
-  shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:1.65,damage:player.attack*.2});
+  const range=supportRange();
+  shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:range/1150+.35,range,damage:player.attack*.2*equippedBonus().damage*activeBooster('damage')});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
@@ -1625,7 +1621,7 @@ function updateTargetLock(){
   if(e.dead||!e.mesh.visible)continue;
   const to=e.mesh.position.clone().sub(camera.position);
   const distance=e.mesh.position.distanceTo(playerMesh.position);
-  if(distance>COMBAT_RANGE||to.length()<40||to.dot(forwardView)<=0)continue;
+  if(distance>(ownedDrones()?supportRange():COMBAT_RANGE)||to.length()<40||to.dot(forwardView)<=0)continue;
   const p=e.mesh.position.clone().project(camera);
   if(p.z<-1||p.z>1||Math.abs(p.x)>.34||Math.abs(p.y)>.30)continue;
   const score=p.x*p.x+p.y*p.y+distance/18000;
@@ -1665,13 +1661,13 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.active)return;
   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false}));
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()});
+  shots.push({mesh,vel:dir.multiplyScalar(1150),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier());for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  fireCd=classAbilityActive('aurora')?.68/1.3:.68; // Sobrecarga aumenta la cadencia.
 }
-function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
+function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){n=Math.round(n*activeBooster('xp'));player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
  {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común',description:'Restos recuperados de naves y drones. Material básico de fabricación.'},
@@ -1716,7 +1712,7 @@ function renderDrones(){
  };el.querySelector('.buyDroneBtn').onclick=()=>{
   const owned=ownedDrones(),cost=DRONE_PRICES[owned];
   if(owned>=MAX_DRONES||player.gold<cost)return;
-  player.gold-=cost;player.droneCount=owned+1;missionEvent('drone');save();hud();renderDrones();
+  player.gold-=cost;player.droneCount=owned+1;syncShipStats();missionEvent('drone');save();hud();renderDrones();
   lootToast('🤖 Dron '+player.droneCount+' adquirido y equipado');
   if(docked)hangarRefresh();
  };}
@@ -1848,7 +1844,7 @@ function updateRepairRobot(dt,now){
  repairRobot.visible=repairBeam.visible=repairing;
  if(!repairing){repairRobot.userData.repairing=false;return}
  updateRepairSurface(dt,now);
- player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.01*player.repairRobotLevel*dt);
+ player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.01*player.repairRobotLevel*equippedBonus().repair*dt);
  const destination=repairSurfacePoint.clone();
  const desiredPosition=destination.clone().add(new THREE.Vector3(0,14+Math.sin(now*3)*.8,3));
  if(!repairRobot.userData.repairing)repairRobot.position.copy(desiredPosition);
@@ -1889,7 +1885,7 @@ function classAbilityActive(id){return player.shipId===id&&classAbilityTime>0}
 function applyPlayerDamage(amount){
  if(docked||landing||inSafeZone(playerMesh.position))return;
  if(player.shipId==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
- let damage=Math.max(0,amount);
+ let damage=Math.max(0,amount)*equippedBonus().resistance*activeBooster('resistance');
  if(player.shipId==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
  if(classAbilityActive('titan'))damage*=.3;
  if(classAbilityActive('espectro'))damage*=1.3;
@@ -1944,11 +1940,11 @@ function syncShipStats(){
  ensureShipBaseStats();
  const bonus=shipBonuses(player.shipId);
  const ratio=player.maxHp>0?player.hp/player.maxHp:1;
- player.maxHp=Math.max(1,player.shipBaseStats.maxHp+bonus.maxHp);
+ player.maxHp=Math.max(1,Math.round((player.shipBaseStats.maxHp+bonus.maxHp)*equippedBonus().hp));
  player.attack=Math.max(1,player.shipBaseStats.attack+bonus.attack);
  player.defense=Math.max(0,player.shipBaseStats.defense+bonus.defense);
  player.speed=Math.max(50,player.shipBaseStats.speed+bonus.speed);
- player.hp=Math.max(1,Math.min(player.maxHp,Math.round(ratio*player.maxHp)));
+ player.hp=Math.max(0,Math.min(player.maxHp,ratio*player.maxHp));
 }
 function changeShip(id){
  if(!SHIP_TYPES[id]||!player.ownedShips[id]||player.shipId===id)return;
@@ -1957,9 +1953,9 @@ function changeShip(id){
  lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
 }
 function renderShips(){
- const hangarShop=$('hangarUpgradeShop');if(!hangarShop)return;
+ const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
- if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.parentElement.insertBefore(fleet,hangarShop)}
+ if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
  fleet.innerHTML='<h3>🚀 Flota de naves</h3>'+Object.entries(SHIP_TYPES).map(([id,t])=>{
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=player.level>=t.level&&player.gold>=t.cost;
   return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small><small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small></div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':'Comprar')+'</button></div>';
@@ -1979,14 +1975,15 @@ ensureShipBaseStats();
 // Normalizar partidas antiguas cuyo perfil aún no tiene valores base fiables.
 if(player.shipId!=='aurora'){
  const bonus=shipBonuses(player.shipId);
- const expected=player.shipBaseStats.maxHp+bonus.maxHp;
+ const expected=Math.round((player.shipBaseStats.maxHp+bonus.maxHp)*equippedBonus().hp);
  if(Math.abs(player.maxHp-expected)>2){
   const t=SHIP_TYPES[player.shipId];
   for(const [stat,mult] of Object.entries({maxHp:t.hp,attack:t.attack,defense:t.defense,speed:t.speed})){
-   const value=Number(player[stat]);if(Number.isFinite(value))player.shipBaseStats[stat]=Math.max(stat==='maxHp'?1:0,Math.round(value/mult));
+   const value=Number(player[stat])/(stat==='maxHp'?equippedBonus().hp:1);if(Number.isFinite(value))player.shipBaseStats[stat]=Math.max(stat==='maxHp'?1:0,Math.round(value/mult));
   }
  }
 }
+syncShipStats();
 function renderUpgrades(){
  const containers=[$('hangarUpgradeShop')].filter(Boolean);if(!containers.length)return;
  const html=UPGRADES.map(u=>{
@@ -2337,7 +2334,7 @@ function skill(){if(PVP_MODE&&!pvpSession?.active)return;
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),launchDir);
   mesh.position.copy(start);scene.add(mesh);
   const missileEffects=addMissileEffects(mesh);
-  shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*3,missile:true,target,
+  shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*3*activeBooster('damage'),missile:true,target,
    missileAim:target?null:aim.clone(),missileAge:0,missileSpeed,missileGuideDelay,missileEffects});
  }
  if(pvpSession)pvpSession.shots('missile',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -2424,7 +2421,7 @@ function hangarRefresh(){
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
  $('hangarMessage').textContent=missing&&player.gold<cost?'Necesitas '+cost+' créditos para reparar.':'';
- renderDrones();renderUpgrades();renderShips();
+ renderDrones();renderUpgrades();renderShips();if(hangarUI)hangarUI.render();
 }
 function resetDockControls(){
  joy.throttle=0;joy.strafe=0;$('stick').style.transform='';
@@ -2435,7 +2432,7 @@ function finishLanding(){
  playerMesh.position.copy(LANDING_TOUCHDOWN);pitch=0;yaw=0;
  resetDockControls();dockBtn.classList.add('hidden');
  document.body.classList.remove('landing');document.body.classList.add('docked');
- player.energy=player.maxEnergy;hangar.classList.remove('hidden');
+ player.energy=player.maxEnergy;hangar.classList.remove('hidden');if(hangarUI)hangarUI.show('home');
  hangarRefresh();missionEvent('dock',{sector:activeSector});save();
 }
 // Solo aceptar una superficie horizontal realmente situada debajo de la nave.
@@ -2792,7 +2789,7 @@ hudToggle.onclick=()=>{
  hudToggle.setAttribute('aria-expanded',String(!folded));
  hudToggle.setAttribute('aria-label',folded?'Desplegar información de vida':'Plegar información de vida');
 };
-const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Energía máxima: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense+'<br>Velocidad: '+player.speed;renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
+const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Energía máxima: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
 const qaSwitch=$('qaSwitch'),qaTools=$('qaTools');
 qaSwitch.textContent=qaActive?'Volver a partida normal':'Entrar a partida QA';
 qaTools.classList.toggle('hidden',!qaActive);
@@ -2803,12 +2800,21 @@ qaSwitch.onclick=()=>{
 };
 function qaApply(fn){if(!qaActive)return;fn();save();hud();renderDrones();renderUpgrades();renderInventory();if(docked)hangarRefresh()}
 $('qaCredits').onclick=()=>qaApply(()=>player.gold=(Number(player.gold)||0)+100000);
-$('qaDrones').onclick=()=>qaApply(()=>player.droneCount=8);
+$('qaDrones').onclick=()=>qaApply(()=>{player.droneCount=8;syncShipStats()});
 $('qaHeal').onclick=()=>qaApply(()=>{player.hp=player.maxHp;player.energy=player.maxEnergy});
-$('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;player.maxHp+=10;player.maxEnergy+=5;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy});
+$('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;player.maxEnergy+=5;player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++}syncShipStats();player.hp=player.maxHp;player.energy=player.maxEnergy});
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
+hangarUI=mountHangarUI({player,isDocked:()=>docked,isOffline:()=>!PVP_MODE,equip:equipFormation,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
+let boosterStatusSecond=-1;
+function updateBoosterStatus(){
+ const second=Math.floor(performance.now()/1000);if(second===boosterStatusSecond)return;boosterStatusSecond=second;
+ const active=Object.entries(player.boosters).filter(([,seconds])=>seconds>0);
+ const el=$('boosterStatus');el.classList.toggle('hidden',PVP_MODE||!active.length);
+ const labels={damage:'⚡',resistance:'🛡',xp:'⭐'};
+ el.textContent=active.map(([id,seconds])=>labels[id]+' '+Math.floor(Math.ceil(seconds)/60)+':'+String(Math.ceil(seconds)%60).padStart(2,'0')).join(' · ');
+}
 let last=performance.now();
 let recoveryPending=false;
 const recoveryPanel=document.createElement('div');
@@ -2840,11 +2846,12 @@ function recoverShip(inCurrentMap){
 $('recoverCurrent').onclick=()=>recoverShip(true);
 $('recoverAurora').onclick=()=>recoverShip(false);
 
-function loop(now){const dt=Math.min((now-last)/1000,.04);last=now;if(pvpSession){pvpSession.beforeFrame(dt,now);if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(graphicsLost){requestAnimationFrame(loop);return}fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
+function loop(now){const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;if(pvpSession){pvpSession.beforeFrame(dt,now);if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(graphicsLost){requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||document.hidden||docked||landing||!panel.classList.contains('hidden')||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
+ updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
-const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*strafe*dt/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],fireHeld,dt,now);
+const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe));playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],fireHeld,dt,now);
 // Vuelo libre en los tres ejes: el límite esférico del sector sustituye al antiguo techo/suelo.
 updateSectorBoundary(dt);updateSectorPortal();
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
@@ -2897,7 +2904,7 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);upda
    const delay=p.missileGuideDelay||.55;
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
- }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>COMBAT_RANGE)p.life=0}p.life-=dt;for(const e of enemies){if(!p.pvpRemote&&!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=COMBAT_RANGE)&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
+ }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>(p.range||COMBAT_RANGE))p.life=0}p.life-=dt;for(const e of enemies){if(!p.pvpRemote&&!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=(p.range||COMBAT_RANGE))&&p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):p.missile?44:30)){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
@@ -2935,3 +2942,4 @@ if(PVP_MODE){
  });
  keepArena();
 }
+
