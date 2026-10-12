@@ -77,13 +77,23 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  const metal=new THREE.MeshStandardMaterial({color:0x7d6757,roughness:.9});
  const rockGeo=new THREE.IcosahedronGeometry(16,0),harpoonGeo=new THREE.ConeGeometry(7,35,6);
  const cableMaterial=new THREE.LineBasicMaterial({color:0xc8b6a0});
- function remove(object){scene.remove(object);object.geometry?.dispose();object.material?.dispose()}
+ function remove(object){scene.remove(object);const gs=new Set(),ms=new Set();object.traverse(o=>{if(o.geometry)gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)ms.add(m)});for(const g of gs)g.dispose();for(const m of ms)m.dispose()}
  function release(){if(tether){remove(tether.line);tether=null;immune=5}}
+ function createImpactMarker(target){
+ const marker=new THREE.Group(),geo=new THREE.TorusGeometry(180,.65,4,64),mat=new THREE.MeshBasicMaterial({color:0xff8733,transparent:true,opacity:.22,depthWrite:false});
+ for(let i=0;i<3;i++){const ring=new THREE.Mesh(geo,mat);if(i===0)ring.rotation.x=Math.PI/2;if(i===2)ring.rotation.y=Math.PI/2;marker.add(ring)}
+ const dot=new THREE.Mesh(new THREE.SphereGeometry(5,8,6),new THREE.MeshBasicMaterial({color:0xffa13b,transparent:true,opacity:.8,depthWrite:false}));marker.add(dot);marker.position.copy(target);marker.userData={mat,dot,inside:false};scene.add(marker);return marker;
+ }
+ function updateImpactMarker(marker,remaining){
+ const data=marker.userData,inside=position().distanceTo(marker.position)<180,t=Math.max(0,2.9-remaining),pulse=.5+.5*Math.sin(2*Math.PI*(.65*t+.75*t*t));
+ data.mat.opacity=(inside?.025:.12)+pulse*(inside?.035:.16);data.dot.material.opacity=.5+pulse*.4;
+ if(inside&&!data.inside)notify('⚠️ Zona de impacto · Sal del área');data.inside=inside;
+ }
  function fire(enemy){
   if(enemy.type==='catapult'&&(pending.some(p=>p.enemy===enemy)||projectiles.some(p=>p.enemy===enemy&&p.bomb)))return;
   if(enemy.type==='catapult'){
    const rig=enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(0)}
-   const target=position().clone();const marker=new THREE.Mesh(new THREE.SphereGeometry(180,16,8),new THREE.MeshBasicMaterial({color:0xff7733,wireframe:true,transparent:true,opacity:.25,depthWrite:false}));marker.position.copy(target);scene.add(marker);
+   const target=position().clone();const marker=createImpactMarker(target);
    pending.push({enemy,target,marker,time:1.4});notify('⚠️ Catapulta cargando · Aléjate del área naranja');
   }else{
    const start=enemy.mesh.position.clone(),dir=position().clone().sub(start).normalize();
@@ -95,7 +105,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  function update(dt){
   immune=Math.max(0,immune-dt);for(const rig of rigs)rig.update(dt);
   if(tether){if(tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else{const elapsed=Math.min(dt,tether.time);damage(50,elapsed);tether.time-=elapsed;if(tether.time<=1e-9)release();else tether.line.geometry.setFromPoints([tether.enemy.mesh.position,position()])}}
-  for(let i=pending.length-1;i>=0;i--){const p=pending[i];p.time-=dt;
+  for(let i=pending.length-1;i>=0;i--){const p=pending[i];p.time-=dt;updateImpactMarker(p.marker,p.time+1.5);
    const rig=p.enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(Math.min(1,(1.4-p.time)/1.4))}
    const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=-Math.min(1.1,(1.4-p.time)*.8);
    if(p.enemy.dead||!p.enemy.mesh.visible||!canHit()){remove(p.marker);rig?.reset();if(arm)arm.rotation.x=0;pending.splice(i,1);continue}
@@ -105,7 +115,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
    projectiles.push({enemy:p.enemy,mesh,marker:p.marker,start:mesh.position.clone(),target:p.target,age:0,duration:1.5,bomb:true});pending.splice(i,1);
   }
   for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],previous=p.mesh.position.clone();let done=false;
-   if(p.bomb){p.age+=dt;const t=Math.min(1,p.age/p.duration);p.mesh.position.lerpVectors(p.start,p.target,t);p.mesh.position.y+=Math.sin(t*Math.PI)*180;p.mesh.rotation.x+=dt*4;
+   if(p.bomb){p.age+=dt;updateImpactMarker(p.marker,p.duration-p.age);const t=Math.min(1,p.age/p.duration);p.mesh.position.lerpVectors(p.start,p.target,t);p.mesh.position.y+=Math.sin(t*Math.PI)*180;p.mesh.rotation.x+=dt*4;
     if(t>=1){if(canHit()&&position().distanceTo(p.target)<180)damage(300);
      const burst=new THREE.Mesh(new THREE.SphereGeometry(1,16,8),new THREE.MeshBasicMaterial({color:0xffa13b,transparent:true,opacity:.7,depthWrite:false}));burst.position.copy(p.target);scene.add(burst);effects.push({mesh:burst,time:.55});done=true}
    }else{p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;p.line.geometry.setFromPoints([p.enemy.mesh.position,p.mesh.position]);
@@ -116,10 +126,10 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
   }
   for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.time-=dt;e.mesh.scale.setScalar(180*(1-e.time/.55));e.mesh.material.opacity=Math.max(0,e.time);if(e.time<=0){remove(e.mesh);effects.splice(i,1)}}
  }
- function clear(){release();immune=0;for(const rig of rigs)rig.reset();rigs.clear();for(const p of pending){remove(p.marker);const rig=p.enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(Math.min(1,(1.4-p.time)/1.4))}
-   const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=0}pending.length=0;
-  for(const p of projectiles){scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker)}projectiles.length=0;for(const e of effects)remove(e.mesh);effects.length=0;
+ function clear(){release();immune=0;for(const rig of rigs)rig.reset();rigs.clear();for(const p of pending){remove(p.marker);p.enemy.mesh.userData.catapultRig?.reset();const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=0}pending.length=0;
+ for(const p of projectiles){scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker)}projectiles.length=0;for(const e of effects)remove(e.mesh);effects.length=0;
  }
+
  return {fire,update,clear,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
 
