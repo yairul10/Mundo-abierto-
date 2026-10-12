@@ -1025,6 +1025,23 @@ for(const e of enemies.filter(e=>e.type==='devastator')){
   const blade=new THREE.Mesh(new THREE.BoxGeometry(15,8,155),armor);blade.position.set(side*48,12,0);blade.rotation.y=side*.2;e.mesh.add(blade);
  }
 }
+
+deferredModelLoad(modelLoader,'./assets/models/devastador.glb?v=185',gltf=>{
+ const template=gltf.scene;template.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(template),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
+ const factor=160/span;
+ for(const e of enemies){
+  if(e.type!=='devastator')continue;
+  const visual=new THREE.Group(),model=template.clone(true);
+  model.scale.multiplyScalar(factor);model.position.multiplyScalar(factor).addScaledVector(center,-factor);
+  // Source nose points +X; enemy lookAt uses +Z.
+  visual.rotation.y=-Math.PI/2;visual.add(model);
+  visual.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+  for(const child of e.mesh.children)child.visible=false;
+  e.mesh.add(visual);e.mesh.userData.devastadorModel=visual;
+ }
+},undefined,error=>console.warn('Devastador GLB no disponible; se conserva el respaldo.',error));
 const rawBoss=player.carrierState&&typeof player.carrierState==='object'?player.carrierState:{};
 const bossMaxHp=enemyMaxHp('carrier');
 const bossState={hp:Number.isFinite(+rawBoss.hp)?scaledHealth(+rawBoss.hp,+rawBoss.maxHp||20000,bossMaxHp):bossMaxHp,
