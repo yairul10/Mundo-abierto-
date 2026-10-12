@@ -1,3 +1,4 @@
+import {selectCompanionTask} from './companion-priority.js?v=172';
 import {readTicket,startSession} from './pvp-session.js?v=171';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
@@ -1303,24 +1304,30 @@ const explorerCompanion={
  nextChange:0,destination:new THREE.Vector3(),initialized:false,targetDrop:null
 };
 
-let explorerThreat=null,explorerFireCd=0;
+let explorerThreat=null,explorerFireCd=0,explorerManualTarget=null,explorerManualUntil=0;
+const explorerThreats=new Map();
 function registerExplorerThreat(e){
- if(player.explorerDrone&&e.type!=='carrier'&&!e.dead&&e.mesh.visible)explorerThreat=e;
+ if(player.explorerDrone&&e.type!=='carrier'&&!e.dead&&e.mesh.visible){explorerThreat=e;explorerThreats.set(e,performance.now()/1000);}
 }
-function explorerThreatValid(){
- return explorerThreat&&!explorerThreat.dead&&explorerThreat.mesh.visible&&explorerThreat.aggressive&&explorerThreat.mesh.position.distanceTo(playerMesh.position)<=COMBAT_RANGE;
+function explorerEnemyValid(e){return !!e&&!e.dead&&e.mesh.visible&&e.mesh.position.distanceTo(playerMesh.position)<=COMBAT_RANGE}
+function explorerTask(){
+ const now=performance.now()/1000;
+ for(const [enemy,time] of explorerThreats)if(now-time>4.5||!explorerEnemyValid(enemy))explorerThreats.delete(enemy);
+ if(docked||landing||inSafeZone(playerMesh.position))return {mode:'collect',target:null};
+ return selectCompanionTask({manualActive:fireHeld||now<explorerManualUntil,manualTarget:explorerManualTarget,threats:explorerThreats,now,isValid:explorerEnemyValid});
 }
+function markExplorerAttack(target){explorerManualTarget=target;explorerManualUntil=performance.now()/1000+.85;}
 function updateExplorerCombat(dt){
  explorerFireCd=Math.max(0,explorerFireCd-dt);
- if(!explorerThreatValid()){explorerThreat=null;return}
+ const target=explorerTask().target;if(!target)return;
  if(!player.explorerDrone||!explorerMesh.visible||docked||landing||inSafeZone(playerMesh.position)||explorerFireCd>0)return;
- const delta=explorerThreat.mesh.position.clone().sub(explorerMesh.position);
+ const delta=target.mesh.position.clone().sub(explorerMesh.position);
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
  shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.2});
  if(pvpSession)pvpSession.shots('explorer',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
- explorerMesh.lookAt(explorerThreat.mesh.position);explorerFireCd=.68;
+ explorerMesh.lookAt(target.mesh.position);explorerFireCd=.68;
 }
 
 function updateExplorer(dt,now){
@@ -1333,9 +1340,10 @@ function updateExplorer(dt,now){
   c.destination.copy(explorerMesh.position);
   c.nextChange=0;c.initialized=true;
  }
- // Priorizar recursos dentro del alcance adquirido, aunque estén lejos del dron.
+ // Atacar, defender y solo entonces buscar cajas.
+ const task=explorerTask(),combat=task.mode!=='collect';
  let nearest=null,best=Infinity;
- for(const drop of drops){
+ for(const drop of (combat?[]:drops)){
   if(drop.mesh.position.distanceTo(playerMesh.position)>range)continue;
   const distance=drop.mesh.position.distanceTo(explorerMesh.position);
   if(distance<best){best=distance;nearest=drop}
@@ -1350,8 +1358,7 @@ function updateExplorer(dt,now){
   c.nextChange=t+5+Math.random()*6;
  }
  // El objetivo del botín cambia dinámicamente; la exploración normal usa destinos estables.
- const defending=explorerThreatValid();
- const target=defending?playerMesh.position.clone().lerp(explorerThreat.mesh.position,.15).add(new THREE.Vector3(45,25,0)):nearest?nearest.mesh.position:c.destination;
+ const target=combat?task.target?playerMesh.position.clone().lerp(task.target.mesh.position,.15).add(new THREE.Vector3(45,25,0)):playerMesh.position.clone().add(new THREE.Vector3(65,24,-40)):nearest?nearest.mesh.position:c.destination;
  const distanceToPlayer=explorerMesh.position.distanceTo(playerMesh.position);
  // Cuando la nave se desplaza, el dron regresa hacia el radio de cobertura.
  let goal=target;
@@ -1520,7 +1527,7 @@ function updateTargetLock(){
 function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.active)return;
  if(player.hp<=0||recoveryPending||fireCd>0)return;
  lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
- updateTargetLock();
+ updateTargetLock();markExplorerAttack(lockedEnemy);
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
  const aimPoint=lockedEnemy?lockedEnemy.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1600);
  const noseDir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
@@ -2103,7 +2110,7 @@ function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
   const d=drops[i];d.age+=dt;d.mesh.rotation.y+=dt*.65;d.mesh.rotation.z+=dt*.14;
   d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
-  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&explorerMesh.visible&&d.mesh.position.distanceTo(explorerMesh.position)<45)){
+  if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&explorerMesh.visible&&explorerTask().mode==='collect'&&d.mesh.position.distanceTo(explorerMesh.position)<45)){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
    scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot',{sector:d.sector||activeSector});save();
@@ -2186,7 +2193,7 @@ function skill(){if(PVP_MODE&&!pvpSession?.active)return;
  updateTargetLock();
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
- const target=lockedEnemy;
+ const target=lockedEnemy;markExplorerAttack(target);
  const aim=target?target.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1700);
  const right=new THREE.Vector3().crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
  if(right.lengthSq()<.1)right.set(1,0,0);
@@ -2796,14 +2803,14 @@ if(PVP_MODE){
  keepArena, pause(){resetDockControls();clearCombatShots();},
  snapshot(me,other,first,pending){
   if(me.profile){for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];}
-  if(me.hp<player.hp){lastHitAt=lastIncomingAttackAt=performance.now()/1000;explorerThreat=remote;}
+  if(me.hp<player.hp){lastHitAt=lastIncomingAttackAt=performance.now()/1000;registerExplorerThreat(remote);}
   player.hp=me.hp;if(Number.isFinite(me.energy))player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-Date.now())/1000);
   const predicted=new THREE.Vector3(...me.pos);for(const input of pending)predicted.addScaledVector(new THREE.Vector3(...input.move),player.speed*input.dt);
   if(first||playerMesh.position.distanceTo(predicted)>150)playerMesh.position.copy(predicted);else playerMesh.position.lerp(predicted,.18);
   if(first){yaw=me.pos[2]>0?0:Math.PI;pitch=0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(-Math.sin(yaw)*-285,105,-Math.cos(yaw)*-285));}
   if(other){remote.hp=other.hp;remote.maxHp=other.profile?.maxHp||600;remote.pilotName=other.name;remote.pilotLevel=other.profile?.level||1;remote.mesh.visible=other.hp>0;remote.mesh.position.copy(new THREE.Vector3(...other.pos));remoteVisual(other.profile?.shipId||'aurora');if(other.aim){remote.mesh.rotation.order='YXZ';remote.mesh.rotation.set(other.aim[1],other.aim[0],0)}syncRemoteDrones(other)}
  },
- remoteShots(bullets){lastIncomingAttackAt=performance.now()/1000;explorerThreat=remote;for(const b of bullets){
+ remoteShots(bullets){lastIncomingAttackAt=performance.now()/1000;registerExplorerThreat(remote);for(const b of bullets){
   const mesh=b.missile?createMissileMesh():new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0xff7777,transparent:true,opacity:.95,depthWrite:false}));mesh.position.set(...b.pos);const vel=new THREE.Vector3(...b.vel);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vel.clone().normalize());scene.add(mesh);
   const shot={pvpRemote:true,pvpSent:true,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target:b.target?{mesh:playerMesh,dead:false}:null,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
  }},
