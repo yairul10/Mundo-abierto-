@@ -999,6 +999,23 @@ function enemyBelongsToSector(e,rank=1){
  if(activeSector==='belt')return e.type==='sentinel'||e.type==='destroyer'&&rank<=19;
  return e.type==='destroyer'&&rank<=16||e.type==='devastator';
 }
+
+// Modelo corregido de Catapulta: geometría y texturas compartidas.
+deferredModelLoad(modelLoader,'./assets/models/catapulta_chatarra.glb?v=180',gltf=>{
+ const template=gltf.scene;enhanceEnemyMaterials(template);template.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(template),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
+ const scale=150/span;
+ for(const e of enemies){
+  if(e.type!=='catapult')continue;
+  for(const child of e.mesh.children)child.visible=false;
+  const visual=template.clone(true);visual.scale.setScalar(scale);visual.position.copy(center).multiplyScalar(-scale);
+  visual.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+  e.mesh.add(visual);e.mesh.userData.catapultModel=visual;
+  // La malla generada no tiene articulaciones independientes.
+  e.mesh.userData.catapultArm=null;
+ }
+},undefined,error=>console.warn('Catapulta GLB no disponible; se conserva el respaldo.',error));
 // Diseño propio del Devastador: casco metálico cobrizo y dos alas largas.
 for(const e of enemies.filter(e=>e.type==='devastator')){
  const armor=new THREE.MeshStandardMaterial({color:0xd86d31,metalness:.7,roughness:.5});
