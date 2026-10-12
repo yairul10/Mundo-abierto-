@@ -1,4 +1,4 @@
-import {readTicket,startSession} from './pvp-session.js?v=170';
+import {readTicket,startSession} from './pvp-session.js?v=171';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
@@ -1210,7 +1210,8 @@ const EXPLORER_PRICE=300000;
 player.explorerDrone=player.explorerDrone===true;
 player.explorerRangeLevel=Math.max(1,Math.min(10,Math.floor(Number(player.explorerRangeLevel)||1)));
 function explorerRange(){return 450+player.explorerRangeLevel*100}
-function explorerUpgradePrice(){const raw=4000000*Math.pow(player.explorerRangeLevel/9,2);return Math.round(raw/(raw<100000?10000:100000))*(raw<100000?10000:100000)}
+const EXPLORER_UPGRADE_PRICES=[1000,2500,5000,9000,14000,21000,29000,39000,50000]; // Mejoras del nivel 2 al 10.
+function explorerUpgradePrice(){return EXPLORER_UPGRADE_PRICES[player.explorerRangeLevel-1]||0}
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
 player.droneFormation=player.droneFormation==='shield'?'shield':'fan';
 function ownedDrones(){return player.droneCount}
@@ -1922,7 +1923,8 @@ const EMBER_MISSIONS=[
  {title:'Caza de Devastadores',description:'Destruye 6 Devastadores en Ascuas',event:'devastator',goal:6,reward:24000,xp:4800},
  {title:'Misiles entre cenizas',description:'Destruye 8 enemigos del mapa 3 con misiles',event:'missileKill',goal:8,reward:20000,xp:4000},
  {title:'Frontera ardiente',description:'Acércate a 200 m del borde de Ascuas y vuelve a la zona segura',event:'edgeReturn',goal:2,reward:15000,xp:3000},
- {title:'Caída del Coloso',description:'Destruye al Coloso Portanaves en Ascuas',event:'carrier',goal:1,reward:60000,xp:20000}
+ {title:'Caída del Coloso',description:'Destruye al Coloso Portanaves en Ascuas',event:'carrier',goal:1,reward:60000,xp:20000},
+ {title:'Cazador de Colosos',description:'Destruye 10 Colosos Portanaves en Ascuas',event:'carrier',goal:10,reward:600000,xp:200000}
 ];
 player.quests=player.quests&&typeof player.quests==='object'?player.quests:{};
 function loadCampaign(key,missions){
