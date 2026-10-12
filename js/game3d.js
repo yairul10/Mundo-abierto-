@@ -2,8 +2,9 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=184';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=186';
 import {createCatapultRig} from './catapult-rig.js?v=182';
+import {createHarpoonRig} from './harpoon-rig.js?v=186';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
@@ -1015,8 +1016,21 @@ function assembleCatapultParts(){
 for(const [key,file]of [['hull','catapulta_casco'],['stand','catapulta_soporte'],['arm','catapulta_brazo'],['bomb','catapulta_bomba']]){
  deferredModelLoad(modelLoader,'./assets/models/'+file+'.glb?v=182',gltf=>{
   const template=gltf.scene;template.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
-  catapultParts[key]=template;assembleCatapultParts();
+  catapultParts[key]=template;assembleCatapultParts();assembleHarpoonParts();
  },undefined,error=>console.warn('Pieza de catapulta no disponible: '+file+'; se conserva el respaldo.',error));
+}
+const harpoonParts={};
+function assembleHarpoonParts(){
+ if(!catapultParts.hull||!harpoonParts.launcher||!harpoonParts.spool||!harpoonParts.spear)return;
+ for(const e of enemies){if(e.type!=='harpooner'||e.mesh.userData.harpoonRig)continue;
+ const rig=createHarpoonRig(THREE,{...harpoonParts,hull:catapultParts.hull});
+ for(const child of e.mesh.children)child.visible=false;e.mesh.add(rig.root);e.mesh.userData.harpoonRig=rig;
+ }
+}
+for(const [key,file]of [['launcher','arponero_lanzador'],['spool','arponero_carrete'],['spear','arponero_arpon']]){
+ deferredModelLoad(modelLoader,'./assets/models/'+file+'.glb?v=186',gltf=>{
+ harpoonParts[key]=gltf.scene;assembleHarpoonParts();
+ },undefined,error=>console.warn('Pieza de arponero no disponible: '+file+'; se conserva el respaldo.',error));
 }
 // Diseño propio del Devastador: casco metálico cobrizo y dos alas largas.
 for(const e of enemies.filter(e=>e.type==='devastator')){
@@ -3027,6 +3041,7 @@ if(PVP_MODE){
  });
  keepArena();
 }
+
 
 
 
