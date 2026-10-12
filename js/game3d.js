@@ -1,4 +1,4 @@
-import {selectCompanionTask} from './companion-priority.js?v=172';
+import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
@@ -1368,14 +1368,18 @@ function explorerEnemyValid(e){return !!e&&!e.dead&&e.mesh.visible&&e.mesh.posit
 function explorerTask(){
  const now=performance.now()/1000;
  for(const [enemy,time] of explorerThreats)if(now-time>4.5||!explorerEnemyValid(enemy))explorerThreats.delete(enemy);
- if(docked||landing||inSafeZone(playerMesh.position))return {mode:'collect',target:null};
- return selectCompanionTask({manualActive:fireHeld||now<explorerManualUntil,manualTarget:explorerManualTarget,threats:explorerThreats,now,isValid:explorerEnemyValid});
+ if(docked||landing||player.hp<=0)return {mode:'collect',target:null};
+ return selectCompanionTask({manualActive:fireHeld||now<explorerManualUntil,manualTarget:explorerManualTarget,threats:explorerThreats,now,isValid:explorerEnemyValid,protectedZone:inSafeZone(playerMesh.position)});
 }
-function markExplorerAttack(target){explorerManualTarget=target;explorerManualUntil=performance.now()/1000+.85;}
+function markExplorerAttack(target){
+ if(explorerEnemyValid(target)&&target!==explorerManualTarget)explorerFireCd=0;
+ explorerManualTarget=target;explorerManualUntil=performance.now()/1000+.85;
+ explorerCompanion.targetDrop=null;explorerCompanion.nextChange=0;
+}
 function updateExplorerCombat(dt){
  explorerFireCd=Math.max(0,explorerFireCd-dt);
  const target=explorerTask().target;if(!target)return;
- if(!player.explorerDrone||!explorerMesh.visible||docked||landing||inSafeZone(playerMesh.position)||explorerFireCd>0)return;
+ if(!player.explorerDrone||!explorerMesh.visible||docked||landing||explorerFireCd>0)return;
  const delta=target.mesh.position.clone().sub(explorerMesh.position);
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
@@ -1419,18 +1423,18 @@ function updateExplorer(dt,now){
  let goal=target;
  // Si está recogiendo, permitirle llegar al recurso dentro del radio comprado.
  // Solo volver a la nave cuando no existe un objetivo válido o ya quedó muy lejos.
- if(distanceToPlayer>radius&&!nearest){
+ if(!combat&&distanceToPlayer>radius&&!nearest){
   goal=playerMesh.position.clone().addScaledVector(
    explorerMesh.position.clone().sub(playerMesh.position).normalize(),radius*.72);
   c.nextChange=0;
- } else if(distanceToPlayer>range+90){
+ } else if(!combat&&distanceToPlayer>range+90){
   goal=playerMesh.position.clone().addScaledVector(
    explorerMesh.position.clone().sub(playerMesh.position).normalize(),range*.55);
   c.nextChange=0;
  }
  const motion=goal.clone().sub(explorerMesh.position);
  const distance=motion.length();
- const speed=nearest?Math.min(420,180+distance*.55):Math.min(235,85+distance*.35);
+ const speed=combat?Math.min(520,220+distance*.8):nearest?Math.min(420,180+distance*.55):Math.min(235,85+distance*.35);
  if(distance>2)explorerMesh.position.addScaledVector(motion,Math.min(distance,speed*dt)/distance);
  if(distanceToPlayer>range+260)explorerMesh.position.copy(playerMesh.position).add(new THREE.Vector3(45,25,-35));
  if(distance>8){
