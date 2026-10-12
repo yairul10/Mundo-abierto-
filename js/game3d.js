@@ -1050,7 +1050,7 @@ function spawnCarrierAdd(type,guard=false,snapshot=null){
  }
  e.home.copy(e.mesh.position);e.mesh.visible=false;return e;
 }
-if(Array.isArray(rawBoss.adds)){
+if(Array.isArray(rawBoss.adds)&&(bossState.hp>0||Date.now()<bossState.respawnAt)){
  for(const add of rawBoss.adds)if(['raider','sentinel','destroyer'].includes(add.type))spawnCarrierAdd(add.type,!!add.guard,add);
 }
 function persistCarrierState(){
@@ -1067,7 +1067,24 @@ function triggerCarrierWaves(){
   for(let i=0;i<phase.count;i++){const e=spawnCarrierAdd(phase.type);e.mesh.visible=activeSector==='ember'&&!e.launchRemaining}
  }
 }
+function clearCarrierAdds(){
+ const removed=new Set(enemies.filter(e=>e.bossAdd));
+ for(let i=enemies.length-1;i>=0;i--){
+  const e=enemies[i];if(!removed.has(e))continue;
+  e.hp=0;e.dead=Infinity;e.guard=false;e.launchRemaining=0;e.mesh.visible=false;
+  scene.remove(e.mesh);enemies.splice(i,1);explorerThreats.delete(e);
+ }
+ for(let i=enemyShots.length-1;i>=0;i--){
+  if(!removed.has(enemyShots[i].owner))continue;
+  scene.remove(enemyShots[i].mesh);enemyShots.splice(i,1);
+ }
+ if(removed.has(lockedEnemy)){lockedEnemy=null;lockFrame.classList.add('hidden')}
+ if(removed.has(explorerThreat))explorerThreat=null;
+ if(removed.has(explorerManualTarget)){explorerManualTarget=null;explorerManualUntil=0}
+ // No kill(): expiration gives no rewards or mission progress. Shared assets stay alive.
+}
 function respawnCarrier(){
+ clearCarrierAdds();
  const angle=Math.random()*Math.PI*2,y=(Math.random()-.5)*.8,radius=1800+Math.random()*2300,horizontal=Math.sqrt(1-y*y);
  carrierMesh.position.set(SECTOR_EMBER.x+Math.cos(angle)*horizontal*radius,y*radius,SECTOR_EMBER.z+Math.sin(angle)*horizontal*radius);
  carrierEnemy.home.copy(carrierMesh.position);carrierEnemy.hp=carrierEnemy.maxHp=40000;carrierEnemy.dead=0;carrierEnemy.mesh.visible=activeSector==='ember';
@@ -1583,7 +1600,7 @@ function enemyFire(e){
  const target=playerMesh.position.clone().add(new THREE.Vector3((Math.random()-.5)*75,(Math.random()-.5)*55,(Math.random()-.5)*75));
  const dir=target.sub(start).normalize();
  const mesh=new THREE.Mesh(enemyShotGeometry,enemyShotMaterials[e.type]);mesh.position.copy(start).addScaledVector(dir,48);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
- enemyShots.push({mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?1050:1250),life:1.8,damage:t.damage});
+ enemyShots.push({owner:e,mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?1050:1250),life:1.8,damage:t.damage});
 }
 function updateEnemyShots(dt){
  for(let i=enemyShots.length-1;i>=0;i--){
