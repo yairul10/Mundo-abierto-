@@ -94,6 +94,7 @@ function syncSectorEnvironment(){
  auroraPlanetPivot.visible=activeSector==='aurora';
  emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=activeSector==='ember';
  for(const light of beltSectorLights)light.visible=activeSector==='belt';
+ for(const light of emberSectorLights)light.visible=activeSector==='ember';
  sectorStars.position.set(currentSector().x,0,currentSector().z);
 }
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_cinturon.webp?v=145',texture=>{
@@ -153,7 +154,11 @@ for(const light of beltSectorLights){light.visible=false;if(light.target){light.
 const emberMoonPivot=new THREE.Group();emberMoonPivot.position.set(21500,5800,-2150);emberMoonPivot.visible=false;scene.add(emberMoonPivot);
 const emberMoonLight=new THREE.DirectionalLight(0xffc0a0,2.6);emberMoonLight.position.copy(emberMoonPivot.position);
 emberMoonLight.target.position.set(23000,0,-650);emberMoonLight.visible=false;scene.add(emberMoonLight,emberMoonLight.target);
-const emberMoonFill=new THREE.HemisphereLight(0xffe0cc,0x7b6861,1.2);emberMoonFill.visible=false;scene.add(emberMoonFill);
+const emberMoonFill=new THREE.HemisphereLight(0xffe9dc,0x9593a3,1.9);emberMoonFill.visible=false;scene.add(emberMoonFill);
+// Relleno fijo de Ascuas desde lados opuestos, sin sombras ni luces por enemigo.
+const emberSectorLights=[new THREE.DirectionalLight(0xffdfc8,1.35),new THREE.DirectionalLight(0xc8dcff,1.1)];
+emberSectorLights[0].position.set(19500,1800,3300);emberSectorLights[1].position.set(26500,-1800,-4800);
+for(const light of emberSectorLights){light.target.position.set(23000,0,-650);light.visible=false;scene.add(light,light.target)}
 const emberMoonFallback=new THREE.Mesh(new THREE.SphereGeometry(600,32,20),new THREE.MeshStandardMaterial({color:0xd7806a,emissive:0xff6440,emissiveIntensity:.7,roughness:1,metalness:0,fog:false}));
 emberMoonPivot.add(emberMoonFallback);
 const moonGlowCanvas=document.createElement('canvas');moonGlowCanvas.width=moonGlowCanvas.height=128;
@@ -1018,11 +1023,12 @@ if(Array.isArray(rawBoss.position)&&rawBoss.position.length===3&&rawBoss.positio
 carrierMesh.scale.setScalar(2);carrierMesh.visible=false;scene.add(carrierMesh);
 const carrierEnemy={type:'carrier',mesh:carrierMesh,home:carrierMesh.position.clone(),hp:bossState.hp,maxHp:40000,dead:bossState.hp>0?0:Infinity,fireTimer:Infinity};
 enemies.push(carrierEnemy);
+for(const enemy of enemies)enhanceEnemyMaterials(enemy.mesh);
 function spawnCarrierAdd(type,guard=false,snapshot=null){
  let e=enemies.find(e=>e.bossAdd&&e.dead&&e.type===type);
  if(!e){
   const original=enemies.find(e=>!e.bossAdd&&e.type===type);
-  const mesh=original?original.mesh.clone(true):ship(TYPES[type].color,type);scene.add(mesh);
+  const mesh=original?original.mesh.clone(true):ship(TYPES[type].color,type);enhanceEnemyMaterials(mesh);scene.add(mesh);
   e={type,mesh,home:new THREE.Vector3(),bossAdd:true};enemies.push(e);
  }
  const maxHp=enemyMaxHp(type);
@@ -1109,6 +1115,37 @@ function clearCombatShots(){
 
 
 let colosoHullTemplate=null,colosoDoorTemplate=null;
+function enhanceEnemyMaterials(model){
+ const copies=new Map();
+ model.traverse(mesh=>{
+  if(!mesh.isMesh)return;
+  const enhance=source=>{
+   if(!source?.isMeshStandardMaterial||source.userData.enemyVisibility175)return source;
+   if(copies.has(source))return copies.get(source);
+   const material=source.clone(),previous=source.onBeforeCompile,previousKey=source.customProgramCacheKey();
+   material.userData.enemyVisibility175=true;copies.set(source,material);
+   material.metalness=Math.min(material.metalness,.52);material.metalnessMap=null;
+   material.roughness=Math.max(material.roughness,.5);material.roughnessMap=null;
+   material.onBeforeCompile=shader=>{
+    previous.call(material,shader);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+ // Levantar los tonos oscuros de la textura sin cambiar su tono ni el alfa.
+ diffuseColor.rgb=mix(diffuseColor.rgb,sqrt(max(diffuseColor.rgb,vec3(0.0))),0.28);
+`);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+ float enemyBlueLamp=smoothstep(0.06,0.25,diffuseColor.b-max(diffuseColor.r,diffuseColor.g));
+ float enemyWarmLamp=smoothstep(0.06,0.25,diffuseColor.r-diffuseColor.b)*smoothstep(0.03,0.18,diffuseColor.g-diffuseColor.b);
+ float enemyLampBrightness=smoothstep(0.35,0.75,max(diffuseColor.r,max(diffuseColor.g,diffuseColor.b)));
+ totalEmissiveRadiance+=diffuseColor.rgb*(0.12+max(enemyBlueLamp,enemyWarmLamp)*enemyLampBrightness*0.48);
+`);
+   };
+   material.customProgramCacheKey=()=>previousKey+'-enemy-visibility-v175';material.needsUpdate=true;
+   return material;
+  };
+  mesh.material=Array.isArray(mesh.material)?mesh.material.map(enhance):enhance(mesh.material);
+ });
+}
+
 function finishColosoMaterials(model){
  model.traverse(o=>{
   if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;
@@ -1128,6 +1165,7 @@ function finishColosoMaterials(model){
    material.customProgramCacheKey=()=> 'coloso-orange-metal-v159';material.needsUpdate=true;
   }
  });
+ enhanceEnemyMaterials(model);
 }
 function assembleColosoModels(){
  if(!colosoHullTemplate||!colosoDoorTemplate||carrierMesh.userData.colosoVisual)return;
@@ -1173,6 +1211,7 @@ deferredModelLoad(modelLoader,'./assets/models/scifipanelcrate_optimizado.glb?v=
 // Si aún no se ha subido el GLB, las naves originales siguen funcionando.
 deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=105',gltf=>{
  const original=gltf.scene;
+ enhanceEnemyMaterials(original);
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  // Ajustar escala con la caja del modelo antes de girarlo hacia el frente -Z.
  const box=new THREE.Box3().setFromObject(original);
@@ -1196,6 +1235,7 @@ deferredModelLoad(modelLoader,'./assets/models/futuristic_spacecraft.glb?v=105',
 // conserva vida, daño, velocidad, IA, colisiones, disparos y recompensas.
 deferredModelLoad(modelLoader,'./assets/models/sci_fi_combat_vessel.glb?v=113',gltf=>{
  const original=gltf.scene;
+ enhanceEnemyMaterials(original);
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  const box=new THREE.Box3().setFromObject(original);
  const size=box.getSize(new THREE.Vector3());
@@ -1218,6 +1258,7 @@ deferredModelLoad(modelLoader,'./assets/models/sci_fi_combat_vessel.glb?v=113',g
 // conserva vida, daño, velocidad, IA, colisiones, disparos y recompensas.
 deferredModelLoad(modelLoader,'./assets/models/raider_spacecraft.glb?v=112',gltf=>{
  const original=gltf.scene;
+ enhanceEnemyMaterials(original);
  original.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
  const box=new THREE.Box3().setFromObject(original);
  const size=box.getSize(new THREE.Vector3());
@@ -1246,6 +1287,7 @@ deferredModelLoad(modelLoader,'./assets/models/gunship_optimizado.glb?v=148',glt
    material.metalnessMap=null;material.roughnessMap=null;material.metalness=.65;material.roughness=.62;
   }
  });
+ enhanceEnemyMaterials(original);
  const box=new THREE.Box3().setFromObject(original),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
  const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
  for(const e of enemies){
@@ -1364,7 +1406,7 @@ const explorerThreats=new Map();
 function registerExplorerThreat(e){
  if(player.explorerDrone&&e.type!=='carrier'&&!e.dead&&e.mesh.visible){explorerThreat=e;explorerThreats.set(e,performance.now()/1000);}
 }
-function explorerEnemyValid(e){return !!e&&!e.dead&&e.mesh.visible&&e.mesh.position.distanceTo(playerMesh.position)<=COMBAT_RANGE}
+function explorerEnemyValid(e){return !!e&&!e.dead&&e.mesh.visible&&e.mesh.position.distanceTo(playerMesh.position)<=Math.min(COMBAT_RANGE,explorerRange())}
 function explorerTask(){
  const now=performance.now()/1000;
  for(const [enemy,time] of explorerThreats)if(now-time>4.5||!explorerEnemyValid(enemy))explorerThreats.delete(enemy);
@@ -1423,11 +1465,11 @@ function updateExplorer(dt,now){
  let goal=target;
  // Si está recogiendo, permitirle llegar al recurso dentro del radio comprado.
  // Solo volver a la nave cuando no existe un objetivo válido o ya quedó muy lejos.
- if(!combat&&distanceToPlayer>radius&&!nearest){
+ if(distanceToPlayer>radius&&!nearest){
   goal=playerMesh.position.clone().addScaledVector(
    explorerMesh.position.clone().sub(playerMesh.position).normalize(),radius*.72);
   c.nextChange=0;
- } else if(!combat&&distanceToPlayer>range+90){
+ } else if(distanceToPlayer>range+90){
   goal=playerMesh.position.clone().addScaledVector(
    explorerMesh.position.clone().sub(playerMesh.position).normalize(),range*.55);
   c.nextChange=0;
@@ -2854,7 +2896,7 @@ if(PVP_MODE){
  function cloneClean(source){const saved=[];source.traverse(o=>{saved.push([o,o.userData]);o.userData={}});let copy;try{copy=source.clone(true)}finally{for(const [o,data]of saved)o.userData=data}return copy}
  function remoteVisual(id){const key=id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===remoteSource)return;remoteSource=source;remoteMesh.clear();const visual=cloneClean(source);visual.visible=true;remoteMesh.add(visual);}
  function syncRemoteDrones(other){const count=other.profile?.droneCount||0;const source=supportDrones[0]?.mesh;const sourceStamp=source?.children.length;if(count!==remoteDroneCount||sourceStamp!==remoteDroneSource){remoteDrones.clear();for(let i=0;i<count;i++){const clone=cloneClean(source);clone.visible=true;remoteDrones.add(clone)}remoteDroneCount=count;remoteDroneSource=sourceStamp}remoteDrones.position.copy(remote.mesh.position);remoteDrones.rotation.copy(remote.mesh.rotation);for(let i=0;i<remoteDrones.children.length;i++){const d=remoteDrones.children[i],pair=Math.floor(i/2);d.position.set((i%2?1:-1)*[78,135,195,250][pair],14,-[125,165,190,210][pair]);d.rotation.set(0,0,0)}}
- function keepArena(){auroraStation.visible=beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';}
+ function keepArena(){for(const light of emberSectorLights)light.visible=false;auroraStation.visible=beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,0,400);yaw=0;pitch=0;camera.position.set(0,105,685);camera.lookAt(0,0,185);
  for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  $('hint').textContent='PvP · Mismos controles de vuelo y combate';$('stationDistance').textContent='Arena PvP';
