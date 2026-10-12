@@ -2,7 +2,8 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=181';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=182';
+import {createCatapultRig} from './catapult-rig.js?v=182';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
@@ -1000,25 +1001,23 @@ function enemyBelongsToSector(e,rank=1){
  return e.type==='destroyer'&&rank<=16||e.type==='devastator';
 }
 
-// Modelo corregido de Catapulta: geometría y texturas compartidas.
-deferredModelLoad(modelLoader,'./assets/models/catapulta_chatarra.glb?v=180',gltf=>{
- const template=gltf.scene;
- // Preserve the source rust colors; avoid the general enemy brightening shader.
- template.traverse(o=>{if(o.isMesh)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.isMeshStandardMaterial){material.metalness=.35;material.roughness=.85}}});
- template.updateMatrixWorld(true);
- const bounds=new THREE.Box3().setFromObject(template),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
- const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
- const scale=150/span;
+// Activate the assembled model only when every uploaded piece is ready.
+const catapultParts={};
+function assembleCatapultParts(){
+ if(!catapultParts.hull||!catapultParts.stand||!catapultParts.arm||!catapultParts.bomb)return;
  for(const e of enemies){
-  if(e.type!=='catapult')continue;
+  if(e.type!=='catapult'||e.mesh.userData.catapultRig)continue;
+  const rig=createCatapultRig(THREE,catapultParts);
   for(const child of e.mesh.children)child.visible=false;
-  const visual=template.clone(true);visual.scale.setScalar(scale);visual.position.copy(center).multiplyScalar(-scale);
-  visual.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
-  e.mesh.add(visual);e.mesh.userData.catapultModel=visual;
-  // La malla generada no tiene articulaciones independientes.
-  e.mesh.userData.catapultArm=null;
+  e.mesh.add(rig.root);e.mesh.userData.catapultRig=rig;e.mesh.userData.catapultArm=null;
  }
-},undefined,error=>console.warn('Catapulta GLB no disponible; se conserva el respaldo.',error));
+}
+for(const [key,file]of [['hull','catapulta_casco'],['stand','catapulta_soporte'],['arm','catapulta_brazo'],['bomb','catapulta_bomba']]){
+ deferredModelLoad(modelLoader,'./assets/models/'+file+'.glb?v=182',gltf=>{
+  const template=gltf.scene;template.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+  catapultParts[key]=template;assembleCatapultParts();
+ },undefined,error=>console.warn('Pieza de catapulta no disponible: '+file+'; se conserva el respaldo.',error));
+}
 // Diseño propio del Devastador: casco metálico cobrizo y dos alas largas.
 for(const e of enemies.filter(e=>e.type==='devastator')){
  const armor=new THREE.MeshStandardMaterial({color:0xd86d31,metalness:.7,roughness:.5});
@@ -3011,6 +3010,7 @@ if(PVP_MODE){
  });
  keepArena();
 }
+
 
 
 

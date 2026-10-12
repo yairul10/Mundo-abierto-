@@ -73,7 +73,7 @@ export function createGraveyard(THREE,scene){
  return {environment,station,pads,background,enemyVisual};
 }
 export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
- const pending=[],projectiles=[],effects=[];let tether=null,immune=0;
+ const pending=[],projectiles=[],effects=[];let tether=null,immune=0;const rigs=new Set();
  const metal=new THREE.MeshStandardMaterial({color:0x7d6757,roughness:.9});
  const rockGeo=new THREE.IcosahedronGeometry(16,0),harpoonGeo=new THREE.ConeGeometry(7,35,6);
  const cableMaterial=new THREE.LineBasicMaterial({color:0xc8b6a0});
@@ -82,6 +82,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  function fire(enemy){
   if(enemy.type==='catapult'&&(pending.some(p=>p.enemy===enemy)||projectiles.some(p=>p.enemy===enemy&&p.bomb)))return;
   if(enemy.type==='catapult'){
+   const rig=enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(0)}
    const target=position().clone();const marker=new THREE.Mesh(new THREE.SphereGeometry(180,16,8),new THREE.MeshBasicMaterial({color:0xff7733,wireframe:true,transparent:true,opacity:.25,depthWrite:false}));marker.position.copy(target);scene.add(marker);
    pending.push({enemy,target,marker,time:1.4});notify('⚠️ Catapulta cargando · Aléjate del área naranja');
   }else{
@@ -92,14 +93,15 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
   }
  }
  function update(dt){
-  immune=Math.max(0,immune-dt);
+  immune=Math.max(0,immune-dt);for(const rig of rigs)rig.update(dt);
   if(tether){if(tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else{const elapsed=Math.min(dt,tether.time);damage(50,elapsed);tether.time-=elapsed;if(tether.time<=1e-9)release();else tether.line.geometry.setFromPoints([tether.enemy.mesh.position,position()])}}
   for(let i=pending.length-1;i>=0;i--){const p=pending[i];p.time-=dt;
+   const rig=p.enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(Math.min(1,(1.4-p.time)/1.4))}
    const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=-Math.min(1.1,(1.4-p.time)*.8);
-   if(p.enemy.dead||!p.enemy.mesh.visible||!canHit()){remove(p.marker);if(arm)arm.rotation.x=0;pending.splice(i,1);continue}
+   if(p.enemy.dead||!p.enemy.mesh.visible||!canHit()){remove(p.marker);rig?.reset();if(arm)arm.rotation.x=0;pending.splice(i,1);continue}
    if(p.time>0)continue;
    if(arm)arm.rotation.x=.6;
-   const mesh=new THREE.Mesh(rockGeo,metal);mesh.position.copy(p.enemy.mesh.position);scene.add(mesh);
+   const mesh=rig?rig.projectile():new THREE.Mesh(rockGeo,metal);mesh.position.copy(rig?rig.release():p.enemy.mesh.position);scene.add(mesh);
    projectiles.push({enemy:p.enemy,mesh,marker:p.marker,start:mesh.position.clone(),target:p.target,age:0,duration:1.5,bomb:true});pending.splice(i,1);
   }
   for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],previous=p.mesh.position.clone();let done=false;
@@ -114,10 +116,12 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
   }
   for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.time-=dt;e.mesh.scale.setScalar(180*(1-e.time/.55));e.mesh.material.opacity=Math.max(0,e.time);if(e.time<=0){remove(e.mesh);effects.splice(i,1)}}
  }
- function clear(){release();immune=0;for(const p of pending){remove(p.marker);const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=0}pending.length=0;
+ function clear(){release();immune=0;for(const rig of rigs)rig.reset();rigs.clear();for(const p of pending){remove(p.marker);const rig=p.enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(Math.min(1,(1.4-p.time)/1.4))}
+   const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=0}pending.length=0;
   for(const p of projectiles){scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker)}projectiles.length=0;for(const e of effects)remove(e.mesh);effects.length=0;
  }
  return {fire,update,clear,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
+
 
 
