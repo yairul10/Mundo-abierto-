@@ -1,3 +1,5 @@
+export function advancedEnemyScale(level,baseLevel){return 1+Math.max(0,Math.floor(Number(level)||1)-baseLevel)*.1}
+export function scaledHealth(hp,oldMax,newMax){return Math.max(0,Math.min(newMax,(Number(hp)||0)/Math.max(1,Number(oldMax)||newMax)*newMax))}
 // Lightweight native geometry: the map and improvised weapons work offline.
 export const GRAVEYARD={x:37000,z:-650,radius:4500,warning:900,damagePerSecond:8};
 export function segmentDistance(a,b,p){
@@ -117,4 +119,5 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  }
  return {fire,update,clear,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
+
 

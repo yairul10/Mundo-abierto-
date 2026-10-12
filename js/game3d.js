@@ -2,7 +2,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=179';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=181';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
 if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
@@ -967,9 +967,9 @@ const TYPES={
  raider:{hp:70,damage:10,speed:150,xp:36,gold:20,loot:2,color:0xe78b45},
  sentinel:{hp:140,damage:20,speed:90,xp:72,gold:40,loot:4,color:0xb86bd9},destroyer:{hp:280,damage:35,speed:110,xp:130,gold:80,loot:6,color:0xff3d9b},
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
- catapult:{hp:380,damage:300,speed:75,xp:260,gold:170,loot:8,color:0x815942},
- harpooner:{hp:250,damage:50,speed:130,xp:225,gold:145,loot:7,color:0x505b69},
- carrier:{hp:40000,damage:0,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
+ catapult:{hp:3000,damage:300,speed:75,xp:260,gold:170,loot:8,color:0x815942},
+ harpooner:{hp:5000,damage:50,speed:130,xp:225,gold:145,loot:7,color:0x505b69},
+ carrier:{hp:40000,damage:150,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
 };
 // Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
 // para principiantes y ganan resistencia a medida que progresa el jugador.
@@ -977,7 +977,7 @@ function enemyDifficultyScale(){
  const level=Math.max(1,Math.floor(Number(player.level)||1));
  return Math.min(5,1+Math.max(0,level-1)*.10);
 }
-function enemyMaxHp(type){return type==='carrier'?40000:type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
+function enemyMaxHp(type){return type==='carrier'?Math.round(TYPES.carrier.hp*advancedEnemyScale(player.level,30)):type==='catapult'||type==='harpooner'?Math.round(TYPES[type].hp*advancedEnemyScale(player.level,40)):type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
 function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
 const enemyKinds=[...Array(34).fill('scout'),...Array(19).fill('raider'),...Array(20).fill('sentinel'),...Array(19).fill('destroyer'),...Array(10).fill('devastator'),...Array(12).fill('catapult'),...Array(12).fill('harpooner')]; // Aproximadamente +40%: 53 enemigos en Aurora y 39 en Cinturón; Ascuas conserva 16 Destructores.
 function randomEnemyHome(type){
@@ -1002,7 +1002,10 @@ function enemyBelongsToSector(e,rank=1){
 
 // Modelo corregido de Catapulta: geometría y texturas compartidas.
 deferredModelLoad(modelLoader,'./assets/models/catapulta_chatarra.glb?v=180',gltf=>{
- const template=gltf.scene;enhanceEnemyMaterials(template);template.updateMatrixWorld(true);
+ const template=gltf.scene;
+ // Preserve the source rust colors; avoid the general enemy brightening shader.
+ template.traverse(o=>{if(o.isMesh)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.isMeshStandardMaterial){material.metalness=.35;material.roughness=.85}}});
+ template.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(template),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
  const scale=150/span;
@@ -1024,7 +1027,8 @@ for(const e of enemies.filter(e=>e.type==='devastator')){
  }
 }
 const rawBoss=player.carrierState&&typeof player.carrierState==='object'?player.carrierState:{};
-const bossState={hp:Number.isFinite(+rawBoss.hp)?THREE.MathUtils.clamp(+rawBoss.hp*(rawBoss.maxHp===40000?1:2),0,40000):40000,
+const bossMaxHp=enemyMaxHp('carrier');
+const bossState={hp:Number.isFinite(+rawBoss.hp)?scaledHealth(+rawBoss.hp,+rawBoss.maxHp||20000,bossMaxHp):bossMaxHp,
  respawnAt:Number.isFinite(+rawBoss.respawnAt)?+rawBoss.respawnAt:0,
  phases:Array.isArray(rawBoss.phases)?[...new Set(rawBoss.phases.filter(x=>[0,90,70,50,30,10].includes(x)))]:[],rewarded:!!rawBoss.rewarded};
 if(bossState.rewarded)bossState.hp=0;
@@ -1048,7 +1052,7 @@ for(const x of [-65,65]){
 carrierMesh.position.set(SECTOR_EMBER.x,180,SECTOR_EMBER.z-2400);
 if(Array.isArray(rawBoss.position)&&rawBoss.position.length===3&&rawBoss.position.every(Number.isFinite)&&Math.hypot(rawBoss.position[0]-SECTOR_EMBER.x,rawBoss.position[1],rawBoss.position[2]-SECTOR_EMBER.z)<4300)carrierMesh.position.fromArray(rawBoss.position);
 carrierMesh.scale.setScalar(2);carrierMesh.visible=false;scene.add(carrierMesh);
-const carrierEnemy={type:'carrier',mesh:carrierMesh,home:carrierMesh.position.clone(),hp:bossState.hp,maxHp:40000,dead:bossState.hp>0?0:Infinity,fireTimer:Infinity};
+const carrierEnemy={type:'carrier',mesh:carrierMesh,home:carrierMesh.position.clone(),hp:bossState.hp,maxHp:bossMaxHp,dead:bossState.hp>0?0:Infinity,fireTimer:5};
 enemies.push(carrierEnemy);
 for(const enemy of enemies)enhanceEnemyMaterials(enemy.mesh);
 function spawnCarrierAdd(type,guard=false,snapshot=null){
@@ -1081,13 +1085,13 @@ if(Array.isArray(rawBoss.adds)&&(bossState.hp>0||Date.now()<bossState.respawnAt)
  for(const add of rawBoss.adds)if(['raider','sentinel','destroyer'].includes(add.type))spawnCarrierAdd(add.type,!!add.guard,add);
 }
 function persistCarrierState(){
- player.carrierState={hp:bossState.hp,maxHp:TYPES.carrier.hp,phases:[...bossState.phases],rewarded:bossState.rewarded,respawnAt:bossState.respawnAt,position:carrierMesh.position.toArray(),
+ player.carrierState={hp:bossState.hp,maxHp:carrierEnemy.maxHp,phases:[...bossState.phases],rewarded:bossState.rewarded,respawnAt:bossState.respawnAt,position:carrierMesh.position.toArray(),
  adds:enemies.filter(e=>e.bossAdd&&!e.dead&&e.hp>0).map(e=>({type:e.type,hp:e.hp,guard:!!e.guard,position:e.mesh.position.toArray(),...(e.launchRemaining>0?{launch:{start:e.launchStart.toArray(),direction:e.launchDirection.toArray(),age:e.launchAge,wait:e.launchWait,slot:e.launchSlot}}:{})}))};
 }
 function triggerCarrierWaves(){
  if(bossState.hp<=0)return;
  const phases=[{at:0,type:'sentinel',count:2},{at:90,type:'raider',count:5},{at:70,type:'sentinel',count:4},{at:50,type:'sentinel',count:8},{at:30,type:'destroyer',count:7},{at:10,type:'sentinel',count:0}];
- const percent=100*bossState.hp/TYPES.carrier.hp;
+ const percent=100*bossState.hp/carrierEnemy.maxHp;
  for(const phase of phases){
   if(bossState.phases.includes(phase.at)||phase.at!==0&&percent>phase.at)continue;
   bossState.phases.push(phase.at);
@@ -1103,7 +1107,7 @@ function clearCarrierAdds(){
  }
  for(let i=enemyShots.length-1;i>=0;i--){
   if(!removed.has(enemyShots[i].owner))continue;
-  scene.remove(enemyShots[i].mesh);enemyShots.splice(i,1);
+  removeMissileEffects(enemyShots[i]);scene.remove(enemyShots[i].mesh);enemyShots.splice(i,1);
  }
  if(removed.has(lockedEnemy)){lockedEnemy=null;lockFrame.classList.add('hidden')}
  if(removed.has(explorerThreat))explorerThreat=null;
@@ -1114,8 +1118,8 @@ function respawnCarrier(){
  clearCarrierAdds();
  const angle=Math.random()*Math.PI*2,y=(Math.random()-.5)*.8,radius=1800+Math.random()*2300,horizontal=Math.sqrt(1-y*y);
  carrierMesh.position.set(SECTOR_EMBER.x+Math.cos(angle)*horizontal*radius,y*radius,SECTOR_EMBER.z+Math.sin(angle)*horizontal*radius);
- carrierEnemy.home.copy(carrierMesh.position);carrierEnemy.hp=carrierEnemy.maxHp=40000;carrierEnemy.dead=0;carrierEnemy.mesh.visible=activeSector==='ember';
- bossState.hp=40000;bossState.phases=[];bossState.rewarded=false;bossState.respawnAt=0;
+ carrierEnemy.home.copy(carrierMesh.position);carrierEnemy.hp=carrierEnemy.maxHp=enemyMaxHp('carrier');carrierEnemy.dead=0;carrierEnemy.mesh.visible=activeSector==='ember';
+ bossState.hp=carrierEnemy.maxHp;carrierEnemy.fireTimer=5;bossState.phases=[];bossState.rewarded=false;bossState.respawnAt=0;
  save();if(activeSector==='ember')lootToast('🚨 El Coloso Portanaves ha reaparecido');
 }
 function advanceCarrierLaunch(e,dt){
@@ -1139,6 +1143,11 @@ function patrolCarrierAdd(e,dt,now){
  e.mesh.lookAt(e.patrolTarget);
 }
 function updateCarrier(dt){if(PVP_MODE)return;
+ const maximum=enemyMaxHp('carrier');
+ if(carrierEnemy.maxHp!==maximum){bossState.hp=scaledHealth(bossState.hp,carrierEnemy.maxHp,maximum);carrierEnemy.maxHp=maximum;carrierEnemy.hp=bossState.hp}
+ if(activeSector==='ember'&&bossState.hp>0&&!docked&&!landing&&!inSafeZone(playerMesh.position)&&carrierMesh.position.distanceTo(playerMesh.position)<=COMBAT_RANGE){
+  carrierEnemy.fireTimer-=dt;if(carrierEnemy.fireTimer<=0){fireCarrierMissile();carrierEnemy.fireTimer=5}
+ }else carrierEnemy.fireTimer=5;
  if(bossState.hp<=0&&Date.now()>=bossState.respawnAt)respawnCarrier();
  for(const {hinge,side,axis='z',openAngle=-side*.62}of carrierPanels)hinge.rotation[axis]=THREE.MathUtils.lerp(hinge.rotation[axis],bossState.phases.includes(0)?openAngle:0,Math.min(1,dt*2));
  if(activeSector!=='ember'||bossState.hp<=0||!bossState.phases.includes(10))return;
@@ -1154,7 +1163,7 @@ function damageEnemy(e,damage,missile=false){if(e.pvpRemote)return;
 }
 function clearCombatShots(){
  scrapCombat.clear();
- for(const p of enemyShots)scene.remove(p.mesh);enemyShots.length=0;
+ for(const p of enemyShots){removeMissileEffects(p);scene.remove(p.mesh)}enemyShots.length=0;
  for(const p of shots){removeMissileEffects(p);scene.remove(p.mesh)}shots.length=0;
 }
 
@@ -1610,7 +1619,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
-const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1)=>applyPlayerDamage(Math.max(1,amount-player.defense*.25)*elapsed),notify:message=>lootToast(message)});
+const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1)=>applyPlayerDamage(Math.max(1,amount*advancedEnemyScale(player.level,40)-player.defense*.25)*elapsed),notify:message=>lootToast(message)});
 const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff}),destroyer:new THREE.MeshBasicMaterial({color:0xff3d9b}),devastator:new THREE.MeshBasicMaterial({color:0xff7733})};
@@ -1626,13 +1635,23 @@ function enemyFire(e){
  const mesh=new THREE.Mesh(enemyShotGeometry,enemyShotMaterials[e.type]);mesh.position.copy(start).addScaledVector(dir,48);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
  enemyShots.push({owner:e,mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?1050:1250),life:1.8,damage:t.damage});
 }
+const carrierMissileGeometry=new THREE.ConeGeometry(8,42,8),carrierMissileMaterial=new THREE.MeshStandardMaterial({color:0xad5b36,roughness:.75});
+function fireCarrierMissile(){
+ lastIncomingAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
+ const dir=playerMesh.position.clone().sub(carrierMesh.position).normalize(),mesh=new THREE.Mesh(carrierMissileGeometry,carrierMissileMaterial);
+ mesh.position.copy(carrierMesh.position).addScaledVector(dir,carrierMesh.userData.hitRadius||255);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
+ enemyShots.push({owner:carrierEnemy,mesh,velocity:dir.multiplyScalar(650),life:4,damage:TYPES.carrier.damage*advancedEnemyScale(player.level,30),guided:true,missileEffects:addMissileEffects(mesh)});
+ lootToast('🚀 Coloso · Misil guiado');
+}
 function updateEnemyShots(dt){
  for(let i=enemyShots.length-1;i>=0;i--){
-  const p=enemyShots[i];p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;
-  if(!docked&&!landing&&!inSafeZone(playerMesh.position)&&p.mesh.position.distanceTo(playerMesh.position)<45){
+  const p=enemyShots[i],previous=p.mesh.position.clone();
+  if(p.guided){const desired=playerMesh.position.clone().sub(p.mesh.position).normalize().multiplyScalar(650);p.velocity.lerp(desired,Math.min(1,dt*1.6));p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.velocity.clone().normalize());if(p.owner.dead)p.life=0}
+  p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;if(p.guided)updateMissileEffects(p,dt);
+  if(!docked&&!landing&&!inSafeZone(playerMesh.position)&&segmentDistance(previous,p.mesh.position,playerMesh.position)<45){
    applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0;
   }
-  if(p.life<=0){scene.remove(p.mesh);enemyShots.splice(i,1)}
+  if(p.life<=0){removeMissileEffects(p);scene.remove(p.mesh);enemyShots.splice(i,1)}
  }
 }
 const shots=[];function nearest(){let b=null,d=650;for(const e of enemies){if(e.dead)continue;const x=e.mesh.position.distanceTo(playerMesh.position);if(x<d){d=x;b=e}}return b}
@@ -2637,7 +2656,7 @@ function resetSectorPopulation(){
  const counts={};
  for(const e of enemies){
   if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead&&!e.launchRemaining;continue}
-  if(e.type==='carrier'){e.hp=bossState.hp;e.dead=bossState.hp>0?0:Infinity;e.mesh.visible=activeSector==='ember'&&bossState.hp>0;continue}
+  if(e.type==='carrier'){e.maxHp=enemyMaxHp('carrier');e.hp=bossState.hp;e.dead=bossState.hp>0?0:Infinity;e.mesh.visible=activeSector==='ember'&&bossState.hp>0;continue}
   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.aggressive=e.type!=='devastator';
   counts[e.type]=(counts[e.type]||0)+1;e.spawnRank=counts[e.type];e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;
  }
@@ -2992,6 +3011,7 @@ if(PVP_MODE){
  });
  keepArena();
 }
+
 
 
 
