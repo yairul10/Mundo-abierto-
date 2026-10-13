@@ -3,7 +3,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=199';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=200';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
@@ -1702,7 +1702,7 @@ function updateEnemyShots(dt){
   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(5,5,65,10),enemyShotMaterials.stalker);
   mesh.position.copy(start).addScaledVector(dir,55);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
   mesh.add(new THREE.PointLight(0xff1234,3,160));
-  enemyShots.push({owner:e,mesh,velocity:dir.multiplyScalar(2500),life:1.2,damage:TYPES.stalker.damage});
+  enemyShots.push({owner:e,mesh,velocity:dir.multiplyScalar(6000),life:.5,damage:TYPES.stalker.damage*advancedEnemyScale(player.level,40),sniper:true});
   scene.remove(aim.line);aim.line.geometry.dispose();aim.line.material.dispose();e.aiming=null;
  }
  for(let i=enemyShots.length-1;i>=0;i--){
@@ -3016,9 +3016,13 @@ for(const e of enemies){
   }
   e.mesh.lookAt(playerMesh.position);continue;
  }
- if(e.aggressive&&d<(e.type==='stalker'?1400:COMBAT_RANGE)&&!playerSafe&&!docked&&!landing){
+ if(e.aggressive&&d<(e.type==='stalker'?1450:COMBAT_RANGE)&&!playerSafe&&!docked&&!landing){
   const dir=playerMesh.position.clone().sub(e.mesh.position).normalize();
-  if(d>(e.type==='stalker'?1100:800))e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-(e.type==='stalker'?1100:800)));
+  if(e.type==='stalker'){
+    // Keep a sniper standoff beyond the player's 1200-unit weapon lock.
+    if(d<1275)e.mesh.position.addScaledVector(dir,-Math.min(t.speed*dt,1325-d));
+    else if(d>1375)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-1350));
+   }else if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));
   else if(d<65){registerExplorerThreat(e);applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt)}
   e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='stalker'?6:e.type==='catapult'?6:e.type==='harpooner'?5:e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}
  }
