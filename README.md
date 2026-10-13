@@ -1,6 +1,6 @@
 # Mundo Abierto
 
-Juego espacial 3D en desarrollo para navegador y Android. Estado revisado contra el código de la versión `3d-20261012-187`; esta actualización de documentación no cambia la versión del juego.
+Juego espacial 3D en desarrollo para navegador y Android. Estado revisado contra el código de la versión `3d-20261012-188`.
 
 ## Juego actual
 

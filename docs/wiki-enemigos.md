@@ -1,6 +1,6 @@
 # Enemigos, sectores y economía
 
-Estado revisado contra el código de `3d-20261012-187`. Fuentes principales: `js/game3d.js`, `js/graveyard.js` y `js/hangar-systems.js`. Los valores son del modo individual; el PvP utiliza su propio combate de prueba.
+Estado revisado contra el código de `3d-20261012-188`. Fuentes principales: `js/game3d.js`, `js/graveyard.js` y `js/hangar-systems.js`. Los valores son del modo individual; el PvP utiliza su propio combate de prueba.
 
 ## Sectores y portales
 
@@ -12,6 +12,14 @@ Estado revisado contra el código de `3d-20261012-187`. Fuentes principales: `js
 | Cementerio de Naves | 40 | 4500 m | 12 Catapultas y 12 Arponeros, emparejados |
 
 Los portales se activan al permanecer a 100 m o menos durante tres segundos. El mensaje aparece a 350 m o menos. Los retornos no exigen nivel. Cada sector tiene estación y zona segura; fuera del radio del sector se aplica daño de frontera de 8 por segundo.
+
+## Modelos del Cementerio (v188)
+
+La Estación de Recuperación usa `assets/models/estacion_recuperacion.glb`, con casco y torre de control. Dos plataformas del modelo existente `landingpad_optimizado.glb` se ensamblan a los brazos laterales, con puntos de aterrizaje independientes del casco.
+
+`assets/models/restos_anillo.glb` se reutiliza en ocho posiciones fijas, con tamaños y giros distintos, fuera de la aproximación de la base y del corredor del portal. Geometría compartida entre copias; texturas WebP de hasta 1024 px (mapas ORM de 512 px). Las piezas procedurales siguen disponibles si falla una carga.
+
+Los dos archivos suman 5708196 bytes frente a los 24959412 bytes originales; se conservan geometría y UV. Los cuatro mapas y estos modelos también se incluyen en el APK offline.
 
 ## Valores base
 

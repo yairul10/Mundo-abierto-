@@ -3,7 +3,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=187';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=188';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
@@ -662,6 +662,17 @@ let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
 
 const graveyard=createGraveyard(THREE,scene);
+let recoveryHullSource=null,recoveryPadSource=null;
+function assembleRecoveryStation(){
+ if(!recoveryHullSource||!recoveryPadSource)return;
+ try{graveyard.mountStation(recoveryHullSource,recoveryPadSource)}catch(error){console.warn('No se pudo montar Recuperación; se conserva su respaldo.',error)}
+}
+deferredModelLoad(modelLoader,'./assets/models/estacion_recuperacion.glb?v=188',gltf=>{
+ recoveryHullSource=gltf.scene;assembleRecoveryStation();
+},undefined,error=>console.warn('Estación de Recuperación GLB no disponible; se conserva su respaldo.',error));
+deferredModelLoad(modelLoader,'./assets/models/restos_anillo.glb?v=188',gltf=>{
+ graveyard.mountRings(gltf.scene);
+},undefined,error=>console.warn('Anillos destruidos no disponibles; se conservan los restos de respaldo.',error));
 const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
 const SECTOR_EMBER={x:23000,z:-650,radius:4500,warning:900,damagePerSecond:8};
 const emberStation=new THREE.Group();emberStation.position.set(SECTOR_EMBER.x,0,SECTOR_EMBER.z);scene.add(emberStation);
@@ -889,6 +900,7 @@ const modularPaths=[
 ];
 Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLoad(modelLoader,path,gltf=>resolve(gltf.scene),undefined,reject))))
 .then(([hubSource,padSource,bridgeSource])=>{
+ recoveryPadSource=padSource;assembleRecoveryStation();
  const assembly=new THREE.Group();
  // Ajustar cada pieza por separado sin alterar sus proporciones.
  function fitted(source,span){
@@ -3019,3 +3031,4 @@ if(PVP_MODE){
  });
  keepArena();
 }
+

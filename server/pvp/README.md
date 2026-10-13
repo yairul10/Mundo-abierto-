@@ -1,6 +1,6 @@
 # Servidor PvP de Mundo Abierto
 
-Prototipo 1 contra 1 separado de Gallina Cósmica. Estado del código revisado para el contenido `3d-20261012-187`; Worker versión `0.2.0`. Host configurado: https://mundo-abierto-pvp.jairog940.workers.dev. Esta referencia describe el repositorio, no certifica el estado del despliegue remoto.
+Prototipo 1 contra 1 separado de Gallina Cósmica. Estado del código revisado para el contenido `3d-20261012-188`; Worker versión `0.2.0`. Host configurado: https://mundo-abierto-pvp.jairog940.workers.dev. Esta referencia describe el repositorio, no certifica el estado del despliegue remoto.
 
 ## Integración actual
 

@@ -1,6 +1,6 @@
 export function advancedEnemyScale(level,baseLevel){return Math.min(2.5,1+Math.max(0,Math.floor(Number(level)||1)-baseLevel)*.02)}
 export function scaledHealth(hp,oldMax,newMax){return Math.max(0,Math.min(newMax,(Number(hp)||0)/Math.max(1,Number(oldMax)||newMax)*newMax))}
-// Lightweight native geometry: the map and improvised weapons work offline.
+// Native fallbacks and optional uploaded models work in the offline bundle.
 export const GRAVEYARD={x:37000,z:-650,radius:4500,warning:900,damagePerSecond:8};
 export function segmentDistance(a,b,p){
  const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;
@@ -42,12 +42,64 @@ export function createGraveyard(THREE,scene){
   const m=piece(environment,[20+rand()*120,8+rand()*35,30+rand()*180],[Math.cos(a)*r,(rand()-.5)*1600,Math.sin(a)*r],i%3);m.rotation.set(rand()*3,rand()*3,rand()*3);
  }
  const station=new THREE.Group();station.position.copy(environment.position);scene.add(station);
- piece(station,[400,80,190],[0,-40,0]);piece(station,[120,150,110],[0,45,0],1);
+ const stationFallback=new THREE.Group();station.add(stationFallback);
+ piece(stationFallback,[400,80,190],[0,-40,0]);piece(stationFallback,[120,150,110],[0,45,0],1);
  const pads=[];
  for(const x of [-270,270]){
   const pad=new THREE.Group();pad.position.set(x,0,0);piece(pad,[320,20,320],[0,0,0]);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(135,3,6,32),lamp);ring.rotation.x=Math.PI/2;ring.position.y=12;pad.add(ring);
-  pad.userData.landingRadius=140;station.add(pad);pads.push(pad);piece(station,[140,20,35],[x*.55,-10,0],1);
+  pad.userData.landingRadius=140;station.add(pad);pads.push(pad);piece(stationFallback,[140,20,35],[x*.55,-10,0],1);
+ }
+ function mounted(source,span,top=false){
+  source.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(source),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+  const factor=span/Math.max(size.x,size.z);
+  if(!Number.isFinite(factor)||factor<=0)throw new Error('Modelo de Recuperación sin dimensiones válidas');
+  const model=source.clone(true);model.scale.multiplyScalar(factor);
+  model.position.multiplyScalar(factor).addScaledVector(new THREE.Vector3(center.x,top?bounds.max.y:0,center.z),-factor);
+  const materials=new Map();
+  model.traverse(mesh=>{
+   if(!mesh.isMesh)return;
+   const finish=source=>{
+    if(!source?.isMeshStandardMaterial)return source;
+    if(materials.has(source))return materials.get(source);
+    const material=source.clone();materials.set(source,material);
+    material.metalness=.4;material.roughness=.78;material.metalnessMap=null;material.roughnessMap=null;
+    if(material.map){material.emissiveMap=material.map;material.emissive.set(0xffffff);material.emissiveIntensity=.12}
+    return material;
+   };
+   mesh.material=Array.isArray(mesh.material)?mesh.material.map(finish):finish(mesh.material);
+  });
+  const group=new THREE.Group();group.add(model);return {group,size,center,factor};
+ }
+ function mountStation(hullSource,padSource){
+  if(station.userData.recoveryModel)return;
+  const hull=mounted(hullSource,700);
+  // Uploaded hull: long axis Z; side arms end at local Y ~1.94, Z ~0.
+  hull.group.position.y=-1.94*hull.factor;
+  const x=hull.size.x*hull.factor/2+165-3,z=-hull.center.z*hull.factor;
+  const platformModels=pads.map(()=>mounted(padSource,330,true).group);
+  // Finish every clone before replacing the visible fallback or landing targets.
+  station.add(hull.group);stationFallback.visible=false;
+  pads.forEach((pad,i)=>{
+   for(const child of [...pad.children])pad.remove(child);
+   pad.add(platformModels[i]);pad.position.set(i===0?-x:x,0,z);
+   pad.userData.landingRadius=140;
+   const rim=new THREE.Mesh(new THREE.TorusGeometry(130,2,6,48),lamp);rim.rotation.x=Math.PI/2;rim.position.y=2;pad.add(rim);
+  });
+  station.userData.recoveryModel=hull.group;station.updateMatrixWorld(true);
+  const target=new THREE.Object3D();target.position.y=-30;station.add(target);
+  for(const [color,intensity,x,y,z]of [[0xd8eaff,1.6,400,650,300],[0x91b6d5,.8,-350,-250,-300]]){
+   const light=new THREE.DirectionalLight(color,intensity);light.position.set(x,y,z);light.target=target;station.add(light);
+  }
+ }
+ function mountRings(source){
+  if(environment.userData.ringDebris)return;
+  const template=mounted(source,1).group,rings=new THREE.Group();
+  // Fixed placements keep the base approach and the portal corridor unobstructed.
+  const placements=[[-1600,420,-900,430,.65,.25],[-2300,-350,650,320,1.3,-.4],[950,650,-2650,480,.3,.65],[2450,-500,900,350,2.4,-.3],[-800,-650,2800,420,.9,.45],[2900,350,-1600,300,1.7,.2],[-2800,700,-1800,370,.4,-.6],[1300,-250,2700,280,2.7,.5]];
+  for(const [x,y,z,span,yaw,tilt]of placements){const ring=template.clone(true);ring.scale.setScalar(span);ring.position.set(x,y,z);ring.rotation.set(tilt,yaw,tilt*.5);rings.add(ring)}
+  environment.add(rings);environment.userData.ringDebris=rings;
  }
  function enemyVisual(kind){
   const group=new THREE.Group();piece(group,[55,24,100],[0,0,0]);
@@ -70,7 +122,7 @@ export function createGraveyard(THREE,scene){
   for(let i=0;i<1000;i++){ctx.fillStyle=i%4?'#abc3dc':'#ffffff';ctx.fillRect(rand()*1024,rand()*512,1,1)}
   background=new THREE.CanvasTexture(backgroundCanvas);background.mapping=THREE.EquirectangularReflectionMapping;background.colorSpace=THREE.SRGBColorSpace;
  }
- return {environment,station,pads,background,enemyVisual};
+ return {environment,station,pads,background,enemyVisual,mountStation,mountRings};
 }
 export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  const pending=[],projectiles=[],effects=[];let tether=null,immune=0;const rigs=new Set();
@@ -133,3 +185,4 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
 
  return {fire,update,clear,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
+

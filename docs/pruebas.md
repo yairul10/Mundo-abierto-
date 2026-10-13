@@ -1,6 +1,6 @@
 # Pruebas y comprobaciones manuales
 
-Actualizado para el contenido de `3d-20261012-187`. Ejecutar desde la raíz con Node 22 o superior:
+Actualizado para el contenido de `3d-20261012-188`. Ejecutar desde la raíz con Node 22 o superior:
 
 ```sh
 node --test tests/*.test.mjs server/pvp/combat.test.mjs
