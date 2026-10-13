@@ -1799,7 +1799,10 @@ const LOOT_TYPES=[
  {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común',description:'Restos recuperados de naves y drones. Material básico de fabricación.'},
  {id:'aleacion',name:'Aleación reforzada',color:0x55c6ff,rarity:'Poco común',description:'Metal resistente para reforzar casco y estructuras.'},
  {id:'nucleo',name:'Núcleo de energía',color:0xc783ff,rarity:'Raro',description:'Fuente de energía concentrada para sistemas avanzados.'},
- {id:'reliquia',name:'Componente ancestral',color:0xffca58,rarity:'Épico',description:'Tecnología antigua de origen desconocido y gran valor.'}
+ {id:'reliquia',name:'Componente ancestral',color:0xffca58,rarity:'Épico',description:'Tecnología antigua de origen desconocido y gran valor.'},
+ {id:'nucleo_demolicion',name:'Núcleo de demolición',color:0xff8448,rarity:'Exclusivo · Cementerio',description:'Componente explosivo recuperado de las Catapultas.'},
+ {id:'bobina_anclaje',name:'Bobina de anclaje',color:0x68d2ce,rarity:'Exclusivo · Cementerio',description:'Mecanismo de arpón recuperado de los Arponeros.'},
+ {id:'cristal_punteria',name:'Cristal de puntería',color:0xff436d,rarity:'Exclusivo · Cementerio',description:'Cristal de fijación de objetivos de los Acechadores.'}
 ];
 player.loot=player.loot&&typeof player.loot==='object'?player.loot:{};
 // Mejoras permanentes: bonificaciones guardadas por separado de la clase.
@@ -2327,8 +2330,8 @@ deferredModelLoad(modelLoader,'./assets/models/scificrate.glb?v=105',gltf=>{
  pivot.scale.setScalar(32/longest);
  lootCrateTemplate=pivot;
 },undefined,()=>console.info('Caja GLB pendiente: botín original disponible.'));
-function spawnLoot(e){
- const roll=Math.random(),item=LOOT_TYPES[roll<.53?0:roll<.81?1:roll<.96?2:3];
+function spawnLoot(e,exclusiveItem=null){
+ const roll=Math.random(),item=exclusiveItem||LOOT_TYPES[roll<.53?0:roll<.81?1:roll<.96?2:3];
  const mesh=new THREE.Group();mesh.position.copy(e.mesh.position);mesh.position.y+=14;
  if(lootCrateTemplate){
   const crate=lootCrateTemplate.clone(true);mesh.add(crate);
@@ -2371,7 +2374,10 @@ function kill(e,missile=false){
  }
  e.dead=e.bossAdd||e.type==='carrier'?Infinity:performance.now()/1000+8;e.mesh.visible=false;
  missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});
- player.gold+=gold;for(let i=0;i<t.loot;i++)spawnLoot(e);gainXp(xp);
+ player.gold+=gold;for(let i=0;i<t.loot;i++)spawnLoot(e);
+ const specialDrop={catapult:['nucleo_demolicion',.25],harpooner:['bobina_anclaje',.25],stalker:['cristal_punteria',.20]}[e.type];
+ if(specialDrop&&Math.random()<specialDrop[1])spawnLoot(e,LOOT_TYPES.find(item=>item.id===specialDrop[0]));
+ gainXp(xp);
  lootToast('+'+gold+' créditos · +'+xp+' XP · '+t.loot+' recursos');save();
 }
 // Modelo 3D del misil. La geometría anterior permanece como respaldo.
@@ -2804,10 +2810,31 @@ deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
  portalLight.color.setHex(0x3bafff);refreshSecondaryPortal();
 },undefined,err=>console.warn('Modelo de portal no disponible; se conserva el portal provisional.',err));
 const portalLight=new THREE.PointLight(0x8a65ff,20,180);portalMesh.add(portalLight);scene.add(portalMesh);
+// Destination plaques: stone-carved labels placed above each portal arch.
+const portalNames={aurora:'AURORA',belt:'CINTURÓN PERDIDO',ember:'ASCUAS',graveyard:'CEMENTERIO DE NAVES'};
+function makeStonePortalLabel(){
+ const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=192;
+ const ctx=canvas.getContext('2d');
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:true,depthWrite:false}));
+ sprite.scale.set(250,47,1);sprite.position.set(0,170,8);sprite.name='stoneDestinationLabel';
+ sprite.userData.drawDestination=(destination)=>{
+  ctx.clearRect(0,0,1024,192);
+  ctx.fillStyle='#383b3d';ctx.strokeStyle='#85817a';ctx.lineWidth=12;
+  ctx.beginPath();ctx.roundRect(15,12,994,166,20);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#1d1d1e';ctx.lineWidth=5;ctx.strokeRect(34,30,956,130);
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 66px Georgia,serif';
+  ctx.shadowColor='#0b0b0b';ctx.shadowBlur=3;ctx.shadowOffsetY=5;ctx.fillStyle='#d1c6ae';
+  ctx.fillText(portalNames[destination]||destination.toUpperCase(),512,94,920);
+  texture.needsUpdate=true;
+ };
+ return sprite;
+}
+const primaryPortalLabel=makeStonePortalLabel();portalMesh.add(primaryPortalLabel);
 function clonePortalVisual(){const metadata=portalMesh.userData;portalMesh.userData={};const clone=portalMesh.clone(true);portalMesh.userData=metadata;return clone}
 let secondaryPortal=clonePortalVisual();scene.add(secondaryPortal);
 function refreshSecondaryPortal(){
- scene.remove(secondaryPortal);secondaryPortal=clonePortalVisual();secondaryPortal.getObjectByName('portalCharge').visible=false;scene.add(secondaryPortal);
+ scene.remove(secondaryPortal);secondaryPortal=clonePortalVisual();secondaryPortal.getObjectByName('portalCharge').visible=false;const oldLabel=secondaryPortal.getObjectByName('stoneDestinationLabel');if(oldLabel)secondaryPortal.remove(oldLabel);secondaryPortal.add(makeStonePortalLabel());scene.add(secondaryPortal);
 }
 const beltEmberPortal=new THREE.Vector3(SECTOR_BELT.x+2450,300,SECTOR_BELT.z-800);
 const emberPortal=new THREE.Vector3(SECTOR_EMBER.x,0,SECTOR_EMBER.z+4000);
@@ -2850,8 +2877,9 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  const routes=sectorPortalRoutes().sort((a,b)=>playerMesh.position.distanceTo(a.pos)-playerMesh.position.distanceTo(b.pos)),route=routes[0];
  if(selectedPortalId!==route.id){portalCountdown=0;selectedPortalId=route.id}
  portalMesh.position.copy(route.pos);portalMesh.quaternion.copy(route.rotation);
+ if(primaryPortalLabel.userData.destination!==route.to){primaryPortalLabel.userData.destination=route.to;primaryPortalLabel.userData.drawDestination(route.to)}
  secondaryPortal.visible=routes.length>1;
- if(routes[1]){secondaryPortal.position.copy(routes[1].pos);secondaryPortal.quaternion.copy(routes[1].rotation)}
+ if(routes[1]){secondaryPortal.position.copy(routes[1].pos);secondaryPortal.quaternion.copy(routes[1].rotation);const label=secondaryPortal.getObjectByName('stoneDestinationLabel');if(label&&label.userData.destination!==routes[1].to){label.userData.destination=routes[1].to;label.userData.drawDestination(routes[1].to)}}
  const distance=playerMesh.position.distanceTo(route.pos),near=distance<=350,unlocked=player.level>=route.level;
  if(activeSector==='aurora'&&unlocked&&near&&BELT_MISSIONS[beltCampaign.index]?.event==='portalNear')missionEvent('portalNear',{sector:'aurora'});
  const charging=distance<=100&&unlocked&&!docked&&!landing;
