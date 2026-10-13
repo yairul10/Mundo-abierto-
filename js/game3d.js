@@ -3024,7 +3024,7 @@ for(const e of enemies){
     else if(d>1375)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-1350));
    }else if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));
   else if(d<65){registerExplorerThreat(e);applyPlayerDamage(Math.max(1,t.damage-player.defense*.25)*dt)}
-  e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='stalker'?6:e.type==='catapult'?6:e.type==='harpooner'?5:e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}
+  e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='stalker'?3:e.type==='catapult'?6:e.type==='harpooner'?5:e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}
  }
  if(e.bossAdd&&(d>=COMBAT_RANGE||playerSafe||docked||landing))patrolCarrierAdd(e,dt,now/1000);
  else e.mesh.lookAt(playerMesh.position);
