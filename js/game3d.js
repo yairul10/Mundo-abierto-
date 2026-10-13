@@ -3,7 +3,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=197';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=198';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
@@ -662,6 +662,13 @@ let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
 
 const graveyard=createGraveyard(THREE,scene);
+// Load each unique debris mesh once; the graveyard reuses it across 65 placements.
+const graveyardScrapFiles=['rustedmetalpanel','derelicthullblock','trussgirder','girdersection','metalcrate'];
+Promise.all(graveyardScrapFiles.map(name=>new Promise((resolve,reject)=>{
+ deferredModelLoad(modelLoader,'./assets/models/'+name+'.glb?v=198',gltf=>resolve(gltf.scene),undefined,reject);
+}))).then(models=>{
+ try{graveyard.mountScrapModels(models)}catch(error){console.warn('Restos del cementerio no se pudieron montar; se conserva respaldo.',error)}
+}).catch(error=>console.warn('No se pudieron cargar los restos 3D; se conservan los bloques de respaldo.',error));
 let recoveryHullSource=null,recoveryPadSource=null;
 function assembleRecoveryStation(){
  if(!recoveryHullSource||!recoveryPadSource)return;
