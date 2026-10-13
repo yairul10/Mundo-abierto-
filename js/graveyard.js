@@ -29,12 +29,13 @@ export function createGraveyard(THREE,scene){
  const box=new THREE.BoxGeometry(1,1,1);
  function piece(group,size,pos,index=0){const m=new THREE.Mesh(box,metal[index]);m.scale.set(...size);m.position.set(...pos);group.add(m);return m}
  const environment=new THREE.Group();environment.position.set(GRAVEYARD.x,0,GRAVEYARD.z);scene.add(environment);
+ const wreckFallbacks=[];
  // Two exposed halves, with ribs and mismatched repair plates.
  for(const side of [-1,1]){
   const wreck=new THREE.Group();wreck.position.set(1900,260,side*600-1500);wreck.rotation.z=side*.12;
   piece(wreck,[430,90,720],[0,0,0]);
   for(let i=0;i<7;i++){piece(wreck,[470,22,24],[0,80,-320+i*100],i%3);piece(wreck,[22,170,24],[-210,35,-320+i*100]);piece(wreck,[22,170,24],[210,35,-320+i*100])}
-  piece(wreck,[120,120,230],[0,100,side*240],1);environment.add(wreck);
+  piece(wreck,[120,120,230],[0,100,side*240],1);environment.add(wreck);wreckFallbacks.push(wreck);
  }
  let seed=81;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
  for(let i=0;i<65;i++){
@@ -101,6 +102,24 @@ export function createGraveyard(THREE,scene){
   for(const [x,y,z,span,yaw,tilt]of placements){const ring=template.clone(true);ring.scale.setScalar(span);ring.position.set(x,y,z);ring.rotation.set(tilt,yaw,tilt*.5);rings.add(ring)}
   environment.add(rings);environment.userData.ringDebris=rings;
  }
+ function mountWreckShips(sources){
+  if(environment.userData.wreckShips)return;
+  if(sources.length!==2||sources.some(s=>!s))throw new Error('Faltan modelos');
+  const placements=[[1900,260,-2100,-.12,1300],[1900,260,-900,.12,1100]];
+  const groups=sources.map((source,i)=>{
+   source.updateMatrixWorld(true);
+   const bounds=new THREE.Box3().setFromObject(source);
+   const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+   const longest=Math.max(size.x,size.y,size.z);
+   if(!Number.isFinite(longest)||longest<=0)throw new Error('Dimensiones GLB inválidas');
+   const [x,y,z,angle,span]=placements[i],model=source.clone(true),group=new THREE.Group(),factor=span/longest;
+   model.scale.multiplyScalar(factor);model.position.copy(center).multiplyScalar(-factor);
+   group.add(model);group.position.set(x,y,z);group.rotation.z=angle;return group;
+  });
+  groups.forEach(group=>environment.add(group));
+  wreckFallbacks.forEach(wreck=>wreck.visible=false);
+  environment.userData.wreckShips=groups;
+ }
  function enemyVisual(kind){
   const group=new THREE.Group();piece(group,[55,24,100],[0,0,0]);
   piece(group,[35,12,75],[-39,0,12],1);piece(group,[25,20,60],[35,0,22],2);
@@ -122,7 +141,7 @@ export function createGraveyard(THREE,scene){
   for(let i=0;i<1000;i++){ctx.fillStyle=i%4?'#abc3dc':'#ffffff';ctx.fillRect(rand()*1024,rand()*512,1,1)}
   background=new THREE.CanvasTexture(backgroundCanvas);background.mapping=THREE.EquirectangularReflectionMapping;background.colorSpace=THREE.SRGBColorSpace;
  }
- return {environment,station,pads,background,enemyVisual,mountStation,mountRings};
+ return {environment,station,pads,background,enemyVisual,mountStation,mountRings,mountWreckShips};
 }
 export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  const pending=[],projectiles=[],effects=[];let tether=null,immune=0;const rigs=new Set();
