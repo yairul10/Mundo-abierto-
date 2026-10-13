@@ -2817,7 +2817,7 @@ function makeStonePortalLabel(){
  const ctx=canvas.getContext('2d');
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:true,depthWrite:false}));
- sprite.scale.set(250,47,1);sprite.position.set(0,170,8);sprite.name='stoneDestinationLabel';
+ sprite.scale.set(50,9.4,1);sprite.position.set(0,37,8);sprite.name='stoneDestinationLabel';
  sprite.userData.drawDestination=(destination)=>{
   ctx.clearRect(0,0,1024,192);
   ctx.fillStyle='#383b3d';ctx.strokeStyle='#85817a';ctx.lineWidth=12;
