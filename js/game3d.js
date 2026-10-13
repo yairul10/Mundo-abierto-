@@ -1001,9 +1001,9 @@ const TYPES={
  raider:{hp:70,damage:10,speed:150,xp:36,gold:20,loot:2,color:0xe78b45},
  sentinel:{hp:140,damage:20,speed:90,xp:72,gold:40,loot:4,color:0xb86bd9},destroyer:{hp:280,damage:35,speed:110,xp:130,gold:80,loot:6,color:0xff3d9b},
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
- catapult:{hp:3000,damage:300,speed:75,xp:260,gold:170,loot:8,color:0x815942},
- harpooner:{hp:5000,damage:50,speed:130,xp:225,gold:145,loot:7,color:0x505b69},
- stalker:{hp:4000,damage:250,speed:155,xp:290,gold:185,loot:8,color:0xa52a35},
+ catapult:{hp:3000,damage:300,speed:75,xp:1200,gold:800,loot:8,color:0x815942},
+ harpooner:{hp:5000,damage:50,speed:130,xp:1600,gold:1200,loot:7,color:0x505b69},
+ stalker:{hp:4000,damage:250,speed:155,xp:2000,gold:1600,loot:8,color:0xa52a35},
  carrier:{hp:40000,damage:150,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
 };
 // Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
