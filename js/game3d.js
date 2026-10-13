@@ -1089,6 +1089,24 @@ deferredModelLoad(modelLoader,'./assets/models/devastador.glb?v=185',gltf=>{
   e.mesh.add(visual);e.mesh.userData.devastadorModel=visual;
  }
 },undefined,error=>console.warn('Devastador GLB no disponible; se conserva el respaldo.',error));
+// Acechador: load the optimized ship without changing its combat mesh or AI.
+deferredModelLoad(modelLoader,'./assets/models/acechador_optimizado.glb?v=202',gltf=>{
+ const template=gltf.scene;
+ const bounds=new THREE.Box3().setFromObject(template);
+ const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
+ const factor=155/span;
+ for(const e of enemies){
+  if(e.type!=='stalker')continue;
+  const pivot=new THREE.Group(),visual=template.clone(true);
+  visual.scale.setScalar(factor);visual.position.copy(center).multiplyScalar(-factor);
+  // Three.js lookAt aligns the enemy's forward axis with +Z.
+  pivot.add(visual);e.mesh.add(pivot);
+  pivot.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+  for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
+  e.mesh.userData.acechadorModel=pivot;
+ }
+},undefined,error=>console.warn('Acechador GLB no disponible; se conserva la nave provisional.',error));
 const rawBoss=player.carrierState&&typeof player.carrierState==='object'?player.carrierState:{};
 const bossMaxHp=enemyMaxHp('carrier');
 const bossState={hp:Number.isFinite(+rawBoss.hp)?scaledHealth(+rawBoss.hp,+rawBoss.maxHp||20000,bossMaxHp):bossMaxHp,
