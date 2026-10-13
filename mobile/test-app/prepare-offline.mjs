@@ -25,7 +25,7 @@ game=game.replace("(window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.
 writeFileSync(gamePath,game);
 const bundleText=[html,...readdirSync(join(out,'js')).filter(n=>n.endsWith('.js')).map(n=>readFileSync(join(out,'js',n),'utf8')),readFileSync(join(out,'css/game.css'),'utf8')].join('\n');
 for(const match of bundleText.matchAll(/(?:\.\/)?assets\/(?:[a-zA-Z0-9_./-]|%20|\([0-9]+\))+/g)){
- if(!existsSync(join(out,match[0])))throw new Error('Falta recurso: '+match[0]);
+ if(!existsSync(join(out,decodeURIComponent(match[0]))))throw new Error('Falta recurso: '+match[0]);
 }
 if(/https?:\/\//.test((html+'\n'+game).replaceAll('https://mundo-abierto-pvp.jairog940.workers.dev','')))throw new Error('Quedaron dependencias remotas en el arranque');
 let models=0;
