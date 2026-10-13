@@ -3,7 +3,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=177';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=188';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=189';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
@@ -679,10 +679,10 @@ function assembleWreck(){
  try{graveyard.mountWreckShips([wreckSourceA,wreckSourceB])}
  catch(error){console.warn('Restos GLB no disponibles; se conserva respaldo',error)}
 }
-deferredModelLoad(modelLoader,'./assets/models/spaceship%20(3).glb',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/spaceship%20(3).glb?v=189',gltf=>{
  wreckSourceA=gltf.scene;assembleWreck();
 },undefined,error=>console.warn('No se pudo cargar spaceship (3)',error));
-deferredModelLoad(modelLoader,'./assets/models/spacecruiser%20(1).glb',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/spacecruiser%20(1).glb?v=189',gltf=>{
  wreckSourceB=gltf.scene;assembleWreck();
 },undefined,error=>console.warn('No se pudo cargar spacecruiser (1)',error));
 const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
