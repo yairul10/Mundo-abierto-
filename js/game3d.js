@@ -673,6 +673,18 @@ deferredModelLoad(modelLoader,'./assets/models/estacion_recuperacion.glb?v=188',
 deferredModelLoad(modelLoader,'./assets/models/restos_anillo.glb?v=188',gltf=>{
  graveyard.mountRings(gltf.scene);
 },undefined,error=>console.warn('Anillos destruidos no disponibles; se conservan los restos de respaldo.',error));
+let wreckSourceA=null,wreckSourceB=null;
+function assembleWreck(){
+ if(!wreckSourceA||!wreckSourceB)return;
+ try{graveyard.mountWreckShips([wreckSourceA,wreckSourceB])}
+ catch(error){console.warn('Restos GLB no disponibles; se conserva respaldo',error)}
+}
+deferredModelLoad(modelLoader,'./assets/models/spaceship%20(3).glb',gltf=>{
+ wreckSourceA=gltf.scene;assembleWreck();
+},undefined,error=>console.warn('No se pudo cargar spaceship (3)',error));
+deferredModelLoad(modelLoader,'./assets/models/spacecruiser%20(1).glb',gltf=>{
+ wreckSourceB=gltf.scene;assembleWreck();
+},undefined,error=>console.warn('No se pudo cargar spacecruiser (1)',error));
 const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
 const SECTOR_EMBER={x:23000,z:-650,radius:4500,warning:900,damagePerSecond:8};
 const emberStation=new THREE.Group();emberStation.position.set(SECTOR_EMBER.x,0,SECTOR_EMBER.z);scene.add(emberStation);
