@@ -105,7 +105,7 @@ export function createGraveyard(THREE,scene){
  function mountWreckShips(sources){
   if(environment.userData.wreckShips)return;
   if(sources.length!==2||sources.some(s=>!s))throw new Error('Faltan modelos');
-  const placements=[[1550,260,-1500,-.03,1300],[2730,260,-1500,.03,1100]];
+  const placements=[[1600,260,-1500,-.03,1300],[2450,260,-1500,.03,1100]];
   const groups=sources.map((source,i)=>{
    source.updateMatrixWorld(true);
    const bounds=new THREE.Box3().setFromObject(source);
