@@ -1,57 +1,96 @@
 # Servidor PvP de Mundo Abierto
-Backend de prueba 1 contra 1, separado de Gallina Cósmica. Desplegado en https://mundo-abierto-pvp.jairog940.workers.dev el 11 de octubre de 2026.
-**Todavía no está conectado al menú ni a la arena 3D del juego.** No da monedas, copas ni XP y no modifica las partidas offline. Estadísticas de prueba iguales para ambos pilotos; naves, drones, misiles, rangos y recompensas requieren la siguiente etapa de integración.
+
+Prototipo 1 contra 1 separado de Gallina Cósmica. Estado del código revisado para el contenido `3d-20261012-187`; Worker versión `0.2.0`. Host configurado: https://mundo-abierto-pvp.jairog940.workers.dev. Esta referencia describe el repositorio, no certifica el estado del despliegue remoto.
+
+## Integración actual
+
+El botón PvP del juego abre `pvp.html`, con Buscar rival, Crear sala y Unirse por código de seis dígitos. La reserva usa un perfil compacto del guardado local normal o QA y abre `index.html?pvp=1`. La arena reutiliza `game3d.js`: controles, cámara, fijación, nave, drones, misiles, robot y habilidades.
+
+`js/pvp-session.js` administra ticket, conexión, entradas a un máximo de 20 Hz, predicción, estados, ping y hasta tres reintentos de conexión. El servidor resuelve movimiento, proyectiles, impactos, daño, energía y reparación. El modo PvP bloquea escrituras al progreso individual; no concede créditos, copas ni XP.
+
+El APK incluye lobby y arena; permite HTTPS/WSS del servidor en la política de contenido. La partida individual sigue funcionando offline, pero el PvP necesita internet.
 
 ## Arquitectura
-Worker `mundo-abierto-pvp`. Durable Object SQLite `ArenaRoom` por sala. `ArenaLobby` por región (sa, na, eu, other) para la cola casual. Las regiones separan colas; no obligan una ubicación física de despliegue.
-Conexiones WebSocket con hibernación; no hay intervalos permanentes de simulación. El servidor procesa entradas, limita desplazamiento y transmite snapshots al recibir mensajes válidos. El cliente futuro debe interpolarlos y enviar entradas a 20 Hz y ping al menos cada 5 segundos.
-Vida 600, velocidad 220 m/s, radio 1500 m, láser 20 de daño, recarga 500 ms y alcance 1200 m. Raycast simplificado con radio de impacto de 35 m. El cliente no envía posiciones autoritativas ni decide vida/daño.
-La simulación por entradas es un prototipo; antes de PvP competitivo deben añadirse simulación uniforme, compensación de latencia, identidad persistente y pruebas con móviles reales.
 
-## API
-- GET /health: estado y versión.
-- POST /rooms con {"name":"Piloto"}: crea sala de seis dígitos.
-- POST /rooms/123456/join con {"name":"Otro piloto"}: reserva segundo asiento. Máximo dos.
-- POST /matchmake con {"name":"Piloto","region":"sa"}: reserva una sala o empareja con la espera de esa región. La entrada de cola vence a los 60 segundos; un asiento reservado vence con la sala.
-- GET /rooms/123456/socket: conexión WebSocket.
+Worker `mundo-abierto-pvp`. Durable Object SQLite `ArenaRoom` por sala y `ArenaLobby` por región (sa, na, eu, other). Las regiones separan colas; no fuerzan una ubicación física. El lobby del cliente actual usa sa.
 
-Las reservas devuelven room, playerId, token y expiresAt. Conectar con:
+WebSockets con hibernación. La simulación y los estados avanzan al recibir mensajes; el combate subdivide el tiempo en pasos de hasta 25 ms y limita el tiempo procesado por mensaje. No hay un bucle permanente de simulación. Radio de arena: 1500 m; alcance de láser: 1200 m; duración máxima: tres minutos.
+
+## Perfil y combate
+
+Con perfil local, cada piloto conserva estadísticas propias limitadas por el servidor: casco, energía, ataque, defensa, velocidad, nave, drones, explorador, robot, misiles y especializaciones. La propiedad de ese equipamiento aún no está autenticada.
+
+Láser principal: dos proyectiles con daño base de 50 % del ataque cada uno; dron/explorador: 20 %; misil: tres veces el ataque. Cadencias base: láser 680 ms, explorador 680 ms y misil 7000 ms, con modificadores de habilidad. El servidor valida cantidad de proyectiles, dirección, origen relativo, cadencia y daño. Estos valores corresponden a `combat.mjs`, no a las reglas antiguas de prueba.
+
+Sin perfil se conserva la ruta de compatibilidad: vida 600, velocidad 220, disparo `fire` de daño 20 cada 500 ms. El objeto `rules` de los snapshots todavía describe esa ruta; para equipamiento local se usan `players[].profile` y el estado del jugador.
+
+## API y protocolo
+
+- GET /health: estado, versión y modo.
+- POST /rooms: crea sala con nombre y profile opcional.
+- POST /rooms/123456/join: reserva segundo asiento; máximo dos.
+- POST /matchmake: recibe nombre, region y profile opcional.
+- GET /rooms/123456/socket: WebSocket.
+
+Las reservas devuelven room, playerId, token y expiresAt. La entrada de cola vence a los 60 segundos; la sala de espera dura hasta diez minutos. El ticket se guarda temporalmente en sessionStorage.
+
 ```js
 const socket = new WebSocket(
-  'wss://mundo-abierto-pvp.jairog940.workers.dev/rooms/'+room+'/socket',
+  'wss://mundo-abierto-pvp.jairog940.workers.dev/rooms/' + room + '/socket',
   ['mundo-v1', token]
 );
 ```
-El token es privado y no debe mostrarse en logs ni colocarse en la URL. No existe un listado público de salas.
-La partida comienza cuando ambos jugadores conectan. Cada socket recibe snapshots con type:"state", status, serverTime, players (id,name,hp,pos,connected), winner y reason.
 
-Mensajes cliente:
+El token es privado: no colocarlo en la URL ni en logs. No hay listado público de salas. La partida comienza cuando ambos pilotos conectan.
+
+Mensajes actuales:
+
 ```json
-{"type":"input","seq":1,"move":[0,0,-1]}
-{"type":"fire","direction":[0,0,-1]}
+{"type":"input","seq":1,"move":[0,0,-1],"aim":[0,0],"firing":false}
+{"type":"volley","weapon":"laser","shots":[{"offset":[0,0,-58],"direction":[0,0,-1]},{"offset":[0,0,-58],"direction":[0,0,-1]}]}
+{"type":"ability"}
 {"type":"ping","time":123}
 {"type":"leave"}
 ```
-move debe ser vector de longitud <=1 y seq creciente. direction debe ser un vector unitario. Movimiento y disparos se aceptan solo en active.
-La desconexión permite reconectar con el mismo token durante unos 12 segundos. Ausencia de actividad/pings 15 segundos finaliza la partida. Duración máxima 3 minutos; salas de espera 10 minutos. El abandono da victoria al rival, sin recompensas persistentes. Las salas terminadas se limpian tras 60 segundos.
 
-## Seguridad y costes
-Origins admitidos: https://yairul10.github.io, https://localhost, http://localhost y capacitor://localhost. Los clientes sin Origin pueden conectar; esto no sustituye autenticación.
-Tickets aleatorios, comparación segura, máximo un socket por asiento, mensajes <=1024 caracteres, cuerpos HTTP <=2048 bytes, máximo 35 mensajes/s/socket.
-Binding API_LIMIT limita por IP a 60 peticiones/minuto (límite local de Cloudflare, no cuota global exacta). Health no usa el limitador.
-Solo tickets temporales de invitado: no es una autenticación de cuentas ni una protección completa contra bots/abuso. No debe otorgar premios hasta incorporar identidad y validación.
-Se usa el plan existente, no se cambió facturación. El uso se suma al de Gallina Cósmica en la misma cuenta. Ningún Worker anterior fue modificado.
+Move debe tener longitud ≤1 y seq debe aumentar. Volley admite laser, missile y explorer; los detalles se validan en `combat.mjs`. El cliente no decide vida ni daño. La ruta antigua `fire` solo se acepta sin perfil.
 
-## Pruebas y despliegue
-Desde server/pvp: npm ci y npm test. Miniflare está fijado en package-lock; solo se usa para probar.
-Pruebas locales con workerd/SQLite/WebSockets: origins, capacidad, tickets inválidos, sockets duplicados, daño del servidor, límites de movimiento, abandono y emparejamiento.
-Pruebas reales de Cloudflare: health, sala con dos conexiones, rechazo de tercer asiento/token inválido, daño de 20 aunque el cliente envíe 999999, resultado y emparejamiento.
-deployment.json conserva los metadatos de subida multipart de la API de Cloudflare. El módulo principal es worker.mjs y las clases usan exports SQLite. Activar workers.dev solo para este Worker. No incluir claves o tokens de la cuenta en el repositorio.
+El servidor envía `state` con status, serverTime, startedAt, jugadores, perfiles, vida, energía, posición, orientación y resultado; `volley` comunica proyectiles y `pong` devuelve el tiempo del ping.
 
-## Próxima integración
-Añadir cliente y arena separada en 3D, botones Buscar rival/Crear sala/Unirse, interpolación, reconexión y regreso a partida offline. En el APK se deberá permitir este host HTTPS/WSS en CSP connect-src; hoy el paquete offline permite solo el mismo origen.
+El cliente intenta reconectar con el mismo ticket. El servidor finaliza tras unos 12 segundos de desconexión o 15 sin actividad, evaluados por alarmas. El abandono da victoria al rival. Las salas terminadas se limpian tras 60 segundos. El cliente vuelve a la partida individual al salir.
 
-## Prueba de equipamiento local (0.2.0)
-La arena abre index.html?pvp=1 y usa game3d.js: los mismos controles, cámara, fijación, naves, drones, misiles, robot y habilidades de la partida normal. La reserva importa un perfil compacto del guardado local. Los proyectiles, impactos, daño, defensa, vida, energía y reparación los resuelve combat.mjs en el servidor. La partida PvP bloquea las escrituras del progreso offline. No hay recompensas ni cuentas; la propiedad de las mejoras locales aún no está autenticada, por lo que no es un modo competitivo seguro.
+## Límites y estado de prueba
 
-Ejecutar en server/pvp: node test.mjs; node profile-test.mjs; node combat.test.mjs. Miniflare carga worker.mjs y combat.mjs como módulos explícitos.
+Origins admitidos: https://yairul10.github.io, https://localhost, http://localhost y capacitor://localhost. También se admiten clientes sin Origin; esto no acredita identidad.
+
+Tickets aleatorios, máximo un socket por asiento, mensajes de hasta 8192 caracteres, cuerpos HTTP de hasta 4096 bytes y hasta 35 mensajes/s/socket. API_LIMIT limita por IP a 60 solicitudes/minuto según `deployment.json`; health no usa el limitador. No es una cuota global exacta.
+
+El perfil proviene del guardado local. No es un modo competitivo con propiedad verificada, cuentas ni recompensas persistentes. Antes de añadir premios se requiere identidad y validación de equipamiento; la calidad de red y sensación de combate requieren pruebas reales.
+
+## Pruebas
+
+Desde la raíz, sin instalar dependencias:
+
+```sh
+node --test tests/*.test.mjs server/pvp/combat.test.mjs
+```
+
+Para integración completa, desde server/pvp:
+
+```sh
+npm ci
+node test.mjs
+node profile-test.mjs
+node combat.test.mjs
+```
+
+Miniflare está fijado en package-lock y carga Worker y combate como módulos. `test.mjs` cubre health, origins, capacidad, tickets, sockets duplicados, combate sin perfil, movimiento, abandono y cola. `profile-test.mjs` comprueba perfiles diferentes y proyectiles del servidor. `combat.test.mjs` verifica la lógica de equipamiento y armas sin iniciar Miniflare. El script actual `npm test` ejecuta únicamente `test.mjs`.
+
+Ver [comprobaciones manuales](../../docs/pruebas.md) para la prueba con dos dispositivos. El workflow APK ejecuta las pruebas sin dependencias; no ejecuta las dos integraciones Miniflare ni certifica el servidor remoto.
+
+## Despliegue
+
+`deployment.json` conserva los metadatos para subida multipart de la API Cloudflare. El módulo principal es worker.mjs; las clases usan SQLite. El servidor sigue separado del Worker de Gallina Cósmica. No incluir claves o tokens de la cuenta en el repositorio.
+
+Actualizar esta referencia al cambiar cliente, protocolo o equipamiento. El historial de despliegues debe distinguirse del comportamiento vigente del código.
+

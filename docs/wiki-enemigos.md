@@ -1,101 +1,139 @@
-# Enemigos de Mundo Abierto
-Datos del código del juego, versión 164.
+# Enemigos, sectores y economía
 
-| Característica | Explorador | Asaltante | Guardián | Destructor |
-|---|---:|---:|---:|---:|
-| Identificador interno | scout | raider | sentinel | destroyer |
-| Mapa | Aurora (1) | Aurora (1) | Cinturón Perdido (2) | Cinturón Perdido (2) |
-| Cantidad activa | 34 | 19 | 20 | 19 |
-| Vida base | 35 | 70 | 140 | 280 |
-| Vida máxima con escalado | 175 | 350 | 700 | 1400 |
-| Daño base por disparo | 5 | 10 | 20 | 35 |
-| Velocidad de movimiento (m/s) | 120 | 150 | 90 | 110 |
-| Velocidad de proyectil (m/s) | 1250 | 1250 | 1050 | 1250 |
-| Intervalo entre disparos (s) | 2,8–3,5 | 2–2,7 | 1,5–2,2 | 1,5–2,2 |
-| Créditos base por baja | 10 | 20 | 40 | 80 |
-| XP base por baja | 18 | 36 | 72 | 130 |
-| Cajas por baja | 1 | 2 | 4 | 6 |
-| Nivel mínimo mostrado | 1 | 3 | 5 | 8 |
-| Distancia inicial al centro del sector (m) | 850–2920 | 1200–2920 | 1700–2920 | 1700–2920 |
+Estado revisado contra el código de `3d-20261012-187`. Fuentes principales: `js/game3d.js`, `js/graveyard.js` y `js/hangar-systems.js`. Los valores son del modo individual; el PvP utiliza su propio combate de prueba.
 
-## Escalado
-La vida se calcula al aparecer o reaparecer: redondear(vida base × mínimo(5; 1 + 0,10 × (nivel del jugador − 1))). Llega al multiplicador máximo en nivel 41. Un enemigo ya presente mantiene la vida con la que apareció.
-Los créditos y XP se calculan al morir: redondear(recompensa base × mínimo(2,5; 1 + 0,035 × (nivel del jugador − 1))). El máximo se alcanza en nivel 44.
-El nivel de la etiqueta es el mayor entre el nivel mínimo de la tabla y el nivel del jugador. El daño, velocidad y cantidad de cajas no escalan con el nivel.
+## Sectores y portales
 
-## Comportamiento común
-- Activan combate a menos de 1200 m del jugador y fuera de las zonas seguras.
-- Se acercan mientras están a más de 800 m. No persiguen si el jugador sale del alcance de combate.
-- Disparan si están a más de 80 m; cada proyectil vive 1,8 s y tiene dispersión aleatoria.
-- A menos de 65 m causan daño de contacto por segundo.
-- Daño previo a otras defensas/habilidades: máximo(1; daño base − defensa del jugador × 0,25).
-- Reaparecen 8 s después de morir, con posición aleatoria nueva y vida recalculada.
-- No atacan durante aterrizaje, estando atracado o dentro de la zona segura.
-- Alcance de fijación del jugador: 1200 m, con el enemigo dentro de la zona central de la pantalla.
-- Las bajas de láseres, misiles y drones comparten la recompensa normal.
+| Sector | Nivel para entrar desde el anterior | Radio | Enemigos |
+| --- | ---: | ---: | --- |
+| Aurora | 1 | 3000 m | 34 Exploradores y 19 Asaltantes |
+| Cinturón Perdido | 10 | 3000 m | 20 Guardianes y 19 Destructores |
+| Ascuas | 30 | 4500 m | 16 Destructores, 10 Devastadores y un Coloso |
+| Cementerio de Naves | 40 | 4500 m | 12 Catapultas y 12 Arponeros, emparejados |
+
+Los portales se activan al permanecer a 100 m o menos durante tres segundos. El mensaje aparece a 350 m o menos. Los retornos no exigen nivel. Cada sector tiene estación y zona segura; fuera del radio del sector se aplica daño de frontera de 8 por segundo.
+
+## Valores base
+
+| Enemigo | ID | Vida base | Daño base | Velocidad | Créditos | XP | Cajas |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Explorador | scout | 35 | 5 | 120 m/s | 10 | 18 | 1 |
+| Asaltante | raider | 70 | 10 | 150 m/s | 20 | 36 | 2 |
+| Guardián | sentinel | 140 | 20 | 90 m/s | 40 | 72 | 4 |
+| Destructor | destroyer | 280 | 35 | 110 m/s | 80 | 130 | 6 |
+| Devastador | devastator | 196 | 70 | 155 m/s | 120 | 195 | 6 |
+| Catapulta | catapult | 3000 | 300 por explosión | 75 m/s | 170 | 260 | 8 |
+| Arponero | harpooner | 5000 | 50 por segundo enganchado | 130 m/s | 145 | 225 | 7 |
+| Coloso Portanaves | carrier | 40000 | 150 por misil | Inmóvil | 10000 | 15000 | 30 |
+
+Daño antes de defensa, habilidades y otros modificadores. Los valores de recompensas son base, salvo el premio fijo del Coloso.
+
+## Escalado de vida y daño
+
+Enemigos básicos: vida = redondear(base × mínimo(5; 1 + 0,10 × máximo(0; nivel − 1))). El Devastador tiene el 70 % de la vida calculada de un Destructor. El daño de estos enemigos no aumenta por nivel.
+
+Coloso, Catapulta y Arponero: multiplicador = mínimo(2,5; 1 + 0,02 × máximo(0; nivel − nivel base)). Es un aumento lineal del 2 % de la base por nivel posterior, no interés compuesto.
+
+| Enemigo | Nivel base | Vida a ese nivel | Vida en nivel 40 | Máximo |
+| --- | ---: | ---: | ---: | ---: |
+| Coloso | 30 | 40000 | 48000 | 100000 desde nivel 105 |
+| Catapulta | 40 | 3000 | 3000 | 7500 desde nivel 115 |
+| Arponero | 40 | 5000 | 5000 | 12500 desde nivel 115 |
+
+El misil del Coloso, la explosión de la Catapulta y el daño por segundo del Arponero usan ese mismo multiplicador con su nivel base respectivo. Se aplica la defensa del jugador antes de los demás modificadores de daño.
+
+Los enemigos normales recalculan su vida al reaparecer. El Coloso también actualiza su máximo durante la sesión y conserva su porcentaje de vida restante cuando cambia el máximo o se carga un guardado. Ejemplo: 20000/40000 pasa a 24000/48000; un Coloso destruido permanece con cero.
+
+Créditos y XP de enemigos distintos del Coloso: redondear(base × mínimo(2,5; 1 + 0,035 × máximo(0; nivel − 1))). El máximo se alcanza en nivel 44. Los potenciadores de XP se aplican al otorgar experiencia. El número de cajas no escala.
+
+## Combate de los enemigos básicos
+
+Activan combate a menos de 1200 m y fuera de zonas seguras. Se acercan hasta unos 800 m, disparan a más de 80 m y causan daño de contacto a menos de 65 m.
+
+Intervalos: Explorador 2,8–3,5 s; Asaltante 2–2,7 s; Guardián, Destructor y Devastador 1,5–2,2 s. Proyectiles a 1250 m/s, salvo el Guardián a 1050 m/s; duran 1,8 s. El Devastador no se vuelve agresivo hasta recibir daño.
+
+Reaparecen ocho segundos después de morir. Los refuerzos del Coloso tienen reglas distintas. Las bajas por láser, misil o dron comparten la recompensa.
+
+## Catapulta y Arponero
+
+Comparten escuadra. El Arponero sigue el flanco de su Catapulta a unos 150 m; una Catapulta emparejada espera a que enganche el arpón para atacar. Si pierde al compañero puede atacar sola.
+
+- Arpón a 650 m/s, con cable desde el carrete del modelo modular.
+- Enganche de tres segundos: inmoviliza el movimiento, pero permite disparar. Daño continuo base de 50 por segundo.
+- Al liberarse hay cinco segundos de inmunidad frente a otro enganche. Destruir al Arponero o entrar en condiciones seguras libera el cable.
+- El enganche activa la Catapulta compañera: carga de 1,4 s y vuelo de bomba de 1,5 s, con advertencia de anillos.
+- Explosión de daño base 300 dentro de 180 m. Salir del área evita el impacto.
+- El modelo modular de Catapulta anima el brazo y la bomba; el Arponero usa casco de Catapulta, lanzador, carrete y arpón independientes.
+
+## Coloso Portanaves
+
+Inmóvil, con vida base 40000 desde nivel 30. Dispara misiles guiados de daño base 150 cada cinco segundos cuando el jugador está a alcance de combate y fuera de condiciones seguras. Velocidad del misil: 650 m/s; duración: cuatro segundos.
+
+Abre sus cuatro compuertas al primer impacto. Los refuerzos salen por turnos desde los hangares. Se guardan vida, máximo, fases, posición, temporizador de reaparición y refuerzos vivos, incluido su estado de lanzamiento.
+
+| Activación | Refuerzos nuevos |
+| --- | --- |
+| Primer impacto | 2 Guardianes |
+| Vida ≤90 % | 5 Asaltantes |
+| Vida ≤70 % | 4 Guardianes |
+| Vida ≤50 % | 8 Guardianes |
+| Vida ≤30 % | 7 Destructores |
+| Vida ≤10 % | Mantiene diez Guardianes adicionales y reemplaza sus bajas |
+
+Las fases se activan una sola vez por aparición, incluso si un impacto cruza varios umbrales. Los refuerzos anteriores pueden seguir vivos.
+
+Premio fijo por destrucción: 10000 créditos, 15000 XP base y 30 cajas, además del botín de los refuerzos. Reaparece tras 120 segundos; el tiempo fuera del juego cuenta. Los refuerzos supervivientes permanecen en Ascuas y no reaparecen al ser eliminados.
+
+Modelo actual: `assets/models/coloso.glb` (2019032 bytes). Puertas: `assets/models/scifipanelcrate_optimizado.glb` (305792 bytes). `js/coloso-rig.js` adapta el casco y cuatro puertas con bisagras superiores, marcos naranjas y salidas independientes. Si falla una carga se conserva el respaldo.
 
 ## Botín
-Cada caja elige de forma independiente: Chatarra espacial 38 %, Aleación reforzada 28 %, Núcleo de energía 15 %, Componente ancestral 4 %.
-Las cajas duran 90 s; la nave las recoge a menos de 90 m. El dron explorador recoge a menos de 45 m.
 
-## Contratos largos
-Se desbloquean al completar las 9 misiones de Aurora y las 8 del Cinturón.
-Toda la lista aparece a la vez; solo se puede aceptar una misión. Sus objetivos avanzan simultáneamente, en cualquier orden, después de aceptarla. Cancelar borra el progreso y no da recompensa.
-El progreso persiste al cerrar o cambiar de mapa. Cada contrato se completa una sola vez.
-Las cajas de la misión 2 se pueden recoger en cualquiera de los dos mapas, también mediante el dron explorador.
+Cada caja elige un material: Chatarra 53 %, Aleación 28 %, Núcleo 15 %, Componente ancestral 4 %. Dura 90 segundos; la nave recoge a menos de 90 m y el explorador a menos de 45 m.
 
-| Misión | Objetivos | Créditos extra | XP extra |
-|---|---|---:|---:|
+## Naves, drones y hangar
+
+| Compra | Precio | Requisito |
+| --- | ---: | --- |
+| Titán | 200000 créditos | Nivel 15 |
+| Espectro | 200000 créditos | Nivel 25 |
+| Dron explorador | 300000 créditos | Compra independiente de los drones de combate |
+| Drones de combate 1–8 | 100, 200, 1000, 5000, 15000, 40000, 100000, 200000 | Compra secuencial |
+| Robot reparador, mejoras 1–5 | 5000, 10000, 20000, 40000, 80000 | Compra secuencial |
+
+El explorador empieza con alcance 550 m y puede mejorarse hasta nivel 10. Responde automáticamente a amenazas válidas y dispara cada 0,68 s con daño del 20 % del ataque; su alcance de combate se limita al menor entre 1200 m y su alcance de exploración. Los drones de combate disparan con el jugador.
+
+Abanico es gratis. Cada formación adicional cuesta 20000 créditos, 200 Chatarra, 70 Aleación, 25 Núcleos y 8 Componentes ancestrales:
+
+| Formación | Ventaja |
+| --- | --- |
+| Escudo giratorio | −15 % de daño recibido |
+| Punta de lanza | +20 % de daño de drones |
+| Fortaleza | +15 % de vida máxima |
+| Cazadora | +15 % de alcance de drones |
+| Propulsora | +12 % de velocidad |
+| Recuperación | +25 % de reparación del robot |
+
+Requieren al menos un dron para aplicar ventajas. Cambiar de formación reemplaza el bono anterior; los cambios de vida máxima conservan el porcentaje de vida. Las ventajas de formación y potenciadores del hangar se desactivan en PvP.
+
+Potenciadores de 15 minutos de vuelo: daño +15 % por 10000 créditos, resistencia −15 % por 10000 y XP +25 % por 15000. El tiempo se pausa en menús, atracado, durante aterrizaje, en segundo plano o en PvP. Comprar otra unidad suma duración sin acumular multiplicadores.
+
+## Misiones
+
+Campañas: nueve misiones de Aurora, ocho de Cinturón y nueve de Ascuas. Las dos últimas de Ascuas piden destruir un Coloso y diez Colosos, respectivamente. Esta última otorga 600000 créditos y 200000 XP base.
+
+Los cinco contratos largos se desbloquean tras completar Aurora y Cinturón; se acepta uno a la vez. Sus objetivos avanzan después de aceptarlos, en cualquier orden. Cancelar borra el progreso. Cada contrato se completa una vez y persiste al cambiar de mapa o cerrar.
+
+| Contrato | Objetivos | Créditos extra | XP extra |
+| --- | --- | ---: | ---: |
 | 1 | 20 Asaltantes y 30 Exploradores | 14000 | 1750 |
 | 2 | 50 Exploradores, 10 Asaltantes y 40 cajas | 18000 | 2150 |
 | 3 | 50 Guardianes | 40000 | 5000 |
 | 4 | 30 Destructores, 20 Guardianes y 80 Exploradores | 80000 | 10000 |
 | 5 | 100 Asaltantes y 20 Destructores | 72000 | 9000 |
 
-Premio adicional por objetivo: Explorador 200 créditos/25 XP, Asaltante 400/50, Guardián 800/100, Destructor 1600/200, caja 100/10. Estas recompensas son fijas y se suman a las recompensas normales por cada baja.
+Los premios de la tabla se calculan sumando estos valores por objetivo requerido: Explorador 200 créditos/25 XP, Asaltante 400/50, Guardián 800/100, Destructor 1600/200, caja 100/10. El total se entrega una vez al completar el contrato; mientras tanto cada baja conserva su recompensa normal.
 
-## Ascuas: tercer mapa
-- Centro independiente, radio 4500 m (50 % más que los 3000 m de los mapas anteriores).
-- Fondo de nebulosa roja optimizado en WebP, estación propia con dos plataformas y portal de retorno.
-- Nuevo portal desde Cinturón Perdido: nivel mínimo 30; activación a 100 m durante 3 s.
-- Población normal: 16 Destructores y 10 Devastadores. Un único Coloso Portanaves.
+## Verificación
 
-### Devastador (enemigo 5)
-Vida base 196; vida real = redondear(vida real de un Destructor × 0,70). Daño base 70 (doble del Destructor); velocidad 155 m/s; intervalo de disparo 1,5–2,2 s.
-No persigue ni dispara hasta recibir daño. Créditos base 120, XP base 195, 6 cajas; recompensas con el mismo escalado por nivel que los enemigos normales.
+Consultar [pruebas y comprobaciones manuales](pruebas.md). Las pruebas de lógica no certifican orientación de modelos, encaje de puertas ni apariencia del cable. Al añadir un mapa o enemigo, actualizar esta referencia en el mismo cambio.
 
-### Coloso Portanaves (enemigo 6)
-40.000 de vida fija, inmóvil, sin disparos ni daño de contacto. Abre las compuertas al recibir el primer ataque.
-La vida no se regenera al dejar de atacarlo, morir, salir del mapa o recargar la partida. Se guardan sus fases y los refuerzos vivos.
-
-| Activación | Refuerzos nuevos |
-|---|---|
-| Primer impacto | 2 Guardianes |
-| Vida ≤90 % | 5 Asaltantes |
-| Vida ≤70 % | 4 Guardianes |
-| Vida ≤50 % | 8 Guardianes |
-| Vida ≤30 % | 7 Destructores |
-| Vida ≤10 % | Mantiene un grupo adicional de 10 Guardianes; reemplaza las bajas |
-
-Las fases anteriores se activan una sola vez, incluso si un impacto cruza varios umbrales.
-Los refuerzos de oleadas anteriores pueden seguir vivos: el grupo permanente de 10 es adicional.
-Recompensa final fija: 10.000 créditos, 15.000 XP y 30 cajas, además del botín de los refuerzos. Prima aproximada de 60–75 % sobre la proporción de vida/recompensa base del Destructor.
-Al destruirlo, los refuerzos vivos permanecen rondando Ascuas; no reaparecen cuando son eliminados. El Coloso reaparece tras 120 segundos en una posición aleatoria, con 40.000 de vida y sus fases reiniciadas. Cada derrota vuelve a otorgar su premio, una sola vez por aparición. El temporizador, posición y refuerzos se guardan; el tiempo transcurrido fuera del juego también cuenta. La base de Ascuas incorpora una nueva pieza modular central con cuatro puertos para conectar ductos.
-
-## Mascota exploradora: defensa automática
-En todos los mapas responde al último enemigo que comienza a atacar al jugador, incluidos disparos y contacto. Sigue disparando cada 0,68 s aunque el jugador deje de disparar, mientras el objetivo siga vivo, visible, agresivo y a 1200 m o menos.
-Daño por láser: 20 % del ataque del jugador. Se detiene al perder el objetivo, atracar, aterrizar o entrar en la zona segura. Los drones de combate conservan el disparo sincronizado con el jugador.
-
-## Modelos del Coloso
-Casco `assets/models/spacecruiser_optimizado.glb`: 427.512 bytes (−92,3 %).
-Compuerta `assets/models/scifipanelcrate_optimizado.glb`: 305.792 bytes (−96,0 %).
-Geometría conservada; texturas WebP de hasta 1024 px y oclusión de 512 px. Acabado metálico con metalness 0,65 y roughness 0,62.
-Coloso al doble de tamaño. Alcance de daño láser limitado a 1200 m desde el jugador, además del límite de recorrido del proyectil.
-
-Cuatro compuertas independientes con bisagra superior; abren hacia afuera y arriba al activarse el Coloso. Luces naranjas en los marcos y motores. Los refuerzos salen alternadamente desde los cuatro hangares desde dentro del casco, esperando a que abran las puertas y por turnos en cada hangar.
-
-
-## Ajustes de población y tienda (v164)
-Aurora: 34 Exploradores + 19 Asaltantes = 53 (antes 38). Cinturón: 20 Guardianes + 19 Destructores = 39 (antes 28). Ambos aumentan aproximadamente un 40 %, redondeando los totales. Ascuas conserva 16 Destructores, 10 Devastadores y el Coloso.
-Titán y Espectro: 200.000 créditos cada una. Dron Explorador especial: 800.000 créditos y compra independiente, sin exigir los ocho drones de combate.
-Ascuas incorpora una campaña de ocho misiones desde nivel 30: viaje, estación, ocho Destructores, veinte cajas, seis Devastadores, ocho bajas con misiles, borde y regreso, un Coloso. Los objetivos son exclusivos del sector; progreso y premios se guardan. Los contratos previos siguen disponibles tras las campañas originales.

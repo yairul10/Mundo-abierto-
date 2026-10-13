@@ -7,9 +7,13 @@ assert.equal(3000*advancedEnemyScale(94,40),6240);
 assert.equal(5000*advancedEnemyScale(94,40),10400);
 assert.equal(40000*advancedEnemyScale(40,30),48000);
 assert.equal(150*advancedEnemyScale(40,30),180);
-assert.equal(scaledHealth(20000,40000,80000),24000);
+// Cambiar el máximo conserva el porcentaje de vida restante (50 %).
+assert.equal(scaledHealth(20000,40000,80000),40000);
+assert.equal(scaledHealth(20000,40000,48000),24000);
+assert.equal(scaledHealth(40000,80000,40000),20000);
 assert.equal(scaledHealth(0,40000,80000),0);
-console.log('Advanced enemy scaling and saved boss health migration passed.');
 
 assert.equal(advancedEnemyScale(1000,40),2.5);
 assert.equal(advancedEnemyScale(20,40),1);
+console.log('Advanced enemy scaling and saved boss health migration passed.');
+

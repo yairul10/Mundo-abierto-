@@ -10,6 +10,9 @@ on:
       - 'assets/**'
       - 'index.html'
       - 'version.json'
+      - 'tests/**'
+      - 'server/pvp/combat.mjs'
+      - 'server/pvp/combat.test.mjs'
       - '.github/workflows/android-test.yml'
 permissions:
   contents: read
@@ -25,6 +28,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Comprobar combate, escalado y hangar
+        working-directory: .
+        run: node --test tests/*.test.mjs server/pvp/combat.test.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -52,3 +58,4 @@ jobs:
           path: mobile/test-app/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
