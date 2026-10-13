@@ -114,7 +114,7 @@ export function createGraveyard(THREE,scene){
    if(!Number.isFinite(longest)||longest<=0)throw new Error('Dimensiones GLB inválidas');
    const [x,y,z,angle,span]=placements[i],model=source.clone(true),group=new THREE.Group(),factor=span/longest;
    model.scale.multiplyScalar(factor);model.position.copy(center).multiplyScalar(-factor);
-   group.add(model);group.position.set(x,y,z);group.rotation.y=i===0?-Math.PI/2:Math.PI/2;group.rotation.z=angle;return group;
+   group.add(model);group.position.set(x,y,z);group.rotation.y=i===0?0:Math.PI;group.rotation.z=angle;return group;
   });
   groups.forEach(group=>environment.add(group));
   wreckFallbacks.forEach(wreck=>wreck.visible=false);
