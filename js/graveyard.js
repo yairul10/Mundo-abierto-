@@ -105,7 +105,7 @@ export function createGraveyard(THREE,scene){
  function mountWreckShips(sources){
   if(environment.userData.wreckShips)return;
   if(sources.length!==2||sources.some(s=>!s))throw new Error('Faltan modelos');
-  const placements=[[1900,260,-2100,-.12,1300],[1900,260,-900,.12,1100]];
+  const placements=[[1380,260,-1500,-.08,1300],[2620,260,-1500,.08,1100]];
   const groups=sources.map((source,i)=>{
    source.updateMatrixWorld(true);
    const bounds=new THREE.Box3().setFromObject(source);
@@ -114,7 +114,7 @@ export function createGraveyard(THREE,scene){
    if(!Number.isFinite(longest)||longest<=0)throw new Error('Dimensiones GLB inválidas');
    const [x,y,z,angle,span]=placements[i],model=source.clone(true),group=new THREE.Group(),factor=span/longest;
    model.scale.multiplyScalar(factor);model.position.copy(center).multiplyScalar(-factor);
-   group.add(model);group.position.set(x,y,z);group.rotation.z=angle;return group;
+   group.add(model);group.position.set(x,y,z);group.rotation.y=Math.PI/2;group.rotation.z=angle;return group;
   });
   groups.forEach(group=>environment.add(group));
   wreckFallbacks.forEach(wreck=>wreck.visible=false);
