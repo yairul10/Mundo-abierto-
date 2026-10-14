@@ -1,7 +1,7 @@
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=208';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=209';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=177';
+import {mountHangarUI} from './hangar-ui.js?v=209';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=200';
@@ -2108,7 +2108,7 @@ function renderShips(){
  const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
  if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
- fleet.innerHTML='<h3>🚀 Flota de naves</h3>'+Object.entries(SHIP_TYPES).map(([id,t])=>{
+ fleet.innerHTML='<h3>🚀 Flota de naves</h3>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe).map(([id,t])=>{
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
   const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Escudo ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
   const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
@@ -3050,7 +3050,7 @@ $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;playe
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-hangarUI=mountHangarUI({player,isDocked:()=>docked,isOffline:()=>!PVP_MODE,equip:equipFormation,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
+hangarUI=mountHangarUI({player,isDocked:()=>docked,isOffline:()=>!PVP_MODE,equip:equipFormation,equipShip:changeShip,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
 let boosterStatusSecond=-1;
 function updateBoosterStatus(){
  const second=Math.floor(performance.now()/1000);if(second===boosterStatusSecond)return;boosterStatusSecond=second;

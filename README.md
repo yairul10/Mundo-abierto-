@@ -21,7 +21,7 @@ El navegador obtiene Three.js de un CDN. El APK empaqueta el motor, imágenes y 
 
 ## Documentación
 
-- [Naves ensambladas (v208)](docs/naves-ensambladas.md)
+- [Naves ensambladas (v209)](docs/naves-ensambladas.md)
 - [Enemigos, sectores y economía](docs/wiki-enemigos.md)
 - [Experiencia por nivel](docs/progresion-xp.md)
 - [Pruebas y comprobaciones manuales](docs/pruebas.md)

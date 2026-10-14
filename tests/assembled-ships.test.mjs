@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from '../js/assembled-ships.js';
 import {profile,makeCombatPlayer,ability,defenseDamage} from '../server/pvp/combat.mjs';
 for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS)){
+ assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],[100,100,100]);
  const player={level:40,gold:ship.cost,loot:{...ship.recipe},ownedShips:{aurora:true},shipId:'aurora'};
  const missing=structuredClone(player);missing.loot.cristal_punteria--;
  const before=JSON.stringify(missing);assert.equal(assembleShip(missing,id),false);assert.equal(JSON.stringify(missing),before);
