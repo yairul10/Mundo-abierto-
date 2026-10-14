@@ -9,9 +9,8 @@ export function formationPreview(id){
  return '<svg class="formation-preview" viewBox="0 0 300 260" role="img" aria-label="Vista previa de '+f.name+'"><defs><radialGradient id="glow-'+id+'"><stop stop-color="'+f.color+'" stop-opacity=".14"/><stop offset="1" stop-color="#06101c" stop-opacity="0"/></radialGradient></defs><ellipse cx="150" cy="140" rx="128" ry="108" fill="url(#glow-'+id+')"/><path d="M150 23V238M28 143H272" stroke="#75bde0" stroke-opacity=".12" stroke-dasharray="3 8"/>'+dots+'<g transform="translate(150,143)"><path d="M0 -28L12 -8L32 14L9 10L7 24L-7 24L-9 10L-32 14L-12 -8Z" fill="#d7e6ee" stroke="#7c97ab" stroke-width="2"/><path d="M0 -20L4 5L0 12L-4 5Z" fill="#ee5c66"/><path d="M-20 9L-10 7M20 9L10 7" stroke="#ee5c66" stroke-width="3"/><circle cx="-7" cy="24" r="3" fill="#65dfff"/><circle cx="7" cy="24" r="3" fill="#65dfff"/></g></svg>';
 }
 export function assembledShipPreview(id){
- const ship=ASSEMBLED_SHIPS[id],color='#'+ship.color.toString(16).padStart(6,'0');
- const heavy=id==='bastion',width=heavy?27:id==='centella'?12:18;
- return '<svg class="formation-preview" viewBox="0 0 300 260" role="img" aria-label="Silueta de '+ship.name+'"><path d="M82 215L82 178M218 215L218 178" stroke="#788a9f" stroke-width="22"/><path d="M74 48C22 142 61 204 112 175M226 48C278 142 239 204 188 175" fill="none" stroke="#94a6b9" stroke-width="'+width+'" stroke-linecap="'+(heavy?'round':'butt')+'"/><path d="M74 48C22 142 61 204 112 175M226 48C278 142 239 204 188 175" fill="none" stroke="'+color+'" stroke-width="3"/><path d="M150 70L171 145L164 185H136L129 145Z" fill="#b2c1cf" stroke="#3f536d" stroke-width="3"/><path d="M143 110H157L160 145H140Z" fill="#142a42"/><path d="M110 172H190" stroke="#788a9f" stroke-width="12"/><circle cx="82" cy="212" r="6" fill="'+color+'"/><circle cx="218" cy="212" r="6" fill="'+color+'"/></svg>';
+ const ship=ASSEMBLED_SHIPS[id];if(!ship)return '';
+ return '<img class="formation-preview ship-preview" src="./assets/ship-previews/'+id+'.webp?v=212" alt="Nave '+ship.name+'" width="480" height="360" decoding="async">';
 }
 export function mountHangarUI({player,isDocked,isOffline,equip,equipShip,changed}){
  const $=id=>document.getElementById(id);let selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='';
