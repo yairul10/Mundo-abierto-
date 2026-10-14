@@ -1809,7 +1809,7 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.active)return;
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier());for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
- fireCd=classAbilityActive('aurora')?.68/1.3:.68; // Sobrecarga aumenta la cadencia.
+ fireCd=classAbilityActive('aurora')?.68/(player.shipId==='centella'?1.4:1.3):.68; // Sobrecarga aumenta la cadencia.
 }
 function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){n=Math.round(n*activeBooster('xp'));player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
@@ -2039,13 +2039,13 @@ function applyPlayerDamage(amount){
  if(shipRole(player.shipId)==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
  let damage=Math.max(0,amount)*equippedBonus().resistance*activeBooster('resistance');
  if(shipRole(player.shipId)==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
- if(classAbilityActive('titan'))damage*=.3;
- if(classAbilityActive('espectro'))damage*=1.3;
+ if(classAbilityActive('titan'))damage*=player.shipId==='bastion'?.2:.3;
+ if(classAbilityActive('espectro'))damage*=player.shipId==='segadora'?1.2:1.3;
  player.hp=Math.max(0,player.hp-damage);lastHitAt=performance.now()/1000;
  repairRobot.visible=repairBeam.visible=false;
 }
 function classDamageMultiplier(){
- return classAbilityActive('espectro')?1.6:1;
+ return classAbilityActive('espectro')?(player.shipId==='segadora'?1.7:1.6):1;
 }
 function classCritMultiplier(){
  return shipRole(player.shipId)==='espectro'&&Math.random()<.15+specialLevel('crit')*.01?1.5:1;
