@@ -3057,8 +3057,8 @@ for(const e of enemies){
   }
   if(d<COMBAT_RANGE&&!playerSafe&&!docked&&!landing){
    e.fireTimer-=dt;
-   // A paired catapult waits for the cable to hit; a surviving one can attack alone.
-   if(e.fireTimer<=0&&d>80&&(e.type==='harpooner'||!partnerAlive)){enemyFire(e);e.fireTimer=e.type==='harpooner'?5:6}
+   // Paired catapults and harpooners attack independently with separate cooldowns.
+   if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=e.type==='harpooner'?5:6}
   }
   e.mesh.lookAt(playerMesh.position);continue;
  }
