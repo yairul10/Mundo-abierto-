@@ -1,4 +1,4 @@
-import {attachAssembledEngines} from './assembled-engines.js?v=213';
+import {attachAssembledEngines} from './assembled-engines.js?v=214';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=210';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
