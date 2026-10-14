@@ -1,4 +1,4 @@
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=209';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=210';
 import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
 const MATERIALS=[['chatarra','Chatarra espacial','#bac9d7'],['aleacion','Aleación reforzada','#55c6ff'],['nucleo','Núcleo de energía','#c783ff'],['reliquia','Componente ancestral','#ffca58']];

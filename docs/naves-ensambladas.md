@@ -1,4 +1,4 @@
-# Naves ensambladas · v209
+# Naves ensambladas · v210
 
 La flota conserva Aurora, Titán y Espectro. Desde nivel 40 se añaden tres naves permanentes: Segadora (roja), Bastión (azul) y Centella (turquesa). El jugador puede ensamblar las tres, en cualquier orden, desde Hangar → Ensamblaje. Cada una descuenta su propia receta una sola vez y puede volver a equiparse sin costo.
 
@@ -10,7 +10,7 @@ La flota conserva Aurora, Titán y Espectro. Desde nivel 40 se añaden tres nave
 
 Multiplicadores sobre las estadísticas base del jugador, incluyendo sus mejoras y nivel. Se conserva el porcentaje de casco al cambiar; los bonos anteriores se reemplazan, no se acumulan. Segadora y Bastión reutilizan las especializaciones de Espectro y Titán; Centella reutiliza las de Aurora, con niveles de mejora propios para cada nave.
 
-Cada receta pide nivel 40, 350000 créditos, 1500 Chatarra, 450 Aleación, 120 Núcleos y 30 Componentes ancestrales, además de:
+Cada receta pide nivel 40, 500000 créditos, 1500 Chatarra, 450 Aleación, 120 Núcleos y 30 Componentes ancestrales, además de:
 
 | Nave | Núcleos de demolición | Bobinas de anclaje | Cristales de puntería |
 | --- | ---: | ---: | ---: |
