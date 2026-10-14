@@ -1,3 +1,4 @@
+import {attachAssembledEngines} from './assembled-engines.js?v=213';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=210';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
@@ -372,7 +373,8 @@ function loadAssembledVisual(id){
    }
   });
   const pivot=new THREE.Group();pivot.rotation.y=ASSEMBLED_SHIPS[id].yaw;pivot.add(source);
-  mountPlayerModel(pivot,id+'Model');playerMesh.userData[id+'Loading']=false;
+  const visual=new THREE.Group();visual.add(pivot);attachAssembledEngines(THREE,visual,id);
+  mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false;
  },undefined,error=>{playerMesh.userData[id+'Loading']=false;console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
 }
 deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
@@ -3102,11 +3104,13 @@ playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=
 const titanVisual=playerMesh.userData.titanModel,espectroVisual=playerMesh.userData.espectroModel;
 const titanEnginesActive=player.shipId==='titan'&&!!titanVisual?.visible;
 const espectroEnginesActive=player.shipId==='espectro'&&!!espectroVisual?.visible;
-const customEnginesActive=titanEnginesActive||espectroEnginesActive;
+const assembledVisual=ASSEMBLED_SHIPS[player.shipId]?playerMesh.userData[player.shipId+'Model']:null;
+const assembledEnginesActive=!!assembledVisual?.visible;
+const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive;
 for(const glow of engineGlows)glow.visible=!customEnginesActive;
 for(const l of engineLights){l.visible=!customEnginesActive;l.intensity=18+Math.abs(throttle)*48}
 for(const t of engineTrails){t.visible=!customEnginesActive;t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58}
-for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,espectroEnginesActive]]){
+for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,espectroEnginesActive],[assembledVisual,assembledEnginesActive]]){
  for(const flame of visual?.userData.engineFlames||[]){
   const power=Math.abs(throttle);
   flame.visible=active&&power>.02&&!docked&&!landing;
