@@ -2780,28 +2780,36 @@ const portalChargeFront=new THREE.Mesh(portalChargeGeometry,portalChargeMaterial
 const portalChargeBack=new THREE.Mesh(portalChargeGeometry,portalChargeMaterial);
 portalChargeFront.position.z=.8;portalChargeBack.position.z=-.8;portalChargeBack.rotation.y=Math.PI;
 portalCharge.add(portalChargeFront,portalChargeBack);portalCharge.visible=false;portalMesh.add(portalCharge);
-// Select blue energy in the existing atlas; neutral metal remains unlit.
+// Use a standard emissive texture, without modifying the renderer's shaders.
 function configurePortalEmission(material){
  material.userData.portalEnergy=true;
  material.emissive.setHex(0x77cfff);material.emissiveIntensity=1.15;
- material.onBeforeCompile=shader=>{
-  shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`
-#ifdef USE_EMISSIVEMAP
- vec3 portalTexel = texture2D(emissiveMap, vEmissiveMapUv).rgb;
- float portalBlue = smoothstep(0.04, 0.20, portalTexel.b - portalTexel.r);
- float portalBright = smoothstep(0.12, 0.65, max(portalTexel.g, portalTexel.b));
- totalEmissiveRadiance *= portalTexel * portalBlue * portalBright;
-#endif
-`);
- };
- material.customProgramCacheKey=()=> 'portal-blue-energy-v1';
  material.needsUpdate=true;
+}
+function makePortalEnergyMap(source){
+ const image=source.image;
+ if(!image)return null;
+ const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;
+ const context=canvas.getContext('2d');if(!context)return null;
+ context.drawImage(image,0,0);
+ const pixels=context.getImageData(0,0,canvas.width,canvas.height);
+ for(let i=0;i<pixels.data.length;i+=4){
+  const r=pixels.data[i],g=pixels.data[i+1],b=pixels.data[i+2];
+  const blue=Math.max(0,Math.min(1,(b-r-10)/50));
+  const bright=Math.max(0,Math.min(1,(Math.max(g,b)-70)/130));
+  pixels.data[i]=Math.round(r*blue*bright);pixels.data[i+1]=Math.round(g*blue*bright);pixels.data[i+2]=Math.round(b*blue*bright);
+ }
+ context.putImageData(pixels,0,0);
+ const texture=new THREE.CanvasTexture(canvas);texture.flipY=source.flipY;texture.colorSpace=THREE.SRGBColorSpace;
+ texture.wrapS=source.wrapS;texture.wrapT=source.wrapT;texture.channel=source.channel;
+ texture.offset.copy(source.offset);texture.repeat.copy(source.repeat);texture.center.copy(source.center);texture.rotation=source.rotation;
+ return texture;
 }
 function updatePortalEmission(portal,intensity){
  portal.traverse(object=>{
   if(!object.isMesh)return;
   for(const material of Array.isArray(object.material)?object.material:[object.material]){
-   if(material?.userData.portalEnergy)material.emissiveIntensity=intensity;
+   if(material?.userData?.portalEnergy)material.emissiveIntensity=intensity;
   }
  });
 }
@@ -2823,7 +2831,10 @@ deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
    material.normalScale.set(.4,.4);
    if(material.map){
     material.map.anisotropy=anisotropy;
-    material.emissiveMap=material.map;configurePortalEmission(material);
+    try{
+     const energyMap=makePortalEnergyMap(material.map);
+     if(energyMap){material.emissiveMap=energyMap;configurePortalEmission(material)}
+    }catch(error){console.warn('No se pudo aislar el brillo del portal; se conserva su textura.',error)}
    }
    material.needsUpdate=true;
   }
@@ -2858,11 +2869,15 @@ function makeStonePortalLabel(){
 const primaryPortalLabel=makeStonePortalLabel();portalMesh.add(primaryPortalLabel);
 function clonePortalVisual(){
  const metadata=portalMesh.userData;portalMesh.userData={};const clone=portalMesh.clone(true);portalMesh.userData=metadata;
+ // Object3D.clone omits functions in userData: rebuild the destination label
+ // immediately, before the first frame or the asynchronous model load.
+ const oldLabel=clone.getObjectByName('stoneDestinationLabel');if(oldLabel)clone.remove(oldLabel);
+ clone.add(makeStonePortalLabel());
  // Independent energy materials prevent charging the other route's portal.
  const materials=new Map();
  clone.traverse(object=>{if(!object.isMesh)return;
   const copy=material=>{
-   if(!material?.userData.portalEnergy)return material;
+   if(!material?.userData?.portalEnergy)return material;
    if(!materials.has(material)){const owned=material.clone();configurePortalEmission(owned);materials.set(material,owned)}
    return materials.get(material);
   };
@@ -2872,8 +2887,8 @@ function clonePortalVisual(){
 }
 let secondaryPortal=clonePortalVisual();scene.add(secondaryPortal);
 function refreshSecondaryPortal(){
- secondaryPortal.traverse(object=>{if(object.isMesh)for(const material of Array.isArray(object.material)?object.material:[object.material])if(material?.userData.portalEnergy)material.dispose()});
- scene.remove(secondaryPortal);secondaryPortal=clonePortalVisual();secondaryPortal.getObjectByName('portalCharge').visible=false;const oldLabel=secondaryPortal.getObjectByName('stoneDestinationLabel');if(oldLabel)secondaryPortal.remove(oldLabel);secondaryPortal.add(makeStonePortalLabel());scene.add(secondaryPortal);
+ secondaryPortal.traverse(object=>{if(object.isMesh)for(const material of Array.isArray(object.material)?object.material:[object.material])if(material?.userData?.portalEnergy)material.dispose()});
+ scene.remove(secondaryPortal);secondaryPortal=clonePortalVisual();secondaryPortal.getObjectByName('portalCharge').visible=false;scene.add(secondaryPortal);
 }
 const beltEmberPortal=new THREE.Vector3(SECTOR_BELT.x+2450,300,SECTOR_BELT.z-800);
 const emberPortal=new THREE.Vector3(SECTOR_EMBER.x,0,SECTOR_EMBER.z+4000);
@@ -2925,7 +2940,7 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector(route);portalMessage.style.display='none';return}}else portalCountdown=0;
  const pulse=charging?portalChargePulse(portalCountdown):0;
  const idleGlow=1.15+Math.sin(performance.now()*.0016)*.18;
- updatePortalEmission(portalMesh,idleGlow+(charging?.8+pulse*1.4:0));
+ updatePortalEmission(portalMesh,idleGlow+(charging ? .8+pulse*1.4 : 0));
  if(secondaryPortal.visible)updatePortalEmission(secondaryPortal,idleGlow);
  portalCharge.visible=charging;portalChargeMaterial.opacity=pulse*.65;
  portalRing.rotation.z=0;portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=.25;portalLight.intensity=charging?20+pulse*70:20;
