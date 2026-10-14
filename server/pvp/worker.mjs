@@ -1,7 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import {makeCombatPlayer,ability,volley,stepCombat} from './combat.mjs';
 
-const VERSION='0.2.0';
+const VERSION='0.2.1';
 const ORIGINS=new Set(['https://yairul10.github.io','https://localhost','http://localhost','capacitor://localhost']);
 const encoder=new TextEncoder();
 const token=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');

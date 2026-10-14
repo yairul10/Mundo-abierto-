@@ -1,3 +1,4 @@
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=208';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=177';
@@ -344,19 +345,36 @@ function fitPlayerModel(model,yaw=0){
  return model;
 }
 function syncPlayerShipVisuals(){
- const titan=playerMesh.userData.titanModel,espectro=playerMesh.userData.espectroModel;
- const showTitan=player.shipId==='titan'&&!!titan;
- const showEspectro=player.shipId==='espectro'&&!!espectro;
- if(titan)titan.visible=showTitan;
- if(espectro)espectro.visible=showEspectro;
+ const keys={titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel'};
+ const selected=keys[player.shipId],loaded=!!(selected&&playerMesh.userData[selected]);
+ for(const key of Object.values(keys)){const model=playerMesh.userData[key];if(model)model.visible=loaded&&key===selected}
  let hasOriginal=false;
  for(const key of ['xWingModel','auroraModel']){
-  const model=playerMesh.userData[key];
-  if(model){model.visible=!showTitan&&!showEspectro;hasOriginal=true}
+  const model=playerMesh.userData[key];if(model){model.visible=!loaded;hasOriginal=true}
  }
- proceduralShip.visible=!showTitan&&!showEspectro&&!hasOriginal;
+ proceduralShip.visible=!loaded&&!hasOriginal;
 }
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
+const assembledModelPaths={segadora:'./assets/models/segadora.glb?v=208',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=208'};
+function loadAssembledVisual(id){
+ if(!ASSEMBLED_SHIPS[id]||playerMesh.userData[id+'Model']||playerMesh.userData[id+'Loading'])return;
+ playerMesh.userData[id+'Loading']=true;
+ modelLoader.load(assembledModelPaths[id],gltf=>{
+  const source=gltf.scene,box=new THREE.Box3().setFromObject(source),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+  const span=Math.max(size.x,size.z);if(!Number.isFinite(span)||span<=0)return;
+  const factor=124/span;source.scale.multiplyScalar(factor);source.position.sub(center.multiplyScalar(factor));
+  source.traverse(mesh=>{if(!mesh.isMesh)return;mesh.castShadow=mesh.receiveShadow=false;
+   for(const material of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
+    if(!material?.isMeshStandardMaterial)continue;
+    material.metalnessMap=null;material.roughnessMap=null;material.metalness=.48;material.roughness=.62;material.normalScale.set(.4,.4);
+    if(material.map)material.map.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+    material.needsUpdate=true;
+   }
+  });
+  const pivot=new THREE.Group();pivot.rotation.y=ASSEMBLED_SHIPS[id].yaw;pivot.add(source);
+  mountPlayerModel(pivot,id+'Model');playerMesh.userData[id+'Loading']=false;
+ },undefined,error=>{playerMesh.userData[id+'Loading']=false;console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
+}
 deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
  const source=gltf.scene;
  // Acabado metálico moderado con el material estándar de Three.js.
@@ -1850,7 +1868,8 @@ function renderDrones(){
 const SHIP_TYPES={
  aurora:{name:'Aurora',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Equilibrada · tu nave original'},
  titan:{name:'Titán',level:15,cost:200000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
- espectro:{name:'Espectro',level:25,cost:200000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'}
+ espectro:{name:'Espectro',level:25,cost:200000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'},
+ ...ASSEMBLED_SHIPS
 };
 player.ownedShips=player.ownedShips&&typeof player.ownedShips==='object'?player.ownedShips:{};
 player.ownedShips.aurora=true;
@@ -1860,13 +1879,17 @@ player.shipSpecializations=player.shipSpecializations&&typeof player.shipSpecial
 const SHIP_ABILITIES={
  aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:20,energy:40},
  titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:25,energy:55},
- espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:25,energy:65}
+ espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:25,energy:65},
+ segadora:{name:'Furia de la Segadora',icon:'🔥',duration:5,cooldown:25,energy:65},
+ bastion:{name:'Fortaleza de Bastión',icon:'🛡️',duration:6,cooldown:25,energy:55},
+ centella:{name:'Sobrecarga de Centella',icon:'⚡',duration:5,cooldown:20,energy:40}
 };
 const SPECIAL_UPGRADES={
  aurora:[['energy','Reactor eficiente','Regeneración de energía +4 % por nivel'],['overload','Sobrecarga avanzada','Duración +0,25 s por nivel'],['shield','Escudos recuperadores','Recupera 0,3 % del casco por segundo durante Sobrecarga']],
  titan:[['armor','Blindaje pesado','Reducción de daño +1 % por nivel'],['fortress','Fortaleza extendida','Duración +0,3 s por nivel'],['repair','Reparación táctica','Regenera 0,15 % del casco por segundo fuera de combate']],
  espectro:[['crit','Precisión letal','Probabilidad de crítico +1 % por nivel'],['fury','Furia prolongada','Duración +0,25 s por nivel'],['evasion','Maniobras evasivas','Probabilidad de evasión +0,8 % por nivel']]
 };
+for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS))SPECIAL_UPGRADES[id]=SPECIAL_UPGRADES[ship.role];
 let classAbilityCd=0,classAbilityTime=0,lastHitAt=-100;
 
 const REPAIR_ROBOT_PRICES=[5000,10000,20000,40000,80000];
@@ -2000,8 +2023,8 @@ function specialLevel(key,id=player.shipId){
  return Math.max(0,Math.min(10,Math.floor(Number(levels[key])||0)));
 }
 function abilityDuration(){
- const a=SHIP_ABILITIES[player.shipId],key=player.shipId==='aurora'?'overload':player.shipId==='titan'?'fortress':'fury';
- return a.duration+specialLevel(key)*(player.shipId==='titan'?.3:.25);
+ const a=SHIP_ABILITIES[player.shipId],key=shipRole(player.shipId)==='aurora'?'overload':shipRole(player.shipId)==='titan'?'fortress':'fury';
+ return a.duration+specialLevel(key)*(shipRole(player.shipId)==='titan'?.3:.25);
 }
 function activateClassAbility(){if(PVP_MODE&&!pvpSession?.active)return;
  if(classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
@@ -2010,12 +2033,12 @@ function activateClassAbility(){if(PVP_MODE&&!pvpSession?.active)return;
  player.energy-=a.energy;classAbilityTime=abilityDuration();if(pvpSession)pvpSession.ability();hud();
  lootToast(a.icon+' '+a.name+' activada');
 }
-function classAbilityActive(id){return player.shipId===id&&classAbilityTime>0}
+function classAbilityActive(id){return shipRole(player.shipId)===id&&classAbilityTime>0}
 function applyPlayerDamage(amount){
  if(docked||landing||inSafeZone(playerMesh.position))return;
- if(player.shipId==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
+ if(shipRole(player.shipId)==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
  let damage=Math.max(0,amount)*equippedBonus().resistance*activeBooster('resistance');
- if(player.shipId==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
+ if(shipRole(player.shipId)==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
  if(classAbilityActive('titan'))damage*=.3;
  if(classAbilityActive('espectro'))damage*=1.3;
  player.hp=Math.max(0,player.hp-damage);lastHitAt=performance.now()/1000;
@@ -2025,13 +2048,13 @@ function classDamageMultiplier(){
  return classAbilityActive('espectro')?1.6:1;
 }
 function classCritMultiplier(){
- return player.shipId==='espectro'&&Math.random()<.15+specialLevel('crit')*.01?1.5:1;
+ return shipRole(player.shipId)==='espectro'&&Math.random()<.15+specialLevel('crit')*.01?1.5:1;
 }
 function updateClassAbility(dt){
  classAbilityCd=Math.max(0,classAbilityCd-dt);
  classAbilityTime=Math.max(0,classAbilityTime-dt);
  if(classAbilityActive('aurora')&&specialLevel('shield')>0)player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.003*specialLevel('shield')*dt);
- if(player.shipId==='titan'&&specialLevel('repair')>0&&performance.now()/1000-lastHitAt>5&&!docked)
+ if(shipRole(player.shipId)==='titan'&&specialLevel('repair')>0&&performance.now()/1000-lastHitAt>5&&!docked)
   player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.0015*specialLevel('repair')*dt);
  const btn=$('classAbilityBtn'),label=$('classAbilityCd');
  if(btn){const a=SHIP_ABILITIES[player.shipId];btn.firstChild.textContent=a.icon;btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityTime>0||player.energy<a.energy;
@@ -2078,7 +2101,7 @@ function syncShipStats(){
 function changeShip(id){
  if(!SHIP_TYPES[id]||!player.ownedShips[id]||player.shipId===id)return;
  ensureShipBaseStats();
- player.shipId=id;classAbilityCd=0;classAbilityTime=0;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
+ player.shipId=id;loadAssembledVisual(id);classAbilityCd=0;classAbilityTime=0;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
  lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
 }
 function renderShips(){
@@ -2086,14 +2109,18 @@ function renderShips(){
  let fleet=$('hangarShipFleet');
  if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
  fleet.innerHTML='<h3>🚀 Flota de naves</h3>'+Object.entries(SHIP_TYPES).map(([id,t])=>{
-  const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=player.level>=t.level&&player.gold>=t.cost;
-  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small><small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small></div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':'Comprar')+'</button></div>';
+  const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
+  const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Escudo ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
+  const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
+  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':t.recipe?'Ensamblar':'Comprar')+'</button></div>';
  }).join('');
  fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
   const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t)return;
   if(!player.ownedShips[id]){
-   if(player.level<t.level||player.gold<t.cost)return;
-   player.gold-=t.cost;player.ownedShips[id]=true;
+   if(t.recipe){if(!assembleShip(player,id))return;}else{
+    if(player.level<t.level||player.gold<t.cost)return;
+    player.gold-=t.cost;player.ownedShips[id]=true;
+   }
   }
   changeShip(id);save();renderShips();hangarRefresh();
  });
@@ -2112,7 +2139,7 @@ if(player.shipId!=='aurora'){
   }
  }
 }
-syncShipStats();
+syncShipStats();loadAssembledVisual(player.shipId);
 function renderUpgrades(){
  const containers=[$('hangarUpgradeShop')].filter(Boolean);if(!containers.length)return;
  const html=UPGRADES.map(u=>{
@@ -3064,7 +3091,7 @@ $('recoverCurrent').onclick=()=>recoverShip(true);
 $('recoverAurora').onclick=()=>recoverShip(false);
 
 function loop(now){const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;if(pvpSession){pvpSession.beforeFrame(dt,now);if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(graphicsLost){requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||document.hidden||docked||landing||!panel.classList.contains('hidden')||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
- updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(player.shipId==='aurora'?1.2+specialLevel('energy')*.04:1));
+ updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(shipRole(player.shipId)==='aurora'?1.2+specialLevel('energy')*.04:1));
 const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
@@ -3155,7 +3182,7 @@ if(PVP_MODE){
  const remoteMesh=new THREE.Group();scene.add(remoteMesh);const remote={pvpRemote:true,type:'scout',mesh:remoteMesh,home:new THREE.Vector3(),hp:1,maxHp:1,dead:0,aggressive:true,pilotName:'Rival',pilotLevel:1};enemies.push(remote);
  let remoteSource=null;const remoteDrones=new THREE.Group();scene.add(remoteDrones);let remoteDroneCount=-1,remoteDroneSource=null;
  function cloneClean(source){const saved=[];source.traverse(o=>{saved.push([o,o.userData]);o.userData={}});let copy;try{copy=source.clone(true)}finally{for(const [o,data]of saved)o.userData=data}return copy}
- function remoteVisual(id){const key=id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===remoteSource)return;remoteSource=source;remoteMesh.clear();const visual=cloneClean(source);visual.visible=true;remoteMesh.add(visual);}
+ function remoteVisual(id){if(ASSEMBLED_SHIPS[id])loadAssembledVisual(id);const key=ASSEMBLED_SHIPS[id]?id+'Model':id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===remoteSource)return;remoteSource=source;remoteMesh.clear();const visual=cloneClean(source);visual.visible=true;remoteMesh.add(visual);}
  function syncRemoteDrones(other){const count=other.profile?.droneCount||0;const source=supportDrones[0]?.mesh;const sourceStamp=source?.children.length;if(count!==remoteDroneCount||sourceStamp!==remoteDroneSource){remoteDrones.clear();for(let i=0;i<count;i++){const clone=cloneClean(source);clone.visible=true;remoteDrones.add(clone)}remoteDroneCount=count;remoteDroneSource=sourceStamp}remoteDrones.position.copy(remote.mesh.position);remoteDrones.rotation.copy(remote.mesh.rotation);for(let i=0;i<remoteDrones.children.length;i++){const d=remoteDrones.children[i],pair=Math.floor(i/2);d.position.set((i%2?1:-1)*[78,135,195,250][pair],14,-[125,165,190,210][pair]);d.rotation.set(0,0,0)}}
  function keepArena(){graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;auroraStation.visible=beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,0,400);yaw=0;pitch=0;camera.position.set(0,105,685);camera.lookAt(0,0,185);
