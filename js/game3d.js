@@ -1728,13 +1728,22 @@ function refreshFormationButton(){
  formationBtn.setAttribute('aria-pressed',String(f.id!=='fan'));
  formationBtn.disabled=PVP_MODE;
 }
-if(formationBtn)formationBtn.onclick=()=>{
+function cycleFormation(){
  if(PVP_MODE)return;
  const available=FORMATIONS.filter(f=>player.formations[f.id]);
  if(available.length===1){lootToast('Abanico equipado · Ensambla nuevas formaciones en el hangar');return}
  const index=available.findIndex(f=>f.id===player.droneFormation),next=available[(index+1)%available.length];
  equipFormation(next.id);lootToast('Formación: '+next.name);
-};
+}
+if(formationBtn){
+ // No depender del clic sintetizado: otro dedo puede seguir en el joystick.
+ formationBtn.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(!formationBtn.disabled)cycleFormation();
+ },{passive:false});
+ // Ratón, teclado y activación accesible conservan su clic habitual.
+ formationBtn.onclick=cycleFormation;
+}
 refreshFormationButton();
 function updateSupportDrones(dt,now){
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
