@@ -77,3 +77,9 @@ Se restaura la vida base a 80.000 (184.000 al nivel 105). Se conservan recompens
 ## v227 · Gráficos de ataques del Gran Titán
 
 Verificar lanzas metálicas con punta orientada al movimiento y estela, cuatro bombas blindadas, avisos circulares sin malla y transición a rojo. Detonación con onda y destello breves; debe seguir dañando al quedarse en el centro. Los avisos conservan radio 150 y mecha 3,5 s; las lanzas conservan velocidad 570. Al cambiar de mapa o morir el Titán, no quedan proyectiles ni efectos. Prueba de navegador con WebGL: seis lanzas, cuatro bombas, orientación, parámetros conservados, daño al jugador inmóvil y liberación de geometrías/efectos, sin errores.
+
+## v228 · Pantalla horizontal al pasar al PvP en navegador
+
+La versión web usa un documento exterior estable para mantener la pantalla completa y la orientación mientras el juego navega entre Cementerio y PvP. El juego interno se mantiene en un único marco del mismo origen; no se crean marcos anidados al entrar, volver o recargar. El botón horizontal del juego interno delega en el documento exterior. La APK conserva el arranque directo y su orientación nativa.
+
+Probar desde un navegador móvil: activar horizontal, escoger normal o pruebas, atravesar el portal con su cuenta de 3 segundos, conectar a PvP y volver al Cementerio. La pantalla completa debe permanecer, sin repetir el aviso de giro ni modificar el guardado. Al girar realmente el dispositivo a vertical o salir manualmente de pantalla completa, se mantiene el aviso de orientación cuando corresponda. La comprobación de versión permanece en ambos documentos para evitar HTML antiguo en caché.
