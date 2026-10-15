@@ -1,6 +1,6 @@
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
-import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=225';
+import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=226';
 import {attachAssembledEngines} from './assembled-engines.js?v=214';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=210';
 import {createColosoRig} from './coloso-rig.js?v=187';

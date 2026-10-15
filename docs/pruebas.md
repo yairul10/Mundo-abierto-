@@ -69,3 +69,7 @@ Validación automática: `node --test tests/*.test.mjs server/pvp/combat.test.mj
 El menú Nave, el hangar y el menú del mapa PvP permiten abrir el diario. Conserva las últimas 200 acciones por guardado, con fecha/hora local y filtros; registra enemigos destruidos y sus premios, misiones completadas, compras y mejoras, ensamblaje, ventas, reparaciones y ayudas QA. Las operaciones rechazadas no generan entradas. Guardar o volver a abrir el diario no duplica registros. Las compras desde el hangar PvP se guardan en el diario de la partida de origen. Las acciones anteriores a esta versión no se reconstruyen.
 
 Gran Titán: vida base 160.000 (antes 80.000); mantiene el 2 % por nivel desde 40 y el límite 105, con 368.000 de vida máxima. Las recompensas y el daño no cambian. Los guardados con vida anterior conservan su porcentaje mediante la migración existente.
+
+## v226 · Vida original del Gran Titán
+
+Se restaura la vida base a 80.000 (184.000 al nivel 105). Se conservan recompensas, daño, escalado y diario de 200 acciones. La migración mantiene el porcentaje de vida de los guardados de v225.
