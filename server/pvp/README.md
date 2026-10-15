@@ -1,6 +1,6 @@
 # Mapa PvP compartido · Mundo Abierto
 
-Contenido v221, Worker 0.3.1. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
+Contenido v222, Worker 0.3.2. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
 
 ## Acceso y reglas
 
@@ -14,13 +14,17 @@ Toca la nave de otro jugador o su nombre, a cualquier lado de la pantalla; apare
 
 ## Equipamiento de prueba
 
-El botón «Equipar» permite elegir apodo y nave en la base; el menú se cierra al recibir o aceptar una invitación. Las seis naves se pueden escoger en la base. Perfiles fijos de nivel 40 calculados por el servidor sobre casco 490, ataque 88, defensa 44 y velocidad 220; conservan los multiplicadores de cada nave. Energía 295, dos drones y tres misiles por salva, sin robot, explorador, formaciones ni especializaciones. Las habilidades conservan sus efectos de clase. No se importan estadísticas editables del guardado. Sin créditos, XP, botín, copas ni pérdidas. Nunca se escriben naves, mejoras, vida ni resultados PvP en la partida individual.
+El botón «Equipar» permite elegir apodo y nave en la base; el menú se cierra al recibir o aceptar una invitación. Solo aparecen las naves que posee el jugador en su partida offline. Al entrar se importa una copia del equipo: nivel, estadísticas, drones, formación y sus ventajas, explorador, robot reparador, misiles y especializaciones de cada nave. «Equipar» permite cambiar entre las naves propias mientras se está en la base y fuera de un duelo. Mejorar o ensamblar se hace en offline; al volver a entrar se importa el nuevo equipo.
+
+El casco máximo de cada nave es exactamente cinco veces su casco offline, incluida la bonificación de Fortaleza. Entra con ese casco y energía completos. Daño, defensa, velocidad y mejoras conservan sus valores y efectos; no se multiplican por cinco. Las reparaciones porcentuales se aplican al nuevo máximo. Los potenciadores que estaban activos al entrar se copian para la sesión y no consumen tiempo del guardado offline.
+
+El servidor conserva el perfil original sin multiplicar en una plantilla por nave; equipar, aceptar duelos, reaparecer y reconectar reconstruyen desde esa plantilla. Nunca se aplica ×5 sobre un perfil PvP ya multiplicado. Las plantillas están limitadas por tipos, rangos y una flota de seis IDs reconocidos, pero proceden del guardado offline: esta prueba de invitados no autentica el progreso individual. Movimiento, energía, cadencia, impactos y daño se resuelven en el servidor; no se aceptan daño o posiciones arbitrarios en mensajes de combate. Sin premios, créditos, XP, botín ni pérdidas. El guardado normal/QA se conserva íntegro; la selección y el daño PvP no se escriben en él.
 
 ## Implementación
 
-`js/shared-session.js`: invitado, conexión, UI, invitaciones, ping, entradas 20 Hz, reconciliación, regreso y reconexión. `game3d.js`: controles originales, múltiples naves remotas, nombres, selección, radar, base y portal. `css/shared-world.css`: interfaz táctil.
+`js/pvp-loadout.js`: copia y plantillas del equipo offline por nave propia. `js/shared-session.js`: invitado, conexión, UI, invitaciones, ping, entradas 20 Hz, reconciliación, regreso y reconexión. `game3d.js`: controles originales, múltiples naves remotas, nombres, selección, radar, base y portal. `css/shared-world.css`: interfaz táctil.
 
-`shared-world.mjs`: Durable Object, SQLite, tickets, snapshots públicos, mensajes limitados, presencia y limpieza. `world-rules.mjs`: consentimiento, cuenta regresiva, perfiles fijos, duelos independientes, fin y reaparición. Reutiliza `combat.mjs` para proyectiles y habilidades, aislando los jugadores/balas por duelo. El servidor calcula movimiento, cadencias, daño, críticos, energía e impactos. Las posiciones, estadísticas y daño enviados por el cliente no se aceptan como autoridad.
+`shared-world.mjs`: Durable Object, SQLite, tickets, snapshots públicos, mensajes limitados, presencia y limpieza. `world-rules.mjs`: consentimiento, cuenta regresiva, importación del equipo y casco ×5, duelos independientes, fin y reaparición. Reutiliza `combat.mjs` para proyectiles y habilidades, aislando los jugadores/balas por duelo. El servidor calcula movimiento, cadencias, daño, críticos, energía e impactos. Las posiciones, estadísticas y daño enviados por el cliente no se aceptan como autoridad.
 
 WebSockets con hibernación; el estado se persiste tras cada mensaje. La simulación avanza por entradas y alarmas de mantenimiento, sin bucle permanente. El cliente se pausa si deja de recibir estados. Tras pérdida de conexión pide un ticket nuevo con el mismo invitado. Se cierra una presencia sin mensajes tras 15 segundos; las reservas sin conexión caducan tras 30 segundos. Una misma identidad no abre dos conexiones simultáneas.
 
@@ -29,7 +33,7 @@ Se conservan los exports/bindings ArenaRoom y ArenaLobby para mantener los names
 ## API
 
 - GET /health: versión y modos.
-- POST /world/join: `{guestKey, name, shipId}` → `{playerId, token, expiresAt}`.
+- POST /world/join: `{guestKey, name, shipId, roster}` → `{playerId, token, expiresAt}`.
 - GET /world/socket: WebSocket con subprotocolos `['mundo-world-v1', token]`.
 - Mensajes cliente: input, invite, reply, ship, name, volley, ability, surrender, ping, leave.
 - Mensajes servidor: world, volley, pong, error. Los snapshots nunca incluyen tickets ni claves privadas.

@@ -9,13 +9,14 @@ async function connect(ticket){const r=await mf.dispatchFetch('https://arena.tes
 async function waitFor(c,predicate){const end=Date.now()+3500;while(Date.now()<end){const found=c.messages.findLast(predicate);if(found)return found;await pause(10)}throw Error('Missing socket message: '+JSON.stringify(c.messages.at(-1)))}
 const send=(c,m)=>c.ws.send(JSON.stringify(m));
 try{
- const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.1');
+ const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.2');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/matchmake',{})).status,410);
  assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
- const a=(await post('/world/join',{guestKey:'a'.repeat(64),name:'Piloto A',shipId:'aurora',profile:{attack:99999}})).body;
- const b=(await post('/world/join',{guestKey:'b'.repeat(64),name:'Piloto B',shipId:'aurora'})).body;
- const c=(await post('/world/join',{guestKey:'c'.repeat(64),name:'Neutral',shipId:'segadora'})).body;
+ const roster={aurora:{maxHp:490,maxEnergy:295,attack:88,defense:44,speed:220,level:40},segadora:{maxHp:539,maxEnergy:295,attack:163,defense:42,speed:231,level:40},bastion:{maxHp:1225,maxEnergy:295,attack:88,defense:88,speed:187,level:40}};
+ const a=(await post('/world/join',{roster,guestKey:'a'.repeat(64),name:'Piloto A',shipId:'aurora',profile:{attack:99999}})).body;
+ const b=(await post('/world/join',{roster,guestKey:'b'.repeat(64),name:'Piloto B',shipId:'aurora'})).body;
+ const c=(await post('/world/join',{roster,guestKey:'c'.repeat(64),name:'Neutral',shipId:'segadora'})).body;
  assert.notEqual(a.playerId,b.playerId);assert.equal((await connect('invalid')).status,403);
  const x=await connect(a.token),y=await connect(b.token),z=await connect(c.token);assert.equal(x.status,101);assert.equal((await connect(a.token)).status,409);
  let state=await waitFor(x,m=>m.type==='world'&&m.players.length===3);assert.equal(state.players.find(p=>p.id===a.playerId).profile.attack,88);assert(!JSON.stringify(state).includes(a.token));assert(!JSON.stringify(state).includes('a'.repeat(64)));
@@ -32,8 +33,8 @@ try{
  send(x,{type:'volley',weapon:'laser',shots:[{offset:[0,0,0],direction:delta.map(v=>v/len)}],damage:99999});
  for(let i=0;i<25;i++){await pause(30);send(y,{type:'ping',time:100+i})}
  state=await waitFor(y,m=>m.type==='world'&&m.players.find(p=>p.id===b.playerId).hp<hp);assert.equal(state.players.find(p=>p.id===c.playerId).hp,state.players.find(p=>p.id===c.playerId).profile.maxHp);
- send(z,{type:'ship',shipId:'bastion'});state=await waitFor(z,m=>m.type==='world'&&m.players.find(p=>p.id===c.playerId).profile.shipId==='bastion');assert.equal(state.players.find(p=>p.id===c.playerId).hp,1225);
+ send(z,{type:'ship',shipId:'bastion'});state=await waitFor(z,m=>m.type==='world'&&m.players.find(p=>p.id===c.playerId).profile.shipId==='bastion');assert.equal(state.players.find(p=>p.id===c.playerId).hp,6125);
  x.ws.close();state=await waitFor(y,m=>m.type==='world'&&m.duels.length===0&&m.events.some(e=>e.reason==='disconnect'));assert.equal(state.players.find(p=>p.id===b.playerId).hp,hp);
- const again=(await post('/world/join',{guestKey:'a'.repeat(64),name:'Regreso'})).body;assert.equal(again.playerId,a.playerId);assert.notEqual(again.token,a.token);
+ const again=(await post('/world/join',{roster,guestKey:'a'.repeat(64),name:'Regreso'})).body;assert.equal(again.playerId,a.playerId);assert.notEqual(again.token,a.token);
  console.log('Passed: retired prototype, guest identity, three players in one world, authentication, server movement/loadouts, invitation consent/countdown, authoritative damage, neutral immunity, duels and damage inside base, base ship switch, disconnect and return identity.');
 }finally{for(const ws of connections)try{ws.close()}catch{}await mf.dispose()}

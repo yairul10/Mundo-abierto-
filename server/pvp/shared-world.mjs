@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {WORLD,equip,reset,safe,advance,invite,reply,attack,useAbility,endDuel,duelFor} from './world-rules.mjs';
+import {WORLD,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,endDuel,duelFor} from './world-rules.mjs';
 const json=(x,status=200)=>Response.json(x,{status});
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
 export class SharedWorld extends DurableObject {
@@ -17,7 +17,7 @@ export class SharedWorld extends DurableObject {
   let p=s.players.find(x=>x.id===id);if(p?.connected)return {error:'already_connected'};
   if(!p&&s.players.length>=WORLD.capacity)return {error:'world_full'};
   if(!p){p={id,pos:[...WORLD.spawn],seq:-1,aim:[0,0],connected:false,revision:0};s.players.push(p)}
-  p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];equip(p,body.shipId)||equip(p,'aurora');reset(p,true);
+  p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];p.roster=importRoster(body.roster);equip(p,body.shipId)||equip(p,Object.keys(p.roster)[0]);reset(p,true);
   this.worldSave(s);await this.ctx.storage.setAlarm(now+15000);return {playerId:id,token:p.token,expiresAt:now+30000};
  }
  async fetch(request){

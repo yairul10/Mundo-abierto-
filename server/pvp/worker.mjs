@@ -1,12 +1,12 @@
 import {DurableObject} from 'cloudflare:workers';
 import {SharedWorld} from './shared-world.mjs';
-const VERSION='0.3.1';
+const VERSION='0.3.2';
 const ORIGINS=new Set(['https://yairul10.github.io','https://localhost','http://localhost','capacitor://localhost']);
 const json=(data,status=200,origin='')=>Response.json(data,{status,headers:{'Cache-Control':'no-store',...(ORIGINS.has(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{})}});
 async function readBody(request){
  const reader=request.body?.getReader();if(!reader)return {};
  const chunks=[];let length=0;
- while(true){const {done,value}=await reader.read();if(done)break;length+=value.byteLength;if(length>4096){await reader.cancel();throw Error('body_too_large')}chunks.push(value)}
+ while(true){const {done,value}=await reader.read();if(done)break;length+=value.byteLength;if(length>16384){await reader.cancel();throw Error('body_too_large')}chunks.push(value)}
  const data=new Uint8Array(length);let offset=0;for(const c of chunks){data.set(c,offset);offset+=c.length}
  const result=JSON.parse(new TextDecoder().decode(data));if(!result||Array.isArray(result)||typeof result!=='object')throw Error('invalid_request');return result;
 }

@@ -11,7 +11,7 @@ Juego espacial 3D en desarrollo para navegador y Android. Estado revisado contra
 - Hangar con siete formaciones, venta de materiales y potenciadores temporales.
 - Campañas, contratos largos, créditos, experiencia e inventario.
 - Guardado local automático y modo QA con partida separada.
-- Mapa PvP compartido con ID de invitado, portal desde el Cementerio y duelos por invitación en el mismo mapa. Sin premios ni pérdidas; seis naves de prueba y progreso offline separado.
+- Mapa PvP compartido con ID de invitado, portal desde el Cementerio y duelos por invitación en el mismo mapa. Sin premios ni pérdidas; naves y mejoras offline, casco ×5 y progreso offline separado.
 
 ## Ejecutar
 

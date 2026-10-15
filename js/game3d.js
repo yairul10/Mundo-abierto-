@@ -6,7 +6,8 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=212';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,testPilot,startSharedSession} from './shared-session.js?v=221';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=222';
+import {initialPvpPilot} from './pvp-loadout.js?v=222';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=218';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -25,7 +26,7 @@ function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStor
 function safeStorageSet(key,value){if(PVP_MODE)return true;try{localStorage.setItem(key,value);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
-const QA_FLAG='mundoAbierto.qaActive';const qaActive=safeStorageGet(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?testPilot():stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
+const QA_FLAG='mundoAbierto.qaActive';const qaActive=safeStorageGet(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Recuperación móvil ante pérdida del contexto WebGL. Guardar antes de
 // recargar evita perder posición, inventario o mejoras.
@@ -1517,7 +1518,7 @@ player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneC
 normalizeHangar(player);
 const equippedBonus=()=>formationBonus(player,!PVP_MODE);
 const activeBooster=id=>boosterBonus(player,id,!PVP_MODE);
-const supportRange=()=>COMBAT_RANGE*equippedBonus().range;
+const supportRange=()=>PVP_MODE?(pvpSession?.profile?.droneRange||COMBAT_RANGE):COMBAT_RANGE*equippedBonus().range;
 let hangarUI=null;
 function equipFormation(id){
  if(PVP_MODE||!player.formations[id])return;
@@ -1618,7 +1619,7 @@ const explorerThreats=new Map();
 function registerExplorerThreat(e){
  if(player.explorerDrone&&e.type!=='carrier'&&!e.dead&&e.mesh.visible){explorerThreat=e;explorerThreats.set(e,performance.now()/1000);}
 }
-function explorerEnemyValid(e){return !!e&&!e.dead&&e.mesh.visible&&e.mesh.position.distanceTo(playerMesh.position)<=Math.min(COMBAT_RANGE,explorerRange())}
+function explorerEnemyValid(e){return (!PVP_MODE||e?.playerId===pvpSession?.opponentId)&&!!e&&!e.dead&&e.mesh.visible&&e.mesh.position.distanceTo(playerMesh.position)<=Math.min(COMBAT_RANGE,explorerRange())}
 function explorerTask(){
  const now=performance.now()/1000;
  for(const [enemy,time] of explorerThreats)if(now-time>4.5||!explorerEnemyValid(enemy))explorerThreats.delete(enemy);
@@ -1631,6 +1632,7 @@ function markExplorerAttack(target){
  explorerCompanion.targetDrop=null;explorerCompanion.nextChange=0;
 }
 function updateExplorerCombat(dt){
+ if(PVP_MODE&&!pvpSession?.canFight)return;
  explorerFireCd=Math.max(0,explorerFireCd-dt);
  const target=explorerTask().target;if(!target)return;
  if(!player.explorerDrone||!explorerMesh.visible||docked||landing||explorerFireCd>0)return;
@@ -1750,7 +1752,7 @@ function updateSupportDrones(dt,now){
  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
  for(let i=0;i<supportDrones.length;i++){
   const d=supportDrones[i];d.mesh.visible=i<ownedDrones();if(!d.mesh.visible)continue;
-  const [x,y,z]=formationOffset(PVP_MODE?'fan':player.droneFormation,i,ownedDrones(),now/1000);
+  const [x,y,z]=formationOffset(player.droneFormation,i,ownedDrones(),now/1000);
   const desired=playerMesh.position.clone().addScaledVector(right,x).addScaledVector(forward,y).addScaledVector(up,z);
   d.mesh.position.lerp(desired,Math.min(1,dt*6));d.mesh.rotation.y=yaw;
  }
@@ -2213,7 +2215,7 @@ function renderShips(){
 ensureShipBaseStats();
 // El guardado ya contiene las estadísticas de la nave equipada: no aplicar el bono otra vez al cargar.
 // Normalizar partidas antiguas cuyo perfil aún no tiene valores base fiables.
-if(player.shipId!=='aurora'){
+if(!PVP_MODE&&player.shipId!=='aurora'){
  const bonus=shipBonuses(player.shipId);
  const expected=Math.round((player.shipBaseStats.maxHp+bonus.maxHp)*equippedBonus().hp);
  if(Math.abs(player.maxHp-expected)>2){
@@ -3205,7 +3207,7 @@ if(PVP_MODE){
  pvpSession=startSharedSession({keepArena,pause:clearFight,clearFight,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
   for(const r of remotes.values()){
-   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);
+   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);r.pet.visible=!!r.hasPet;if(r.hasPet){if(r.petStamp!==explorerMesh.children.length){r.pet.clear();const clone=cloneClean(explorerMesh);clone.visible=true;clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=explorerMesh.children.length}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
    const point=r.mesh.position.clone().add(new THREE.Vector3(0,68,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;
    r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';r.label.classList.toggle('dueling',r.playerId===pvpSession?.opponentId);
   }
@@ -3214,15 +3216,17 @@ if(PVP_MODE){
  snapshot(me,others,force,pending,state){
   const changed=player.shipId!==me.profile.shipId;
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
-  player.name=me.name;player.level=40;for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
+  if(me.hp<player.hp){lastHitAt=lastIncomingAttackAt=performance.now()/1000;}
+  player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
   const predicted=new THREE.Vector3(...me.pos);for(const input of pending)predicted.addScaledVector(new THREE.Vector3(...input.move),player.speed*input.dt);
   if(force){playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
   else if(playerMesh.position.distanceTo(predicted)>150)playerMesh.position.copy(predicted);else playerMesh.position.lerp(predicted,.18);
-  const ids=new Set(others.map(p=>p.id));for(const [id,r]of remotes)if(!ids.has(id)){scene.remove(r.mesh,r.drones);r.label.remove();enemies.splice(enemies.indexOf(r),1);remotes.delete(id)}
-  for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones);label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>pvpSession.select(other.id);label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();pvpSession.select(other.id)},{passive:false});label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvpSession.select(other.id)}};r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:40};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
-    for(let i=0;i<2;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i?1:-1)*78,14,125);d.rotation.set(0,0,0);drones.add(d)}
+  const ids=new Set(others.map(p=>p.id));for(const [id,r]of remotes)if(!ids.has(id)){scene.remove(r.mesh,r.drones,r.pet);r.label.remove();enemies.splice(enemies.indexOf(r),1);remotes.delete(id)}
+  for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),pet=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones,pet);label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>pvpSession.select(other.id);label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();pvpSession.select(other.id)},{passive:false});label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvpSession.select(other.id)}};r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,pet,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:other.profile.level};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
+    for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i%2?1:-1)*[78,135,195,250][Math.floor(i/2)],14,125+Math.floor(i/2)*40);d.rotation.set(0,0,0);drones.add(d)}
    }
-   r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=40;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=true;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
+   r.hasPet=other.profile.explorerDrone;r.formation=other.profile.droneFormation;r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=other.profile.level;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=true;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
+   if(other.id===pvpSession?.opponentId)registerExplorerThreat(r);
    r.label.querySelector('span').textContent=other.name+' #'+other.id.slice(-6);r.label.querySelector('small').textContent=SHIP_TYPES[other.profile.shipId].name+(other.duelId?' · En duelo':'');r.label.querySelector('i').style.width=(100*other.hp/r.maxHp)+'%';syncRemoteVisual(r);
   }
  },
