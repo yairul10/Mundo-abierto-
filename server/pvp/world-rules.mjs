@@ -21,8 +21,6 @@ export function advance(s,now){
  for(const d of [...s.duels]){
   const a=s.players.find(p=>p.id===d.a),b=s.players.find(p=>p.id===d.b);
   if(!a?.connected||!b?.connected){endDuel(s,d,a?.connected?a.id:b?.connected?b.id:null,'disconnect',now);continue}
-  if(safe(a)||safe(b)){endDuel(s,d,null,'safe_zone',now);continue}
-  if(now>=d.expiresAt){endDuel(s,d,null,'timeout',now);continue}
   if(now<d.startsAt)continue;
   const combat={status:'active',players:[a,b],bullets:d.bullets,simTime:Math.max(d.startsAt,d.simTime)};
   stepCombat(combat,now);d.bullets=combat.bullets;d.simTime=combat.simTime;
@@ -33,7 +31,6 @@ export function invite(s,p,target,now){
  const other=s.players.find(x=>x.id===target&&x.connected);
  if(!other||other===p)return 'invalid_target';
  if(p.duelId||other.duelId)return 'busy';
- if(safe(p)||safe(other))return 'safe_zone';
  if(distance(p,other)>1200)return 'too_far';
  if(now-(p.lastInvite||0)<5000)return 'invite_cooldown';
  if(s.invites.some(i=>[i.from,i.to].includes(p.id)||[i.from,i.to].includes(other.id)))return 'pending_invite';
@@ -44,12 +41,12 @@ export function reply(s,p,id,accept,now){
  s.invites=s.invites.filter(x=>x.id!==id);if(!accept)return null;
  const a=s.players.find(x=>x.id===i.from&&x.connected);
  if(!a||a.duelId||p.duelId)return 'busy';
- if(safe(a)||safe(p))return 'safe_zone';if(distance(a,p)>1200)return 'too_far';
- reset(a);reset(p);const d={id:crypto.randomUUID(),a:a.id,b:p.id,startsAt:now+3000,expiresAt:now+183000,simTime:now+3000,bullets:[]};a.duelId=p.duelId=d.id;s.duels.push(d);s.invites=s.invites.filter(x=>![a.id,p.id].includes(x.from)&&![a.id,p.id].includes(x.to));return null;
+ if(distance(a,p)>1200)return 'too_far';
+ reset(a);reset(p);const d={id:crypto.randomUUID(),a:a.id,b:p.id,startsAt:now+3000,simTime:now+3000,bullets:[]};a.duelId=p.duelId=d.id;s.duels.push(d);s.invites=s.invites.filter(x=>![a.id,p.id].includes(x.from)&&![a.id,p.id].includes(x.to));return null;
 }
-export function attack(s,p,m,now){const d=duelFor(s,p);if(!d||now<d.startsAt||safe(p))return null;const pair=[s.players.find(x=>x.id===d.a),s.players.find(x=>x.id===d.b)];if(pair.some(x=>!x?.connected||safe(x)))return null;
+export function attack(s,p,m,now){const d=duelFor(s,p);if(!d||now<d.startsAt)return null;const pair=[s.players.find(x=>x.id===d.a),s.players.find(x=>x.id===d.b)];if(pair.some(x=>!x?.connected))return null;
  // El servidor decide los críticos; las estadísticas del cliente se ignoran.
  const clean={...m,shots:Array.isArray(m.shots)?m.shots.map(x=>({...x,crit:Math.random()<.15})):null};
  const combat={players:pair,bullets:d.bullets};const bullets=volley(combat,p,clean,now);d.bullets=combat.bullets;return bullets;
 }
-export function useAbility(s,p,now){const d=duelFor(s,p);return !!d&&now>=d.startsAt&&!safe(p)&&ability(p,now)}
+export function useAbility(s,p,now){const d=duelFor(s,p);return !!d&&now>=d.startsAt&&ability(p,now)}

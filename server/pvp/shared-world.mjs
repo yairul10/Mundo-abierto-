@@ -42,7 +42,6 @@ export class SharedWorld extends DurableObject {
    const dt=Math.max(0,Math.min(.15,(now-p.lastInput)/1000));p.lastInput=now;p.seq=m.seq;p.firing=!!m.firing;
    if(Array.isArray(m.aim)&&m.aim.length===2&&m.aim.every(Number.isFinite))p.aim=[Math.max(-1000,Math.min(1000,m.aim[0])),Math.max(-1.15,Math.min(1.15,m.aim[1]))];
    p.pos=p.pos.map((v,i)=>v+m.move[i]*p.profile.speed*dt);const r=Math.hypot(...p.pos);if(r>WORLD.radius)p.pos=p.pos.map(v=>v*WORLD.radius/r);
-   if(safe(p)&&p.duelId){const d=duelFor(s,p);if(d)endDuel(s,d,null,'safe_zone',now)}
   }else if(m.type==='invite')error=invite(s,p,m.target,now);
   else if(m.type==='reply')error=reply(s,p,m.id,m.accept===true,now);
   else if(m.type==='ship'){

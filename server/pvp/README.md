@@ -1,6 +1,6 @@
 # Mapa PvP compartido · Mundo Abierto
 
-Contenido v220, Worker 0.3.0. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
+Contenido v221, Worker 0.3.1. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
 
 ## Acceso y reglas
 
@@ -10,11 +10,11 @@ Todos entran al mismo objeto `ROOMS.getByName('shared-cemetery-v1')`. Capacidad 
 
 Sin cuentas ni Google. El cliente genera una clave aleatoria privada de 256 bits y la guarda en localStorage. El servidor deriva un ID público estable de 96 bits mediante SHA-256 y emite un ticket temporal diferente para cada conexión. El apodo es editable y el sufijo del ID distingue nombres iguales. El secreto no aparece en snapshots ni URLs. Borrar datos o desinstalar genera otro invitado; web y APK tienen almacenes separados. El servidor no mantiene una cuenta recuperable.
 
-Selecciona un piloto desde «Pilotos / nave» o toca su nave. Fuera de la base y a menos de 1200 m se puede pedir duelo; expira en 20 segundos, puede rechazarse y no afecta a espectadores. Al aceptar: vida/energía completas, cuenta de tres segundos y pelea en el mismo sitio. Máximo tres minutos. Solo los dos participantes pueden dañarse. Un piloto no puede participar en dos duelos; varios pares sí pueden combatir a la vez. Entrar a la base cancela el duelo. Desconectarse o rendirse lo termina. El vencido por destrucción reaparece en la base, el ganador permanece donde está; ambos se restauran y quedan protegidos.
+Toca la nave de otro jugador o su nombre, a cualquier lado de la pantalla; aparece una tarjeta pequeña con «Pedir duelo». No hay lista de selección de pilotos. En la base también se pueden pedir y aceptar duelos, a menos de 1200 m; la invitación expira en 20 segundos, puede rechazarse y no afecta a espectadores. Al aceptar: vida/energía completas, cuenta de tres segundos y pelea en el mismo sitio. Sin límite de tiempo: continúa hasta la destrucción de una nave, rendición o desconexión. Solo los dos participantes pueden dañarse, incluso dentro de la base; no pueden refugiarse en una zona segura durante el duelo. Un piloto no puede participar en dos duelos; varios pares sí pueden combatir a la vez. Desconectarse o rendirse lo termina. El vencido por destrucción reaparece en la base, el ganador permanece donde está; ambos se restauran y quedan protegidos.
 
 ## Equipamiento de prueba
 
-Las seis naves se pueden escoger en la base. Perfiles fijos de nivel 40 calculados por el servidor sobre casco 490, ataque 88, defensa 44 y velocidad 220; conservan los multiplicadores de cada nave. Energía 295, dos drones y tres misiles por salva, sin robot, explorador, formaciones ni especializaciones. Las habilidades conservan sus efectos de clase. No se importan estadísticas editables del guardado. Sin créditos, XP, botín, copas ni pérdidas. Nunca se escriben naves, mejoras, vida ni resultados PvP en la partida individual.
+El botón «Equipar» permite elegir apodo y nave en la base; el menú se cierra al recibir o aceptar una invitación. Las seis naves se pueden escoger en la base. Perfiles fijos de nivel 40 calculados por el servidor sobre casco 490, ataque 88, defensa 44 y velocidad 220; conservan los multiplicadores de cada nave. Energía 295, dos drones y tres misiles por salva, sin robot, explorador, formaciones ni especializaciones. Las habilidades conservan sus efectos de clase. No se importan estadísticas editables del guardado. Sin créditos, XP, botín, copas ni pérdidas. Nunca se escriben naves, mejoras, vida ni resultados PvP en la partida individual.
 
 ## Implementación
 
@@ -38,4 +38,4 @@ Se conservan los exports/bindings ArenaRoom y ArenaLobby para mantener los names
 
 Desde la raíz: `node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs`.
 
-Desde esta carpeta: `npm ci && npm test`. Integración real con Miniflare: invitados, tres conexiones, identidad estable, rutas antiguas retiradas, perfiles del servidor, movimiento, consentimiento, cuenta regresiva, impactos, espectadores, cambio de nave en base y desconexión. La prueba web de desarrollo verifica dos clientes Three.js, selección de nave, vuelo, invitación, duelo, rendición y guardado offline intacto. Una prueba entre teléfonos reales sigue siendo necesaria para valorar latencia y controles de cada equipo.
+Desde esta carpeta: `npm ci && npm test`. Integración real con Miniflare: invitados, tres conexiones, identidad estable, rutas antiguas retiradas, perfiles del servidor, movimiento, consentimiento, cuenta regresiva, impactos, espectadores, cambio de nave en base y desconexión. La prueba web de desarrollo verifica dos clientes Three.js, selección de nave, toques a izquierda y derecha, petición manteniendo el joystick, rechazo, aceptación, cuenta de tres segundos, disparos y habilidades dentro de la base, muerte/reaparición y guardado offline intacto. Una prueba entre teléfonos reales sigue siendo necesaria para valorar latencia y controles de cada equipo.

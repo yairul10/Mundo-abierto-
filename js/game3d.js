@@ -6,7 +6,7 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=212';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,testPilot,startSharedSession} from './shared-session.js?v=220';
+import {sharedRequested,testPilot,startSharedSession} from './shared-session.js?v=221';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=218';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -2502,9 +2502,9 @@ function skill(){if(PVP_MODE&&!pvpSession?.canFight)return;
 }
 // Protección alrededor de la estación del sector activo.
 const SAFE_ZONE_RADIUS=760;
-function inSafeZone(position){if(PVP_MODE)return position.length()<=650||!pvpSession?.canFight;return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
+function inSafeZone(position){if(PVP_MODE)return !pvpSession?.canFight;return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
 let lastZoneLabel='',zoneToastTimer=null;
-function updateZone(){if(PVP_MODE){$('targetInfo').textContent=playerMesh.position.length()<=650?'BASE PvP · Zona segura':pvpSession?.canFight?'DUELO · Solo tu rival puede dañarte':'MAPA PvP · Protegido';return inSafeZone(playerMesh.position)}
+function updateZone(){if(PVP_MODE){$('targetInfo').textContent=pvpSession?.canFight?'DUELO · Sin zona segura entre ustedes':pvpSession?.opponentId?'DUELO · Cuenta regresiva':playerMesh.position.length()<=650?'BASE PvP · Protegido':'MAPA PvP · Protegido';return inSafeZone(playerMesh.position)}
  const safe=inSafeZone(playerMesh.position);
  const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='graveyard'?'CEMENTERIO DE NAVES|Sector de nivel 40+':activeSector==='ember'?'ASCUAS|Sector de nivel 30+':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
@@ -3201,7 +3201,7 @@ if(PVP_MODE){
  function clearFight(){resetDockControls();clearCombatShots();lockedEnemy=null;fireCd=skillCd=classAbilityTime=0;}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
  for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel','formationBtn'])$(id).classList.add('hidden');
- $('hint').textContent='PvP · Toca una nave o elige un piloto para pedir duelo · Base: zona segura';$('stationDistance').textContent='Mapa PvP';
+ $('hint').textContent='PvP · Toca una nave o su nombre para pedir duelo';$('stationDistance').textContent='Mapa PvP';
  pvpSession=startSharedSession({keepArena,pause:clearFight,clearFight,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
   for(const r of remotes.values()){
@@ -3219,7 +3219,7 @@ if(PVP_MODE){
   if(force){playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
   else if(playerMesh.position.distanceTo(predicted)>150)playerMesh.position.copy(predicted);else playerMesh.position.lerp(predicted,.18);
   const ids=new Set(others.map(p=>p.id));for(const [id,r]of remotes)if(!ids.has(id)){scene.remove(r.mesh,r.drones);r.label.remove();enemies.splice(enemies.indexOf(r),1);remotes.delete(id)}
-  for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones);r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:40};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
+  for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones);label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>pvpSession.select(other.id);label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();pvpSession.select(other.id)},{passive:false});label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvpSession.select(other.id)}};r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:40};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
     for(let i=0;i<2;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i?1:-1)*78,14,125);d.rotation.set(0,0,0);drones.add(d)}
    }
    r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=40;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=true;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
@@ -3232,6 +3232,24 @@ if(PVP_MODE){
   const shot={pvpRemote:true,pvpSent:true,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
  }},
  });
- let tapStart=null;lookZone.addEventListener('pointerdown',e=>tapStart={x:e.clientX,y:e.clientY});lookZone.addEventListener('pointerup',e=>{if(!tapStart||Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)>15)return;tapStart=null;let selected=null,best=65;for(const r of remotes.values()){const p=r.mesh.position.clone().project(camera);if(p.z>1)continue;const d=Math.hypot((p.x+1)*innerWidth/2-e.clientX,(1-p.y)*innerHeight/2-e.clientY);if(d<best){best=d;selected=r.playerId}}if(selected)pvpSession.select(selected)});
+ // Se puede tocar una nave en ambos lados de la pantalla, sin capturar el joystick.
+ const taps=new Map(),picker=new THREE.Raycaster();
+ const ui='button,input,select,textarea,a,#worldPanel,#worldTarget,#worldInvite,.world-nameplate,#joystick,#hud,#radarWidget,#zoomControls,#combatControls';
+ document.addEventListener('pointerdown',e=>{if(e.target.closest?.(ui))return;taps.set(e.pointerId,{x:e.clientX,y:e.clientY,moved:false})},true);
+ document.addEventListener('pointermove',e=>{const t=taps.get(e.pointerId);if(t&&Math.hypot(e.clientX-t.x,e.clientY-t.y)>15)t.moved=true},true);
+ document.addEventListener('pointercancel',e=>taps.delete(e.pointerId),true);
+ document.addEventListener('pointerup',e=>{
+  const tap=taps.get(e.pointerId);taps.delete(e.pointerId);if(!tap||tap.moved||Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>15)return;
+  picker.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);
+  let selected=null,best=65,near=Infinity;
+  for(const r of remotes.values()){
+   const hit=picker.intersectObject(r.mesh,true)[0];if(hit&&hit.distance<near){near=hit.distance;selected=r.playerId}
+  }
+  if(!selected)for(const r of remotes.values()){
+   const p=r.mesh.position.clone().project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));if(p.z>1||view<=0)continue;
+   const d=Math.hypot((p.x+1)*innerWidth/2-e.clientX,(1-p.y)*innerHeight/2-e.clientY);if(d<best){best=d;selected=r.playerId}
+  }
+  if(selected)pvpSession.select(selected);else pvpSession.clearSelection();
+ },true);
  keepArena();
 }
