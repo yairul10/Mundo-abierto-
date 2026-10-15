@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {recordAction,journalEntries} from '../js/activity-journal.js';
+import {createHangarEditor,serializeHangarEditor} from '../js/pvp-hangar.js';
+const normal={gold:1},qa={gold:99999};for(let i=0;i<205;i++)recordAction(normal,'combat','Enemigo '+i,{credits:10},1000+i);
+assert.equal(journalEntries(normal).length,200);assert.equal(normal.activityJournal[0].text,'Enemigo 5');assert.equal(normal.activityJournal.at(-1).text,'Enemigo 204');assert.equal(journalEntries(qa).length,0);
+const roundtrip=JSON.parse(JSON.stringify(normal));assert.deepEqual(journalEntries(roundtrip),journalEntries(normal));assert.equal(normal.gold,1);
+recordAction(qa,'qa','Créditos de prueba');assert.equal(journalEntries(normal).length,200);
+const original=structuredClone(normal),editor=createHangarEditor(normal);recordAction(editor,'commerce','Dron comprado');const saved=serializeHangarEditor(editor,normal);assert.deepEqual(normal,original);assert.equal(saved.activityJournal.length,200);assert.equal(saved.activityJournal.at(-1).text,'Dron comprado');assert.equal(saved.activityJournal[0].text,'Enemigo 6');
+assert.deepEqual(journalEntries({activityJournal:[null,{}, {text:'bad',at:'bad'}]}),[]);
+console.log('Journal: exact 200 cap, chronological retention, save/load, QA separation, immutable source and PvP hangar persistence passed.');

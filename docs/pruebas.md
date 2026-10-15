@@ -63,3 +63,9 @@ Las pruebas unitarias y la compilación no sustituyen la inspección gráfica ni
 - Sin conexión: la partida normal funciona; no se ofrece el servidor de prueba si no se puede comprobar su disponibilidad.
 
 Validación automática: `node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs`, `node server/pvp/test.mjs` y `node mobile/test-app/prepare-offline.mjs`.
+
+## v225 · Diario de actividad y Gran Titán
+
+El menú Nave, el hangar y el menú del mapa PvP permiten abrir el diario. Conserva las últimas 200 acciones por guardado, con fecha/hora local y filtros; registra enemigos destruidos y sus premios, misiones completadas, compras y mejoras, ensamblaje, ventas, reparaciones y ayudas QA. Las operaciones rechazadas no generan entradas. Guardar o volver a abrir el diario no duplica registros. Las compras desde el hangar PvP se guardan en el diario de la partida de origen. Las acciones anteriores a esta versión no se reconstruyen.
+
+Gran Titán: vida base 160.000 (antes 80.000); mantiene el 2 % por nivel desde 40 y el límite 105, con 368.000 de vida máxima. Las recompensas y el daño no cambian. Los guardados con vida anterior conservan su porcentaje mediante la migración existente.

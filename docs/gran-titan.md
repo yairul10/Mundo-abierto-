@@ -12,7 +12,7 @@ Ocho compuertas independientes: dos lanzadores de lanzas y dos de bombas por cos
 - Seis lanzas a 570 m/s: siete posibles trayectorias con una vía lateral libre que cambia por ráfaga; la trayectoria central siempre apunta a la posición de la nave al disparar. Colisión de segmentos para evitar atravesar al jugador entre fotogramas. Al impactar engancha la nave durante 3 s, con el cable, daño periódico e inmunidad posterior de 5 s compartidos con los Arponeros; permite seguir disparando.
 - Cuatro bombas por ataque, con esferas de aviso de radio 150 m, menos opacas y detonación a los 3,5 s; una bomba apunta directamente a la posición de la nave y otras tres rodean ese punto a 220 m; objetivos fijados al disparar, de modo que moverse permite escapar.
 - Refuerzos: una Catapulta, un Arponero y un Acechador tras 12 s de combate y cada 30 s después. Máximo seis vivos; reutiliza enemigos caídos.
-- Vida base 80.000; daño de lanza 320 y bomba 450. Aumentan un 2% por nivel desde 40 hasta 105; factor máximo 2,3.
+- Vida base 160.000; daño de lanza 320 y bomba 450. Aumentan un 2% por nivel desde 40 hasta 105; factor máximo 2,3.
 - Recompensa base 30.000 créditos, 45.000 XP y 40 cajas. Créditos y XP comparten el mismo factor; cajas constantes. A nivel 105: 69.000 créditos y 103.500 XP antes de potenciadores.
 - Reaparición a los tres minutos. Vida proporcional y enfriamiento se guardan en `granTitanState`. Proyectiles transitorios se eliminan al cambiar de sector o morir el jefe; no se duplican premios.
 
