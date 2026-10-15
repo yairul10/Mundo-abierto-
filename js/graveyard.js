@@ -204,7 +204,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  }
  function update(dt){
   immune=Math.max(0,immune-dt);for(const rig of rigs)rig.update(dt);
-  if(tether){if(tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else{const elapsed=Math.min(dt,tether.time);damage(50,elapsed);tether.time-=elapsed;if(tether.time<=1e-9)release();else tether.line.geometry.setFromPoints([tether.enemy.mesh.userData.harpoonRig?.cableOrigin()||tether.enemy.mesh.position,position()])}}
+  if(tether){if(tether.enemy.dead||!tether.enemy.mesh.visible||!canHit())release();else{const elapsed=Math.min(dt,tether.time);damage(50,elapsed);tether.time-=elapsed;if(tether.time<=1e-9)release();else tether.line.geometry.setFromPoints([tether.anchor?tether.enemy.mesh.localToWorld(tether.anchor.clone()):tether.enemy.mesh.userData.harpoonRig?.cableOrigin()||tether.enemy.mesh.position,position()])}}
   for(let i=pending.length-1;i>=0;i--){const p=pending[i];p.time-=dt;updateImpactMarker(p.marker,p.time+1.5);
    const rig=p.enemy.mesh.userData.catapultRig;if(rig){rigs.add(rig);rig.setCharge(Math.min(1,(1.4-p.time)/1.4))}
    const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=-Math.min(1.1,(1.4-p.time)*.8);
@@ -230,6 +230,13 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
  for(const p of projectiles){scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker)}projectiles.length=0;for(const e of effects)remove(e.mesh);effects.length=0;
  }
 
- return {fire,update,clear,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
+ function snag(enemy,start){
+  if(tether||immune>0||enemy.dead||!enemy.mesh.visible||!canHit())return false;
+  const origin=start?.clone()||enemy.mesh.position.clone();
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([origin,position()]),cableMaterial.clone());scene.add(line);
+  enemy.mesh.updateMatrixWorld(true);tether={enemy,line,time:3,anchor:enemy.mesh.worldToLocal(origin)};
+  notify('⚓ Lanza del Gran Titán · Inmovilizado 3 s · Puedes disparar');return true;
+ }
+ return {fire,update,clear,snag,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
 

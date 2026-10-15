@@ -25,3 +25,13 @@ combat.fire(enemy);combat.update(1.4);pos.x=500;combat.update(1.5);assert.equal(
 pos.x=0;combat.fire(enemy);hit=false;combat.update(1.4);assert.equal(objects.size,0,'safe zone cancels charging attack');
 console.log('Passed: paired placement/respawn, coordinated bomb, swept collision, 3s tether at 50/s, immunity, owner death, 300 blast/evasion, cleanup.');
 
+
+// Boss spears share the existing three-second tether and its anti-chain immunity.
+hit=true;combat.clear();total=0;
+const boss={dead:0,mesh:{visible:true,userData:{},position:new V(),updateMatrixWorld(){},worldToLocal:v=>v,localToWorld:v=>v}};
+assert(combat.snag(boss,new V(20,0,0)));assert(combat.blocked());
+assert(!combat.snag(boss,new V()),'multiple spears cannot stack tethers');
+combat.update(3);assert.equal(total,150);assert(!combat.blocked());
+assert(!combat.snag(boss,new V()),'boss respects existing immunity');
+combat.update(5);assert(combat.snag(boss,new V()));boss.dead=1;combat.update(.01);assert(!combat.blocked());
+combat.clear();assert.equal(objects.size,0,'boss cable disposed');
