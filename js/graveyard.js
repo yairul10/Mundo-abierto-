@@ -237,6 +237,6 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
   enemy.mesh.updateMatrixWorld(true);tether={enemy,line,time:3,anchor:enemy.mesh.worldToLocal(origin)};
   notify('⚓ Lanza del Gran Titán · Inmovilizado 3 s · Puedes disparar');return true;
  }
- return {fire,update,clear,snag,blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
+ return {fire,update,clear,snag,breakTether:()=>{if(!tether)return false;release();return true},blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }
 

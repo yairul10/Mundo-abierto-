@@ -1,3 +1,4 @@
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=217';
 import {attachAssembledEngines} from './assembled-engines.js?v=214';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=210';
@@ -6,7 +7,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=212';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {readTicket,startSession} from './pvp-session.js?v=171';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=217';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=218';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
@@ -1955,7 +1956,7 @@ const SHIP_ABILITIES={
  espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:25,energy:65},
  segadora:{name:'Furia de la Segadora',icon:'🔥',duration:5,cooldown:25,energy:65},
  bastion:{name:'Fortaleza de Bastión',icon:'🛡️',duration:6,cooldown:25,energy:55},
- centella:{name:'Sobrecarga de Centella',icon:'⚡',duration:5,cooldown:20,energy:40}
+ centella:{name:'Sobrecarga de Centella · rompe el arpón',icon:'⚡',duration:5,cooldown:20,energy:40}
 };
 const SPECIAL_UPGRADES={
  aurora:[['energy','Reactor eficiente','Regeneración de energía +4 % por nivel'],['overload','Sobrecarga avanzada','Duración +0,25 s por nivel'],['shield','Escudos recuperadores','Recupera 0,3 % del casco por segundo durante Sobrecarga']],
@@ -2103,7 +2104,7 @@ function activateClassAbility(){if(PVP_MODE&&!pvpSession?.active)return;
  if(classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
  const a=SHIP_ABILITIES[player.shipId];
  if(player.energy<a.energy){lootToast('🔋 Energía insuficiente: '+a.energy+' necesarios');return}
- player.energy-=a.energy;classAbilityTime=abilityDuration();if(pvpSession)pvpSession.ability();hud();
+ player.energy-=a.energy;if(player.shipId==='centella')scrapCombat.breakTether();classAbilityTime=abilityDuration();if(pvpSession)pvpSession.ability();hud();
  lootToast(a.icon+' '+a.name+' activada');
 }
 function classAbilityActive(id){return shipRole(player.shipId)===id&&classAbilityTime>0}
@@ -2278,14 +2279,7 @@ const EMBER_MISSIONS=[
  {title:'Cazador de Colosos',description:'Destruye 10 Colosos Portanaves en Ascuas',event:'carrier',goal:10,reward:600000,xp:200000}
 ];
 player.quests=player.quests&&typeof player.quests==='object'?player.quests:{};
-function loadCampaign(key,missions){
- const c=player.quests[key]&&typeof player.quests[key]==='object'?player.quests[key]:{};
- c.index=Math.max(0,Math.min(missions.length,Math.floor(Number(c.index)||0)));
- c.progress=Math.max(0,Math.floor(Number(c.progress)||0));c.docked=!!c.docked;c.edgeVisited=!!c.edgeVisited;
- player.quests[key]=c;return c;
-}
-const campaign=loadCampaign('aurora',MISSIONS),beltCampaign=loadCampaign('belt',BELT_MISSIONS),emberCampaign=loadCampaign('ember',EMBER_MISSIONS);
-let questCollapsed=true,questTrack=['ember','graveyard'].includes(player.sector)&&player.level>=30?'ember':player.sector==='belt'&&player.level>=10?'belt':'aurora';
+let questCollapsed=true;
 
 // Contratos largos: objetivos simultáneos, una misión activa y premio único.
 const LONG_MISSIONS=[
@@ -2300,117 +2294,37 @@ const LONG_MISSIONS=[
  const weights={granTitan:[100000,40000],catapult:[1600,1200],harpooner:[2400,1600],stalker:[2400,1600],scout:[200,25],raider:[400,50],sentinel:[800,100],destroyer:[1600,200],loot:[100,10]};
  return {...m,reward:m.objectives.reduce((n,o)=>n+o.goal*weights[o.event][0],0),xp:m.objectives.reduce((n,o)=>n+o.goal*weights[o.event][1],0)};
 });
-const longState=player.quests.contracts&&typeof player.quests.contracts==='object'?player.quests.contracts:{};
-if(longState.active?.startsWith('scouts-')||longState.completed?.some?.(id=>typeof id==='string'&&id.startsWith('scouts-'))){
- player.quests.legacyExplorerContracts={active:longState.active,progress:longState.progress,completed:longState.completed};
-}
-longState.completed=Array.isArray(longState.completed)?[...new Set(longState.completed.filter(id=>LONG_MISSIONS.some(m=>m.id===id)))]:[];
-longState.active=LONG_MISSIONS.some(m=>m.id===longState.active)&&!longState.completed.includes(longState.active)?longState.active:null;
-const savedContract=LONG_MISSIONS.find(m=>m.id===longState.active);
-longState.progress=savedContract?savedContract.objectives.map((o,i)=>Math.max(0,Math.min(o.goal,Math.floor(Number(longState.progress?.[i])||0)))):[];
-player.quests.contracts=longState;
-function longMissionsUnlocked(){return campaign.index>=MISSIONS.length&&beltCampaign.index>=BELT_MISSIONS.length}
-function acceptLongMission(id){
- const m=LONG_MISSIONS.find(m=>m.id===id);
- if(!longMissionsUnlocked()||longState.active||longState.completed.includes(id)||!m)return false;
- longState.active=id;longState.progress=m.objectives.map(()=>0);renderMission();save();return true;
-}
-function cancelLongMission(){
- if(!longState.active)return false;
- longState.active=null;longState.progress=[];renderMission();save();return true;
-}
-function longMissionEvent(type,sector){
- if(!longMissionsUnlocked())return;
- const m=LONG_MISSIONS.find(m=>m.id===longState.active);
- if(!m)return;
- m.objectives.forEach((o,i)=>{if(o.event===type&&(!o.sector||o.sector===sector))longState.progress[i]=Math.min(o.goal,longState.progress[i]+1)});
- if(m.objectives.every((o,i)=>longState.progress[i]>=o.goal)){
-  longState.completed.push(m.id);longState.active=null;longState.progress=[];
-  player.gold+=m.reward;gainXp(m.xp);
-  lootToast('🏆 '+m.title+' · +'+m.reward+' créditos · +'+m.xp+' XP');
- }
-}
-function renderLongMissions(){
- const list=$('longMissionList');if(!list)return;
- list.innerHTML=LONG_MISSIONS.map(m=>{
-  const done=longState.completed.includes(m.id),active=longState.active===m.id;
-  const objectives=m.objectives.map((o,i)=>'<small>'+o.label+': '+(done?o.goal:active?longState.progress[i]:0)+'/'+o.goal+'</small>').join('');
-  return '<div style="padding:10px 0;border-top:1px solid #ffffff30"><strong>'+m.title+'</strong>'+objectives+'<small>'+m.reward.toLocaleString('es')+' créditos + '+m.xp.toLocaleString('es')+' XP</small><button type="button" data-contract="'+m.id+'" '+(done||longState.active&&!active?'disabled':'')+'>'+(done?'Completada':active?'Cancelar':'Aceptar')+'</button></div>';
- }).join('');
- for(const button of list.querySelectorAll('[data-contract]'))button.onclick=()=>{if(longState.active===button.dataset.contract)cancelLongMission();else acceptLongMission(button.dataset.contract)};
-}
-
+const legacyMissions=[...MISSIONS.map((m,i)=>({...m,id:'aurora-'+i,level:1,legacySector:'aurora',legacyIndex:i,objectives:[{event:m.event,sector:'aurora',goal:m.goal,label:m.description}]})),
+ ...BELT_MISSIONS.map((m,i)=>({...m,id:'belt-'+i,level:10,legacySector:'belt',legacyIndex:i,objectives:[{event:m.event,sector:m.event==='portalNear'?'aurora':'belt',goal:m.goal,label:m.description}]})),
+ ...EMBER_MISSIONS.map((m,i)=>({...m,id:'ember-'+i,level:30,legacySector:'ember',legacyIndex:i,objectives:[{event:m.event,sector:'ember',goal:m.goal,label:m.description}]}))];
+const missionCatalog=[...legacyMissions,...LONG_MISSIONS.map(m=>({...m,id:'contract-'+m.id,legacyContract:m.id,level:m.id==='mixed-1'||m.id==='mixed-2'?8:m.id.startsWith('mixed-')?15:40})),...CEMETERY_MISSIONS];
+const missionBoard=createMissionBoard(missionCatalog,player.quests);
 function renderMission(){
  const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
- el.classList.toggle('hidden',questCollapsed);
- toggle.textContent='📋';toggle.setAttribute('aria-expanded',String(!questCollapsed));toggle.setAttribute('aria-label',questCollapsed?'Abrir misiones':'Cerrar misiones');
- const contractsUnlocked=longMissionsUnlocked(),unlocked=contractsUnlocked&&!(questTrack==='ember'&&emberCampaign.index<EMBER_MISSIONS.length);
- $('longMissionList')?.classList.toggle('hidden',!unlocked);
- for(const id of ['questObjective','questReward'])$(id)?.classList.toggle('hidden',unlocked);
- $('questProgressBar')?.parentElement?.classList.toggle('hidden',unlocked);
- for(const button of document.querySelectorAll('[data-mission-track]')){
-  const track=button.dataset.missionTrack;
-  button.hidden=track==='contracts'?!contractsUnlocked:contractsUnlocked&&track!=='ember'||track==='ember'&&emberCampaign.index>=EMBER_MISSIONS.length;
-  button.disabled=track==='belt'&&player.level<10||track==='ember'&&player.level<30;
-  button.classList.toggle('selected',button.dataset.missionTrack===questTrack);
-  if(button.dataset.missionTrack==='belt')button.textContent=player.level>=10?'Nivel 10+':'🔒 Nivel 10';
-  if(track==='ember')button.textContent=player.level>=30?'Ascuas':'🔒 Nivel 30';
- }
- if(unlocked){$('questTitle').textContent='Contratos de combate';renderLongMissions();return}
- const missions=questTrack==='ember'?EMBER_MISSIONS:questTrack==='belt'?BELT_MISSIONS:MISSIONS,c=questTrack==='ember'?emberCampaign:questTrack==='belt'?beltCampaign:campaign;
- if(c.index>=missions.length){
-  $('questTitle').textContent='🏆 '+(questTrack==='ember'?'Ascuas':questTrack==='belt'?'Cinturón':'Aurora')+' completado';
-  $('questObjective').textContent='Todas las misiones de esta campaña están completas.';
-  $('questProgressBar').style.width='100%';$('questReward').textContent='¡Buen trabajo!';return;
- }
- const m=missions[c.index];
- $('questTitle').textContent='🎯 '+(c.index+1)+'/'+missions.length+' · '+m.title;
- $('questObjective').textContent=m.description+(m.event==='baseUpgrade'?' · '+(c.docked?'Estación visitada':'Visita la estación'):'')+(m.event==='edgeReturn'&&c.edgeVisited?' · Borde visitado: regresa a la base':'');
- $('questProgressBar').style.width=(100*Math.min(m.goal,c.progress)/m.goal)+'%';
- $('questReward').textContent=Math.min(c.progress,m.goal)+'/'+m.goal+' · Premio: '+m.reward.toLocaleString('es')+' créditos + '+m.xp+' XP';
+ el.classList.toggle('hidden',questCollapsed);toggle.textContent='📋';toggle.setAttribute('aria-expanded',String(!questCollapsed));
+ if(questCollapsed)return;
+ const missions=missionBoard.remaining(player.level),next=missionBoard.nextLevel(player.level);
+ $('questTitle').textContent='Misiones · '+missions.length+' disponibles';
+ $('missionSummary').textContent=Number.isFinite(next)?'Se desbloquean más al nivel '+next:'Progreso automático · Recompensas al completar';
+ const list=$('missionList'),stamp=JSON.stringify([player.level,missions.map(m=>[m.id,missionBoard.state.progress[m.id]])]);if(list.dataset.stamp===stamp)return;list.dataset.stamp=stamp;const scroll=list.scrollTop;
+ list.innerHTML=missions.length?missions.map(m=>{
+  const progress=missionBoard.state.progress[m.id],total=m.objectives.reduce((n,o)=>n+o.goal,0),done=progress.reduce((n,v)=>n+v,0);
+  return '<article class="mission-card" data-mission="'+m.id+'"><strong>'+m.title+'</strong><small>Nivel '+m.level+'</small>'+m.objectives.map((o,i)=>'<small>'+o.label+' · '+progress[i]+'/'+o.goal+'</small>').join('')+'<div class="quest-progress"><i style="width:'+100*done/total+'%"></i></div><small class="mission-prize">'+m.reward.toLocaleString('es')+' créditos · '+m.xp.toLocaleString('es')+' XP</small></article>';
+ }).join(''):'<p>No quedan misiones disponibles para tu nivel.</p>';list.scrollTop=scroll;
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
-for(const button of document.querySelectorAll('[data-mission-track]'))button.onclick=()=>{
- if(button.dataset.missionTrack==='belt'&&player.level<10||button.dataset.missionTrack==='ember'&&player.level<30)return;
- questTrack=button.dataset.missionTrack;renderMission();
-};
 function missionEvent(type,context={}){
  const sector=context.sector||player.sector||'aurora';
- longMissionEvent(type,sector);
- for(const [key,c,missions] of [['aurora',campaign,MISSIONS],['belt',beltCampaign,BELT_MISSIONS],['ember',emberCampaign,EMBER_MISSIONS]]){
-  if(key==='belt'&&player.level<10||key==='ember'&&player.level<30)continue;
-  const m=missions[c.index];if(!m)continue;
-  const matchingSector=key===sector;
-  if(m.event==='travelEmber'&&sector==='ember')c.progress=1;
-  else if(m.event==='drone')c.progress=Math.min(m.goal,ownedDrones());
-  else if(m.event==='missileUpgrade')c.progress=upgradeLevel('missiles')>=1?1:0;
-  else if(m.event==='baseUpgrade'&&matchingSector){
-   if(type==='dock'){c.docked=true;c.progress=Math.max(1,c.progress)}
-   if(type==='upgrade'&&c.docked)c.progress=2;
-  }else if(m.event==='edgeReturn'&&matchingSector){
-   if(type==='edgeNear'){c.edgeVisited=true;c.progress=1}
-   if(type==='baseReturn'&&c.edgeVisited)c.progress=2;
-  }else if(m.event===type&&(matchingSector||type==='portalNear'&&sector==='aurora'))c.progress++;
-  if(c.progress>=m.goal){
-   // Avanzar antes de XP: desbloqueos y refrescos no pueden duplicar el premio.
-   c.index++;c.progress=0;c.docked=false;c.edgeVisited=false;
-   player.gold+=m.reward;gainXp(m.xp);
-   lootToast('🏆 '+m.title+' completada · +'+m.reward+' créditos · +'+m.xp+' XP');
-  }
- }
- // Validar compras previas también al desbloquear la siguiente misión.
- const inventorySatisfied=missions=>{const m=missions[(missions===MISSIONS?campaign:beltCampaign).index];return m&&(m.event==='drone'&&ownedDrones()>=m.goal||m.event==='missileUpgrade'&&upgradeLevel('missiles')>=1)};
- if(inventorySatisfied(MISSIONS)||(player.level>=10&&inventorySatisfied(BELT_MISSIONS))){missionEvent('inventory');return}
+ const awards=missionBoard.event(type,sector,player.level,{drones:ownedDrones(),missiles:upgradeLevel('missiles')});
+ for(const m of awards){player.gold+=m.reward;gainXp(m.xp);lootToast('🏆 '+m.title+' · +'+m.reward.toLocaleString('es')+' créditos · +'+m.xp+' XP')}
  renderMission();save();
 }
 let missionExploreElapsed=0;
 function updateExplorationMissions(dt){
- if(activeSector==='graveyard')return;
  missionExploreElapsed+=dt;if(missionExploreElapsed<.5)return;missionExploreElapsed=0;
- const key=activeSector,c=key==='ember'?emberCampaign:key==='belt'?beltCampaign:campaign,missions=key==='ember'?EMBER_MISSIONS:key==='belt'?BELT_MISSIONS:MISSIONS;
- if(missions[c.index]?.event!=='edgeReturn')return;
+ if(!missionBoard.remaining(player.level).some(m=>m.objectives.some(o=>o.event==='edgeReturn'&&o.sector===activeSector)))return;
  if(currentSector().radius-sectorDistance()<=200)missionEvent('edgeNear',{sector:activeSector});
- else if(c.edgeVisited&&inSafeZone(playerMesh.position))missionEvent('baseReturn',{sector:activeSector});
+ else if(inSafeZone(playerMesh.position))missionEvent('baseReturn',{sector:activeSector});
 }
 renderMission();
 function renderInventory(){
@@ -2856,6 +2770,7 @@ function resetSectorPopulation(){
 // Aplicar también al cargar una partida guardada, antes de empezar el vuelo.
 resetSectorPopulation();
 missionEvent('inventory');
+if(activeSector==='graveyard')missionEvent('travelGraveyard',{sector:'graveyard'});
 if(activeSector==='belt'&&player.level>=10){
  missionEvent('portalNear',{sector:'aurora'});
  missionEvent('travelBelt',{sector:'belt'});
@@ -3027,8 +2942,8 @@ function switchSector(route){
  playerMesh.position.copy(route.arrival);
  resetSectorPopulation();clearCombatShots();
  for(const d of drops)scene.remove(d.mesh);drops.length=0;
- questTrack=['ember','graveyard'].includes(activeSector)?'ember':activeSector==='belt'?'belt':'aurora';
- if(activeSector!=='graveyard')missionEvent(activeSector==='belt'?'travelBelt':activeSector==='ember'?'travelEmber':'travelAurora',{sector:activeSector});
+ renderMission();
+ missionEvent(activeSector==='graveyard'?'travelGraveyard':activeSector==='belt'?'travelBelt':activeSector==='ember'?'travelEmber':'travelAurora',{sector:activeSector});
  portalCountdown=0;selectedPortalId=null;portalCharge.visible=false;portalChargeMaterial.opacity=0;save();lootToast('🌌 '+currentSectorName());
 }
 function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display='none';return}
@@ -3040,7 +2955,7 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  secondaryPortal.visible=routes.length>1;
  if(routes[1]){secondaryPortal.position.copy(routes[1].pos);secondaryPortal.quaternion.copy(routes[1].rotation);const label=secondaryPortal.getObjectByName('stoneDestinationLabel');if(label&&label.userData.destination!==routes[1].to){label.userData.destination=routes[1].to;label.userData.drawDestination(routes[1].to)}}
  const distance=playerMesh.position.distanceTo(route.pos),near=distance<=350,unlocked=player.level>=route.level;
- if(activeSector==='aurora'&&unlocked&&near&&BELT_MISSIONS[beltCampaign.index]?.event==='portalNear')missionEvent('portalNear',{sector:'aurora'});
+ if(activeSector==='aurora'&&unlocked&&near)missionEvent('portalNear',{sector:'aurora'});
  const charging=distance<=100&&unlocked&&!docked&&!landing;
  if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector(route);portalMessage.style.display='none';return}}else portalCountdown=0;
  const pulse=charging?portalChargePulse(portalCountdown):0;

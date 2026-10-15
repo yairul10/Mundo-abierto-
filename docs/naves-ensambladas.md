@@ -6,7 +6,7 @@ La flota conserva Aurora, Titán y Espectro. Desde nivel 40 se añaden tres nave
 | --- | ---: | ---: | ---: | ---: | --- |
 | Segadora | ×1,10 | ×1,85 | ×0,95 | ×1,05 | Furia: ×1,7 daño principal, ×1,2 daño recibido durante 5 s; 65 energía |
 | Bastión | ×2,50 | ×1,00 | ×2,00 | ×0,85 | Fortaleza: −80 % daño durante 6 s; 55 energía |
-| Centella | ×0,95 | ×1,10 | ×0,85 | ×1,85 | Sobrecarga: +40 % cadencia durante 5 s; 40 energía |
+| Centella | ×0,95 | ×1,10 | ×0,85 | ×1,85 | Sobrecarga: +40 % cadencia durante 5 s; rompe el arpón al activarse; 40 energía |
 
 Multiplicadores sobre las estadísticas base del jugador, incluyendo sus mejoras y nivel. Se conserva el porcentaje de casco al cambiar; los bonos anteriores se reemplazan, no se acumulan. Segadora y Bastión reutilizan las especializaciones de Espectro y Titán; Centella reutiliza las de Aurora, con niveles de mejora propios para cada nave.
 
@@ -25,3 +25,5 @@ Los modelos completos aportados por el usuario están centrados, normalizados y 
 El APK incluye los tres modelos; el modo individual funciona offline. El servidor PvP reconoce las seis identidades y valida las habilidades según su arquetipo. Las compras y el ensamblaje permanecen en el guardado individual.
 
 Pruebas: `node --test tests/*.test.mjs server/pvp/combat.test.mjs`, integración HTTP/WebSocket del servidor y carga de los modelos en navegador con WebGL.
+
+Desde v218, Centella libera de la inmovilización tanto del Arponero como del Gran Titán al activar Sobrecarga. Requiere energía suficiente y que la habilidad pueda activarse. Comparte los 5 s de inmunidad posterior del arpón; no añade invulnerabilidad al daño. Bastión y Segadora conservan sus efectos.
