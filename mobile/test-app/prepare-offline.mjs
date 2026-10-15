@@ -15,8 +15,7 @@ html=html.replace("{imports:{three:threeCdn+'/build/three.module.js'}}", "{impor
 html=html.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://mundo-abierto-pvp.jairog940.workers.dev wss://mundo-abierto-pvp.jairog940.workers.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
 writeFileSync(join(out,'index.html'),html);
 let pvp=readFileSync(join(root,'pvp.html'),'utf8');
-if(!cdn.test(pvp))throw new Error('Revisar arranque offline de PvP');
-pvp=pvp.replace(cdn,"window.MUNDO_OFFLINE=true;\nconst threeCdn=new URL('./vendor/three',location.href).href;");
+if(!pvp.includes('index.html?pvp=1'))throw new Error('Revisar acceso al mapa PvP compartido');
 pvp=pvp.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://mundo-abierto-pvp.jairog940.workers.dev wss://mundo-abierto-pvp.jairog940.workers.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
 writeFileSync(join(out,'pvp.html'),pvp);
 const gamePath=join(out,'js/game3d.js');

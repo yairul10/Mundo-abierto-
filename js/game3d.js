@@ -6,12 +6,11 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=212';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {readTicket,startSession} from './pvp-session.js?v=171';
+import {sharedRequested,testPilot,startSharedSession} from './shared-session.js?v=220';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=218';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
-const PVP_TICKET=readTicket(),PVP_MODE=!!PVP_TICKET;let pvpSession=null;
-if(new URLSearchParams(location.search).get('pvp')==='1'&&!PVP_TICKET){location.replace('pvp.html');await new Promise(()=>{})}
+const PVP_MODE=sharedRequested();let pvpSession=null;
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
 const THREE=window.THREE;if(!THREE)throw new Error('Three.js no disponible');
 const $=id=>document.getElementById(id), canvas=$('world');
@@ -26,7 +25,7 @@ function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStor
 function safeStorageSet(key,value){if(PVP_MODE)return true;try{localStorage.setItem(key,value);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
-const QA_FLAG='mundoAbierto.qaActive';const qaActive=safeStorageGet(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...stored};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
+const QA_FLAG='mundoAbierto.qaActive';const qaActive=safeStorageGet(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?testPilot():stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Recuperación móvil ante pérdida del contexto WebGL. Guardar antes de
 // recargar evita perder posición, inventario o mejoras.
@@ -1845,6 +1844,7 @@ function updateTargetLock(){
  let candidate=null,best=Infinity,screen=null;
  const forwardView=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
  for(const e of enemies){
+  if(PVP_MODE&&pvpSession?.opponentId&&e.playerId!==pvpSession.opponentId)continue;
   if(e.dead||!e.mesh.visible)continue;
   const to=e.mesh.position.clone().sub(camera.position);
   const distance=e.mesh.position.distanceTo(playerMesh.position);
@@ -1857,6 +1857,7 @@ function updateTargetLock(){
  lockedEnemy=candidate;
  if(candidate&&screen&&!document.body.classList.contains('inventory-open')){
   lockFrame.classList.remove('hidden');
+  lockFrame.classList.toggle('pvp-neutral',PVP_MODE&&candidate.playerId!==pvpSession?.opponentId);
   lockFrame.style.left=((screen.x+1)*50)+'%';
   lockFrame.style.top=((1-screen.y)*50)+'%';
   const info=candidate.pvpRemote?[candidate.pilotName,candidate.pilotLevel]:{scout:['Explorador',1],raider:['Asaltante',3],sentinel:['Guardián',5],destroyer:['Destructor',8],devastator:['Devastador',30],catapult:['Catapulta de Chatarra',40],stalker:['Acechador de Chatarra',40],harpooner:['Arponero',40],granTitan:['Gran Titán',40],carrier:['Coloso Portanaves',30]}[candidate.type]||['Enemigo',1];
@@ -1865,7 +1866,7 @@ function updateTargetLock(){
   $('targetHpFill').style.width=(100*Math.max(0,Math.min(1,candidate.hp/candidate.maxHp)))+'%';
  }else lockFrame.classList.add('hidden');
 }
-function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.active)return;
+function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
  if(player.hp<=0||recoveryPending||fireCd>0)return;
  lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  updateTargetLock();markExplorerAttack(lockedEnemy);
@@ -2109,7 +2110,7 @@ function abilityDuration(){
  const a=SHIP_ABILITIES[player.shipId],key=shipRole(player.shipId)==='aurora'?'overload':shipRole(player.shipId)==='titan'?'fortress':'fury';
  return a.duration+specialLevel(key)*(shipRole(player.shipId)==='titan'?.3:.25);
 }
-function activateClassAbility(){if(PVP_MODE&&!pvpSession?.active)return;
+function activateClassAbility(){if(PVP_MODE&&!pvpSession?.canFight)return;
  if(classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
  const a=SHIP_ABILITIES[player.shipId];
  if(player.energy<a.energy){lootToast('🔋 Energía insuficiente: '+a.energy+' necesarios');return}
@@ -2322,7 +2323,7 @@ function renderMission(){
  }).join(''):'<p>No quedan misiones disponibles para tu nivel.</p>';list.scrollTop=scroll;
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
-function missionEvent(type,context={}){
+function missionEvent(type,context={}){if(PVP_MODE)return;
  const sector=context.sector||player.sector||'aurora';
  const awards=missionBoard.event(type,sector,player.level,{drones:ownedDrones(),missiles:upgradeLevel('missiles')});
  for(const m of awards){player.gold+=m.reward;gainXp(m.xp);lootToast('🏆 '+m.title+' · +'+m.reward.toLocaleString('es')+' créditos · +'+m.xp+' XP')}
@@ -2460,7 +2461,7 @@ function removeMissileEffects(p){
 // Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
 function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
-function skill(){if(PVP_MODE&&!pvpSession?.active)return;
+function skill(){if(PVP_MODE&&!pvpSession?.canFight)return;
  if(player.hp<=0||recoveryPending)return;
  if(skillCd>0||docked||landing||inSafeZone(playerMesh.position))return;
  lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
@@ -2501,9 +2502,9 @@ function skill(){if(PVP_MODE&&!pvpSession?.active)return;
 }
 // Protección alrededor de la estación del sector activo.
 const SAFE_ZONE_RADIUS=760;
-function inSafeZone(position){if(PVP_MODE)return false;return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
+function inSafeZone(position){if(PVP_MODE)return position.length()<=650||!pvpSession?.canFight;return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
 let lastZoneLabel='',zoneToastTimer=null;
-function updateZone(){if(PVP_MODE){$('targetInfo').textContent='ARENA PvP · Tu equipamiento';return false}
+function updateZone(){if(PVP_MODE){$('targetInfo').textContent=playerMesh.position.length()<=650?'BASE PvP · Zona segura':pvpSession?.canFight?'DUELO · Solo tu rival puede dañarte':'MAPA PvP · Protegido';return inSafeZone(playerMesh.position)}
  const safe=inSafeZone(playerMesh.position);
  const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='graveyard'?'CEMENTERIO DE NAVES|Sector de nivel 40+':activeSector==='ember'?'ASCUAS|Sector de nivel 30+':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
@@ -2539,9 +2540,9 @@ function drawRadar(dt){
  for(const rad of [22,44,66]){ctx.beginPath();ctx.arc(78,78,rad,0,Math.PI*2);ctx.stroke()}
  ctx.beginPath();ctx.moveTo(78,12);ctx.lineTo(78,144);ctx.moveTo(12,78);ctx.lineTo(144,78);ctx.stroke();
  const dot=(x,y,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()};
- for(const e of enemies){if(e.dead||!e.mesh.visible)continue;const p=radarPoint(e.mesh.position.x,e.mesh.position.z);if(p.inside)dot(p.x,p.y,'#ff6a6a',3)}
+ for(const e of enemies){if(e.dead||!e.mesh.visible)continue;const p=radarPoint(e.mesh.position.x,e.mesh.position.z);if(p.inside)dot(p.x,p.y,e.pvpRemote&&e.playerId!==pvpSession?.opponentId?'#68e6ff':'#ff6a6a',3)}
  for(const d of drops){const p=radarPoint(d.mesh.position.x,d.mesh.position.z);if(p.inside)dot(p.x,p.y,'#e8b5ff',2.8)}
- for(const route of (PVP_MODE?[]:sectorPortalRoutes())){
+ for(const route of (PVP_MODE?[{pos:{x:0,z:850},level:0}]:sectorPortalRoutes())){
   const p=radarPoint(route.pos.x,route.pos.z);if(p.inside)dot(p.x,p.y,player.level>=route.level?'#b899ff':'#796189',4);
  }
  // Mascota exploradora: punto celeste con borde blanco, distinto de los recursos.
@@ -2555,14 +2556,14 @@ function drawRadar(dt){
  }
  const base=currentStation();
  const station=radarPoint(base.position.x,base.position.z);
- if(!PVP_MODE&&station.inside)dot(station.x,station.y,'#56e5ff',5);
+ if(station.inside)dot(station.x,station.y,'#56e5ff',5);
  ctx.restore();
  // La estación permanece señalada en el borde aunque quede fuera del alcance.
- if(!PVP_MODE&&!station.inside){const a=station.angle;const x=78+Math.cos(a)*62,y=78+Math.sin(a)*62;ctx.save();ctx.translate(x,y);ctx.rotate(a+Math.PI/2);ctx.fillStyle='#56e5ff';ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(5,5);ctx.lineTo(-5,5);ctx.closePath();ctx.fill();ctx.restore()}
+ if(!station.inside){const a=station.angle;const x=78+Math.cos(a)*62,y=78+Math.sin(a)*62;ctx.save();ctx.translate(x,y);ctx.rotate(a+Math.PI/2);ctx.fillStyle='#56e5ff';ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(5,5);ctx.lineTo(-5,5);ctx.closePath();ctx.fill();ctx.restore()}
  ctx.fillStyle='#fff7a1';ctx.beginPath();ctx.moveTo(78,68);ctx.lineTo(71,87);ctx.lineTo(78,83);ctx.lineTo(85,87);ctx.closePath();ctx.fill();
  ctx.strokeStyle='#5bb9e4aa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(78,78,72,0,Math.PI*2);ctx.stroke();
  const distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
- radarDistance.textContent=PVP_MODE?'Arena PvP':currentSectorName()+' · '+Math.round(distance)+' m';
+ radarDistance.textContent=PVP_MODE?'Base PvP · '+Math.round(playerMesh.position.length())+' m':currentSectorName()+' · '+Math.round(distance)+' m';
 }
 // Paso 14: atraque asistido y hangar sin cambiar de escena ni perder progreso.
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
@@ -2692,7 +2693,7 @@ function updateDock(){if(PVP_MODE){dockBtn.classList.add('hidden');return}
  if(available)dockBtn.textContent='🛬 Aterrizar en '+currentStationName();
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+addEventListener('keydown',e=>{if(e.target?.closest?.('input,textarea,select'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');joy.strafe=0;
 function throttleMove(e){if(!panel.classList.contains('hidden')||docked||landing)return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
 // Entradas táctiles independientes: el joystick no pierde su dedo al disparar.
@@ -2876,7 +2877,7 @@ deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
 },undefined,err=>console.warn('Modelo de portal no disponible; se conserva el portal provisional.',err));
 const portalLight=new THREE.PointLight(0x8a65ff,20,180);portalMesh.add(portalLight);scene.add(portalMesh);
 // Destination plaques: stone-carved labels placed above each portal arch.
-const portalNames={aurora:'AURORA',belt:'CINTURÓN PERDIDO',ember:'ASCUAS',graveyard:'CEMENTERIO DE NAVES'};
+const portalNames={aurora:'AURORA',belt:'CINTURÓN PERDIDO',ember:'ASCUAS',graveyard:'CEMENTERIO DE NAVES',pvp:'MAPA PvP'};
 function makeStonePortalLabel(){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=192;
  const ctx=canvas.getContext('2d');
@@ -2925,8 +2926,9 @@ const beltEmberRotation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vect
 const emberGraveyardPortal=new THREE.Vector3(SECTOR_EMBER.x+3900,300,SECTOR_EMBER.z-800);
 const graveyardPortal=new THREE.Vector3(GRAVEYARD.x,0,GRAVEYARD.z+4000);
 const emberGraveyardRotation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),new THREE.Vector3(SECTOR_EMBER.x,0,SECTOR_EMBER.z).sub(emberGraveyardPortal).normalize());
+const graveyardPvpPortal=new THREE.Vector3(GRAVEYARD.x+3400,200,GRAVEYARD.z-1400);
 function sectorPortalRoutes(){
- if(activeSector==='graveyard')return [{id:'graveyard-ember',pos:graveyardPortal,rotation:beltPortalRotation,to:'ember',level:0,arrival:emberGraveyardPortal.clone().add(new THREE.Vector3(-200,0,0))}];
+ if(activeSector==='graveyard')return [{id:'graveyard-pvp',pos:graveyardPvpPortal,rotation:emberGraveyardRotation,to:'pvp',level:0},{id:'graveyard-ember',pos:graveyardPortal,rotation:beltPortalRotation,to:'ember',level:0,arrival:emberGraveyardPortal.clone().add(new THREE.Vector3(-200,0,0))}];
  if(activeSector==='aurora')return [{id:'aurora-belt',pos:auroraPortal,rotation:auroraPortalRotation,to:'belt',level:10,arrival:beltPortal.clone().add(new THREE.Vector3(0,0,-140))}];
  if(activeSector==='ember')return [{id:'ember-graveyard',pos:emberGraveyardPortal,rotation:emberGraveyardRotation,to:'graveyard',level:40,arrival:graveyardPortal.clone().add(new THREE.Vector3(0,0,-200))},{id:'ember-belt',pos:emberPortal,rotation:beltPortalRotation,to:'belt',level:0,arrival:beltEmberPortal.clone().add(new THREE.Vector3(-140,0,0))}];
  return [
@@ -2945,6 +2947,10 @@ function portalChargePulse(seconds){
 }
 function switchSector(route){
  if(!route||player.level<route.level)return;
+ if(route.to==='pvp'){
+  playerMesh.position.copy(graveyardPvpPortal).add(new THREE.Vector3(-350,0,0));
+  if(save())location.href='./index.html?pvp=1';return;
+ }
  activeSector=route.to;player.sector=activeSector;
  syncStationVisibility();
  const sector=currentSector();MAP_CENTER_X=sector.x;MAP_CENTER_Z=sector.z;
@@ -2975,7 +2981,7 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  portalRing.rotation.z=0;portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=.25;portalLight.intensity=charging?20+pulse*70:20;
  if(portalMesh.userData.portalModel){portalHalo.material.opacity=unlocked?.18:.08;portalHalo.scale.setScalar(1)}
  portalMessage.style.display=near&&!docked&&!landing?'block':'none';
- if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel '+route.level:charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 '+(route.to==='graveyard'?'Cementerio de Naves':route.to==='ember'?'Ascuas':route.to==='belt'?'Cinturón Perdido':'Aurora')+' · Acércate a 100 m';
+ if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel '+route.level:charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 '+(route.to==='pvp'?'Mapa PvP · requiere internet':route.to==='graveyard'?'Cementerio de Naves':route.to==='ember'?'Ascuas':route.to==='belt'?'Cinturón Perdido':'Aurora')+' · Acércate a 100 m';
 }
 
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
@@ -2997,7 +3003,7 @@ const zoneMembraneMaterial=new THREE.ShaderMaterial({
 const zoneMembrane=new THREE.Mesh(new THREE.SphereGeometry(1,48,32),zoneMembraneMaterial);
 zoneMembrane.name='Membrana del límite del sector';zoneMembrane.frustumCulled=false;scene.add(zoneMembrane);
 function updateZoneMembrane(){
- const sector=PVP_MODE?{x:0,z:0,radius:1500}:currentSector(),distance=PVP_MODE?playerMesh.position.length():sectorDistance();
+ const sector=PVP_MODE?{x:0,z:0,radius:4500}:currentSector(),distance=PVP_MODE?playerMesh.position.length():sectorDistance();
  zoneMembrane.position.set(sector.x,0,sector.z);zoneMembrane.scale.setScalar(sector.radius);
  zoneMembraneMaterial.uniforms.tint.value.set(activeSector==='ember'?0xffba96:0x91d9ff);
  const proximity=THREE.MathUtils.clamp(1-Math.abs(sector.radius-distance)/800,0,1);
@@ -3005,7 +3011,7 @@ function updateZoneMembrane(){
  zoneMembrane.visible=!docked&&!landing&&proximity>0;
 }
 
-function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=playerMesh.position.length();if(d>1500)playerMesh.position.multiplyScalar(1500/d);return}
+function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=playerMesh.position.length();if(d>4500)playerMesh.position.multiplyScalar(4500/d);return}
  updateZoneMembrane();
  if(docked||landing){sectorNotice.style.display='none';return}
  const sector=currentSector(),d=sectorDistance(),remaining=sector.radius-d;
@@ -3094,7 +3100,7 @@ $('recoverAurora').onclick=()=>recoverShip(false);
 
 function loop(now){const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;if(pvpSession){pvpSession.beforeFrame(dt,now);if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(graphicsLost){requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||document.hidden||docked||landing||!panel.classList.contains('hidden')||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
  updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(shipRole(player.shipId)==='aurora'?1.2+specialLevel('energy')*.04:1));
-const menuOpen=docked||landing||!panel.classList.contains('hidden');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
+const menuOpen=docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
 const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],fireHeld,dt,now);
@@ -3172,42 +3178,60 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);upda
    const delay=p.missileGuideDelay||.55;
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
- }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>(p.range||COMBAT_RANGE))p.life=0}p.life-=dt;for(const e of enemies){if(!p.pvpRemote&&!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=(p.range||COMBAT_RANGE))&&(e.type==='granTitan'?titanHit(p.mesh.position):p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):p.missile?44:30))){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
+ }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>(p.range||COMBAT_RANGE))p.life=0}p.life-=dt;for(const e of enemies){if((!PVP_MODE||e.playerId===pvpSession?.opponentId)&&!p.pvpRemote&&!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=(p.range||COMBAT_RANGE))&&(e.type==='granTitan'?titanHit(p.mesh.position):p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):p.missile?44:30))){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 hud();
 
-$('pvpBtn').onclick=()=>{if(player.hp<=0||recoveryPending)return;if(save())location.href='./pvp.html';};
-
 if(PVP_MODE){
  for(const e of enemies)scene.remove(e.mesh);enemies.length=0;
  for(const drop of drops)scene.remove(drop.mesh);drops.length=0;
- const remoteMesh=new THREE.Group();scene.add(remoteMesh);const remote={pvpRemote:true,type:'scout',mesh:remoteMesh,home:new THREE.Vector3(),hp:1,maxHp:1,dead:0,aggressive:true,pilotName:'Rival',pilotLevel:1};enemies.push(remote);
- let remoteSource=null;const remoteDrones=new THREE.Group();scene.add(remoteDrones);let remoteDroneCount=-1,remoteDroneSource=null;
+ const remotes=new Map();
  function cloneClean(source){const saved=[];source.traverse(o=>{saved.push([o,o.userData]);o.userData={}});let copy;try{copy=source.clone(true)}finally{for(const [o,data]of saved)o.userData=data}return copy}
- function remoteVisual(id){if(ASSEMBLED_SHIPS[id])loadAssembledVisual(id);const key=ASSEMBLED_SHIPS[id]?id+'Model':id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===remoteSource)return;remoteSource=source;remoteMesh.clear();const visual=cloneClean(source);visual.visible=true;remoteMesh.add(visual);}
- function syncRemoteDrones(other){const count=other.profile?.droneCount||0;const source=supportDrones[0]?.mesh;const sourceStamp=source?.children.length;if(count!==remoteDroneCount||sourceStamp!==remoteDroneSource){remoteDrones.clear();for(let i=0;i<count;i++){const clone=cloneClean(source);clone.visible=true;remoteDrones.add(clone)}remoteDroneCount=count;remoteDroneSource=sourceStamp}remoteDrones.position.copy(remote.mesh.position);remoteDrones.rotation.copy(remote.mesh.rotation);for(let i=0;i<remoteDrones.children.length;i++){const d=remoteDrones.children[i],pair=Math.floor(i/2);d.position.set((i%2?1:-1)*[78,135,195,250][pair],14,-[125,165,190,210][pair]);d.rotation.set(0,0,0)}}
- function keepArena(){graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;auroraStation.visible=beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';}
- docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,0,400);yaw=0;pitch=0;camera.position.set(0,105,685);camera.lookAt(0,0,185);
- for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
- $('hint').textContent='PvP · Mismos controles de vuelo y combate';$('stationDistance').textContent='Arena PvP';
- pvpSession=startSession(PVP_TICKET,{
- keepArena, pause(){resetDockControls();clearCombatShots();},
- snapshot(me,other,first,pending){
-  if(me.profile){for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];}
-  if(me.hp<player.hp){lastHitAt=lastIncomingAttackAt=performance.now()/1000;registerExplorerThreat(remote);}
-  player.hp=me.hp;if(Number.isFinite(me.energy))player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-Date.now())/1000);
-  const predicted=new THREE.Vector3(...me.pos);for(const input of pending)predicted.addScaledVector(new THREE.Vector3(...input.move),player.speed*input.dt);
-  if(first||playerMesh.position.distanceTo(predicted)>150)playerMesh.position.copy(predicted);else playerMesh.position.lerp(predicted,.18);
-  if(first){yaw=me.pos[2]>0?0:Math.PI;pitch=0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(-Math.sin(yaw)*-285,105,-Math.cos(yaw)*-285));}
-  if(other){remote.hp=other.hp;remote.maxHp=other.profile?.maxHp||600;remote.pilotName=other.name;remote.pilotLevel=other.profile?.level||1;remote.mesh.visible=other.hp>0;remote.mesh.position.copy(new THREE.Vector3(...other.pos));remoteVisual(other.profile?.shipId||'aurora');if(other.aim){remote.mesh.rotation.order='YXZ';remote.mesh.rotation.set(other.aim[1],other.aim[0],0)}syncRemoteDrones(other)}
+ function syncRemoteVisual(r){const id=r.shipId;if(ASSEMBLED_SHIPS[id])loadAssembledVisual(id);const key=ASSEMBLED_SHIPS[id]?id+'Model':id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===r.source)return;r.source=source;r.mesh.clear();const copy=cloneClean(source);copy.visible=true;r.mesh.add(copy);}
+ const worldBaseRing=new THREE.Mesh(new THREE.TorusGeometry(650,3,6,96),new THREE.MeshBasicMaterial({color:0x60e9ff,transparent:true,opacity:.6}));worldBaseRing.rotation.x=Math.PI/2;worldBaseRing.position.y=120;scene.add(worldBaseRing);
+ let returnPortal=null,returnModelReady=false;
+ function mountReturnPortal(){
+  if(returnPortal){scene.remove(returnPortal);returnPortal.getObjectByName('stoneDestinationLabel')?.material.map?.dispose();returnPortal.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.userData?.portalEnergy)m.dispose()})}
+  returnPortal=clonePortalVisual();returnModelReady=!!portalMesh.userData.portalModel;returnPortal.position.set(0,120,850);returnPortal.rotation.y=Math.PI;returnPortal.getObjectByName('stoneDestinationLabel').userData.drawDestination('graveyard');returnPortal.getObjectByName('portalCharge').visible=false;scene.add(returnPortal);
+ }
+ mountReturnPortal();
+ function keepArena(){if(!returnModelReady&&portalMesh.userData.portalModel)mountReturnPortal();graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraStation.visible=true;auroraStation.position.set(0,-180,0);auroraStation.scale.setScalar(.65);auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';asteroidField.visible=false;}
+ function clearFight(){resetDockControls();clearCombatShots();lockedEnemy=null;fireCd=skillCd=classAbilityTime=0;}
+ docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
+ for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel','formationBtn'])$(id).classList.add('hidden');
+ $('hint').textContent='PvP · Toca una nave o elige un piloto para pedir duelo · Base: zona segura';$('stationDistance').textContent='Mapa PvP';
+ pvpSession=startSharedSession({keepArena,pause:clearFight,clearFight,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
+ frame(dt){
+  for(const r of remotes.values()){
+   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);
+   const point=r.mesh.position.clone().add(new THREE.Vector3(0,68,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;
+   r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';r.label.classList.toggle('dueling',r.playerId===pvpSession?.opponentId);
+  }
+  updatePortalEmission(returnPortal,1.3+Math.sin(performance.now()*.002)*.2);
  },
- remoteShots(bullets){lastIncomingAttackAt=performance.now()/1000;registerExplorerThreat(remote);for(const b of bullets){
+ snapshot(me,others,force,pending,state){
+  const changed=player.shipId!==me.profile.shipId;
+  if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
+  player.name=me.name;player.level=40;for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
+  const predicted=new THREE.Vector3(...me.pos);for(const input of pending)predicted.addScaledVector(new THREE.Vector3(...input.move),player.speed*input.dt);
+  if(force){playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
+  else if(playerMesh.position.distanceTo(predicted)>150)playerMesh.position.copy(predicted);else playerMesh.position.lerp(predicted,.18);
+  const ids=new Set(others.map(p=>p.id));for(const [id,r]of remotes)if(!ids.has(id)){scene.remove(r.mesh,r.drones);r.label.remove();enemies.splice(enemies.indexOf(r),1);remotes.delete(id)}
+  for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones);r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:40};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
+    for(let i=0;i<2;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i?1:-1)*78,14,125);d.rotation.set(0,0,0);drones.add(d)}
+   }
+   r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=40;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=true;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
+   r.label.querySelector('span').textContent=other.name+' #'+other.id.slice(-6);r.label.querySelector('small').textContent=SHIP_TYPES[other.profile.shipId].name+(other.duelId?' · En duelo':'');r.label.querySelector('i').style.width=(100*other.hp/r.maxHp)+'%';syncRemoteVisual(r);
+  }
+ },
+ remoteShots(bullets){for(const b of bullets){
   const mesh=b.missile?createMissileMesh():new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0xff7777,transparent:true,opacity:.95,depthWrite:false}));mesh.position.set(...b.pos);const vel=new THREE.Vector3(...b.vel);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vel.clone().normalize());scene.add(mesh);
-  const shot={pvpRemote:true,pvpSent:true,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target:b.target?{mesh:playerMesh,dead:false}:null,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
+  const target=b.target===pvpSession?.myId?{mesh:playerMesh,dead:false}:remotes.get(b.target);
+  const shot={pvpRemote:true,pvpSent:true,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
  }},
  });
+ let tapStart=null;lookZone.addEventListener('pointerdown',e=>tapStart={x:e.clientX,y:e.clientY});lookZone.addEventListener('pointerup',e=>{if(!tapStart||Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)>15)return;tapStart=null;let selected=null,best=65;for(const r of remotes.values()){const p=r.mesh.position.clone().project(camera);if(p.z>1)continue;const d=Math.hypot((p.x+1)*innerWidth/2-e.clientX,(1-p.y)*innerHeight/2-e.clientY);if(d<best){best=d;selected=r.playerId}}if(selected)pvpSession.select(selected)});
  keepArena();
 }
-

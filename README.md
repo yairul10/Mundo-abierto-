@@ -11,7 +11,7 @@ Juego espacial 3D en desarrollo para navegador y Android. Estado revisado contra
 - Hangar con siete formaciones, venta de materiales y potenciadores temporales.
 - Campañas, contratos largos, créditos, experiencia e inventario.
 - Guardado local automático y modo QA con partida separada.
-- Prueba PvP 1 contra 1 con salas privadas y búsqueda de rival. No concede premios ni modifica el guardado de la partida individual.
+- Mapa PvP compartido con ID de invitado, portal desde el Cementerio y duelos por invitación en el mismo mapa. Sin premios ni pérdidas; seis naves de prueba y progreso offline separado.
 
 ## Ejecutar
 
@@ -26,7 +26,7 @@ El navegador obtiene Three.js de un CDN. El APK empaqueta el motor, imágenes y 
 - [Experiencia por nivel](docs/progresion-xp.md)
 - [Pruebas y comprobaciones manuales](docs/pruebas.md)
 - [APK Android y empaquetado](mobile/test-app/README.md)
-- [Prototipo PvP](server/pvp/README.md)
+- [Mapa PvP y duelos](server/pvp/README.md)
 
 ## Durante el desarrollo
 

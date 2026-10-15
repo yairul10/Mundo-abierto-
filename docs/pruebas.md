@@ -1,9 +1,9 @@
 # Pruebas y comprobaciones manuales
 
-Actualizado para el contenido de `3d-20261012-188`. Ejecutar desde la raíz con Node 22 o superior:
+Actualizado para el contenido de `3d-20261015-220`. Ejecutar desde la raíz con Node 22 o superior:
 
 ```sh
-node --test tests/*.test.mjs server/pvp/combat.test.mjs
+node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs
 ```
 
 No requiere instalar dependencias. El workflow Android ejecuta este comando antes de preparar SDK, firma y APK; si falla, la compilación se detiene. Los cambios en `tests/**` y en el módulo/prueba de combate PvP también activan ese workflow.
@@ -29,11 +29,11 @@ Con las dependencias del servidor instaladas:
 cd server/pvp
 npm ci
 node test.mjs
-node profile-test.mjs
+node --test world-rules.test.mjs
 node combat.test.mjs
 ```
 
-Las dos primeras requieren Miniflare/workerd y prueban HTTP, SQLite, WebSockets, capacidad, tickets, movimiento, daño, perfiles y abandono. No forman parte del comando sin dependencias del APK. El script actual `npm test` del servidor ejecuta únicamente `test.mjs`; para revisar toda la cobertura ejecutar los tres comandos anteriores.
+`test.mjs` requiere Miniflare/workerd y prueba HTTP, SQLite, WebSockets, invitados en un mismo mapa, consentimiento, movimiento, daño, espectadores y desconexión. Las pruebas de reglas y combate no requieren dependencias. `npm test` del servidor ejecuta los tres comandos.
 
 ## Comprobación manual
 

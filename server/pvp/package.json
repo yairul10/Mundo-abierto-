@@ -1,10 +1,10 @@
 {
   "name": "mundo-abierto-pvp",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test.mjs"
+    "test": "node --test combat.test.mjs world-rules.test.mjs && node test.mjs"
   },
   "dependencies": {
     "miniflare": "5.20261006.1-alpha"
