@@ -6,9 +6,9 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=212';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=223';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=222';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=223';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=224';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=224';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=224';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=218';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -27,7 +27,7 @@ function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStor
 function safeStorageSet(key,value){if(PVP_MODE&&!pvpHangar)return true;try{localStorage.setItem(key,value);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
-const QA_FLAG='mundoAbierto.qaActive';const qaActive=safeStorageGet(QA_FLAG)==='1';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
+const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mode==='test';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
 // Recuperación móvil ante pérdida del contexto WebGL. Guardar antes de
 // recargar evita perder posición, inventario o mejoras.
@@ -3051,13 +3051,11 @@ hudToggle.onclick=()=>{
 };
 const panel=$('characterPanel');const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Energía máxima: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
 const qaSwitch=$('qaSwitch'),qaTools=$('qaTools');
-qaSwitch.textContent=qaActive?'Volver a partida normal':'Entrar a partida QA';
+qaSwitch.textContent=qaActive?'Volver a partida normal':'Cambiar de partida';
+$('qaPanel').classList.toggle('hidden',!window.MUNDO_PLAY_MODE?.testEnabled&&!qaActive);
 qaTools.classList.toggle('hidden',!qaActive);
-qaSwitch.onclick=()=>{
- if(!save())return;
- const changed=qaActive?safeStorageRemove(QA_FLAG):safeStorageSet(QA_FLAG,'1');
- if(changed)location.reload();
-};
+qaSwitch.onclick=()=>{if(!save())return;window.MUNDO_PLAY_MODE.choose()};
+addEventListener('mundo:save-before-switch',()=>{save()});
 function qaApply(fn){if(!qaActive)return;fn();save();hud();renderDrones();renderUpgrades();renderInventory();if(docked)hangarRefresh()}
 $('qaCredits').onclick=()=>qaApply(()=>player.gold=(Number(player.gold)||0)+100000);
 $('qaDrones').onclick=()=>qaApply(()=>{player.droneCount=8;syncShipStats()});

@@ -1,18 +1,23 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
-const files=['worker.mjs','combat.mjs','shared-world.mjs','world-rules.mjs'];
+const files=['worker.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs'];
 const mf=new Miniflare(convertV4MiniflareOptions({modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:'2026-10-11',compatibilityFlags:['nodejs_compat'],durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}}));
 const post=async(path,data)=>{const r=await mf.dispatchFetch('https://arena.test'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});return {status:r.status,body:await r.json()}};
 const pause=ms=>new Promise(r=>setTimeout(r,ms)),connections=[];
-async function connect(ticket){const r=await mf.dispatchFetch('https://arena.test/world/socket',{headers:{Upgrade:'websocket','Sec-WebSocket-Protocol':'mundo-world-v1,'+ticket}});if(r.status!==101)return {status:r.status};const ws=r.webSocket;ws.accept();const messages=[];ws.addEventListener('message',e=>messages.push(JSON.parse(e.data)));connections.push(ws);return {status:r.status,ws,messages}}
+async function connect(ticket,realm="normal"){const r=await mf.dispatchFetch('https://arena.test/world/socket?realm='+realm,{headers:{Upgrade:'websocket','Sec-WebSocket-Protocol':'mundo-world-v1,'+ticket}});if(r.status!==101)return {status:r.status};const ws=r.webSocket;ws.accept();const messages=[];ws.addEventListener('message',e=>messages.push(JSON.parse(e.data)));connections.push(ws);return {status:r.status,ws,messages}}
 async function waitFor(c,predicate){const end=Date.now()+3500;while(Date.now()<end){const found=c.messages.findLast(predicate);if(found)return found;await pause(10)}throw Error('Missing socket message: '+JSON.stringify(c.messages.at(-1)))}
 const send=(c,m)=>c.ws.send(JSON.stringify(m));
 try{
- const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.3');
+ const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.4');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/matchmake',{})).status,410);
  assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
+ assert.equal((await (await mf.dispatchFetch('https://arena.test/game-config')).json()).testServerEnabled,true);
+ const testTicket=(await post('/world/join',{realm:'test',guestKey:'e'.repeat(64),name:'Solo pruebas'})).body;
+ assert.equal((await connect(testTicket.token,'normal')).status,403,'A test ticket cannot enter normal PvP');
+ const testClient=await connect(testTicket.token,'test');assert.equal(testClient.status,101);
+ await waitFor(testClient,m=>m.type==='world'&&m.players.length===1);
  const roster={aurora:{maxHp:490,maxEnergy:295,attack:88,defense:44,speed:220,level:40},segadora:{maxHp:539,maxEnergy:295,attack:163,defense:42,speed:231,level:40},bastion:{maxHp:1225,maxEnergy:295,attack:88,defense:88,speed:187,level:40}};
  const a=(await post('/world/join',{roster,guestKey:'a'.repeat(64),name:'Piloto A',shipId:'aurora',profile:{attack:99999}})).body;
  const b=(await post('/world/join',{roster,guestKey:'b'.repeat(64),name:'Piloto B',shipId:'aurora'})).body;
@@ -41,5 +46,14 @@ try{
  send(z,{type:'ship',shipId:'bastion'});state=await waitFor(z,m=>m.type==='world'&&m.players.find(p=>p.id===c.playerId).profile.shipId==='bastion');assert.equal(state.players.find(p=>p.id===c.playerId).hp,6125);
  x.ws.close();state=await waitFor(y,m=>m.type==='world'&&m.duels.length===0&&m.events.some(e=>e.reason==='disconnect'));assert.equal(state.players.find(p=>p.id===b.playerId).hp,hp);
  const again=(await post('/world/join',{roster,guestKey:'a'.repeat(64),name:'Regreso'})).body;assert.equal(again.playerId,a.playerId);assert.notEqual(again.token,a.token);
+ send(testClient,{type:'ping',time:42});await waitFor(testClient,m=>m.type==='pong'&&m.echo===42);
+ assert.equal(testClient.messages.findLast(m=>m.type==='world').players.length,1,'Normal players never appear in the test map');
+ const disabled=new Miniflare(convertV4MiniflareOptions({modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:'2026-10-11',compatibilityFlags:['nodejs_compat'],bindings:{TEST_SERVER_ENABLED:'false'},durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}}));
+ try{
+ assert.equal((await (await disabled.dispatchFetch('https://arena.test/game-config')).json()).testServerEnabled,false);
+ const request=realm=>disabled.dispatchFetch('https://arena.test/world/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({realm,guestKey:'f'.repeat(64)})});
+ assert.equal((await request('test')).status,403);assert.equal((await request('normal')).status,200);
+ assert.equal((await disabled.dispatchFetch('https://arena.test/world/socket?realm=test',{headers:{Upgrade:'websocket','Sec-WebSocket-Protocol':'mundo-world-v1,invalid'}})).status,403);
+ }finally{await disabled.dispose()}
  console.log('Passed: retired prototype, guest identity, three players in one world, authentication, server movement/loadouts, invitation consent/countdown, authoritative damage, neutral immunity, duels and damage inside base, base ship switch, disconnect and return identity.');
 }finally{for(const ws of connections)try{ws.close()}catch{}await mf.dispose()}
