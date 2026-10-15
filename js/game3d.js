@@ -1,3 +1,4 @@
+import {createTitanEffects} from './titan-effects.js?v=227';
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=226';
@@ -1267,14 +1268,14 @@ const titanSaved=player.granTitanState||{},titanMaximum=enemyMaxHp('granTitan');
 const titanRespawn=Number(titanSaved.respawnAt)||0;
 const titanEnemy={type:'granTitan',mesh:titanRig.root,home:titanRig.root.position.clone(),maxHp:titanMaximum,hp:titanSaved.hp===0&&Date.now()<titanRespawn?0:scaledHealth(Number.isFinite(titanSaved.hp)?titanSaved.hp:titanMaximum,titanSaved.maxHp||titanMaximum,titanMaximum),dead:0,respawnAt:titanRespawn,fireTimer:0,aggressive:false};
 titanEnemy.dead=titanEnemy.hp<=0?Infinity:0;titanEnemy.mesh.visible=false;enemies.push(titanEnemy);
-const titanCycle=createTitanCycle(),titanProjectiles=[];
+const titanCycle=createTitanCycle(),titanProjectiles=[],titanBlasts=[],titanEffects=createTitanEffects(THREE);
 let titanWaveTimer=12,titanPatrolAngle=Number.isFinite(titanSaved.patrolAngle)?titanSaved.patrolAngle:Math.atan2(-1900,2300);
 if(Array.isArray(titanSaved.position)&&titanSaved.position.length===3&&titanSaved.position.every(Number.isFinite)){
  const v=new THREE.Vector3().fromArray(titanSaved.position),r=Math.hypot(v.x-GRAVEYARD.x,v.z-GRAVEYARD.z);
  if(r>1800&&r<3400&&Math.abs(v.y)<350)titanEnemy.mesh.position.copy(v);
 }
 deferredModelLoad(new GLTFLoader(),'./assets/models/gran_titan.glb?v=216',gltf=>titanRig.mount(gltf.scene),undefined,error=>console.warn('Gran Titán: modelo no disponible',error));
-function clearTitanShots(){for(const p of titanProjectiles){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();if(p.marker){scene.remove(p.marker);p.marker.geometry.dispose();p.marker.material.dispose()}}titanProjectiles.length=0}
+function clearTitanShots(){for(const p of titanProjectiles){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker)}titanProjectiles.length=0;for(const b of titanBlasts)titanEffects.dispose(b.mesh);titanBlasts.length=0}
 function titanHit(point){const p=titanEnemy.mesh.worldToLocal(point.clone());return (p.x/145)**2+(p.y/170)**2+(p.z/600)**2<1}
 function fireTitan(){
  const scale=titanScale(player.level),kind=titanCycle.kind;
@@ -1285,13 +1286,13 @@ function fireTitan(){
   let across=new THREE.Vector3().crossVectors(aim,new THREE.Vector3(0,1,0)).normalize();if(across.lengthSq()<.01)across.set(1,0,0);
   for(const lane of titanPattern(titanCycle.round)){
    const dir=aim.clone().addScaledVector(across,lane*.13).normalize();
-   const mesh=new THREE.Mesh(new THREE.ConeGeometry(4,65,8),new THREE.MeshStandardMaterial({color:0xffb56c,emissive:0x8a2600,metalness:.6,roughness:.5}));mesh.position.copy(start);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
-   titanProjectiles.push({mesh,velocity:dir.multiplyScalar(570),life:5,start:start.clone(),damage:TITAN_STATS.damage*scale});
+   const mesh=titanEffects.spear();mesh.position.copy(start);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
+   titanProjectiles.push({mesh,velocity:dir.multiplyScalar(570),life:5,age:0,start:start.clone(),damage:TITAN_STATS.damage*scale});
   }
  }else for(const [i,offset]of titanBombOffsets(titanCycle.round).entries()){
   const target=playerMesh.position.clone().add(new THREE.Vector3(offset.x,0,offset.z));
-  const marker=new THREE.Mesh(new THREE.SphereGeometry(150,12,8),new THREE.MeshBasicMaterial({color:0xff502e,wireframe:true,transparent:true,opacity:.12,depthWrite:false}));marker.position.copy(target);scene.add(marker);
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(13,12,8),new THREE.MeshStandardMaterial({color:0x945943,emissive:0x6a1900,roughness:.7}));mesh.position.copy(titanRig.muzzle(kind,side,i));scene.add(mesh);
+  const marker=titanEffects.marker();marker.position.copy(target);scene.add(marker);
+  const mesh=titanEffects.bomb();mesh.position.copy(titanRig.muzzle(kind,side,i));mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),target.clone().sub(mesh.position).normalize());scene.add(mesh);
   titanProjectiles.push({mesh,marker,target,start:mesh.position.clone(),age:0,life:3.5,damage:450*scale,bomb:true});
  }
 }
@@ -1323,10 +1324,12 @@ function updateGranTitan(dt){if(PVP_MODE)return;
  if(step.fire)fireTitan();
  if(active){titanWaveTimer-=dt;if(titanWaveTimer<=0){spawnTitanWave();titanWaveTimer=30}}else titanWaveTimer=12;
  for(let i=titanProjectiles.length-1;i>=0;i--){const p=titanProjectiles[i],before=p.mesh.position.clone();p.life-=dt;
-  if(p.bomb){p.age+=dt;p.mesh.position.lerpVectors(p.start,p.target,Math.min(1,p.age/2));p.marker.material.opacity=.06+.1*Math.abs(Math.sin(p.age*8));if(p.life<=0&&available&&p.target.distanceTo(playerMesh.position)<150)applyPlayerDamage(Math.max(1,p.damage-player.defense*.25))}
+  p.age+=dt;titanEffects.animateProjectile(p.mesh,p.age,p.bomb);
+  if(p.bomb){p.mesh.position.lerpVectors(p.start,p.target,Math.min(1,p.age/2));titanEffects.animateMarker(p.marker,p.age,camera);if(p.life<=0&&available){const mesh=titanEffects.blast(p.target);scene.add(mesh);titanBlasts.push({mesh,age:0})}if(p.life<=0&&available&&p.target.distanceTo(playerMesh.position)<150)applyPlayerDamage(Math.max(1,p.damage-player.defense*.25))}
   else{p.mesh.position.addScaledVector(p.velocity,dt);if(available&&segmentDistance(before,p.mesh.position,playerMesh.position)<40){scrapCombat.snag(titanEnemy,p.start);applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0}}
-  if(p.life<=0||!available){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();if(p.marker){scene.remove(p.marker);p.marker.geometry.dispose();p.marker.material.dispose()}titanProjectiles.splice(i,1)}
+  if(p.life<=0||!available){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker);titanProjectiles.splice(i,1)}
  }
+ for(let i=titanBlasts.length-1;i>=0;i--){const b=titanBlasts[i];b.age+=dt;if(b.age>=.65||!available){titanEffects.dispose(b.mesh);titanBlasts.splice(i,1)}else titanEffects.animateBlast(b.mesh,b.age,camera)}
 }
 
 function damageEnemy(e,damage,missile=false){if(e.pvpRemote)return;

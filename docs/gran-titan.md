@@ -25,3 +25,9 @@ Dos contratos nuevos en el sistema existente: Recuperación del Cementerio (10 C
 Conserva la geometría original del casco: no reconstruye sus bordes deformados. Reduce el brillo y la intensidad de normales, añade puertas y lanzadores independientes adaptados a sus huecos. Modelado artístico adicional del casco queda pendiente.
 
 Validación: ocho suites Node y arranque WebGL en Chromium; pruebas del combate real para cantidades de proyectiles, límite de refuerzos, premio único y persistencia. Regresión v217 en el juego real: patrulla, neutralidad, lanza dirigida contra jugador quieto, inmovilización, bomba que daña al permanecer quieto y evasión al abandonar el área. Renders con compuertas abiertas y cerradas.
+
+## Proyectiles y avisos visuales (v227)
+
+Las lanzas tienen punta y eje metálicos, estabilizadores, anillos luminosos y estela de energía. Las bombas tienen carcasa blindada, aletas, bandas metálicas y núcleo incandescente. Los avisos usan un contorno circular orientado a cámara, marcas y un arco de carga que cambia a rojo antes de detonar; reemplazan las esferas de alambre. La explosión muestra un destello, onda expansiva y fragmentos luminosos durante 0,65 s.
+
+Los gráficos se construyen con geometrías pequeñas y materiales locales, sin nuevas descargas de modelos o texturas. Se liberan geometrías y materiales al impactar, expirar o cambiar de mapa. Se mantienen seis lanzas, cuatro bombas, velocidad 570, mecha 3,5 s, radio 150, daño, parálisis y cadencia originales.

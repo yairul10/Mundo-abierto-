@@ -73,3 +73,7 @@ Gran Titán: vida base 160.000 (antes 80.000); mantiene el 2 % por nivel desde 4
 ## v226 · Vida original del Gran Titán
 
 Se restaura la vida base a 80.000 (184.000 al nivel 105). Se conservan recompensas, daño, escalado y diario de 200 acciones. La migración mantiene el porcentaje de vida de los guardados de v225.
+
+## v227 · Gráficos de ataques del Gran Titán
+
+Verificar lanzas metálicas con punta orientada al movimiento y estela, cuatro bombas blindadas, avisos circulares sin malla y transición a rojo. Detonación con onda y destello breves; debe seguir dañando al quedarse en el centro. Los avisos conservan radio 150 y mecha 3,5 s; las lanzas conservan velocidad 570. Al cambiar de mapa o morir el Titán, no quedan proyectiles ni efectos. Prueba de navegador con WebGL: seis lanzas, cuatro bombas, orientación, parámetros conservados, daño al jugador inmóvil y liberación de geometrías/efectos, sin errores.
