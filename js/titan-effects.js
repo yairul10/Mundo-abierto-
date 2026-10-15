@@ -3,7 +3,7 @@ export function disposeTitanVisual(root){
  const geometries=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)materials.add(m)});
  root.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials)m.dispose();
 }
-export function createTitanEffects(T){
+export function createTitanEffects(T,sparkCount=()=>10){
  const metal=()=>new T.MeshStandardMaterial({color:0x8b99a4,metalness:.78,roughness:.4});
  const dark=()=>new T.MeshStandardMaterial({color:0x283747,metalness:.72,roughness:.5});
  const glow=(color=0xffa531,opacity=1)=>new T.MeshBasicMaterial({color,transparent:opacity<1,opacity,depthWrite:false,toneMapped:false,blending:T.AdditiveBlending});
@@ -56,7 +56,7 @@ export function createTitanEffects(T){
   const shell=new T.Mesh(new T.SphereGeometry(1,16,10),glow(0xff732c,.16));root.add(shell);
   const wave=new T.Mesh(new T.RingGeometry(.93,1,48),glow(0xffbc65,.8));root.add(wave);
   const core=new T.Mesh(new T.SphereGeometry(1,10,8),glow(0xffe1a0,.8));root.add(core);
-  const sparks=new T.Group();for(let i=0;i<10;i++){const a=i*2.39996,y=1-2*(i+.5)/10,r=Math.sqrt(1-y*y),spark=new T.Mesh(new T.ConeGeometry(1.5,13,4),glow(0xffae5b,.9)),dir=new T.Vector3(Math.cos(a)*r,y,Math.sin(a)*r);spark.userData.direction=dir;spark.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),dir);sparks.add(spark)}root.add(sparks);
+  const sparks=new T.Group();const count=sparkCount();for(let i=0;i<count;i++){const a=i*2.39996,y=1-2*(i+.5)/count,r=Math.sqrt(1-y*y),spark=new T.Mesh(new T.ConeGeometry(1.5,13,4),glow(0xffae5b,.9)),dir=new T.Vector3(Math.cos(a)*r,y,Math.sin(a)*r);spark.userData.direction=dir;spark.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),dir);sparks.add(spark)}root.add(sparks);
   root.userData={shell,wave,core,sparks};return root;
  }
  function animateBlast(root,age,camera){

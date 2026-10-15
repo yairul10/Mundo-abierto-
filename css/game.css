@@ -203,3 +203,5 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 #hangarPanel .ship-preview{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain;border-radius:9px;background:#0c1b2b}
 
 #questTracker{width:min(380px,54vw);max-height:65vh;display:flex;flex-direction:column;gap:5px;background:#07101bf2;z-index:12}#questTracker.hidden{display:none}#missionList{overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;min-height:0;padding-right:5px}.mission-card{padding:10px 0;border-top:1px solid #ffffff25}.mission-card .mission-prize{color:#ffdf80}#missionSummary{color:#b4c8de}#missionList .quest-progress i{display:block;height:100%;background:#d5a22d}@media(max-height:500px){#questTracker{max-height:62vh}}
+
+.graphics-settings{margin:18px 0;padding:14px;border:1px solid #3b6586;border-radius:12px;background:#102538}.graphics-settings label{display:block;margin-bottom:8px}.graphics-settings select{width:100%;padding:12px;border:1px solid #5980a0;border-radius:8px;background:#071626;color:#eef8ff;font:inherit}.graphics-settings .inventory-note{line-height:1.5}
