@@ -1015,7 +1015,7 @@ for(let i=0;i<100;i++){
  rock.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
  asteroidField.add(rock);
 }
-// Tipos de enemigos y recompensas; el Coloso mantiene vida fija y progreso persistente.
+// Tipos de enemigos y recompensas; el Coloso escala hasta nivel 105 y conserva su progreso.
 const TYPES={
  scout:{hp:35,damage:5,speed:120,xp:18,gold:10,loot:1,color:0xe65757},
  raider:{hp:70,damage:10,speed:150,xp:36,gold:20,loot:2,color:0xe78b45},
@@ -2393,7 +2393,7 @@ function updateLoot(dt){
 }
 function kill(e,missile=false){
  if(e.dead)return;
- const t=TYPES[e.type],reward=e.type==='carrier'?1:enemyRewardScale(),gold=Math.round(t.gold*reward),xp=Math.round(t.xp*reward);
+ const t=TYPES[e.type],reward=e.type==='carrier'?advancedEnemyScale(player.level,30):enemyRewardScale(),gold=Math.round(t.gold*reward),xp=Math.round(t.xp*reward);
  if(e.type==='carrier'){
   bossState.hp=0;
   if(bossState.rewarded)return;

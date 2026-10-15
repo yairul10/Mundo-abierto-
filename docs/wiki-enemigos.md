@@ -34,7 +34,7 @@ Los dos archivos suman 5708196 bytes frente a los 24959412 bytes originales; se 
 | Arponero | harpooner | 5000 | 50 por segundo enganchado | 130 m/s | 145 | 225 | 7 |
 | Coloso Portanaves | carrier | 40000 | 150 por misil | Inmóvil | 10000 | 15000 | 30 |
 
-Daño antes de defensa, habilidades y otros modificadores. Los valores de recompensas son base, salvo el premio fijo del Coloso.
+Daño antes de defensa, habilidades y otros modificadores. Los valores de recompensas son base, con el Coloso escalando desde nivel 30 hasta 105.
 
 ## Escalado de vida y daño
 
@@ -90,7 +90,7 @@ Abre sus cuatro compuertas al primer impacto. Los refuerzos salen por turnos des
 
 Las fases se activan una sola vez por aparición, incluso si un impacto cruza varios umbrales. Los refuerzos anteriores pueden seguir vivos.
 
-Premio fijo por destrucción: 10000 créditos, 15000 XP base y 30 cajas, además del botín de los refuerzos. Reaparece tras 120 segundos; el tiempo fuera del juego cuenta. Los refuerzos supervivientes permanecen en Ascuas y no reaparecen al ser eliminados.
+Premio por destrucción: 10000 créditos y 15000 XP base desde nivel 30, con aumento lineal del 2 % por nivel y tope ×2,5 en nivel 105. Vida, daño y recompensa comparten ese multiplicador: desde nivel 105, 100000 de vida, 375 de daño base por misil, 25000 créditos y 37500 XP base. El botín se mantiene en 30 cajas, además del botín de los refuerzos. Los potenciadores de XP se aplican después del premio base. Reaparece tras 120 segundos; el tiempo fuera del juego cuenta. Los refuerzos supervivientes permanecen en Ascuas y no reaparecen al ser eliminados.
 
 Modelo actual: `assets/models/coloso.glb` (2019032 bytes). Puertas: `assets/models/scifipanelcrate_optimizado.glb` (305792 bytes). `js/coloso-rig.js` adapta el casco y cuatro puertas con bisagras superiores, marcos naranjas y salidas independientes. Si falla una carga se conserva el respaldo.
 
