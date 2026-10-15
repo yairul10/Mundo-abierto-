@@ -40,6 +40,7 @@ export function invite(s,p,target,now){
  const other=s.players.find(x=>x.id===target&&x.connected);
  if(!other||other===p)return 'invalid_target';
  if(p.duelId||other.duelId)return 'busy';
+ if(p.hangar||other.hangar)return 'hangar_busy';
  if(distance(p,other)>1200)return 'too_far';
  if(now-(p.lastInvite||0)<5000)return 'invite_cooldown';
  if(s.invites.some(i=>[i.from,i.to].includes(p.id)||[i.from,i.to].includes(other.id)))return 'pending_invite';
@@ -50,6 +51,7 @@ export function reply(s,p,id,accept,now){
  s.invites=s.invites.filter(x=>x.id!==id);if(!accept)return null;
  const a=s.players.find(x=>x.id===i.from&&x.connected);
  if(!a||a.duelId||p.duelId)return 'busy';
+ if(a.hangar||p.hangar)return 'hangar_busy';
  if(distance(a,p)>1200)return 'too_far';
  reset(a);reset(p);const d={id:crypto.randomUUID(),a:a.id,b:p.id,startsAt:now+3000,simTime:now+3000,bullets:[]};a.duelId=p.duelId=d.id;s.duels.push(d);s.invites=s.invites.filter(x=>![a.id,p.id].includes(x.from)&&![a.id,p.id].includes(x.to));return null;
 }
@@ -59,3 +61,12 @@ export function attack(s,p,m,now){const d=duelFor(s,p);if(!d||now<d.startsAt)ret
  const combat={players:pair,bullets:d.bullets};const bullets=volley(combat,p,clean,now);d.bullets=combat.bullets;return bullets;
 }
 export function useAbility(s,p,now){const d=duelFor(s,p);return !!d&&now>=d.startsAt&&ability(p,now)}
+
+export function openHangar(s,p){
+ if(p.duelId||!safe(p))return 'base_only';p.hangar=true;p.firing=false;s.invites=s.invites.filter(i=>i.from!==p.id&&i.to!==p.id);return null;
+}
+export function applyHangarLoadout(s,p,raw,id){
+ if(!p.hangar||p.duelId||!safe(p))return 'base_only';
+ const updated={...p,roster:importRoster(raw)};if(!equip(updated,id))return 'invalid_ship';
+ Object.assign(p,updated);p.hangar=false;reset(p);return null;
+}

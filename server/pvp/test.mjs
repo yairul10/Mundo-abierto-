@@ -9,7 +9,7 @@ async function connect(ticket){const r=await mf.dispatchFetch('https://arena.tes
 async function waitFor(c,predicate){const end=Date.now()+3500;while(Date.now()<end){const found=c.messages.findLast(predicate);if(found)return found;await pause(10)}throw Error('Missing socket message: '+JSON.stringify(c.messages.at(-1)))}
 const send=(c,m)=>c.ws.send(JSON.stringify(m));
 try{
- const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.2');
+ const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.3');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/matchmake',{})).status,410);
  assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
@@ -21,6 +21,11 @@ try{
  const x=await connect(a.token),y=await connect(b.token),z=await connect(c.token);assert.equal(x.status,101);assert.equal((await connect(a.token)).status,409);
  let state=await waitFor(x,m=>m.type==='world'&&m.players.length===3);assert.equal(state.players.find(p=>p.id===a.playerId).profile.attack,88);assert(!JSON.stringify(state).includes(a.token));assert(!JSON.stringify(state).includes('a'.repeat(64)));
  assert.equal((await post('/world/join',{guestKey:'a'.repeat(64)})).body.error,'already_connected');
+ send(y,{type:'hangar',open:true});state=await waitFor(x,m=>m.type==='world'&&m.players.find(p=>p.id===b.playerId)?.hangar);
+ send(x,{type:'invite',target:b.playerId});await waitFor(x,m=>m.type==='error'&&m.error==='hangar_busy');
+ const before=state.players.find(p=>p.id===b.playerId).pos;
+ send(y,{type:'input',seq:1,move:[1,0,0]});state=await waitFor(y,m=>m.type==='world'&&m.players.find(p=>p.id===b.playerId)?.seq===1);assert.deepEqual(state.players.find(p=>p.id===b.playerId).pos,before);
+ send(y,{type:'loadout',roster:{...roster,aurora:{...roster.aurora,maxHp:500,droneCount:3}},shipId:'aurora'});state=await waitFor(y,m=>m.type==='world'&&!m.players.find(p=>p.id===b.playerId)?.hangar&&m.players.find(p=>p.id===b.playerId)?.hp===2500);assert.equal(state.players.find(p=>p.id===b.playerId).profile.droneCount,3);
  const initialX=state.players.find(p=>p.id===a.playerId).pos[0];
  send(x,{type:'input',seq:0,move:[999,0,0],pos:[800,0,0]});send(x,{type:'ping',time:1});await waitFor(x,m=>m.type==='pong'&&m.echo===1);state=x.messages.findLast(m=>m.type==='world');assert.equal(state.players.find(p=>p.id===a.playerId).pos[0],initialX);
  assert(state.players.every(p=>Math.hypot(...p.pos)<650),'All guests start inside the base');

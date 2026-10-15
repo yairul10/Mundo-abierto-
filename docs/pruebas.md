@@ -1,6 +1,6 @@
 # Pruebas y comprobaciones manuales
 
-Actualizado para el contenido de `3d-20261015-222`. Ejecutar desde la raíz con Node 22 o superior:
+Actualizado para el contenido de `3d-20261015-223`. Ejecutar desde la raíz con Node 22 o superior:
 
 ```sh
 node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs
@@ -15,6 +15,7 @@ No requiere instalar dependencias. El workflow Android ejecuta este comando ante
 | advanced-enemy-stats | Escalado avanzado de 2 %, límite ×2,5 y conservación del porcentaje de vida del Coloso |
 | graveyard | Arpón, daño continuo, inmunidad, muerte del dueño, parejas, bomba coordinada, evasión, zona segura y limpieza |
 | hangar-systems | Recetas, propiedad, economía, duración, posiciones, ventajas y cambios de vida sin acumulación |
+| pvp-hangar | Compras canónicas, guardado sin casco ×5, posición/jefes/misiones conservados, bloqueo durante duelos y actualización de equipo |
 | pvp-loadout | Flota propia, mejoras y formación offline, casco ×5 sin acumulación, copia sin modificar el guardado |
 | server/pvp/combat | Perfil de equipamiento, láseres, cadencia, daño del servidor, misiles, Titán y reparación |
 

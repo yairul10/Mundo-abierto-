@@ -11,3 +11,5 @@
 #worldCountdown{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:85;pointer-events:none;color:#fff5b3;text-shadow:0 2px 14px #000;font:800 clamp(26px,5vw,52px) system-ui;text-align:center}
 .world-nameplate{pointer-events:auto;touch-action:none;cursor:pointer}.world-nameplate:focus-visible{outline:2px solid #8bf2ff;border-radius:5px}
 @media(max-height:450px){#worldTarget,#worldInvite{padding:12px;font-size:13px}:is(#worldTarget,#worldInvite) button{padding:10px 14px}}
+body.docked #worldPanel,body.docked #worldTarget,body.docked #worldInvite,body.docked #worldCountdown,body.docked .world-nameplate{display:none!important}
+#worldHangar{background:#155847!important;border-color:#6dcdaa!important}#worldHangar:disabled{opacity:.4}
