@@ -212,3 +212,11 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 #combatControls #fireBtn{right:0;bottom:0;left:auto;top:auto;width:clamp(88px,17vh,120px);height:clamp(88px,17vh,120px);font-size:32px}
 #combatControls #skillBtn{right:clamp(104px,19vh,140px);bottom:4px;left:auto;top:auto;width:clamp(46px,9vh,56px);height:clamp(46px,9vh,56px);font-size:20px}
 #combatControls #classAbilityBtn{right:5px;bottom:clamp(102px,19vh,136px);left:auto;top:auto;width:clamp(46px,9vh,56px);height:clamp(46px,9vh,56px);font-size:19px}
+
+/* v239: PvE zoom next to drone formation in the top action bar; PvP has its own map controls. */
+body:not(.pvp-hud) #zoomControls{position:fixed;top:76px;right:72px;bottom:auto;left:auto;display:flex;flex-direction:row;gap:7px;z-index:16}
+body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
+@media (orientation:landscape) and (pointer:coarse){
+ body:not(.pvp-hud) #zoomControls{top:9px;right:calc(max(8px,env(safe-area-inset-right)) + 151px);bottom:auto;gap:6px}
+ body:not(.pvp-hud) #zoomControls button{width:40px;height:40px;font-size:22px}
+}
