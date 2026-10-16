@@ -56,3 +56,15 @@ s.abilityReady=false;assert.equal(p.tick(s,.3).ability,false);s.abilityReady=tru
 s.safe=()=>false;s.position=s.base;assert.equal(p.tick(s,.9).ability,true);s.paused=true;assert.equal(p.tick(s,1.2).ability,false);s.paused=false;s.dead=true;assert.equal(p.tick(s,1.5).ability,false);
 assert.equal(farmConfig({priorities:{ember:{carrier:99,destroyer:1}}}).priorities.ember.carrier,1);
 assert.equal(farmConfig({priorities:{ember:{destroyer:1}}}).priorities.ember.destroyer,1);
+
+// Optional physical collection, with kill-only as a backwards-compatible default.
+assert.equal(farmConfig().collectBoxes,false);assert.equal(farmConfig({collectBoxes:true}).collectBoxes,true);
+p=setup({collectBoxes:true});s=state();const box={sector:'aurora',age:0,mesh:{visible:true,position:pos(200)}};s.drops=[box];
+c=p.tick(s,1);assert.equal(p.status,'Recogiendo cajas');assert.equal(c.fire,false);assert.ok(c.throttle>0);assert.equal(s.drops.length,1,'Pilot never awards or removes loot directly');
+s.drops=[];p.tick(s,1.3);assert.equal(p.status,'Patrullando');
+p=setup({collectBoxes:true});s=state();const victim=enemy('scout');s.enemies=[victim];p.tick(s,1);s.drops=[box];p.tick(s,1.3);assert.equal(p.status,'Combate automático','Finish existing fight before collecting');victim.dead=1;p.tick(s,1.4);assert.equal(p.status,'Recogiendo cajas');
+p=setup({map:'ember',collectBoxes:true,selections:{ember:['carrier','destroyer']}});s=state();s.sector='ember';s.drops=[{...box,sector:'ember'}];p.tick(s,1);assert.equal(p.status,'Recogiendo cajas');s.enemies=[enemy('carrier',1000)];assert.equal(p.tick(s,1.3).target.type,'carrier','Priority boss interrupts collection');
+p=setup({collectBoxes:true});s=state();s.drops=[{...box,sector:'belt'},{...box,age:91},{...box,mesh:{visible:true,position:pos(4000)}}];p.tick(s,1);assert.equal(p.status,'Patrullando','Ignore expired, other-sector and out-of-bounds boxes');
+p=setup({collectBoxes:true});s=state();s.hp=20;s.drops=[box];p.tick(s,1);assert.match(p.status,/Retirada/);
+
+p=setup({collectBoxes:true});s=state();const box2={...box,mesh:{visible:true,position:pos(300)}};s.drops=[box,box2];s.enemies=[enemy('scout')];p.tick(s,1);s.drops=[box2];p.tick(s,1.1);assert.equal(p.status,'Recogiendo cajas','Continue through remaining boxes between fights');
