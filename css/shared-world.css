@@ -36,3 +36,20 @@ body.pvp-hud #classAbilityBtn{right:clamp(15px,3vw,45px)!important;bottom:clamp(
 body.pvp-hud #pvpSkills{position:fixed!important;right:clamp(165px,23vw,290px)!important;bottom:clamp(110px,19vh,170px)!important;display:flex;gap:7px;z-index:63}
 body.pvp-hud #pvpSkills button{width:clamp(58px,7vw,80px);min-height:clamp(55px,10vh,76px);border-radius:15px}
 body.pvp-hud #worldPanel{width:min(300px,34vw)}
+
+/* PvP HUD v233: minimize the top panel and group navigation by the radar. */
+body.pvp-hud #worldPanel{position:fixed!important;left:50%!important;top:8px!important;transform:translateX(-50%)!important;width:auto!important;min-width:0!important;max-width:36vw!important;padding:4px 8px!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important;pointer-events:none!important}
+body.pvp-hud #worldPanel .world-top{display:none!important}
+body.pvp-hud #worldDetails{display:none!important}
+body.pvp-hud #worldHangar{pointer-events:auto!important;padding:5px 9px!important;margin:2px!important;font-size:11px!important}
+body.pvp-hud #worldHangar:disabled{display:none!important}
+body.pvp-hud #worldMessage{font-size:11px!important;text-align:center!important}
+body.pvp-hud #worldRetry,body.pvp-hud #worldSurrender{pointer-events:auto!important}
+body.pvp-hud #pvpMapActions{position:fixed;top:12px;right:12px;z-index:85;display:flex;flex-direction:row;gap:6px;align-items:flex-start}
+body.pvp-hud #pvpMapActions #worldExit{position:static!important;padding:7px 9px;border:1px solid #79bbd8;border-radius:9px;background:#0c2b45e8;color:white;font:12px system-ui;white-space:nowrap;touch-action:manipulation}
+body.pvp-hud #pvpMapActions #zoomControls{position:static!important;display:flex!important;flex-direction:row!important;gap:5px!important}
+body.pvp-hud #pvpMapActions #zoomControls button{width:35px!important;height:35px!important;font-size:18px!important}
+body.pvp-hud #pvpMapActions{right:clamp(125px,13vw,205px)}
+body.pvp-hud #combatControls{display:block!important}
+body.pvp-hud #combatControls #fireBtn{width:clamp(88px,16vh,128px)!important;height:clamp(88px,16vh,128px)!important}
+@media(max-width:900px){body.pvp-hud #pvpMapActions{right:clamp(110px,16vw,165px)}body.pvp-hud #worldPanel{max-width:30vw!important}}
