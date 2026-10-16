@@ -77,3 +77,15 @@ body.pvp-hud #pvpSkills button>span:first-child{font-size:clamp(20px,4vh,25px)!i
 body.pvp-hud #pvpSkills button>span:nth-child(2){display:none!important}
 body.pvp-hud #pvpSkills button small{font-size:9px!important;line-height:1.1!important}
 @media(max-height:440px){body.pvp-hud #pvpSkills{right:clamp(100px,18vh,125px)!important;bottom:clamp(96px,19vh,115px)!important}}
+
+/* v237: drag-to-position editor, available only from landed PvP hangar. */
+#pvpControlEditorEntry{margin:12px 0;padding:12px;border:1px solid #5289a8;border-radius:12px;background:#0b2235;color:#eafaff}
+#pvpControlEditorEntry button{padding:10px 15px;border-radius:10px;background:#165f84;color:white;border:1px solid #79d6f7}
+#pvpControlEditor{position:fixed;inset:0;z-index:9999;background:#051425f0;color:white;display:flex;flex-direction:column;touch-action:none}
+#pvpControlEditor[hidden]{display:none!important}
+#pvpControlEditor .pvp-editor-toolbar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:10px;background:#071d31;border-bottom:1px solid #73c8ed}
+#pvpControlEditor .pvp-editor-toolbar span{font-size:12px;color:#a8c8e1}
+#pvpControlEditor .pvp-editor-toolbar button{padding:8px 12px;background:#174360;color:white;border:1px solid #80c5ed;border-radius:9px}
+#pvpControlEditor .pvp-editor-canvas{position:relative;flex:1;min-height:0;overflow:hidden;background:radial-gradient(ellipse at 50% 50%,#233a6577,#050d1b)}
+#pvpControlEditor .pvp-editor-control{position:absolute;transform:translate(-50%,-50%);border-radius:50%;width:56px;height:56px;display:grid;place-items:center;font-size:25px;background:#17466ad9;color:white;border:2px solid #8bd4ff;touch-action:none;user-select:none}
+#pvpControlEditor .pvp-editor-control.primary{width:100px;height:100px;background:#a6403ddd;border-color:#ffac84;font-size:38px}
