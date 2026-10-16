@@ -1,3 +1,4 @@
+import {shipThumbnail} from './ship-preview-catalog.js?v=252';
 import {createFarmPilot} from './farm-pilot.js?v=251';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=251';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -10,7 +11,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=247';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=210';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=246';
+import {mountHangarUI} from './hangar-ui.js?v=252';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=238';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=224';
@@ -2220,12 +2221,13 @@ function renderShips(){
  const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
  if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
- fleet.innerHTML='<h3>🚀 Flota de naves</h3>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe).map(([id,t])=>{
+ fleet.innerHTML='<h3>🚀 Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail('aurora')+'</div><div><strong id="shopShipPreviewName">Aurora</strong><small>Modelo 3D · Arrastra para girar. Toca la miniatura de otra nave para verla.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe).map(([id,t])=>{
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
   const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Escudo ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
   const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
-  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':t.recipe?'Ensamblar':'Comprar')+'</button></div>';
+  return '<div class="upgrade-card"><button class="ship-preview-button" type="button" data-preview-ship="'+id+'" aria-label="Ver modelo 3D de '+t.name+'">'+shipThumbnail(id)+'</button><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':t.recipe?'Ensamblar':'Comprar')+'</button></div>';
  }).join('');
+ fleet.querySelectorAll('[data-preview-ship]').forEach(button=>button.onclick=()=>hangarUI?.previewShip(button.dataset.previewShip));
  fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
   const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t)return;
   if(!player.ownedShips[id]){
@@ -2705,6 +2707,7 @@ function advanceLanding(dt){
  }else finishLanding();
 }
 function leaveHangar(){
+ hangarUI?.stopPreview();
  if(PVP_MODE&&pvpHangar){closePvpHangar();return}
  if(!docked)return;
  docked=false;landingArmed=false;

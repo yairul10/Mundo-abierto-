@@ -1,41 +1,43 @@
-// Vista 3D bajo demanda: un único modelo activo, sin afectar al motor de combate.
+import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=252';
+// Only one independent, demand-loaded WebGL preview is alive across the hangar.
 let active=null;
-export function stopAssemblyPreview(){if(active){active();active=null}}
+export function stopAssemblyPreview(){active?.cleanup();active=null}
 export async function startAssemblyPreview(container,id){
+ if(!container||!SHIP_PREVIEWS[id]){stopAssemblyPreview();return}
+ if(active?.id===id){active.mount(container);return}
  stopAssemblyPreview();
- if(!container||id!=='segadora')return;
- let cancelled=false,raf=0,renderer=null,resizeObserver=null,model=null;
- const cleanup=()=>{cancelled=true;cancelAnimationFrame(raf);resizeObserver?.disconnect();if(renderer){renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove()}if(model){model.traverse(o=>{if(o.geometry)o.geometry.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(!m)continue;for(const v of Object.values(m))if(v?.isTexture)v.dispose();m.dispose?.()}})}};
- active=cleanup;
+ let host=container,cancelled=false,raf=0,renderer=null,observer=null,model=null,lastTime=0,lastRender=0,dragging=false,lastX=0;
+ const fallback=()=>{if(!cancelled&&host.isConnected)host.innerHTML=shipThumbnail(id)};
+ const resize=()=>{if(!renderer||!camera)return;const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.position.set(2.6,2.1,-3.3).multiplyScalar(1/Math.min(1,camera.aspect));camera.lookAt(0,0,0);camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
+ const cleanup=()=>{if(cancelled)return;cancelled=true;cancelAnimationFrame(raf);observer?.disconnect();disposePreviewModel(model);model=null;if(renderer){renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();renderer=null}};
+ let camera=null;
+ const session={id,cleanup,mount(next){observer?.disconnect();host=next;if(renderer&&model)host.replaceChildren(renderer.domElement);else host.innerHTML=shipThumbnail(id);observer?.observe(host);resize()}};
+ active=session;host.innerHTML=shipThumbnail(id);
  try{
   const THREE=await import('three');
   const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
   if(cancelled)return;
-  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,1,.1,100);
-  scene.add(new THREE.HemisphereLight(0xd7edff,0x334055,2.5));
-  const light=new THREE.DirectionalLight(0xffffff,3);light.position.set(4,7,6);scene.add(light);
-  const fill=new THREE.DirectionalLight(0xff6677,1.4);fill.position.set(-5,2,-3);scene.add(fill);
-  renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
-  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  const scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(36,4/3,.1,100);camera.position.set(2.6,2.1,-3.3);camera.lookAt(0,0,0);
+  scene.add(new THREE.HemisphereLight(0xe5f2ff,0x34435c,2.8));
+  const key=new THREE.DirectionalLight(0xffffff,3);key.position.set(3,5,-4);scene.add(key);
+  const fill=new THREE.DirectionalLight(0x9fcfff,1.8);fill.position.set(-4,2,3);scene.add(fill);
+  renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:pan-y';
-  container.replaceChildren(renderer.domElement);
-  const gltf=await new GLTFLoader().loadAsync('./assets/models/segadora.glb?v=240');
-  if(cancelled){renderer.dispose();renderer.domElement.remove();return}
-  model=gltf.scene;
-  const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
-  model.position.sub(center);model.scale.setScalar(3/Math.max(size.x,size.y,size.z));
-  // Igual orientación correctiva que en el combate.
-  model.rotation.y=-Math.PI/2;model.rotation.z=-0.055;
-  scene.add(model);camera.position.set(0,2.2,7.5);camera.lookAt(0,0,0);
-  let dragging=false,lastX=0,auto=true,lastTime=0;
-  renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;auto=false;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)});
-  renderer.domElement.addEventListener('pointermove',e=>{if(dragging){model.rotation.y+=(e.clientX-lastX)*.012;lastX=e.clientX}});
-  renderer.domElement.addEventListener('pointerup',()=>{dragging=false;auto=true});
-  renderer.domElement.addEventListener('pointercancel',()=>{dragging=false;auto=true});
-  const resize=()=>{const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
-  resizeObserver=new ResizeObserver(resize);resizeObserver.observe(container);resize();
-  function frame(t){if(cancelled||!container.isConnected)return;if(!document.hidden&&container.getClientRects().length){if(auto&&lastTime)model.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;renderer.render(scene,camera)}lastTime=t;raf=requestAnimationFrame(frame)}
+  const gltf=await new GLTFLoader().loadAsync('./assets/models/'+SHIP_PREVIEWS[id].model+'?v=252');
+  if(cancelled){disposePreviewModel(gltf.scene);return}
+  model=gltf.scene;const turntable=fitPreviewModel(THREE,model,id);scene.add(turntable);host.replaceChildren(renderer.domElement);
+  renderer.domElement.setAttribute('role','img');renderer.domElement.setAttribute('aria-label','Modelo 3D de '+SHIP_PREVIEWS[id].name+'. Arrastra para girar.');
+  renderer.domElement.addEventListener('webglcontextlost',e=>{if(cancelled)return;e.preventDefault();if(active===session)stopAssemblyPreview();if(host.isConnected)host.innerHTML=shipThumbnail(id)});
+  renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)});
+  renderer.domElement.addEventListener('pointermove',e=>{if(dragging){turntable.rotation.y+=(e.clientX-lastX)*.012;lastX=e.clientX}});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(event,()=>{dragging=false});
+  observer=new ResizeObserver(resize);observer.observe(host);resize();
+  function frame(t){
+   if(cancelled)return;
+   if(!host.isConnected||host.closest('#hangarPanel')?.classList.contains('hidden')){if(active===session)stopAssemblyPreview();return}
+   if(!document.hidden&&host.getClientRects().length&&t-lastRender>=1000/30){if(!dragging&&lastTime)turntable.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;renderer.render(scene,camera);lastTime=t;lastRender=t}else if(document.hidden)lastTime=0;
+   raf=requestAnimationFrame(frame);
+  }
   raf=requestAnimationFrame(frame);
- }catch(err){if(!cancelled){console.warn('Vista 3D no disponible; se muestra la imagen de respaldo.',err);cleanup();container.innerHTML='<img class="formation-preview ship-preview" src="./assets/ship-previews/segadora.webp?v=212" alt="Segadora" style="width:100%;height:100%;object-fit:contain">';active=null}}
+ }catch(error){if(!cancelled){console.warn('Vista 3D no disponible; se conserva la miniatura.',error);fallback();if(active===session)stopAssemblyPreview();else cleanup()}}
 }
