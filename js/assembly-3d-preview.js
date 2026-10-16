@@ -9,7 +9,7 @@ export async function startAssemblyPreview(container,id){
  active=cleanup;
  try{
   const THREE=await import('three');
-  const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+  const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
   if(cancelled)return;
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,1,.1,100);
   scene.add(new THREE.HemisphereLight(0xd7edff,0x334055,2.5));
