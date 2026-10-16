@@ -1,0 +1,19 @@
+import {FARM_MAPS} from './farm-pilot.js?v=248';
+export function mountFarmPilotUI({pilot,level,persist,onStart=()=>{}}){
+ const button=document.createElement('button');button.id='farmAutoBtn';button.type='button';button.textContent='AUTO';button.setAttribute('aria-expanded','false');
+ const menu=document.createElement('section');menu.id='farmAutoMenu';menu.hidden=true;menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Piloto automático de farmeo');
+ menu.innerHTML='<h2>Piloto automático</h2><label>Mapa <select aria-label="Mapa de farmeo"></select></label><fieldset><legend>Enemigos a atacar</legend><div class="farm-enemies"></div></fieldset><label><input type="checkbox" class="farm-credit"> Autorizar créditos del juego para reparar y reaparecer</label><small>Sin compras ni consumibles. Jefes opcionales. Se detiene al tocar los controles o salir de la aplicación.</small><p role="status"></p><div class="farm-actions"><button data-action="start">Iniciar</button><button data-action="stop">Detener</button><button data-action="manual">Control manual</button><button data-action="close">Cerrar</button></div>';
+ const style=document.createElement('style');style.textContent='#farmAutoBtn{position:fixed;left:calc(50% - 30px);top:8px;z-index:52;padding:10px;border:1px solid #6cdaff;border-radius:10px;background:#10223ded;color:white;font-weight:bold;touch-action:manipulation}#farmAutoMenu{position:fixed;inset:6% 15%;z-index:105;overflow:auto;background:#0b192bf5;border:1px solid #6cdaff;border-radius:16px;padding:16px;color:white;font:14px system-ui}#farmAutoMenu[hidden]{display:none}#farmAutoMenu h2{margin:0 0 10px}#farmAutoMenu label{display:block;padding:7px}#farmAutoMenu small{display:block;margin:10px 0}#farmAutoMenu button,#farmAutoMenu select{padding:10px;margin:4px;border-radius:8px;background:#1b3f62;color:white;border:1px solid #6ca1bc}.farm-enemies{display:flex;flex-wrap:wrap}.farm-actions{display:flex;flex-wrap:wrap}';
+ document.head.append(style);document.body.append(button,menu);
+ const select=menu.querySelector('select'),list=menu.querySelector('.farm-enemies'),credit=menu.querySelector('.farm-credit'),status=menu.querySelector('[role=status]');
+ for(const [id,m] of Object.entries(FARM_MAPS)){const option=document.createElement('option');option.value=id;option.textContent=m.name+' · Nv. '+m.level;select.append(option)}
+ select.value=pilot.config.map;credit.checked=pilot.config.allowCredits;
+ function renderEnemies(){list.replaceChildren();for(const [id,name] of Object.entries(FARM_MAPS[select.value].enemies)){const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.value=id;input.checked=pilot.config.selections[select.value].includes(id);label.append(input,document.createTextNode(' '+name));list.append(label)}}
+ function save(){pilot.configure({...pilot.config,map:select.value,allowCredits:credit.checked,selections:{...pilot.config.selections,[select.value]:[...list.querySelectorAll('input:checked')].map(e=>e.value)}});persist(pilot.config)}
+ function show(open){menu.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open){for(const o of select.options)o.disabled=level()<FARM_MAPS[o.value].level;refresh()}}
+ function refresh(){button.textContent=pilot.running?'AUTO ●':'AUTO';button.title=pilot.status;status.textContent=pilot.status}
+ select.onchange=()=>{renderEnemies();save()};list.onchange=credit.onchange=save;
+ button.onclick=()=>show(menu.hidden);
+ menu.onclick=e=>{const action=e.target.dataset.action;if(action==='start'){save();if(pilot.start(level())){onStart();show(false)}}else if(action==='stop')pilot.stop('AUTO detenido');else if(action==='manual'){pilot.stop();show(false)}else if(action==='close')show(false);refresh()};
+ renderEnemies();return {get open(){return !menu.hidden},refresh,button,menu};
+}

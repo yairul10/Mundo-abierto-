@@ -1,3 +1,5 @@
+import {createFarmPilot} from './farm-pilot.js?v=248';
+import {mountFarmPilotUI} from './farm-pilot-ui.js?v=248';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=230';
@@ -1865,6 +1867,7 @@ function updateTargetLock(){
  for(const e of enemies){
   if(PVP_MODE&&pvpSession?.opponentId&&e.playerId!==pvpSession.opponentId)continue;
   if(e.dead||!e.mesh.visible||(PVP_MODE&&pvpSession?.isJammed(e.playerId)))continue;
+  if(farmPilot?.running&&e!==farmPilot.target)continue;
   const to=e.mesh.position.clone().sub(camera.position);
   const distance=e.mesh.position.distanceTo(playerMesh.position);
   if(distance>(ownedDrones()?supportRange():COMBAT_RANGE)||to.length()<40||to.dot(forwardView)<=0)continue;
@@ -2724,7 +2727,7 @@ function updateDock(){
  if(available)dockBtn.textContent='🛬 Aterrizar en '+(PVP_MODE?'Base PvP':currentStationName());
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
-addEventListener('keydown',e=>{if(e.target?.closest?.('input,textarea,select'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+addEventListener('keydown',e=>{if(e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');joy.strafe=0;
 function throttleMove(e){if(!panel.classList.contains('hidden')||docked||landing)return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
 // Entradas táctiles independientes: el joystick no pierde su dedo al disparar.
@@ -3147,16 +3150,52 @@ function recoverShip(inCurrentMap){
 $('recoverCurrent').onclick=()=>recoverShip(true);
 $('recoverAurora').onclick=()=>recoverShip(false);
 
+// AUTO supplies inputs to the existing flight/combat systems; it never awards loot.
+let farmPilot=null,farmUI=null,farmUiTick=0;
+if(!PVP_MODE){
+ let config={};try{config=JSON.parse(safeStorageGet(SAVE_KEY+'.farmPilot')||'{}')}catch{}
+ farmPilot=createFarmPilot(config);
+ farmUI=mountFarmPilotUI({pilot:farmPilot,level:()=>player.level,onStart:resetDockControls,persist:c=>safeStorageSet(SAVE_KEY+'.farmPilot',JSON.stringify(c))});
+ const manual=e=>{if(e.target.closest?.('#farmAutoBtn,#farmAutoMenu'))return;if(farmPilot.running){farmPilot.stop();farmUI.refresh()}};
+ document.addEventListener('pointerdown',manual,true);
+ document.addEventListener('touchstart',manual,{capture:true,passive:true});
+ addEventListener('keydown',e=>{if(!e.target.closest?.('#farmAutoMenu'))manual(e)},true);
+ const suspend=()=>{farmPilot.stop('AUTO detenido · juego inactivo');farmUI.refresh()};
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend()});addEventListener('blur',suspend);addEventListener('pagehide',suspend);
+}
+function farmBasePoint(){
+ const pads=activeSector==='graveyard'?graveyard.pads:activeSector==='ember'?emberLandingPads:activeSector==='belt'?beltLandingPads:modularLandingPads;
+ if(pads.length){currentStation().updateMatrixWorld(true);let nearest=null,best=Infinity;for(const pad of pads){const box=new THREE.Box3().setFromObject(pad),p=box.getCenter(new THREE.Vector3());p.y=box.max.y+140;const d=p.distanceToSquared(playerMesh.position);if(d<best){nearest=p;best=d}}return nearest}
+ return currentStation().position.clone().add(new THREE.Vector3(0,150,0));
+}
+let farmObstacles=[],farmObstacleAt=-Infinity,farmBase=null,farmObstacleSector=null;
+function farmInput(dt,now){
+ if(!farmPilot?.running)return null;
+ const paused=farmUI.open||!panel.classList.contains('hidden')||document.body.classList.contains('journal-open')||document.body.classList.contains('portrait-blocked');
+ if(now-farmObstacleAt>500||farmObstacleSector!==activeSector){farmObstacleSector=activeSector;farmObstacleAt=now;farmBase=farmBasePoint();farmObstacles=asteroidField.visible?asteroidField.children.filter(o=>o.position.distanceToSquared(playerMesh.position)<700*700).map(o=>({position:o.position,radius:Math.max(o.scale.x,o.scale.y,o.scale.z)*1.5})):[];}
+ const command=farmPilot.tick({pvp:PVP_MODE,active:!document.hidden&&document.hasFocus()&&!graphicsLost,dead:player.hp<=0||recoveryPending,paused,position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,gold:player.gold,repairCost:Math.ceil(Math.max(0,player.maxHp-player.hp)*.3),robot:player.repairRobot,docked,landing,base:farmBase,sector:activeSector,level:player.level,routes:sectorPortalRoutes(),enemies,drops,safe:inSafeZone,center:currentSector(),radius:currentSector().radius,obstacles:farmObstacles,attacks:enemyShots.concat(titanProjectiles)},now/1000);
+ if(!farmPilot.running)farmUI.refresh();
+ if(command.recover){showRecovery();recoverShip(false)}
+ if(command.repair)$('repairBtn').onclick();
+ if(command.launch)leaveHangar();
+ if(command.land)beginLanding();
+ if(command.yaw!==undefined){yaw+=Math.atan2(Math.sin(command.yaw-yaw),Math.cos(command.yaw-yaw))*Math.min(1,dt*3);pitch+=(command.pitch-pitch)*Math.min(1,dt*3)}
+ // Existing lock cone, projectile cadence and missiles still decide actual shots.
+ if(command.fire&&!paused&&!docked&&!landing&&!inSafeZone(playerMesh.position)){updateTargetLock();if(lockedEnemy===command.target){fire();skill()}}
+ farmUiTick+=dt;if(farmUiTick>.5){farmUiTick=0;farmUI.refresh()}
+ return command;
+}
 function loop(now){const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;
+const autoInput=farmInput(dt,now);
 if(graphicsLost){requestAnimationFrame(loop);return}
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
 updateGraphicsDetail(now);
 if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(document.body.classList.contains('journal-open')){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||document.hidden||docked||landing||!panel.classList.contains('hidden')||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
  updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(shipRole(player.shipId)==='aurora'?1.2+specialLevel('energy')*.04:1));
-const menuOpen=docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select');const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp(joy.throttle+keyThrottle,-1,1);
+const menuOpen=docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
-const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp(joy.strafe+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()||pvpSession?.paralyzed?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(menuOpen?[0,0,0]:forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],!menuOpen&&fireHeld,dt,now);
+const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp((autoInput?.strafe??joy.strafe)+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()||pvpSession?.paralyzed?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(menuOpen?[0,0,0]:forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],!menuOpen&&fireHeld,dt,now);
 // Vuelo libre en los tres ejes: el límite esférico del sector sustituye al antiguo techo/suelo.
 updateSectorBoundary(dt);updateSectorPortal();
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));

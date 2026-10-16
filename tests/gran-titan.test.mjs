@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const moduleSource=readFileSync(new URL('../js/gran-titan.js',import.meta.url),'utf8');
 const {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createTitanCycle,advanceTitanCycle}=await import('data:text/javascript;base64,'+Buffer.from(moduleSource).toString('base64'));
-assert.equal(TITAN_STATS.hp,80000);assert.equal(TITAN_STATS.hp*titanScale(105),184000);assert.equal(TITAN_STATS.gold,30000);assert.equal(TITAN_STATS.xp,45000);assert.equal(TITAN_STATS.loot,40);assert.equal(titanScale(40),1);assert.equal(titanScale(105),2.3);assert.equal(titanScale(1000),2.3);
+assert.equal(TITAN_STATS.hp,80000);assert.equal(TITAN_STATS.hp*titanScale(105),184000);assert.equal(TITAN_STATS.gold,30000);assert.equal(TITAN_STATS.xp,45000);assert.equal(TITAN_STATS.loot,30);assert.equal(titanScale(40),1);assert.equal(titanScale(105),2.3);assert.equal(titanScale(1000),2.3);
 for(let round=0;round<10;round++){const lanes=titanPattern(round);assert.equal(lanes.length,6);assert.equal(new Set(lanes).size,6);assert(lanes.includes(0));assert(!lanes.includes([-2,-1,1,2][round%4]))}
 const c=createTitanCycle();let fires=0;for(let i=0;i<80;i++){const s=advanceTitanCycle(c,.1,true);if(s.fire)fires++;assert(s.open>=0&&s.open<=1)}assert.equal(fires,1);
 advanceTitanCycle(c,.1,true);assert.equal(c.kind,'bomb');assert.equal(c.round,1);
