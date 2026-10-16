@@ -1,4 +1,4 @@
-import {FARM_MAPS} from './farm-pilot.js?v=254';
+import {FARM_MAPS} from './farm-pilot.js?v=255';
 export function mountFarmPilotUI({pilot,level,persist,onStart=()=>{}}){
  const button=document.createElement('button');button.id='farmAutoBtn';button.type='button';button.textContent='AUTO';button.setAttribute('aria-expanded','false');
  const menu=document.createElement('section');menu.id='farmAutoMenu';menu.hidden=true;menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Piloto automático de farmeo');

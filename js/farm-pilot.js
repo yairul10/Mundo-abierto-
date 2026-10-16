@@ -1,3 +1,4 @@
+import {addProFarmChoices,farmEnemyKey} from './pro-enemies.js?v=255';
 // Decision-only pilot: movement, damage, loot and recovery remain owned by the game.
 export const FARM_MAPS={
  aurora:{name:'Aurora',level:1,enemies:{scout:'Explorador',raider:'Asaltante'}},
@@ -5,11 +6,12 @@ export const FARM_MAPS={
  ember:{name:'Ascuas',level:30,enemies:{destroyer:'Destructor',devastator:'Devastador',carrier:'Coloso (jefe)',sentinel:'Guardián (refuerzos)',raider:'Asaltante (refuerzos)'}},
  graveyard:{name:'Cementerio de Naves',level:40,enemies:{catapult:'Catapulta',harpooner:'Arponero',stalker:'Acechador',granTitan:'Gran Titán (jefe)'}}
 };
+addProFarmChoices(FARM_MAPS);
 const order=Object.keys(FARM_MAPS),distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 export function farmConfig(raw={}){
  raw=raw&&typeof raw==='object'?raw:{};
  const map=FARM_MAPS[raw.map]?raw.map:'aurora',selections={},priorities={};
- for(const [id,m] of Object.entries(FARM_MAPS))selections[id]=(Array.isArray(raw.selections?.[id])?raw.selections[id]:Object.keys(m.enemies).filter(e=>!['carrier','granTitan'].includes(e))).filter(e=>e in m.enemies);
+ for(const [id,m] of Object.entries(FARM_MAPS))selections[id]=(Array.isArray(raw.selections?.[id])?raw.selections[id]:Object.keys(m.enemies).filter(e=>!['carrier','granTitan'].includes(e)&&!e.endsWith('Pro'))).filter(e=>e in m.enemies);
  for(const [id,m] of Object.entries(FARM_MAPS)){priorities[id]={};for(const type of Object.keys(m.enemies)){const rank=Number(raw.priorities?.[id]?.[type]);priorities[id][type]=Number.isInteger(rank)&&rank>=1&&rank<=5?rank:['carrier','granTitan'].includes(type)?1:2}}
  return {map,selections,priorities,collectBoxes:raw.collectBoxes===true,allowCredits:raw.allowCredits===true,recovery:raw.recovery==='current'?'current':'aurora'};
 }
@@ -45,8 +47,8 @@ export function createFarmPilot(config={}){
    if(now-decisionAt>=.25||target?.dead||target&&(!target.mesh.visible||target.hp<=0)){
     const finishingFight=collectionEnded||!target||target.dead||target.hp<=0||!target.mesh.visible;
     decisionAt=now;const allowed=settings.selections[settings.map];
-    const candidates=s.enemies.filter(e=>!e.dead&&e.hp>0&&e.mesh.visible&&!s.safe(e.mesh.position)&&(allowed.includes(e.type)||(e.aggressive&&distance(s.position,e.mesh.position)<450)));
-    const rank=e=>allowed.includes(e.type)?settings.priorities[settings.map][e.type]:6;
+    const candidates=s.enemies.filter(e=>!e.dead&&e.hp>0&&e.mesh.visible&&!s.safe(e.mesh.position)&&(allowed.includes(farmEnemyKey(e))||(e.aggressive&&distance(s.position,e.mesh.position)<450)));
+    const rank=e=>allowed.includes(farmEnemyKey(e))?settings.priorities[settings.map][farmEnemyKey(e)]:6;
     const best=candidates.reduce((n,e)=>Math.min(n,rank(e)),Infinity);
     // Keep the current enemy within a rank; preempt it when a higher priority appears.
     if(!candidates.includes(target)||rank(target)>best)target=candidates.filter(e=>rank(e)===best).sort((a,b)=>distance(s.position,a.mesh.position)-distance(s.position,b.mesh.position))[0]||null;

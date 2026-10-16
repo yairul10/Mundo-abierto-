@@ -35,3 +35,8 @@ combat.update(3);assert.equal(total,150);assert(!combat.blocked());
 assert(!combat.snag(boss,new V()),'boss respects existing immunity');
 combat.update(5);assert(combat.snag(boss,new V()));boss.dead=1;combat.update(.01);assert(!combat.blocked());
 combat.clear();assert.equal(objects.size,0,'boss cable disposed');
+
+// Pro attacks carry their owner through bombs and tether ticks for ×2 damage.
+const proHits=[];const eliteCombat=createScrapCombat(THREE,scene,{position:()=>pos,canHit:()=>true,damage:(amount,elapsed=1,owner)=>proHits.push({amount,elapsed,owner}),notify(){}});
+const proHarpoon={type:'harpooner',pro:true,dead:0,mesh:{position:new V(),visible:true,userData:{}}};pos.x=0;pos.z=500;eliteCombat.fire(proHarpoon);eliteCombat.update(.8);eliteCombat.update(1);assert.equal(proHits[0].owner,proHarpoon);assert.equal(proHits[0].amount,50);eliteCombat.clear();proHits.length=0;
+const proCatapult={...proHarpoon,type:'catapult'};eliteCombat.fire(proCatapult);eliteCombat.update(1.4);eliteCombat.update(1.5);assert.equal(proHits[0].owner,proCatapult);assert.equal(proHits[0].amount,300);eliteCombat.clear();
