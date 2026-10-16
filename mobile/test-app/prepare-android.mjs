@@ -63,15 +63,20 @@ if(iconsPresent.length===densities.length){
   // Android adaptive icons usan ic_launcher_foreground; sustituirlo también.
   copyFileSync(from,`${to}/ic_launcher_foreground.png`);
  }
- // El icono adaptativo de Capacitor apunta por defecto a foreground drawable.
- // Sobrescribir el XML para usar la imagen completa del icono.
- for(const density of ['anydpi-v26']){
-  const to=`${androidRes}/mipmap-${density}`;
-  mkdirSync(to,{recursive:true});
-  const xml='<?xml version="1.0" encoding="utf-8"?>\\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\\n    <background android:drawable="@android:color/black" />\\n    <foreground android:drawable="@mipmap/ic_launcher" />\\n</adaptive-icon>\\n';
-  writeFileSync(`${to}/ic_launcher.xml`,xml);
-  writeFileSync(`${to}/ic_launcher_round.xml`,xml);
- }
+ // Recursos adaptativos: la imagen original va en drawable-nodpi, sin referencia circular.
+ const drawable=`${androidRes}/drawable-nodpi`;
+ mkdirSync(drawable,{recursive:true});
+ copyFileSync(`${iconBase}/mipmap-xxxhdpi/ic_launcher.png`,`${drawable}/cosmos_launcher_foreground.png`);
+ const to=`${androidRes}/mipmap-anydpi-v26`;
+ mkdirSync(to,{recursive:true});
+ const xml=`<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/black" />
+    <foreground android:drawable="@drawable/cosmos_launcher_foreground" />
+</adaptive-icon>
+`;
+ writeFileSync(`${to}/ic_launcher.xml`,xml);
+ writeFileSync(`${to}/ic_launcher_round.xml`,xml);
  console.log('Icono Cosmos Legacy aplicado a Android en todas las densidades');
 }else if(iconsPresent.length){
  throw new Error(`Iconos incompletos: ${iconsPresent.length}/5. Faltan recursos en mobile/test-app/icons`);
