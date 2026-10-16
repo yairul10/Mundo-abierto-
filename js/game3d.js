@@ -1130,23 +1130,29 @@ deferredModelLoad(modelLoader,'./assets/models/devastador.glb?v=185',gltf=>{
   e.mesh.add(visual);e.mesh.userData.devastadorModel=visual;
  }
 },undefined,error=>console.warn('Devastador GLB no disponible; se conserva el respaldo.',error));
-// Acechador: load the optimized ship without changing its combat mesh or AI.
+// Reutilizar una sola plantilla para todos los Acechadores, incluso los reaparecidos.
+let acechadorTemplate=null,acechadorScale=1,acechadorCenter=null;
+function ensureAcechadorVisual(e){
+ if(e.type!=='stalker'||!acechadorTemplate||e.mesh.userData.acechadorModel)return;
+ const pivot=new THREE.Group(),visual=acechadorTemplate.clone(true);
+ visual.scale.setScalar(acechadorScale);
+ visual.position.copy(acechadorCenter).multiplyScalar(-acechadorScale);
+ pivot.add(visual);
+ e.mesh.add(pivot);
+ pivot.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+ for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
+ e.mesh.userData.acechadorModel=pivot;
+}
 deferredModelLoad(modelLoader,'./assets/models/acechador_optimizado.glb?v=202',gltf=>{
  const template=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(template);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
- const span=Math.max(size.x,size.y,size.z);if(!Number.isFinite(span)||span<.001)return;
- const factor=155/span;
- for(const e of enemies){
-  if(e.type!=='stalker')continue;
-  const pivot=new THREE.Group(),visual=template.clone(true);
-  visual.scale.setScalar(factor);visual.position.copy(center).multiplyScalar(-factor);
-  // Three.js lookAt aligns the enemy's forward axis with +Z.
-  pivot.add(visual);e.mesh.add(pivot);
-  pivot.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
-  for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
-  e.mesh.userData.acechadorModel=pivot;
- }
+ const span=Math.max(size.x,size.y,size.z);
+ if(!Number.isFinite(span)||span<.001)return;
+ acechadorTemplate=template;
+ acechadorCenter=center;
+ acechadorScale=155/span;
+ for(const e of enemies)ensureAcechadorVisual(e);
 },undefined,error=>console.warn('Acechador GLB no disponible; se conserva la nave provisional.',error));
 const rawBoss=player.carrierState&&typeof player.carrierState==='object'?player.carrierState:{};
 const bossMaxHp=enemyMaxHp('carrier');
@@ -2809,6 +2815,7 @@ function resetSectorPopulation(){
   if(e.titanAdd){e.mesh.visible=activeSector==='graveyard'&&!e.dead;continue}
   if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead&&!e.launchRemaining;continue}
   if(e.type==='carrier'){e.maxHp=enemyMaxHp('carrier');e.hp=bossState.hp;e.dead=bossState.hp>0?0:Infinity;e.mesh.visible=activeSector==='ember'&&bossState.hp>0;continue}
+  if(e.type==='stalker')ensureAcechadorVisual(e);
   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.dead=0;e.aggressive=e.type!=='devastator';
   counts[e.type]=(counts[e.type]||0)+1;e.spawnRank=counts[e.type];e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;
  }
