@@ -18,13 +18,13 @@ p=setup();s=state();s.enemies=[enemy('scout')];s.hp=29;c=p.tick(s,1);assert.equa
 p=setup({allowCredits:true});s=state();s.hp=10;s.docked=true;assert.equal(p.tick(s,1).repair,true);s.gold=0;assert.equal(p.tick(s,2).repair,false);
 for(const authorized of [false,true]){p=setup({allowCredits:authorized});s=state();s.dead=true;assert.equal(p.tick(s,1).recover,authorized);s.gold=0;assert.equal(p.tick(s,2).recover,true)}
 p=setup();s=state();s.paused=true;s.enemies=[enemy('scout')];assert.equal(p.tick(s,1).fire,false);assert.equal(p.tick(s,2).throttle,0);
-p=setup();s=state();s.drops=[{sector:'aurora',mesh:{position:pos(150)}}];c=p.tick(s,1);assert.equal(c.fire,false);assert.ok(c.throttle>0);assert.match(p.status,/botín/);
+p=setup();s=state();s.drops=[{sector:'aurora',mesh:{position:pos(150)}}];c=p.tick(s,1);assert.equal(c.fire,false);assert.ok(c.throttle>0);assert.equal(p.status,'Patrullando');
 p=setup();s=state();s.enemies=[enemy('scout')];const clear=p.tick(s,1);s.obstacles=[{position:pos(160),radius:50}];c=p.tick(s,2);assert.ok(c.pitch>clear.pitch);assert.equal(c.fire,false);
 p=setup({map:'ember',selections:{ember:['carrier']}});s=state();s.sector='ember';s.enemies=[enemy('carrier')];assert.equal(p.tick(s,1).target.type,'carrier');s.enemies[0].dead=1;assert.equal(p.tick(s,1.1).target,null);
 for(const m of Object.values(FARM_MAPS))assert.ok(Object.keys(m.enemies).length);
-console.log('AUTO: selection, bosses, portals, level gates, manual stop, inactive/PvP, physical loot, avoidance, retreat and explicit credit permission passed.');
+console.log('AUTO: selection, bosses, portals, level gates, manual stop, inactive/PvP, drone-owned collection, avoidance, retreat and explicit credit permission passed.');
 
 assert.equal(farmConfig(null).map,'aurora');
-p=setup();s=state();s.enemies=[enemy('scout',1000)];s.drops=[{sector:'aurora',mesh:{position:pos(720)}}];c=p.tick(s,1);assert.equal(c.fire,false);assert.match(p.status,/botín/);
+p=setup();s=state();s.enemies=[enemy('scout',1000)];s.drops=[{sector:'aurora',mesh:{position:pos(720)}}];c=p.tick(s,1);assert.equal(c.fire,true);assert.equal(c.target,s.enemies[0]);assert.equal(p.status,'Combate automático');
 // Real flight integration converges on portal range without editing position directly.
 p=setup({map:'belt'});s=state();let yaw=0,pitch=0;for(let i=0;i<2400;i++){const dt=1/60,c=p.tick(s,i*dt);if(c.yaw!==undefined){yaw+=Math.atan2(Math.sin(c.yaw-yaw),Math.cos(c.yaw-yaw))*dt*3;pitch+=(c.pitch-pitch)*dt*3;}s.position.x+=-Math.sin(yaw)*Math.cos(pitch)*220*c.throttle*dt;s.position.y+=Math.sin(pitch)*220*c.throttle*dt;s.position.z+=-Math.cos(yaw)*Math.cos(pitch)*220*c.throttle*dt;}assert.ok(Math.hypot(s.position.x-2000,s.position.y,s.position.z)<100);

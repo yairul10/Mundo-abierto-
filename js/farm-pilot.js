@@ -14,7 +14,7 @@ export function farmConfig(raw={}){
 }
 export function nextFarmSector(from,to){const a=order.indexOf(from),b=order.indexOf(to);return a<0||b<0||a===b?null:order[a+Math.sign(b-a)]}
 export function createFarmPilot(config={}){
- let settings=farmConfig(config),running=false,retreat=false,target=null,decisionAt=-Infinity,waypoint=null,patrol=0,status='Control manual';
+ let settings=farmConfig(config),running=false,retreat=false,target=null,decisionAt=-Infinity,patrol=0,status='Control manual';
  const stop=(reason='Control manual')=>{running=false;target=null;status=reason};
  return {
  get running(){return running},get target(){return target},get status(){return status},get config(){return settings},
@@ -38,10 +38,8 @@ export function createFarmPilot(config={}){
     decisionAt=now;const allowed=settings.selections[settings.map];
     const candidates=s.enemies.filter(e=>!e.dead&&e.hp>0&&e.mesh.visible&&!s.safe(e.mesh.position)&&(allowed.includes(e.type)||(e.aggressive&&distance(s.position,e.mesh.position)<450)));
     if(!candidates.includes(target))target=candidates.sort((a,b)=>distance(s.position,a.mesh.position)-distance(s.position,b.mesh.position))[0]||null;
-    waypoint=s.drops.filter(d=>!d.sector||d.sector===s.sector).sort((a,b)=>distance(s.position,a.mesh.position)-distance(s.position,b.mesh.position))[0]?.mesh.position||null;
    }
-   if(waypoint&&(!target||distance(s.position,waypoint)<1200&&(!target.aggressive||distance(s.position,target.mesh.position)>500))){goal=waypoint;stopAt=25;status='Recogiendo botín';}
-   else if(target){goal=target.mesh.position;stopAt=720;fire=distance(s.position,goal)<1050;strafe=fire?Math.sin(now*.6)*.7:0;status='Combate automático';}
+   if(target){goal=target.mesh.position;stopAt=720;fire=distance(s.position,goal)<1050;strafe=fire?Math.sin(now*.6)*.7:0;status='Combate automático';}
    else {patrol=now*.025;goal={x:s.center.x+Math.cos(patrol)*s.radius*.58,y:180,z:s.center.z+Math.sin(patrol)*s.radius*.58};stopAt=120;status='Patrullando';}
   }
   const d=distance(s.position,goal),dx=goal.x-s.position.x,dy=goal.y-s.position.y,dz=goal.z-s.position.z;
