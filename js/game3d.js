@@ -372,7 +372,7 @@ function syncPlayerShipVisuals(){
  proceduralShip.visible=!loaded&&!hasOriginal;
 }
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
-const assembledModelPaths={segadora:'./assets/models/segadora.glb?v=208',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=208'};
+const assembledModelPaths={segadora:'./assets/models/segadora.glb?v=240',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=208'};
 function loadAssembledVisual(id){
  if(!ASSEMBLED_SHIPS[id]||playerMesh.userData[id+'Model']||playerMesh.userData[id+'Loading'])return;
  playerMesh.userData[id+'Loading']=true;
