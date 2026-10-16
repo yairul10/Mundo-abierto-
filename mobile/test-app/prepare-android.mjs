@@ -6,6 +6,7 @@ writeFileSync(manifestPath,manifest);
 const javaPath='android/app/src/main/java/io/github/yairul10/mundoabierto/offline/MainActivity.java';
 writeFileSync(javaPath,`package io.github.yairul10.mundoabierto.offline;
 import android.os.Bundle;
+import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -17,7 +18,7 @@ public class MainActivity extends BridgeActivity {
         bars.hide(WindowInsetsCompat.Type.systemBars());
         bars.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
     }
-    @Override public void onCreate(Bundle state) { super.onCreate(state); immersive(); }
+    @Override public void onCreate(Bundle state) { super.onCreate(state); getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); immersive(); }
     @Override public void onWindowFocusChanged(boolean focus) { super.onWindowFocusChanged(focus); if (focus) immersive(); }
 }
 `);
