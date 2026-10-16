@@ -64,3 +64,16 @@ body.pvp-hud #pvpSkills button{width:clamp(48px,8vh,62px)!important;min-height:c
 body.pvp-hud #pvpSkills button>span:first-child{font-size:18px!important}
 body.pvp-hud #pvpSkills button small{font-size:9px!important}
 @media(max-height:440px){body.pvp-hud #combatControls{width:225px!important;height:175px!important}body.pvp-hud #pvpSkills{right:clamp(110px,18vw,190px)!important;bottom:100px!important}}
+
+/* v236: round duel abilities in an arc above and to the left of primary fire. */
+body.pvp-hud #combatControls{right:12px!important;bottom:12px!important;width:224px!important;height:188px!important}
+body.pvp-hud #combatControls #fireBtn{right:0!important;bottom:0!important;width:clamp(88px,17vh,120px)!important;height:clamp(88px,17vh,120px)!important}
+body.pvp-hud #combatControls #skillBtn{right:clamp(104px,19vh,140px)!important;bottom:4px!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important}
+body.pvp-hud #combatControls #classAbilityBtn{right:5px!important;bottom:clamp(102px,19vh,136px)!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important}
+body.pvp-hud #pvpSkills{position:fixed!important;right:clamp(105px,18vh,140px)!important;bottom:clamp(102px,19vh,136px)!important;display:flex!important;flex-direction:row!important;gap:7px!important;z-index:63}
+body.pvp-hud #pvpSkills[hidden]{display:none!important}
+body.pvp-hud #pvpSkills button{flex:0 0 auto!important;box-sizing:border-box!important;width:clamp(48px,9vh,58px)!important;height:clamp(48px,9vh,58px)!important;min-height:0!important;aspect-ratio:1!important;border-radius:50%!important;padding:3px!important;overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;font-size:0!important;line-height:1!important;box-shadow:0 0 8px #31bfff33}
+body.pvp-hud #pvpSkills button>span:first-child{font-size:clamp(20px,4vh,25px)!important;line-height:1!important}
+body.pvp-hud #pvpSkills button>span:nth-child(2){display:none!important}
+body.pvp-hud #pvpSkills button small{font-size:9px!important;line-height:1.1!important}
+@media(max-height:440px){body.pvp-hud #pvpSkills{right:clamp(100px,18vh,125px)!important;bottom:clamp(96px,19vh,115px)!important}}
