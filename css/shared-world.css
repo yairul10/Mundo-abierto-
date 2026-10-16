@@ -13,3 +13,9 @@
 @media(max-height:450px){#worldTarget,#worldInvite{padding:12px;font-size:13px}:is(#worldTarget,#worldInvite) button{padding:10px 14px}}
 body.docked #worldPanel,body.docked #worldTarget,body.docked #worldInvite,body.docked #worldCountdown,body.docked .world-nameplate{display:none!important}
 #worldHangar{background:#155847!important;border-color:#6dcdaa!important}#worldHangar:disabled{opacity:.4}
+
+#pvpSkillEquipment{border:1px solid #42708d;border-radius:10px;margin:10px 0;padding:8px}#pvpSkillEquipment legend{font-weight:600}#pvpSkillEquipment small{line-height:1.35}
+#pvpSkills{position:fixed;right:max(110px,env(safe-area-inset-right));bottom:124px;display:flex;gap:10px;z-index:65;touch-action:none}#pvpSkills[hidden]{display:none}#pvpSkills button{width:90px;min-height:74px;border:1px solid #70b3d0;border-radius:14px;background:#10283eeb;color:#eafaff;padding:6px;touch-action:none;font:11px system-ui;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}#pvpSkills button>span:first-child{font-size:22px}#pvpSkills button:disabled{opacity:.6}#pvpSkills button.active{opacity:1;border-color:#93ffd1;background:#174f4ded;box-shadow:0 0 14px #59ffc855}#pvpSkills button small{color:#a9e8ff}.world-nameplate.jammed{color:#dba9ff}
+@media(max-height:450px){#pvpSkills{bottom:100px;gap:6px;right:100px}#pvpSkills button{width:76px;min-height:60px;font-size:10px}#pvpSkills button>span:first-child{font-size:19px}}
+
+#pvpCondition{position:absolute;bottom:100%;left:0;right:0;margin:0 0 5px;text-align:center;color:#ffe8a3;background:#302050e8;border-radius:8px;padding:5px;font:600 12px system-ui}#pvpCondition[hidden]{display:none}

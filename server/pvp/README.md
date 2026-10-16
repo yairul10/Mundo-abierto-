@@ -51,3 +51,18 @@ Desde esta carpeta: `npm ci && npm test`. Integración real con Miniflare: invit
 `POST /world/join` recibe `realm: "normal" | "test"`; el WebSocket usa `/world/socket?realm=normal|test`. Normal conserva el objeto `shared-cemetery-v1` y pruebas usa `shared-cemetery-test-v1`. Sus jugadores, invitaciones, combates y tickets están separados. Las conexiones sin `realm` conservan la ruta normal por compatibilidad; las versiones anteriores deben actualizarse para usar la separación nueva. Al deshabilitar las pruebas se rechazan nuevas entradas y sockets de ese entorno; los sockets abiertos se cierran en su siguiente mensaje. La partida normal sigue disponible.
 
 Los guardados locales permanecen en `mundoAbierto.player` y `mundoAbierto.qaPlayer`. El modo se fija por página para que otra pestaña no cambie el destino de los guardados del hangar. Cambiar de entorno guarda antes de recargar y no copia créditos, equipo ni materiales. Cerrar las pruebas conserva el guardado QA, sin convertirlo en progreso normal. QA mantiene sus botones de créditos, materiales, niveles, drones y reparación; las compras y el ensamblaje usan sus recursos separados. Esto sigue siendo un prototipo de invitados: no certifica el progreso offline frente a clientes modificados.
+
+## Habilidades PvP (v231)
+
+En Equipar se eligen dos habilidades distintas, solo en la base y fuera de un duelo. Se conservan por dispositivo y modo (normal/pruebas), además de la habilidad propia de la nave. Cada habilidad tiene 30 s de recarga desde su activación, sin coste de energía. Los botones muestran duración activa y recarga; las teclas 1 y 2 también las activan. Al terminar o comenzar un duelo se limpian sus efectos y recargas.
+
+- Interferencia: 3 s sin fijación automática, mascota ni guiado de misiles; rompe también el guiado ya iniciado. No da invulnerabilidad a disparos manuales.
+- Escudo instantáneo: daño recibido ×0,5 durante 3 s, adicional a defensas de nave/formación.
+- Furia: daño de proyectiles ×2 durante 3 s (se calcula al impactar).
+- Transferencia: cura el 50 % del casco realmente quitado al rival durante 5 s; no cuenta daño evitado ni exceso de daño al matar, ni supera el máximo.
+- Paralizado: inmoviliza al oponente durante 3 s, dentro de 1200 m; conserva apuntado/disparo. La habilidad propia de Centella elimina esa parálisis cuando se activa con energía suficiente.
+- Suerte: lanza automáticamente otra ráfaga completa de misiles, incluso si estaban recargando; concede una sola ráfaga y luego aplica su recarga normal de 7 s.
+
+El servidor valida equipo, duelo, distancia, tiempos e impactos. Mensajes nuevos: `skills` con `{skills:[id,id]}` y `pvpSkill` con `{skill:id}`. Snapshots públicos: `equippedSkills`, `skillUntil`, `skillReadyAt`, `paralyzedUntil`; nunca se envían tokens ni plantillas privadas. `skills.mjs` define las reglas compartidas por la simulación y los snapshots; `js/pvp-skills-ui.js` presenta las reglas que anuncia el servidor.
+
+Pruebas: `skills.test.mjs` cubre duraciones, límites y efectos; `test.mjs` comprueba equipo, activación, parálisis y recarga a través de WebSockets con Miniflare.

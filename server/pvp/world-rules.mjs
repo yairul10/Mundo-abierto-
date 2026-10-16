@@ -1,5 +1,6 @@
+import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
-export const WORLD={radius:4500,safeRadius:650,capacity:24,portal:[0,120,850],spawn:[0,120,0]};
+export const WORLD={radius:4500,safeRadius:650,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
 export const SHIPS={aurora:[1,1,1,1],titan:[1.8,.85,1.5,.75],espectro:[.7,1.35,.65,1.4],segadora:[1.1,1.85,.95,1.05],bastion:[2.5,1,2,.85],centella:[.95,1.1,.85,1.85]};
 export const safe=p=>Math.hypot(...p.pos)<=WORLD.safeRadius;
 export const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
@@ -18,7 +19,7 @@ export function equip(p,id){
  q.droneRange=q.droneFormation==='hunter'?1380:1200;q.repairBonus=q.droneFormation==='recovery'?1.25:1;q.explorerRange=450+Math.max(1,Math.min(10,Number(raw.explorerRangeLevel)||1))*100;
  p.hp=q.maxHp;p.energy=q.maxEnergy;p.abilityUntil=0;for(const key of ['laser','missile','explorer'])p['last_'+key]=0;return true;
 }
-export function reset(p,respawn=false){p.hp=p.profile.maxHp;p.energy=p.profile.maxEnergy;p.abilityUntil=0;p.firing=false;p.duelId=null;p.revision=(p.revision||0)+1;for(const key of ['laser','missile','explorer'])p['last_'+key]=0;if(respawn)p.pos=[...(p.spawn||WORLD.spawn)];}
+export function reset(p,respawn=false){clearSkills(p);p.hp=p.profile.maxHp;p.energy=p.profile.maxEnergy;p.abilityUntil=0;p.firing=false;p.duelId=null;p.revision=(p.revision||0)+1;for(const key of ['laser','missile','explorer'])p['last_'+key]=0;if(respawn)p.pos=[...(p.spawn||WORLD.spawn)];}
 export function duelFor(s,p){return s.duels.find(d=>d.id===p.duelId)}
 export function endDuel(s,d,winner,reason,now){
  s.duels=s.duels.filter(x=>x.id!==d.id);
@@ -58,9 +59,10 @@ export function reply(s,p,id,accept,now){
 export function attack(s,p,m,now){const d=duelFor(s,p);if(!d||now<d.startsAt)return null;const pair=[s.players.find(x=>x.id===d.a),s.players.find(x=>x.id===d.b)];if(pair.some(x=>!x?.connected))return null;
  // El servidor decide los críticos; las estadísticas del cliente se ignoran.
  const clean={...m,shots:Array.isArray(m.shots)?m.shots.map(x=>({...x,crit:Math.random()<.15+(p.profile.special.crit||0)*.01})):null};
+ if(m.weapon==='explorer'&&pair.some(x=>x.id!==p.id&&(x.skillUntil?.interference||0)>now))return null;
  const combat={players:pair,bullets:d.bullets};const bullets=volley(combat,p,clean,now);d.bullets=combat.bullets;return bullets;
 }
-export function useAbility(s,p,now){const d=duelFor(s,p);return !!d&&now>=d.startsAt&&ability(p,now)}
+export function useAbility(s,p,now){const d=duelFor(s,p);if(!d||now<d.startsAt||!ability(p,now))return false;if(p.profile.shipId==='centella')p.paralyzedUntil=0;return true}
 
 export function openHangar(s,p){
  if(p.duelId||!safe(p))return 'base_only';p.hangar=true;p.firing=false;s.invites=s.invites.filter(i=>i.from!==p.id&&i.to!==p.id);return null;
@@ -69,4 +71,21 @@ export function applyHangarLoadout(s,p,raw,id){
  if(!p.hangar||p.duelId||!safe(p))return 'base_only';
  const updated={...p,roster:importRoster(raw)};if(!equip(updated,id))return 'invalid_ship';
  Object.assign(p,updated);p.hangar=false;reset(p);return null;
+}
+
+export function setSkills(s,p,ids){
+ if(p.duelId||!safe(p))return 'base_only';
+ if(!validSkills(ids))return 'invalid_skills';
+ p.equippedSkills=[...ids];clearSkills(p);return null;
+}
+export function usePvpSkill(s,p,id,now){
+ const d=duelFor(s,p);if(!d||now<d.startsAt||p.hangar)return 'no_duel';
+ if(!Object.hasOwn(PVP_SKILLS,id)||!equippedSkills(p).includes(id))return 'invalid_skills';
+ const other=s.players.find(x=>x.id===(d.a===p.id?d.b:d.a)&&x.connected);
+ if(id==='paralyze'&&(!other||distance(p,other)>1200))return 'too_far';
+ if(!activateSkill(p,id,now))return 'skill_cooldown';
+ if(id==='paralyze')other.paralyzedUntil=now+3000;
+ if(id==='luck')p.last_missile=now-7000;
+ if(id==='interference')for(const bullet of d.bullets||[])if(bullet.target===p.id)bullet.target=null;
+ return null;
 }

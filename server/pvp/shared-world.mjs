@@ -1,13 +1,14 @@
+import {equippedSkills,validSkills} from './skills.mjs';
 import {testServerEnabled} from './test-config.mjs';
 import {DurableObject} from 'cloudflare:workers';
-import {WORLD,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,endDuel,duelFor,openHangar,applyHangarLoadout} from './world-rules.mjs';
+import {WORLD,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,endDuel,duelFor,openHangar,applyHangarLoadout,setSkills,usePvpSkill} from './world-rules.mjs';
 const json=(x,status=200)=>Response.json(x,{status});
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
 export class SharedWorld extends DurableObject {
  constructor(ctx,env){super(ctx,env);this.env=env;ctx.blockConcurrencyWhile(async()=>{ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS shared_world (id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)')})}
  worldLoad(){const row=this.ctx.storage.sql.exec('SELECT data FROM shared_world WHERE id=1').toArray()[0];return row?JSON.parse(row.data):{players:[],duels:[],invites:[],events:[]}}
  worldSave(s){s.events=s.events.slice(-12);this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify(s))}
- worldSnapshot(s){return {type:'world',serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
+ worldSnapshot(s){return {type:'world',serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,...p})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil:paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
  worldBroadcast(s){const data=JSON.stringify(this.worldSnapshot(s));for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{ws.send(data)}catch{}}
  async enter(body){
   if(!/^[a-f0-9]{64}$/.test(body.guestKey||''))return {error:'invalid_guest'};
@@ -18,7 +19,7 @@ export class SharedWorld extends DurableObject {
   let p=s.players.find(x=>x.id===id);if(p?.connected)return {error:'already_connected'};
   if(!p&&s.players.length>=WORLD.capacity)return {error:'world_full'};
   if(!p){p={id,pos:[...WORLD.spawn],seq:-1,aim:[0,0],connected:false,revision:0};s.players.push(p)}
-  p.realm=body.realm==='test'?'test':'normal';p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];p.roster=importRoster(body.roster);equip(p,body.shipId)||equip(p,Object.keys(p.roster)[0]);reset(p,true);p.hangar=false;
+  p.realm=body.realm==='test'?'test':'normal';p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];p.roster=importRoster(body.roster);equip(p,body.shipId)||equip(p,Object.keys(p.roster)[0]);reset(p,true);p.equippedSkills=validSkills(body.skills)?[...body.skills]:equippedSkills(p);p.hangar=false;
   this.worldSave(s);await this.ctx.storage.setAlarm(now+15000);return {playerId:id,token:p.token,expiresAt:now+30000};
  }
  async fetch(request){
@@ -42,9 +43,11 @@ export class SharedWorld extends DurableObject {
    if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;
    const dt=Math.max(0,Math.min(.15,(now-p.lastInput)/1000));p.lastInput=now;p.seq=m.seq;p.firing=!p.hangar&&!!m.firing;
    if(Array.isArray(m.aim)&&m.aim.length===2&&m.aim.every(Number.isFinite))p.aim=[Math.max(-1000,Math.min(1000,m.aim[0])),Math.max(-1.15,Math.min(1.15,m.aim[1]))];
-   p.pos=p.pos.map((v,i)=>v+(p.hangar?0:m.move[i])*p.profile.speed*dt);const r=Math.hypot(...p.pos);if(r>WORLD.radius)p.pos=p.pos.map(v=>v*WORLD.radius/r);
+   p.pos=p.pos.map((v,i)=>v+(p.hangar||(p.paralyzedUntil||0)>now?0:m.move[i])*p.profile.speed*dt);const r=Math.hypot(...p.pos);if(r>WORLD.radius)p.pos=p.pos.map(v=>v*WORLD.radius/r);
   }else if(m.type==='hangar')error=openHangar(s,p);
   else if(m.type==='loadout')error=applyHangarLoadout(s,p,m.roster,m.shipId);
+  else if(m.type==='skills')error=setSkills(s,p,m.skills);
+  else if(m.type==='pvpSkill')error=usePvpSkill(s,p,m.skill,now);
   else if(m.type==='invite')error=invite(s,p,m.target,now);
   else if(m.type==='reply')error=reply(s,p,m.id,m.accept===true,now);
   else if(m.type==='ship'){
