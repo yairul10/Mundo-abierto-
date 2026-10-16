@@ -28,3 +28,15 @@ assert.equal(farmConfig(null).map,'aurora');
 p=setup();s=state();s.enemies=[enemy('scout',1000)];s.drops=[{sector:'aurora',mesh:{position:pos(720)}}];c=p.tick(s,1);assert.equal(c.fire,true);assert.equal(c.target,s.enemies[0]);assert.equal(p.status,'Combate automático');
 // Real flight integration converges on portal range without editing position directly.
 p=setup({map:'belt'});s=state();let yaw=0,pitch=0;for(let i=0;i<2400;i++){const dt=1/60,c=p.tick(s,i*dt);if(c.yaw!==undefined){yaw+=Math.atan2(Math.sin(c.yaw-yaw),Math.cos(c.yaw-yaw))*dt*3;pitch+=(c.pitch-pitch)*dt*3;}s.position.x+=-Math.sin(yaw)*Math.cos(pitch)*220*c.throttle*dt;s.position.y+=Math.sin(pitch)*220*c.throttle*dt;s.position.z+=-Math.cos(yaw)*Math.cos(pitch)*220*c.throttle*dt;}assert.ok(Math.hypot(s.position.x-2000,s.position.y,s.position.z)<100);
+
+assert.equal(farmConfig({recovery:'invalid'}).recovery,'aurora');
+assert.equal(farmConfig({recovery:'current'}).recovery,'current');
+for(const gold of [0,999,1000,1001])for(const authorized of [false,true]){
+ p=setup({recovery:'current',allowCredits:authorized});s=state();s.dead=true;s.gold=gold;
+ c=p.tick(s,1);assert.equal(c.recover,authorized&&gold>=1000);assert.equal(c.recoverCurrent,true);assert.equal(s.gold,gold);
+ s.paused=true;assert.equal(p.tick(s,2).recover,undefined);
+}
+p=setup();s=state();s.enemies=[enemy('scout')];s.abilityReady=true;assert.equal(p.tick(s,1).ability,true);
+s.abilityReady=false;assert.equal(p.tick(s,2).ability,false);
+s.abilityReady=true;s.hp=20;assert.equal(p.tick(s,3).ability,false);
+p=setup();s=state();s.abilityReady=true;assert.equal(p.tick(s,1).ability,false);

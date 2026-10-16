@@ -1,5 +1,5 @@
-import {createFarmPilot} from './farm-pilot.js?v=249';
-import {mountFarmPilotUI} from './farm-pilot-ui.js?v=248';
+import {createFarmPilot} from './farm-pilot.js?v=250';
+import {mountFarmPilotUI} from './farm-pilot-ui.js?v=250';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=230';
@@ -3173,15 +3173,15 @@ function farmInput(dt,now){
  if(!farmPilot?.running)return null;
  const paused=farmUI.open||!panel.classList.contains('hidden')||document.body.classList.contains('journal-open')||document.body.classList.contains('portrait-blocked');
  if(now-farmObstacleAt>500||farmObstacleSector!==activeSector){farmObstacleSector=activeSector;farmObstacleAt=now;farmBase=farmBasePoint();farmObstacles=asteroidField.visible?asteroidField.children.filter(o=>o.position.distanceToSquared(playerMesh.position)<700*700).map(o=>({position:o.position,radius:Math.max(o.scale.x,o.scale.y,o.scale.z)*1.5})):[];}
- const command=farmPilot.tick({pvp:PVP_MODE,active:!document.hidden&&document.hasFocus()&&!graphicsLost,dead:player.hp<=0||recoveryPending,paused,position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,gold:player.gold,repairCost:Math.ceil(Math.max(0,player.maxHp-player.hp)*.3),robot:player.repairRobot,docked,landing,base:farmBase,sector:activeSector,level:player.level,routes:sectorPortalRoutes(),enemies,safe:inSafeZone,center:currentSector(),radius:currentSector().radius,obstacles:farmObstacles,attacks:enemyShots.concat(titanProjectiles)},now/1000);
+ const command=farmPilot.tick({pvp:PVP_MODE,active:!document.hidden&&document.hasFocus()&&!graphicsLost,dead:player.hp<=0||recoveryPending,paused,abilityReady:classAbilityTime<=0&&player.energy>=SHIP_ABILITIES[player.shipId].energy,position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,gold:player.gold,repairCost:Math.ceil(Math.max(0,player.maxHp-player.hp)*.3),robot:player.repairRobot,docked,landing,base:farmBase,sector:activeSector,level:player.level,routes:sectorPortalRoutes(),enemies,safe:inSafeZone,center:currentSector(),radius:currentSector().radius,obstacles:farmObstacles,attacks:enemyShots.concat(titanProjectiles)},now/1000);
  if(!farmPilot.running)farmUI.refresh();
- if(command.recover){showRecovery();recoverShip(false)}
+ if(command.recover){showRecovery();recoverShip(command.recoverCurrent)}
  if(command.repair)$('repairBtn').onclick();
  if(command.launch)leaveHangar();
  if(command.land)beginLanding();
  if(command.yaw!==undefined){yaw+=Math.atan2(Math.sin(command.yaw-yaw),Math.cos(command.yaw-yaw))*Math.min(1,dt*3);pitch+=(command.pitch-pitch)*Math.min(1,dt*3)}
  // Existing lock cone, projectile cadence and missiles still decide actual shots.
- if(command.fire&&!paused&&!docked&&!landing&&!inSafeZone(playerMesh.position)){updateTargetLock();if(lockedEnemy===command.target){fire();skill()}}
+ if(command.fire&&!paused&&!docked&&!landing&&!inSafeZone(playerMesh.position)){if(command.ability)activateClassAbility();updateTargetLock();if(lockedEnemy===command.target){fire();skill()}}
  farmUiTick+=dt;if(farmUiTick>.5){farmUiTick=0;farmUI.refresh()}
  return command;
 }
