@@ -4,10 +4,10 @@ import {readFileSync} from 'node:fs';
 const shared=readFileSync(new URL('../js/shared-session.js',import.meta.url),'utf8');
 const methods=shared.slice(shared.indexOf('return {get canDock(){')+8,shared.indexOf('get active(){',shared.indexOf('return {get canDock(){')));
 const makeRequest=new Function('bridge','me','state','send',`let hangarRequested=false,hangarRequestAt=0;const tools={hidden:false},clearSelection=()=>{};return {${methods}active:true};`);
-let overPad=false;const sent=[],me={pos:[0,120,0],duelId:null,hangar:false},state={rules:{safeRadius:600}};
+let overPad=false;const sent=[],me={pos:[0,120,0],protected:true,hangar:false},state={rules:{safeRadius:600}};
 const request=makeRequest({canLand:()=>overPad},me,state,m=>sent.push(m));
 assert.equal(request.requestHangar(),false);assert.equal(sent.length,0,'being in the base is insufficient without a platform');
-overPad=true;me.duelId='duel';assert.equal(request.requestHangar(),false);me.duelId=null;
+overPad=true;me.protected=false;assert.equal(request.requestHangar(),false);me.protected=true;
 me.pos=[700,0,0];assert.equal(request.requestHangar(),false);me.pos=[0,120,0];
 assert.equal(request.requestHangar(),true);assert.deepEqual(sent,[{type:'hangar',open:true}]);assert.equal(request.requestHangar(),false,'cannot duplicate pending request');
 // Run the same approach/descent function used by both normal and PvP flight.

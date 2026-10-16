@@ -1,14 +1,15 @@
 import {equippedSkills,validSkills} from './skills.mjs';
 import {testServerEnabled} from './test-config.mjs';
 import {DurableObject} from 'cloudflare:workers';
-import {WORLD,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,endDuel,duelFor,openHangar,applyHangarLoadout,setSkills,usePvpSkill} from './world-rules.mjs';
+import {WORLD,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,protectedAt,updateProtection,openHangar,applyHangarLoadout,setSkills,usePvpSkill} from './world-rules.mjs';
 const json=(x,status=200)=>Response.json(x,{status});
+const pForProtection=(s,id)=>s.players.find(p=>p.id===id);
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
 export class SharedWorld extends DurableObject {
  constructor(ctx,env){super(ctx,env);this.env=env;ctx.blockConcurrencyWhile(async()=>{ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS shared_world (id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)')})}
  worldLoad(){const row=this.ctx.storage.sql.exec('SELECT data FROM shared_world WHERE id=1').toArray()[0];return row?JSON.parse(row.data):{players:[],duels:[],invites:[],events:[]}}
  worldSave(s){s.events=s.events.slice(-12);this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify(s))}
- worldSnapshot(s){return {type:'world',serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,...p})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil:paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
+ worldSnapshot(s){return {type:'world',serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
  worldBroadcast(s){const data=JSON.stringify(this.worldSnapshot(s));for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{ws.send(data)}catch{}}
  async enter(body){
   if(!/^[a-f0-9]{64}$/.test(body.guestKey||''))return {error:'invalid_guest'};
@@ -43,19 +44,19 @@ export class SharedWorld extends DurableObject {
    if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;
    const dt=Math.max(0,Math.min(.15,(now-p.lastInput)/1000));p.lastInput=now;p.seq=m.seq;p.firing=!p.hangar&&!!m.firing;
    if(Array.isArray(m.aim)&&m.aim.length===2&&m.aim.every(Number.isFinite))p.aim=[Math.max(-1000,Math.min(1000,m.aim[0])),Math.max(-1.15,Math.min(1.15,m.aim[1]))];
-   p.pos=p.pos.map((v,i)=>v+(p.hangar||(p.paralyzedUntil||0)>now?0:m.move[i])*p.profile.speed*dt);const r=Math.hypot(...p.pos);if(r>WORLD.radius)p.pos=p.pos.map(v=>v*WORLD.radius/r);
-  }else if(m.type==='hangar')error=openHangar(s,p);
-  else if(m.type==='loadout')error=applyHangarLoadout(s,p,m.roster,m.shipId);
-  else if(m.type==='skills')error=setSkills(s,p,m.skills);
-  else if(m.type==='pvpSkill')error=usePvpSkill(s,p,m.skill,now);
+   p.pos=p.pos.map((v,i)=>v+(p.hangar||(p.paralyzedUntil||0)>now?0:m.move[i])*p.profile.speed*dt);const r=Math.hypot(...p.pos);if(r>WORLD.radius)p.pos=p.pos.map(v=>v*WORLD.radius/r);updateProtection(p,now);if(protectedAt(p,now))p.firing=false;
+  }else if(m.type==='hangar')error=openHangar(s,p,now);
+  else if(m.type==='loadout')error=applyHangarLoadout(s,p,m.roster,m.shipId,now);
+  else if(m.type==='skills')error=setSkills(s,p,m.skills,now);
+  else if(m.type==='pvpSkill')error=usePvpSkill(s,p,m.skill,now,m.targetId);
   else if(m.type==='invite')error=invite(s,p,m.target,now);
   else if(m.type==='reply')error=reply(s,p,m.id,m.accept===true,now);
   else if(m.type==='ship'){
-   if(p.duelId||p.hangar||!safe(p))error='base_only';else if(!equip(p,m.shipId))error='invalid_ship';else {reset(p);s.invites=s.invites.filter(i=>i.from!==p.id&&i.to!==p.id)}
+   if(p.duelId||p.hangar||!safe(p)||!protectedAt(p,now))error='base_only';else if(!equip(p,m.shipId))error='invalid_ship';else {reset(p);s.invites=s.invites.filter(i=>i.from!==p.id&&i.to!==p.id)}
   }else if(m.type==='name'){p.name=String(m.name||'Invitado').trim().slice(0,20)||'Invitado';}
-  else if(m.type==='ability'){if(!useAbility(s,p,now))error='no_duel';}
+  else if(m.type==='ability'){if(!useAbility(s,p,now))error='protected';}
   else if(m.type==='volley'){const bullets=attack(s,p,m,now);if(bullets){const data=JSON.stringify({type:'volley',owner:p.id,shots:bullets,serverTime:now});for(const peer of this.ctx.getWebSockets())try{peer.send(data)}catch{}}}
-  else if(m.type==='surrender'){const d=duelFor(s,p);if(d)endDuel(s,d,d.a===p.id?d.b:d.a,'surrender',now)}
+  else if(m.type==='surrender'){error='open_pvp'}
   else if(m.type==='ping'){ws.send(JSON.stringify({type:'pong',echo:m.time,serverTime:now}));}
   else if(m.type==='leave'){await this.worldDisconnect(ws);try{ws.close(1000,'leave')}catch{}return}
   else return;

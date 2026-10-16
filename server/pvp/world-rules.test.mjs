@@ -1,25 +1,44 @@
 import assert from 'node:assert/strict';
-import {WORLD,equip,advance,invite,reply,attack,useAbility,safe,importRoster} from './world-rules.mjs';
-const now=100000;
-function player(id,pos=[800,0,0]){const p={id,pos,connected:true,seq:-1,roster:importRoster({aurora:{maxHp:490,maxEnergy:295,attack:88,defense:44,speed:220,level:40},bastion:{maxHp:1225,maxEnergy:295,attack:88,defense:88,speed:187,level:40}})};equip(p,'aurora');return p}
-function world(...players){return {players,duels:[],invites:[],events:[]}}
-const a=player('a',[100,120,0]),b=player('b',[300,120,0]),neutral=player('c',[200,120,0]);const s=world(a,b,neutral);
-assert.equal(attack(s,a,{weapon:'laser',shots:[]},now),null);assert.equal(useAbility(s,a,now),false);
-assert.equal(invite(s,a,'b',now),null);assert.equal(reply(s,neutral,s.invites[0].id,true,now),'invite_expired');assert.equal(s.duels.length,0);
-assert.equal(reply(s,b,s.invites[0].id,true,now),null);assert.equal(s.duels.length,1);
-assert.equal(attack(s,a,{weapon:'laser',shots:[{offset:[0,0,0],direction:[1,0,0]}]},now+1000),null);
-assert.equal(invite(s,neutral,'a',now),'busy');
-assert.equal(useAbility(s,a,now+3001),true);assert.equal(a.energy,255);
-const bullet=attack(s,a,{weapon:'laser',shots:[{offset:[0,0,0],direction:[1,0,0]}],damage:99999},now+3001);assert.equal(bullet.length,1);assert.equal(bullet[0].damage,44);
-advance(s,now+3250);assert(b.hp<b.profile.maxHp);assert.equal(neutral.hp,9800);assert.equal(neutral.pos[0],200);
-b.hp=1;attack(s,a,{weapon:'laser',shots:[{offset:[0,0,0],direction:[1,0,0]}]},now+4000);advance(s,now+4250);assert.equal(s.duels.length,0);assert.deepEqual(b.pos,WORLD.spawn);assert.equal(b.hp,b.profile.maxHp);assert.deepEqual(a.pos,[100,120,0]);assert.equal(a.hp,a.profile.maxHp);assert.equal(s.events[0].winner,'a');
-// The base does not cancel an accepted duel or block its abilities/projectiles.
-const c=player('d'),d=player('e',[1100,0,0]);const s2=world(c,d);assert.equal(invite(s2,c,'e',now),null);reply(s2,d,s2.invites[0].id,true,now);
-c.pos=[100,120,0];d.pos=[300,120,0];advance(s2,now+3100);assert.equal(s2.duels.length,1);assert(safe(c)&&safe(d));assert.equal(useAbility(s2,d,now+3100),true);
-assert.equal(attack(s2,c,{weapon:'laser',shots:[{offset:[0,0,0],direction:[1,0,0]}]},now+3100).length,1);advance(s2,now+3350);assert(d.hp<9800);
-advance(s2,now+300000);assert.equal(s2.duels.length,1,'No arbitrary timeout: fight until defeat');
-c.connected=false;advance(s2,now+300100);assert.equal(s2.events.at(-1).reason,'disconnect');assert.equal(d.hp,9800);
-// Refusing a challenge never creates a duel.
-const e=player('f',[0,120,0]),f=player('g',[200,120,0]),s3=world(e,f);invite(s3,e,f.id,now);reply(s3,f,s3.invites[0].id,false,now);assert.equal(s3.duels.length,0);assert.equal(attack(s3,e,{weapon:'laser',shots:[]},now+4000),null);
-const p=player('loadout');equip(p,'bastion');assert.equal(p.profile.maxHp,24500);assert.equal(p.profile.attack,88);assert.equal(p.profile.speed,187);assert.equal(equip(p,'hacked'),false);
-console.log('Shared world: mutual consent, countdown, server loadouts, neutral immunity, base duels, kill/respawn, no refuge or timeout, refusal, disconnect and abilities passed.');
+import {WORLD,equip,importRoster,reset,advance,attack,protectedAt,updateProtection,openHangar,applyHangarLoadout,usePvpSkill,setSkills,invite,reply} from './world-rules.mjs';
+const t=100000;
+const raw={maxHp:490,maxEnergy:500,attack:100,defense:0,speed:220,level:40,explorerDrone:true,upgrades:{missiles:2}};
+function player(id,x=800){const p={id,pos:[x,120,0],connected:true,seq:0,roster:importRoster({aurora:raw,bastion:{...raw,maxHp:1225}})};equip(p,'aurora');updateProtection(p,t);return p}
+const world=(...players)=>({players,duels:[],invites:[],events:[],bullets:[],simTime:t});
+const shot={offset:[0,0,0],direction:[1,0,0]};
+assert.equal(WORLD.radius,3000);assert.equal(WORLD.safeRadius,650);assert.equal(WORLD.protectionDelay,5000);
+// All opponents can be hit. Ignore protected bystanders and choose the first physical collision.
+{
+ const a=player('a',800),b=player('b',900),c=player('c',1000),base=player('safe',100),s=world(a,c,b,base);
+ assert.equal(invite(), 'open_pvp');assert.equal(reply(),'open_pvp');assert.ok(attack(s,a,{weapon:'laser',shots:[shot]},t));advance(s,t+100);assert.ok(b.hp<b.profile.maxHp);assert.equal(c.hp,c.profile.maxHp);assert.equal(base.hp,base.profile.maxHp);
+ b.pos=[900,120,200];assert.ok(attack(s,a,{weapon:'laser',shots:[shot]},t+800));advance(s,t+1000);advance(s,t+1100);assert.ok(c.hp<c.profile.maxHp,'Third player can be hit without invitations');
+ const missiles=attack(s,a,{weapon:'missile',targetId:c.id,shots:[{...shot,locked:true}]},t+2000);assert.equal(missiles[0].target,c.id,'Missiles track selected player rather than first array entry');
+}
+// Exact fixed deadline; incoming and outgoing shots do not restart or skip it.
+{
+ const a=player('a',800),b=player('b',900),s=world(a,b);a.pos=[600,120,0];updateProtection(a,t+1000);const deadline=a.baseEnteredAt;
+ assert.equal(protectedAt(a,t+5999),false);a.lastHit=t+4500;assert.ok(attack(s,a,{weapon:'laser',shots:[shot]},t+5000));assert.equal(a.baseEnteredAt,deadline);
+ assert.equal(protectedAt(a,t+6000),true);assert.equal(attack(s,a,{weapon:'laser',shots:[shot]},t+6000),null);assert.equal(a.baseEnteredAt,deadline);
+ advance(s,t+6000);assert.equal(s.bullets.length,0,'Protection cancels own in-flight damage');assert.equal(openHangar(s,a,t+5999),'base_only');assert.equal(openHangar(s,a,t+6000),null);
+ a.hangar=false;a.pos=[800,120,0];updateProtection(a,t+7000);a.pos=[600,120,0];updateProtection(a,t+7200);assert.equal(protectedAt(a,t+12199),false);assert.equal(protectedAt(a,t+12200),true,'Each reentry starts a new fixed wait');
+ const saved=JSON.parse(JSON.stringify(a));assert.equal(saved.baseEnteredAt,t+7200);assert.equal(protectedAt(saved,t+12200),true,'Protection survives eviction/storage reload');
+}
+// Incoming damage is allowed during entry grace and denied at the deadline.
+{
+ const a=player('a',500),b=player('b',800),s=world(a,b);a.pos=[800,120,0];updateProtection(a,t);a.pos=[600,120,0];updateProtection(a,t+1000);
+ const towardsBase={offset:[0,0,0],direction:[-1,0,0]};attack(s,b,{weapon:'laser',shots:[towardsBase]},t+2000);advance(s,t+2200);assert.ok(a.hp<a.profile.maxHp);const health=a.hp;
+ attack(s,b,{weapon:'laser',shots:[towardsBase]},t+6000);advance(s,t+6200);assert.equal(a.hp,health,'Base protection denies incoming projectiles even if shooter remains outside');
+ assert.equal(usePvpSkill(s,a,'paralyze',t+6200,b.id),'protected');
+ assert.equal(openHangar(s,a,t+6200),null);assert.equal(applyHangarLoadout(s,a,{aurora:raw},'aurora',t+6300),null);assert.equal(a.hp,9800);
+}
+// Death affects only the victim; winner stays wounded and other fights continue.
+{
+ const a=player('a'),b=player('b',900),c=player('c',1200),s=world(a,b,c);a.hp=400;b.hp=1;attack(s,a,{weapon:'laser',shots:[shot]},t);advance(s,t+100);
+ assert.equal(b.hp,9800);assert.deepEqual(b.pos,WORLD.spawn);assert.ok(protectedAt(b,t+100));assert.equal(a.hp,400);assert.deepEqual(a.pos,[800,120,0]);assert.equal(c.hp,9800);assert.equal(s.events[0].victim,'b');assert.equal(s.events[0].winner,'a');
+ assert.equal(attack(s,b,{weapon:'laser',shots:[shot]},t+200),null,'Respawn is protected, not an opportunity to fire from base');
+}
+// Hangar/ship changes cannot bypass the grace interval. Protected targets cannot be paralyzed.
+{
+ const a=player('a',100),b=player('b',900),s=world(a,b);assert.equal(setSkills(s,b,['paralyze','luck'],t),'base_only');setSkills(s,a,['paralyze','luck'],t);a.pos=[800,120,0];updateProtection(a,t+1);b.pos=[100,120,0];updateProtection(b,t+1);advance(s,t+6000);assert.equal(usePvpSkill(s,a,'paralyze',t+6000,b.id),'too_far');
+ a.pos=[600,120,0];updateProtection(a,t+7000);assert.equal(openHangar(s,a,t+8000),'base_only');assert.equal(applyHangarLoadout(s,a,{aurora:raw},'aurora',t+8000),'base_only');
+}
+console.log('Open PvP: all-player combat, earliest hit, missile selection, exact non-resetting 5s protection, persistence, safe spawn/hangar and isolated death passed.');

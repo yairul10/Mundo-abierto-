@@ -1,7 +1,7 @@
 import {DurableObject} from 'cloudflare:workers';
 import {SharedWorld} from './shared-world.mjs';
 import {testServerEnabled,realmName} from './test-config.mjs';
-const VERSION='0.3.6';
+const VERSION='0.4.0';
 const ORIGINS=new Set(['https://yairul10.github.io','https://localhost','http://localhost','capacitor://localhost']);
 const json=(data,status=200,origin='')=>Response.json(data,{status,headers:{'Cache-Control':'no-store',...(ORIGINS.has(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{})}});
 async function readBody(request){
@@ -17,7 +17,7 @@ export default {
   if(origin&&!ORIGINS.has(origin))return json({error:'origin_denied'},403);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type','Access-Control-Max-Age':'600'}});
   if(url.pathname==='/game-config'&&request.method==='GET')return json({testServerEnabled:testServerEnabled(env)},200,origin);
-  if(url.pathname==='/health'&&request.method==='GET')return json({ok:true,game:'mundo-abierto',version:VERSION,stage:'shared-world-test',modes:['shared-world','consensual-duels'],persistentSoloGame:false},200,origin);
+  if(url.pathname==='/health'&&request.method==='GET')return json({ok:true,game:'mundo-abierto',version:VERSION,stage:'shared-world-test',modes:['shared-world','open-pvp'],persistentSoloGame:false},200,origin);
   if(!(await env.API_LIMIT.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'})).success)return json({error:'rate_limit'},429,origin);
   try{
    if(url.pathname==='/world/join'&&request.method==='POST'){const body=await readBody(request);if(body.realm&& !['normal','test'].includes(body.realm))return json({error:'invalid_realm'},400,origin);if(body.realm==='test'&&!testServerEnabled(env))return json({error:'test_closed'},403,origin);const result=await env.ROOMS.getByName(realmName(body.realm)).enter(body);return json(result,result.error?409:200,origin)}

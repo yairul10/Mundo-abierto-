@@ -3,7 +3,7 @@ export const PVP_SKILLS = Object.freeze({
  interference:{name:'Interferencia',icon:'📡',duration:3000,cooldown:30000,description:'Impide la fijación automática y rompe el guiado de misiles durante 3 s. Los disparos manuales pueden acertar.'},
  instantShield:{name:'Escudo instantáneo',icon:'🛡️',duration:3000,cooldown:30000,description:'Reduce a la mitad el daño recibido durante 3 s.'},
  fury:{name:'Furia',icon:'🔥',duration:3000,cooldown:30000,description:'Duplica el daño causado durante 3 s.'},
- paralyze:{name:'Paralizado',icon:'⚡',duration:3000,cooldown:30000,description:'Inmoviliza al rival del duelo durante 3 s a un máximo de 1200 m. Puede seguir disparando.'},
+ paralyze:{name:'Paralizado',icon:'⚡',duration:3000,cooldown:30000,description:'Inmoviliza al objetivo seleccionado durante 3 s a un máximo de 1200 m. Puede seguir disparando.'},
  luck:{name:'Suerte',icon:'🍀',duration:0,cooldown:30000,description:'Dispara de nuevo una ráfaga de misiles, aunque estuvieran recargando.'},
  transfer:{name:'Transferencia',icon:'💚',duration:5000,cooldown:30000,description:'Recupera como vida el 50 % del daño real causado durante 5 s, sin superar el casco máximo.'},
 });

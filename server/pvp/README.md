@@ -1,68 +1,45 @@
-# Mapa PvP compartido · Mundo Abierto
+# PvP abierto · Cosmos Legacy
 
-Contenido v223, Worker 0.3.6. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
+Contenido 256, Worker 0.4.0. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
 
-## Acceso y reglas
+## Mapa y protección
 
-En el Cementerio hay un segundo portal en (40400, 200, -2050), además del regreso a Ascuas. A 100 m se activa en tres segundos. Guarda la partida offline a 350 m del portal antes de entrar en `index.html?pvp=1`. El portal de regreso está en (0, 120, 850) del mapa compartido y también carga tres segundos. El botón de salida permite volver aunque falle la conexión.
+Radio total de 3.000 m. Se conserva la estación existente y su base protegida de 650 m. Fuera de la base todos los pilotos vulnerables pueden atacarse, sin invitaciones, desafíos, equipos ni duelos privados.
 
-Todos entran al mismo objeto `ROOMS.getByName('shared-cemetery-v1')`. Capacidad inicial: 24 conexiones/reservas; si está lleno se informa, sin crear mapas separados silenciosamente. Radio del mapa: 4500 m. Base en el origen, acceso a hangar/equipamiento a 650 m del centro (sin círculo visible), aparición en (0, 120, 0).
+Una nave recién aparecida en la base está protegida. Salir elimina inmediatamente esa protección. Al volver a cruzar hacia dentro empieza un intervalo fijo de 5.000 ms: durante él puede causar y recibir daño. Ni disparar, recibir impactos, usar habilidades ni mandar mensajes reinician el intervalo. Salir antes lo cancela; la siguiente entrada inicia uno nuevo. Al vencer el plazo se bloquean tanto el daño recibido como el causado, incluyendo proyectiles ya lanzados. El servidor conserva el instante de entrada en SQLite; el cliente recibe únicamente el indicador `protected`, sin fecha límite ni conteo de protección en pantalla.
 
-Sin cuentas ni Google. El cliente genera una clave aleatoria privada de 256 bits y la guarda en localStorage. El servidor deriva un ID público estable de 96 bits mediante SHA-256 y emite un ticket temporal diferente para cada conexión. El apodo es editable y el sufijo del ID distingue nombres iguales. El secreto no aparece en snapshots ni URLs. Borrar datos o desinstalar genera otro invitado; web y APK tienen almacenes separados. El servidor no mantiene una cuenta recuperable.
+El hangar, los cambios de nave y la selección de habilidades requieren estar dentro de la base y haber recuperado la protección. El aterrizaje mantiene las plataformas y la aproximación existentes. Nadie puede usar el hangar para anticipar esos cinco segundos.
 
-Toca la nave de otro jugador o su nombre, a cualquier lado de la pantalla; aparece una tarjeta pequeña con «Pedir duelo». No hay lista de selección de pilotos. En la base también se pueden pedir y aceptar duelos, a menos de 1200 m; la invitación expira en 20 segundos, puede rechazarse y no afecta a espectadores. Al aceptar: vida/energía completas, cuenta de tres segundos y pelea en el mismo sitio. Sin límite de tiempo: continúa hasta la destrucción de una nave, rendición o desconexión. Solo los dos participantes pueden dañarse, incluso dentro de la base; no pueden refugiarse en una zona segura durante el duelo. Un piloto no puede participar en dos duelos; varios pares sí pueden combatir a la vez. Desconectarse o rendirse lo termina. El vencido por destrucción reaparece en la base, el ganador permanece donde está; ambos se restauran y quedan protegidos.
+Al destruir una nave solo esa nave reaparece con casco y energía completos en la base. El atacante permanece donde estaba y conserva su vida. No hay créditos, XP, botín, premios ni pérdidas por combatir. Las compras y el ensamblaje dentro del hangar siguen usando el inventario offline real y su editor separado.
 
-## Equipamiento de prueba
+## Equipo y combate
 
-El botón «Equipar» permite elegir apodo y nave en la base; el menú se cierra al recibir o aceptar una invitación. Solo aparecen las naves que posee el jugador en su partida offline. Al entrar se importa una copia del equipo: nivel, estadísticas, drones, formación y sus ventajas, explorador, robot reparador, misiles y especializaciones de cada nave. «Equipar» permite cambiar entre las naves propias mientras se está en la base y fuera de un duelo. El botón «Abrir hangar» abre el hangar completo en la base, fuera de un duelo: comprar, mejorar, vender, reparar, ensamblar y equipar. Usa los créditos y materiales reales del guardado offline; las operaciones se conservan en ambos modos. Mientras el hangar está abierto, el servidor detiene el movimiento y bloquea invitaciones. Al cerrarlo publica el equipo actualizado sin salir del mapa.
+Se importan únicamente las naves poseídas, estadísticas y mejoras offline, drones, formación, mascota, robot reparador y especializaciones. El casco PvP es exactamente ×20 del casco offline, incluida Fortaleza, y nunca se vuelve a multiplicar sobre un perfil PvP. El daño, la defensa, la velocidad y la energía no se multiplican. Las reparaciones porcentuales usan ese máximo.
 
-El casco máximo de cada nave es exactamente veinte veces su casco offline, incluida la bonificación de Fortaleza. Entra con ese casco y energía completos. Daño, defensa, velocidad y mejoras conservan sus valores y efectos; no se multiplican por veinte. Las reparaciones porcentuales se aplican al nuevo máximo. Los potenciadores que estaban activos al entrar se copian para la sesión y no consumen tiempo del guardado offline.
+Los disparos recorren físicamente el mapa y chocan con el primer enemigo vulnerable en su trayectoria. Los misiles usan el objetivo indicado y validado por el servidor. Interferencia solo afecta a ese objetivo, no bloquea globalmente las armas porque otro piloto la tenga activa. Paralizado exige seleccionar un objetivo vulnerable a menos de 1.200 m. Las seis habilidades mantienen sus efectos y recargas. El servidor controla posiciones, energía, límites de ráfaga, cadencias, críticos, trayectorias y daño.
 
-El servidor conserva el perfil original sin multiplicar en una plantilla por nave; equipar, aceptar duelos, reaparecer y reconectar reconstruyen desde esa plantilla. Nunca se aplica ×20 sobre un perfil PvP ya multiplicado. Las plantillas están limitadas por tipos, rangos y una flota de seis IDs reconocidos, pero proceden del guardado offline: esta prueba de invitados no autentica el progreso individual. Movimiento, energía, cadencia, impactos y daño se resuelven en el servidor; no se aceptan daño o posiciones arbitrarios en mensajes de combate. Sin premios, créditos, XP, botín ni pérdidas. Las operaciones del hangar sí se escriben en el guardado normal/QA correspondiente. Para ello se usa un editor separado con estadísticas offline, conservando la posición, sector y estado de jefes guardados. El casco ×20, la posición online y el daño de los duelos nunca se guardan como progreso offline. La selección rápida de nave fuera del hangar sigue limitada a la sesión PvP.
+## Acceso y conexión
 
-## Implementación
+Hay portales desde Cementerio y desde Aurora (este último aparece a nivel 40). La vuelta conserva el mapa y la posición offline guardados. Se mantiene el ID de invitado, tickets temporales, reconexión y capacidad de 24 conexiones por mundo, sin crear mapas extra silenciosamente.
 
-`js/pvp-hangar.js`: editor canónico del hangar y guardado sin multiplicación, con conservación del mundo offline. `js/pvp-loadout.js`: copia y plantillas del equipo offline por nave propia. `js/shared-session.js`: invitado, conexión, UI, invitaciones, ping, entradas 20 Hz, reconciliación, regreso y reconexión. `game3d.js`: controles originales, múltiples naves remotas, nombres, selección, radar, base y portal. `css/shared-world.css`: interfaz táctil.
+Los modos normal y pruebas usan objetos distintos (`shared-cemetery-v1` y `shared-cemetery-test-v1`). `TEST_SERVER_ENABLED=false` permite desactivar solo las pruebas. No se muestran ni se persisten claves de invitado en snapshots; los tokens nunca se publican.
 
-`shared-world.mjs`: Durable Object, SQLite, tickets, snapshots públicos, mensajes limitados, presencia y limpieza. `world-rules.mjs`: consentimiento, cuenta regresiva, importación del equipo y casco ×20, duelos independientes, fin y reaparición. Reutiliza `combat.mjs` para proyectiles y habilidades, aislando los jugadores/balas por duelo. El servidor calcula movimiento, cadencias, daño, críticos, energía e impactos. Las posiciones, estadísticas y daño enviados por el cliente no se aceptan como autoridad.
+`SharedWorld` sigue usando SQLite y WebSockets con hibernación. La simulación avanza con entradas y alarmas existentes; no se añade un bucle permanente. Se mantienen los bindings y exports `ArenaRoom` y `ArenaLobby`, sin eliminar namespaces ni almacenamiento. Las invitaciones de clientes antiguos se rechazan con `open_pvp`.
 
-WebSockets con hibernación; el estado se persiste tras cada mensaje. La simulación avanza por entradas y alarmas de mantenimiento, sin bucle permanente. El cliente se pausa si deja de recibir estados. Tras pérdida de conexión pide un ticket nuevo con el mismo invitado. Se cierra una presencia sin mensajes tras 15 segundos; las reservas sin conexión caducan tras 30 segundos. Una misma identidad no abre dos conexiones simultáneas.
+## Comprobaciones
 
-Se conservan los exports/bindings ArenaRoom y ArenaLobby para mantener los namespaces existentes; no se borra almacenamiento anterior. El lobby, cola y salas del prototipo fueron retirados. Las rutas antiguas responden 410; `pvp.html` redirige al nuevo mapa. El APK empaqueta motor y recursos locales; HTTPS/WSS del host PvP está permitido por CSP. Internet es necesario para este mapa.
+Desde la raíz:
 
-## API
+```sh
+node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs server/pvp/skills.test.mjs
+```
 
-- GET /health: versión y modos.
-- POST /world/join: `{guestKey, name, shipId, roster}` → `{playerId, token, expiresAt}`.
-- GET /world/socket: WebSocket con subprotocolos `['mundo-world-v1', token]`.
-- Mensajes cliente: input, invite, reply, ship, name, volley, ability, surrender, hangar, loadout, ping, leave.
-- Mensajes servidor: world, volley, pong, error. Los snapshots nunca incluyen tickets ni claves privadas.
+Desde esta carpeta, con las dependencias instaladas:
 
-## Validación
+```sh
+npm test
+```
 
-Desde la raíz: `node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs`.
+Las pruebas verifican combate entre varios pilotos, selección de misiles, impactos al primer objetivo, protección a los 5.000 ms exactos, ausencia de reinicio por disparos/impactos, persistencia de la entrada, reaparición individual, hangar, separación normal/pruebas y ausencia de conteo en el cliente. La prueba WebSocket usa Miniflare y los módulos reales.
 
-Desde esta carpeta: `npm ci && npm test`. Integración real con Miniflare: invitados, tres conexiones, identidad estable, rutas antiguas retiradas, perfiles del servidor, movimiento, consentimiento, cuenta regresiva, impactos, espectadores, cambio de nave en base y desconexión. La prueba web de desarrollo verifica dos clientes Three.js, selección de nave, toques a izquierda y derecha, petición manteniendo el joystick, rechazo, aceptación, cuenta de tres segundos, disparos y habilidades dentro de la base, muerte/reaparición y guardado offline intacto. Una prueba entre teléfonos reales sigue siendo necesaria para valorar latencia y controles de cada equipo.
-
-### Partida normal y servidor de prueba (v224)
-
-`GET /game-config` publica `{testServerEnabled: boolean}` sin caché. El binding de texto `TEST_SERVER_ENABLED` controla las pruebas: `true` (o ausente) las habilita; `false` las cierra. No es necesario distribuir otra APK para cambiarlo. El cliente consulta al entrar y cada 60 segundos. Si la consulta inicial falla, permite jugar la partida normal offline; no habilita pruebas con una configuración antigua.
-
-`POST /world/join` recibe `realm: "normal" | "test"`; el WebSocket usa `/world/socket?realm=normal|test`. Normal conserva el objeto `shared-cemetery-v1` y pruebas usa `shared-cemetery-test-v1`. Sus jugadores, invitaciones, combates y tickets están separados. Las conexiones sin `realm` conservan la ruta normal por compatibilidad; las versiones anteriores deben actualizarse para usar la separación nueva. Al deshabilitar las pruebas se rechazan nuevas entradas y sockets de ese entorno; los sockets abiertos se cierran en su siguiente mensaje. La partida normal sigue disponible.
-
-Los guardados locales permanecen en `mundoAbierto.player` y `mundoAbierto.qaPlayer`. El modo se fija por página para que otra pestaña no cambie el destino de los guardados del hangar. Cambiar de entorno guarda antes de recargar y no copia créditos, equipo ni materiales. Cerrar las pruebas conserva el guardado QA, sin convertirlo en progreso normal. QA mantiene sus botones de créditos, materiales, niveles, drones y reparación; las compras y el ensamblaje usan sus recursos separados. Esto sigue siendo un prototipo de invitados: no certifica el progreso offline frente a clientes modificados.
-
-## Habilidades PvP (v231)
-
-En Equipar se eligen dos habilidades distintas, solo en la base y fuera de un duelo. Se conservan por dispositivo y modo (normal/pruebas), además de la habilidad propia de la nave. Cada habilidad tiene 30 s de recarga desde su activación, sin coste de energía. Los botones muestran duración activa y recarga; las teclas 1 y 2 también las activan. Al terminar o comenzar un duelo se limpian sus efectos y recargas.
-
-- Interferencia: 3 s sin fijación automática, mascota ni guiado de misiles; rompe también el guiado ya iniciado. No da invulnerabilidad a disparos manuales.
-- Escudo instantáneo: daño recibido ×0,5 durante 3 s, adicional a defensas de nave/formación.
-- Furia: daño de proyectiles ×2 durante 3 s (se calcula al impactar).
-- Transferencia: cura el 50 % del casco realmente quitado al rival durante 5 s; no cuenta daño evitado ni exceso de daño al matar, ni supera el máximo.
-- Paralizado: inmoviliza al oponente durante 3 s, dentro de 1200 m; conserva apuntado/disparo. La habilidad propia de Centella elimina esa parálisis cuando se activa con energía suficiente.
-- Suerte: lanza automáticamente otra ráfaga completa de misiles, incluso si estaban recargando; concede una sola ráfaga y luego aplica su recarga normal de 7 s.
-
-El servidor valida equipo, duelo, distancia, tiempos e impactos. Mensajes nuevos: `skills` con `{skills:[id,id]}` y `pvpSkill` con `{skill:id}`. Snapshots públicos: `equippedSkills`, `skillUntil`, `skillReadyAt`, `paralyzedUntil`; nunca se envían tokens ni plantillas privadas. `skills.mjs` define las reglas compartidas por la simulación y los snapshots; `js/pvp-skills-ui.js` presenta las reglas que anuncia el servidor.
-
-Pruebas: `skills.test.mjs` cubre duraciones, límites y efectos; `test.mjs` comprueba equipo, activación, parálisis y recarga a través de WebSockets con Miniflare.
+Para probar en Android: actualizar la APK y reconectar al PvP; usar dos o tres dispositivos, salir de la base, dispararse, volver a ella y comprobar que durante cinco segundos sigue habiendo daño y después se bloquea en ambas direcciones. Repetir entrando y saliendo antes de vencer el plazo y usando habilidades. Los pilotos dentro del hangar deben quedar protegidos.
