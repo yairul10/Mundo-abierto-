@@ -26,7 +26,7 @@ export async function startAssemblyPreview(container,id){
   const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   model.position.sub(center);model.scale.setScalar(3/Math.max(size.x,size.y,size.z));
   // Igual orientación correctiva que en el combate.
-  model.rotation.y=-Math.PI/2;model.rotation.z=-0.035;
+  model.rotation.y=-Math.PI/2;model.rotation.z=-0.055;
   scene.add(model);camera.position.set(0,2.2,7.5);camera.lookAt(0,0,0);
   let dragging=false,lastX=0,auto=true,lastTime=0;
   renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;auto=false;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)});
