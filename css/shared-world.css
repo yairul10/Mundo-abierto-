@@ -19,3 +19,10 @@ body.docked #worldPanel,body.docked #worldTarget,body.docked #worldInvite,body.d
 @media(max-height:450px){#pvpSkills{bottom:100px;gap:6px;right:100px}#pvpSkills button{width:76px;min-height:60px;font-size:10px}#pvpSkills button>span:first-child{font-size:19px}}
 
 #pvpCondition{position:absolute;bottom:100%;left:0;right:0;margin:0 0 5px;text-align:center;color:#ffe8a3;background:#302050e8;border-radius:8px;padding:5px;font:600 12px system-ui}#pvpCondition[hidden]{display:none}
+
+/* PvP equipment is edited only in the landed hangar. */
+#pvpHangarLoadout{margin:12px 0;padding:12px;border:1px solid #5289a8;border-radius:12px;background:#0b2235;color:#eafaff}
+#pvpHangarLoadout label{display:block;margin:8px 0}
+#pvpHangarLoadout input,#pvpHangarLoadout select{box-sizing:border-box;width:100%;max-width:360px;padding:8px;background:#10253b;color:white;border:1px solid #5289a8;border-radius:8px}
+#pvpHangarLoadout #worldTools[hidden]{display:none!important}
+#pvpHangarLoadout #worldTools small{display:block;color:#a0bacb}
