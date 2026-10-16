@@ -4,7 +4,7 @@ import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffect
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=226';
-import {attachAssembledEngines} from './assembled-engines.js?v=244';
+import {attachAssembledEngines} from './assembled-engines.js?v=245';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=210';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
@@ -389,7 +389,7 @@ function loadAssembledVisual(id){
    }
   });
   const pivot=new THREE.Group();pivot.rotation.y=ASSEMBLED_SHIPS[id].yaw+(id==='segadora'?-Math.PI/2:0);pivot.add(source);
-  const visual=new THREE.Group();visual.add(pivot);attachAssembledEngines(THREE,visual,id);
+  const visual=new THREE.Group();if(id==='segadora')visual.rotation.z=-0.035;visual.add(pivot);attachAssembledEngines(THREE,visual,id);
   mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false;
  },undefined,error=>{playerMesh.userData[id+'Loading']=false;console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
 }
