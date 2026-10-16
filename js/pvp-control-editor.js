@@ -14,7 +14,7 @@ export function mountPvpControlEditor({realm,isHangarOpen}){
  if(!home)return {apply};
  const section=document.createElement('section');section.id='pvpControlEditorEntry';
  section.innerHTML='<h3>🎮 Controles del duelo</h3><p>Arrastra los botones para organizarlos. Se guardan por separado para pruebas y partida normal.</p><button type="button" id="pvpEditControls">Acomodar botones</button>';
- home.append(section);
+ home.prepend(section);
  const overlay=document.createElement('div');overlay.id='pvpControlEditor';overlay.hidden=true;
  overlay.innerHTML='<div class="pvp-editor-toolbar"><strong>Editar controles PvP</strong><span>Arrastra cada botón a su posición</span><button type="button" data-action="reset">Restablecer</button><button type="button" data-action="cancel">Cancelar</button><button type="button" data-action="save">Guardar</button></div><div class="pvp-editor-canvas" aria-label="Vista previa de botones"></div>';
  document.body.append(overlay);
