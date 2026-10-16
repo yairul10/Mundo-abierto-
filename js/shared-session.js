@@ -1,3 +1,4 @@
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=237';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=234';
 import {offlineRoster,readOfflinePilot} from './pvp-loadout.js?v=224';
 const API='https://mundo-abierto-pvp.jairog940.workers.dev';
@@ -10,7 +11,7 @@ export function startSharedSession(bridge){
  const realm=window.MUNDO_PLAY_MODE?.mode==='test'?'test':'normal';
  let loadout=offlineRoster(readOfflinePilot(localStorage));
  let identity=null,ws=null,state=null,me=null,seq=0,pending=[],lastSend=0,lastPing=0,lastReceived=performance.now(),retryAt=0,attempts=0,busy=false,closed=false,selected='',clockOffset=0,lastRevision=-1,lastDuel=null,portalTime=0,lastFrame=performance.now();const seenEvents=new Set();let firstState=true,hangarRequested=false,hangarRequestAt=0,lastLuck=0;
- const style=document.createElement('link');style.rel='stylesheet';style.href='./css/shared-world.css?v=236';document.head.appendChild(style);document.body.classList.add('pvp-hud');
+ const style=document.createElement('link');style.rel='stylesheet';style.href='./css/shared-world.css?v=237';document.head.appendChild(style);document.body.classList.add('pvp-hud');
  const panel=document.createElement('section');panel.id='worldPanel';panel.setAttribute('aria-label','Mapa PvP compartido');panel.innerHTML='<div class="world-top"><strong id="worldStatus">Conectando al mapa…</strong><button id="worldExit">Salir del PvP</button></div><small id="worldDetails">Invitado · Sin premios ni pérdidas</small><button id="worldHangar">Aterrizar y abrir hangar</button><div id="worldTools" hidden><label>Apodo <input id="worldName" maxlength="20" value="Invitado"></label><button id="worldSaveName">Guardar apodo</button><label>Tu nave <select id="worldShip"></select></label><small>Solo naves conseguidas en este modo. Casco ×5 en PvP.</small></div><button id="worldSurrender" hidden>Rendirse</button><div id="worldMessage" role="status"></div><button id="worldRetry" hidden>Reconectar</button>';
  document.body.appendChild(panel);const zoom=document.getElementById('zoomControls');if(zoom){const actions=document.createElement('div');actions.id='pvpMapActions';actions.append(document.getElementById('worldExit'),zoom);document.body.append(actions)}const home=document.getElementById('hangarHomeView');if(home){const section=document.createElement('section');section.id='pvpHangarLoadout';section.innerHTML='<h3>⚔️ Equipamiento de duelo</h3><p>Elige nave y habilidades PvP solo al aterrizar. Las habilidades PvP no funcionan en PvE.</p>';section.append(document.getElementById('worldTools'));home.append(section)}
  const targetCard=document.createElement('section');targetCard.id='worldTarget';targetCard.hidden=true;targetCard.setAttribute('role','dialog');targetCard.setAttribute('aria-label','Jugador seleccionado');targetCard.innerHTML='<strong id="worldTargetName"></strong><small id="worldTargetDetail"></small><button id="worldChallenge">Pedir duelo</button><button id="worldTargetClose">Cerrar</button>';
@@ -21,6 +22,7 @@ export function startSharedSession(bridge){
  function note(text){message.textContent=text;messageUntil=performance.now()+6500}
  function send(m){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(m))}
  const skillUI=mountPvpSkills({tools,getState:()=>({state,me,now:Date.now()+clockOffset}),canUse:()=>{const d=state?.duels.find(d=>d.id===me?.duelId);return !!me&&ws?.readyState===WebSocket.OPEN&&performance.now()-lastReceived<3000&&!!d&&Date.now()+clockOffset>=d.startsAt},send,isHangarOpen:bridge.isHangarOpen,storage:localStorage,key:'mundoAbierto.pvpSkills.'+realm});
+ const controlEditor=mountPvpControlEditor({realm,isHangarOpen:bridge.isHangarOpen});
  function exit(){if(closed)return;closed=true;send({type:'leave'});ws?.close();location.href='index.html'}
  // El equipamiento se configura desde el hangar al aterrizar.
  $('worldHangar').onclick=()=>bridge.requestLanding();
