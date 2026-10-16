@@ -40,3 +40,18 @@ Sus cuatro texturas pasan de 2048 a 1024 px. Los archivos juntos pasan de
 - Confirmar persistencia tras cerrar/reabrir, funcionamiento offline, legibilidad de
   ataques, y ausencia de pérdidas WebGL. Las pruebas automatizadas no sustituyen
   la medición de FPS/memoria en el dispositivo que mostró el fallo.
+
+## v230: aterrizaje PvP y bombas del Gran Titán
+
+En PvP, el botón de hangar requiere estar sobre una plataforma cargada. Primero
+se reserva el hangar en el servidor (base y sin duelo); tras la confirmación se
+reutiliza la aproximación de 3,4 s y el descenso de 4,2 s. La vista de compras abre
+al tocar la plataforma, y las instantáneas de posición no interrumpen el descenso.
+La reserva bloquea invitaciones. Las compras conservan el guardado offline y el
+casco PvP ×5 al despegar, como en v225.
+
+Las bombas del Gran Titán antes llegaban a los 2 s y detonaban a los 3,5 s. Ahora
+el vuelo, el aviso y el daño comparten los 3,5 s originales. La explosión dura
+0,95 s, con un núcleo más grande, onda expansiva y esfera visible desde dentro.
+El presupuesto de chispas de Baja/Media/Alta se mantiene. Probar visualmente en un
+móvil la llegada al centro del aviso, la explosión, y el aterrizaje/despegue PvP.

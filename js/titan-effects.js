@@ -1,3 +1,6 @@
+export const TITAN_BOMB_FUSE=3.5;
+export const TITAN_BLAST_DURATION=.95;
+export const titanBombProgress=age=>Math.max(0,Math.min(1,age/TITAN_BOMB_FUSE));
 // Lightweight, self-contained projectile visuals. Local +Y is the flight axis.
 export function disposeTitanVisual(root){
  const geometries=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)materials.add(m)});
@@ -46,21 +49,21 @@ export function createTitanEffects(T,sparkCount=()=>10){
   if(bomb)root.rotateY((age-(root.userData.lastAge||0))*1.2);root.userData.lastAge=age;
  }
  function animateMarker(root,age,camera){
-  root.quaternion.copy(camera.quaternion);const u=root.userData,progress=Math.max(0,Math.min(1,age/3.5)),urgent=age>2.7;
+  root.quaternion.copy(camera.quaternion);const u=root.userData,progress=Math.max(0,Math.min(1,titanBombProgress(age))),urgent=age>2.7;
   u.progress.geometry.setDrawRange(0,Math.max(1,Math.ceil(progress*64))*6);
   u.rim.material.color.setHex(urgent?0xff473b:0xffa531);u.progress.material.color.copy(u.rim.material.color);
   u.rim.material.opacity=(urgent?.55:.32)+.12*Math.sin(age*(urgent?16:6));u.center.scale.setScalar(.85+.25*Math.sin(age*7));u.ticks.rotation.z=age*.15;
  }
  function blast(position){
   const root=new T.Group();root.position.copy(position);
-  const shell=new T.Mesh(new T.SphereGeometry(1,16,10),glow(0xff732c,.16));root.add(shell);
+  const shell=new T.Mesh(new T.SphereGeometry(1,16,10),glow(0xff732c,.3));shell.material.side=T.DoubleSide;root.add(shell);
   const wave=new T.Mesh(new T.RingGeometry(.93,1,48),glow(0xffbc65,.8));root.add(wave);
   const core=new T.Mesh(new T.SphereGeometry(1,10,8),glow(0xffe1a0,.8));root.add(core);
   const sparks=new T.Group();const count=sparkCount();for(let i=0;i<count;i++){const a=i*2.39996,y=1-2*(i+.5)/count,r=Math.sqrt(1-y*y),spark=new T.Mesh(new T.ConeGeometry(1.5,13,4),glow(0xffae5b,.9)),dir=new T.Vector3(Math.cos(a)*r,y,Math.sin(a)*r);spark.userData.direction=dir;spark.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),dir);sparks.add(spark)}root.add(sparks);
   root.userData={shell,wave,core,sparks};return root;
  }
  function animateBlast(root,age,camera){
-  const t=Math.min(1,age/.65),u=root.userData,r=150*(1-(1-t)**2);u.shell.scale.setScalar(Math.max(1,r));u.shell.material.opacity=.15*(1-t)**2;u.wave.quaternion.copy(camera.quaternion);u.wave.scale.setScalar(Math.max(1,r));u.wave.material.opacity=.75*(1-t);u.core.scale.setScalar(5+26*t);u.core.material.opacity=.8*(1-t)**3;
+  const t=Math.min(1,age/TITAN_BLAST_DURATION),u=root.userData,r=150*(1-(1-t)**2);u.shell.scale.setScalar(Math.max(1,r));u.shell.material.opacity=.3*(1-t)**2;u.wave.quaternion.copy(camera.quaternion);u.wave.scale.setScalar(Math.max(1,r));u.wave.material.opacity=.75*(1-t);u.core.scale.setScalar(24+65*t);u.core.material.opacity=.95*(1-t)**2;
   for(const spark of u.sparks.children){spark.position.copy(spark.userData.direction).multiplyScalar(18+130*t);spark.material.opacity=.9*(1-t);spark.scale.y=1+t}
  }
  return {spear,bomb,marker,blast,animateProjectile,animateMarker,animateBlast,dispose:disposeTitanVisual};
