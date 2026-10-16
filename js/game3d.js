@@ -11,7 +11,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=247';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=210';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=252';
+import {mountHangarUI} from './hangar-ui.js?v=253';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=238';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=224';
@@ -1324,7 +1324,7 @@ function spawnTitanWave(){
   if(!e){const mesh=['catapult','harpooner'].includes(type)?graveyard.enemyVisual(type):ship(TYPES[type].color,type);scene.add(mesh);e={type,mesh,home:new THREE.Vector3(),titanAdd:true};enemies.push(e)}
   e.hp=e.maxHp=enemyMaxHp(type);e.dead=0;e.aggressive=true;e.fireTimer=3;e.mesh.visible=true;e.mesh.position.copy(titanRig.muzzle('bomb',Math.random()<.5?-1:1)).add(new THREE.Vector3(0,-65,0));e.home.copy(e.mesh.position);
  }
- assembleCatapultParts();assembleHarpoonParts();
+ assembleCatapultParts();assembleHarpoonParts();for(const e of enemies)if(e.titanAdd)ensureAcechadorVisual(e);
 }
 function updateGranTitan(dt){if(PVP_MODE)return;
  const max=enemyMaxHp('granTitan');if(max!==titanEnemy.maxHp){titanEnemy.hp=scaledHealth(titanEnemy.hp,titanEnemy.maxHp,max);titanEnemy.maxHp=max}
@@ -2221,13 +2221,12 @@ function renderShips(){
  const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
  if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
- fleet.innerHTML='<h3>🚀 Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail('aurora')+'</div><div><strong id="shopShipPreviewName">Aurora</strong><small>Modelo 3D · Arrastra para girar. Toca la miniatura de otra nave para verla.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe).map(([id,t])=>{
+ fleet.innerHTML='<h3>🚀 Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail(player.shipId)+'</div><div><strong id="shopShipPreviewName">Nave equipada</strong><small>Nave equipada · Arrastra para girar.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe).map(([id,t])=>{
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
   const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Escudo ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
   const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
-  return '<div class="upgrade-card"><button class="ship-preview-button" type="button" data-preview-ship="'+id+'" aria-label="Ver modelo 3D de '+t.name+'">'+shipThumbnail(id)+'</button><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':t.recipe?'Ensamblar':'Comprar')+'</button></div>';
+  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':t.recipe?'Ensamblar':'Comprar')+'</button></div>';
  }).join('');
- fleet.querySelectorAll('[data-preview-ship]').forEach(button=>button.onclick=()=>hangarUI?.previewShip(button.dataset.previewShip));
  fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
   const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t)return;
   if(!player.ownedShips[id]){
@@ -2616,7 +2615,7 @@ function hangarRefresh(){
  const tag=hangar.querySelector('.hangar-tag');if(tag)tag.textContent=PVP_MODE?'BASE PvP':currentStationName().toLocaleUpperCase('es');
  hangar.setAttribute('aria-label','Hangar '+(PVP_MODE?'Base PvP':currentStationName()));
  const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=Math.ceil(missing*.3);
- hangarStats.textContent=(pvpHangar?'Casco offline: ':'Casco: ')+Math.ceil(player.hp)+' / '+player.maxHp+' · Energía: '+Math.ceil(player.energy)+' / '+player.maxEnergy+' · Créditos: '+player.gold+(pvpHangar?' · Casco PvP: '+(player.maxHp*5):'');
+ hangarStats.textContent=(pvpHangar?'Casco offline: ':'Casco: ')+Math.ceil(player.hp)+' / '+player.maxHp+' · Energía: '+Math.ceil(player.energy)+' / '+player.maxEnergy+' · Créditos: '+player.gold+(pvpHangar?' · Casco PvP: '+(player.maxHp*20):'');
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
  $('hangarMessage').textContent=missing&&player.gold<cost?'Necesitas '+cost+' créditos para reparar.':'';
@@ -3236,7 +3235,7 @@ for(const e of enemies){
  if(e.dead){
   if(!e.titanAdd&&e.type!=='granTitan'&&!e.bossAdd&&e.type!=='carrier'&&now/1000>=e.dead){
    e.dead=0;e.maxHp=enemyMaxHp(e.type);e.hp=e.maxHp;e.aggressive=e.type!=='devastator';
-   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;rejoinScrapPair(e);
+   e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;rejoinScrapPair(e);ensureAcechadorVisual(e);
   }
   continue;
  }

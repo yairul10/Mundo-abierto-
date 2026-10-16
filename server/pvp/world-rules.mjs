@@ -12,7 +12,7 @@ export function equip(p,id){
  if(!Object.hasOwn(SHIPS,id)||!Object.hasOwn(p.roster||{},id))return false;
  const raw=p.roster[id];makeCombatPlayer(p,raw);const q=p.profile;
  // Multiply the original offline hull once; never multiply a previous PvP snapshot.
- q.offlineMaxHp=q.maxHp;q.maxHp=q.offlineMaxHp*5;q.hp=q.maxHp;
+ q.offlineMaxHp=q.maxHp;q.maxHp=q.offlineMaxHp*20;q.hp=q.maxHp;
  q.droneFormation=q.droneCount>0&&['fan','shield','spear','fortress','hunter','drive','recovery'].includes(raw.droneFormation)?raw.droneFormation:'fan';
  q.baseSpeed=q.speed;q.speed*=q.droneFormation==='drive'?1.12:1;
  q.droneDamage=q.droneFormation==='spear'?1.2:1;q.resistance=(q.droneFormation==='shield'?.85:1)*(raw.boosters?.resistance===true?.85:1);q.damageBonus=raw.boosters?.damage===true?1.15:1;

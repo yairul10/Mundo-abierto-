@@ -9,7 +9,7 @@ async function connect(ticket,realm="normal"){const r=await mf.dispatchFetch('ht
 async function waitFor(c,predicate){const end=Date.now()+3500;while(Date.now()<end){const found=c.messages.findLast(predicate);if(found)return found;await pause(10)}throw Error('Missing socket message: '+JSON.stringify(c.messages.at(-1)))}
 const send=(c,m)=>c.ws.send(JSON.stringify(m));
 try{
- const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.5');
+ const h=await mf.dispatchFetch('https://arena.test/health');assert.equal((await h.json()).version,'0.3.6');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/matchmake',{})).status,410);
  assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
@@ -30,7 +30,7 @@ try{
  send(x,{type:'invite',target:b.playerId});await waitFor(x,m=>m.type==='error'&&m.error==='hangar_busy');
  const before=state.players.find(p=>p.id===b.playerId).pos;
  send(y,{type:'input',seq:1,move:[1,0,0]});state=await waitFor(y,m=>m.type==='world'&&m.players.find(p=>p.id===b.playerId)?.seq===1);assert.deepEqual(state.players.find(p=>p.id===b.playerId).pos,before);
- send(y,{type:'loadout',roster:{...roster,aurora:{...roster.aurora,maxHp:500,droneCount:3}},shipId:'aurora'});state=await waitFor(y,m=>m.type==='world'&&!m.players.find(p=>p.id===b.playerId)?.hangar&&m.players.find(p=>p.id===b.playerId)?.hp===2500);assert.equal(state.players.find(p=>p.id===b.playerId).profile.droneCount,3);
+ send(y,{type:'loadout',roster:{...roster,aurora:{...roster.aurora,maxHp:500,droneCount:3}},shipId:'aurora'});state=await waitFor(y,m=>m.type==='world'&&!m.players.find(p=>p.id===b.playerId)?.hangar&&m.players.find(p=>p.id===b.playerId)?.hp===10000);assert.equal(state.players.find(p=>p.id===b.playerId).profile.droneCount,3);
 
  send(x,{type:'skills',skills:['paralyze','luck']});state=await waitFor(x,m=>m.type==='world'&&m.players.find(p=>p.id===a.playerId)?.equippedSkills?.[0]==='paralyze');assert.equal(Object.keys(state.rules.skills).length,6);
  send(x,{type:'pvpSkill',skill:'paralyze'});await waitFor(x,m=>m.type==='error'&&m.error==='no_duel');
@@ -53,7 +53,7 @@ try{
  send(x,{type:'volley',weapon:'laser',shots:[{offset:[0,0,0],direction:delta.map(v=>v/len)}],damage:99999});
  for(let i=0;i<25;i++){await pause(30);send(y,{type:'ping',time:100+i})}
  state=await waitFor(y,m=>m.type==='world'&&m.players.find(p=>p.id===b.playerId).hp<hp);assert.equal(state.players.find(p=>p.id===c.playerId).hp,state.players.find(p=>p.id===c.playerId).profile.maxHp);
- send(z,{type:'ship',shipId:'bastion'});state=await waitFor(z,m=>m.type==='world'&&m.players.find(p=>p.id===c.playerId).profile.shipId==='bastion');assert.equal(state.players.find(p=>p.id===c.playerId).hp,6125);
+ send(z,{type:'ship',shipId:'bastion'});state=await waitFor(z,m=>m.type==='world'&&m.players.find(p=>p.id===c.playerId).profile.shipId==='bastion');assert.equal(state.players.find(p=>p.id===c.playerId).hp,24500);
  x.ws.close();state=await waitFor(y,m=>m.type==='world'&&m.duels.length===0&&m.events.some(e=>e.reason==='disconnect'));assert.equal(state.players.find(p=>p.id===b.playerId).hp,hp);
  const again=(await post('/world/join',{roster,guestKey:'a'.repeat(64),name:'Regreso'})).body;assert.equal(again.playerId,a.playerId);assert.notEqual(again.token,a.token);
  send(testClient,{type:'ping',time:42});await waitFor(testClient,m=>m.type==='pong'&&m.echo===42);

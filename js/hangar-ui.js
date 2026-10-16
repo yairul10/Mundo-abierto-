@@ -12,7 +12,7 @@ export function formationPreview(id){
 }
 export function assembledShipPreview(id){return ASSEMBLED_SHIPS[id]?shipThumbnail(id):''}
 export function mountHangarUI({player,isDocked,isOffline,equip,equipShip,log=()=>{},changed}){
- const $=id=>document.getElementById(id);let selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='',shopPreviewId='aurora';
+ const $=id=>document.getElementById(id);let selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='';
  const note=text=>{message=text;const el=$('hangarNotice');el.textContent=text;el.hidden=!text};
  function show(next){stopAssemblyPreview();view=next;for(const v of ['home','shop','assembly'])$('hangar'+v[0].toUpperCase()+v.slice(1)+'View').classList.toggle('hidden',v!==view);$('hangarPanel').classList.toggle('expanded',view!=='home');note('');render(true);if(view==='shop'&&category==='ships')previewShip()}
  document.querySelectorAll('[data-hangar-view]').forEach(b=>b.onclick=()=>show(b.dataset.hangarView));
@@ -60,6 +60,6 @@ export function mountHangarUI({player,isDocked,isOffline,equip,equipShip,log=()=
    $('confirmSale').onclick=()=>{dialog.classList.add('hidden');if(!isDocked()||!isOffline()||!sellMaterial(player,id,n))return;log('commerce','Venta: '+fmt(n)+' '+name+' · +'+fmt(n*SELL_PRICES[id])+' créditos');note('Venta completada: +'+fmt(n*SELL_PRICES[id])+' créditos.');sync()};
   });
  }
- function previewShip(id=shopPreviewId){if(!SHIP_PREVIEWS[id]||view!=='shop'||category!=='ships')return;shopPreviewId=id;const host=$('shopShipPreview');if(host){const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_PREVIEWS[id].name;void startAssemblyPreview(host,id)}}
+ function previewShip(){const id=player.shipId;if(!SHIP_PREVIEWS[id]||view!=='shop'||category!=='ships')return;const host=$('shopShipPreview');if(host){const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_PREVIEWS[id].name;void startAssemblyPreview(host,id)}}
  return {render(force=false){render(force);if(view==='shop'&&category==='ships')previewShip();},show,previewShip,stopPreview:stopAssemblyPreview};
 }
