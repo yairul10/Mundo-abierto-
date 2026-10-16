@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,existsSync,mkdirSync,copyFileSync} from 'node:fs';
 const manifestPath='android/app/src/main/AndroidManifest.xml';
 let manifest=readFileSync(manifestPath,'utf8');
 manifest=manifest.replace('<activity','<activity android:screenOrientation="sensorLandscape"');
@@ -44,4 +44,37 @@ if(process.env.MUNDO_KEYSTORE){
  writeFileSync(gradlePath,signed);
 }else if(process.env.CI){
  throw new Error('No se permite compilar en CI sin firma permanente');
+}
+
+
+// Icono de Cosmos Legacy: recursos persistentes copiados tras generar Android.
+// Los archivos se suben a mobile/test-app/icons/mipmap-*/ic_launcher.png.
+const iconBase='icons';
+const androidRes='android/app/src/main/res';
+const densities=['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi'];
+const iconsPresent=densities.filter(d=>existsSync(`${iconBase}/mipmap-${d}/ic_launcher.png`));
+if(iconsPresent.length===densities.length){
+ for(const density of densities){
+  const from=`${iconBase}/mipmap-${density}/ic_launcher.png`;
+  const to=`${androidRes}/mipmap-${density}`;
+  mkdirSync(to,{recursive:true});
+  copyFileSync(from,`${to}/ic_launcher.png`);
+  copyFileSync(from,`${to}/ic_launcher_round.png`);
+  // Android adaptive icons usan ic_launcher_foreground; sustituirlo también.
+  copyFileSync(from,`${to}/ic_launcher_foreground.png`);
+ }
+ // El icono adaptativo de Capacitor apunta por defecto a foreground drawable.
+ // Sobrescribir el XML para usar la imagen completa del icono.
+ for(const density of ['anydpi-v26']){
+  const to=`${androidRes}/mipmap-${density}`;
+  mkdirSync(to,{recursive:true});
+  const xml='<?xml version="1.0" encoding="utf-8"?>\\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\\n    <background android:drawable="@android:color/black" />\\n    <foreground android:drawable="@mipmap/ic_launcher" />\\n</adaptive-icon>\\n';
+  writeFileSync(`${to}/ic_launcher.xml`,xml);
+  writeFileSync(`${to}/ic_launcher_round.xml`,xml);
+ }
+ console.log('Icono Cosmos Legacy aplicado a Android en todas las densidades');
+}else if(iconsPresent.length){
+ throw new Error(`Iconos incompletos: ${iconsPresent.length}/5. Faltan recursos en mobile/test-app/icons`);
+}else{
+ console.log('Icono personalizado pendiente: usando icono predeterminado de Capacitor');
 }
