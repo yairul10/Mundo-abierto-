@@ -26,3 +26,13 @@ body.docked #worldPanel,body.docked #worldTarget,body.docked #worldInvite,body.d
 #pvpHangarLoadout input,#pvpHangarLoadout select{box-sizing:border-box;width:100%;max-width:360px;padding:8px;background:#10253b;color:white;border:1px solid #5289a8;border-radius:8px}
 #pvpHangarLoadout #worldTools[hidden]{display:none!important}
 #pvpHangarLoadout #worldTools small{display:block;color:#a0bacb}
+
+/* Compact PvP combat cluster, without changing PvE controls. */
+body.pvp-hud #combatControls{position:fixed!important;right:clamp(16px,3vw,48px)!important;bottom:clamp(16px,3vh,32px)!important;left:auto!important;top:auto!important;width:clamp(210px,28vw,310px)!important;height:clamp(170px,32vh,245px)!important;display:block!important;pointer-events:none;z-index:62}
+body.pvp-hud #combatControls>button{position:absolute!important;pointer-events:auto;display:flex;align-items:center;justify-content:center;border-radius:50%!important;touch-action:none}
+body.pvp-hud #fireBtn{right:0!important;bottom:0!important;left:auto!important;top:auto!important;width:clamp(86px,12vh,116px)!important;height:clamp(86px,12vh,116px)!important;font-size:32px!important;box-shadow:0 0 18px #ff673e88}
+body.pvp-hud #skillBtn{right:clamp(110px,13vw,145px)!important;bottom:12px!important;left:auto!important;top:auto!important;width:64px!important;height:64px!important}
+body.pvp-hud #classAbilityBtn{right:clamp(15px,3vw,45px)!important;bottom:clamp(118px,16vh,150px)!important;left:auto!important;top:auto!important;width:62px!important;height:62px!important}
+body.pvp-hud #pvpSkills{position:fixed!important;right:clamp(165px,23vw,290px)!important;bottom:clamp(110px,19vh,170px)!important;display:flex;gap:7px;z-index:63}
+body.pvp-hud #pvpSkills button{width:clamp(58px,7vw,80px);min-height:clamp(55px,10vh,76px);border-radius:15px}
+body.pvp-hud #worldPanel{width:min(300px,34vw)}
