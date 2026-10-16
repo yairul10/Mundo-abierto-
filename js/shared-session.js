@@ -1,4 +1,4 @@
-import {mountPvpSkills} from './pvp-skills-ui.js?v=231';
+import {mountPvpSkills} from './pvp-skills-ui.js?v=234';
 import {offlineRoster,readOfflinePilot} from './pvp-loadout.js?v=224';
 const API='https://mundo-abierto-pvp.jairog940.workers.dev';
 const GUEST_KEY='mundoAbierto.guestKey',NAME_KEY='mundoAbierto.guestName',SHIP_KEY='mundoAbierto.guestShip';
