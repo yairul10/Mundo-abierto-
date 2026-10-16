@@ -389,7 +389,7 @@ function loadAssembledVisual(id){
    }
   });
   const pivot=new THREE.Group();pivot.rotation.y=ASSEMBLED_SHIPS[id].yaw+(id==='segadora'?-Math.PI/2:0);pivot.add(source);
-  const visual=new THREE.Group();if(id==='segadora')visual.rotation.z=-0.035;visual.add(pivot);attachAssembledEngines(THREE,visual,id);
+  const visual=new THREE.Group();if(id==='segadora')visual.rotation.z=-0.055;visual.add(pivot);attachAssembledEngines(THREE,visual,id);
   mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false;
  },undefined,error=>{playerMesh.userData[id+'Loading']=false;console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
 }
