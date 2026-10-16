@@ -53,3 +53,14 @@ body.pvp-hud #pvpMapActions{right:clamp(125px,13vw,205px)}
 body.pvp-hud #combatControls{display:block!important}
 body.pvp-hud #combatControls #fireBtn{width:clamp(88px,16vh,128px)!important;height:clamp(88px,16vh,128px)!important}
 @media(max-width:900px){body.pvp-hud #pvpMapActions{right:clamp(110px,16vw,165px)}body.pvp-hud #worldPanel{max-width:30vw!important}}
+
+/* PvP v235: tight thumb-friendly skill cluster next to the main fire button. */
+body.pvp-hud #combatControls{right:14px!important;bottom:12px!important;width:260px!important;height:220px!important}
+body.pvp-hud #combatControls #fireBtn{right:0!important;bottom:0!important;width:clamp(88px,17vh,122px)!important;height:clamp(88px,17vh,122px)!important}
+body.pvp-hud #combatControls #skillBtn{right:clamp(116px,19vh,146px)!important;bottom:5px!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important;font-size:20px!important}
+body.pvp-hud #combatControls #classAbilityBtn{right:6px!important;bottom:clamp(106px,19vh,132px)!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important;font-size:19px!important}
+body.pvp-hud #pvpSkills{right:clamp(118px,19vw,230px)!important;bottom:clamp(112px,20vh,155px)!important;gap:6px!important}
+body.pvp-hud #pvpSkills button{width:clamp(48px,8vh,62px)!important;min-height:clamp(50px,9vh,62px)!important;padding:3px!important;font-size:9px!important;line-height:1.1!important}
+body.pvp-hud #pvpSkills button>span:first-child{font-size:18px!important}
+body.pvp-hud #pvpSkills button small{font-size:9px!important}
+@media(max-height:440px){body.pvp-hud #combatControls{width:225px!important;height:175px!important}body.pvp-hud #pvpSkills{right:clamp(110px,18vw,190px)!important;bottom:100px!important}}
