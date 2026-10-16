@@ -1,5 +1,5 @@
-import {createFarmPilot} from './farm-pilot.js?v=250';
-import {mountFarmPilotUI} from './farm-pilot-ui.js?v=250';
+import {createFarmPilot} from './farm-pilot.js?v=251';
+import {mountFarmPilotUI} from './farm-pilot-ui.js?v=251';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=230';
@@ -3181,7 +3181,8 @@ function farmInput(dt,now){
  if(command.land)beginLanding();
  if(command.yaw!==undefined){yaw+=Math.atan2(Math.sin(command.yaw-yaw),Math.cos(command.yaw-yaw))*Math.min(1,dt*3);pitch+=(command.pitch-pitch)*Math.min(1,dt*3)}
  // Existing lock cone, projectile cadence and missiles still decide actual shots.
- if(command.fire&&!paused&&!docked&&!landing&&!inSafeZone(playerMesh.position)){if(command.ability)activateClassAbility();updateTargetLock();if(lockedEnemy===command.target){fire();skill()}}
+ if(command.ability&&!paused&&!docked&&!landing&&!inSafeZone(playerMesh.position))activateClassAbility();
+ if(command.fire&&!paused&&!docked&&!landing&&!inSafeZone(playerMesh.position)){updateTargetLock();if(lockedEnemy===command.target){fire();skill()}}
  farmUiTick+=dt;if(farmUiTick>.5){farmUiTick=0;farmUI.refresh()}
  return command;
 }

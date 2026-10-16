@@ -38,5 +38,21 @@ for(const gold of [0,999,1000,1001])for(const authorized of [false,true]){
 }
 p=setup();s=state();s.enemies=[enemy('scout')];s.abilityReady=true;assert.equal(p.tick(s,1).ability,true);
 s.abilityReady=false;assert.equal(p.tick(s,2).ability,false);
-s.abilityReady=true;s.hp=20;assert.equal(p.tick(s,3).ability,false);
+s.abilityReady=true;s.hp=20;assert.equal(p.tick(s,3).ability,true);
 p=setup();s=state();s.abilityReady=true;assert.equal(p.tick(s,1).ability,false);
+
+// Boss preemption, fallback, exclusion and stable targeting within a priority.
+p=setup({map:'ember',selections:{ember:['destroyer','carrier']}});s=state();s.sector='ember';
+const regular=enemy('destroyer',800),boss=enemy('carrier',1000);boss.mesh.visible=false;s.enemies=[regular,boss];
+assert.equal(p.tick(s,0).target,regular);boss.mesh.visible=true;assert.equal(p.tick(s,.3).target,boss);
+boss.dead=1;assert.equal(p.tick(s,.6).target,regular);boss.dead=0;assert.equal(p.tick(s,.9).target,boss);
+p.configure({...p.config,selections:{...p.config.selections,ember:['destroyer']}});assert.equal(p.tick(s,1).target,regular);
+p.configure({...p.config,selections:{...p.config.selections,ember:['destroyer','carrier']},priorities:{ember:{destroyer:1,carrier:3}}});assert.equal(p.tick(s,1.3).target,regular);
+p=setup({map:'graveyard',selections:{graveyard:['stalker','granTitan']}});s=state();s.sector='graveyard';s.enemies=[enemy('stalker',800),enemy('granTitan',1000)];assert.equal(p.tick(s,1).target.type,'granTitan');
+p=setup();s=state();s.enemies=[enemy('scout',900),enemy('raider',850)];c=p.tick(s,0);const held=c.target;s.enemies.find(e=>e!==held).mesh.position.x=700;assert.equal(p.tick(s,.3).target,held);
+// Retreat abilities require readiness and stop in safe zones, menus, death, landing and PvP.
+p=setup();s=state();s.hp=20;s.abilityReady=true;c=p.tick(s,0);assert.equal(c.ability,true);assert.equal(c.fire,false);assert.equal(c.target,null);
+s.abilityReady=false;assert.equal(p.tick(s,.3).ability,false);s.abilityReady=true;s.safe=()=>true;assert.equal(p.tick(s,.6).ability,false);
+s.safe=()=>false;s.position=s.base;assert.equal(p.tick(s,.9).ability,true);s.paused=true;assert.equal(p.tick(s,1.2).ability,false);s.paused=false;s.dead=true;assert.equal(p.tick(s,1.5).ability,false);
+assert.equal(farmConfig({priorities:{ember:{carrier:99,destroyer:1}}}).priorities.ember.carrier,1);
+assert.equal(farmConfig({priorities:{ember:{destroyer:1}}}).priorities.ember.destroyer,1);
