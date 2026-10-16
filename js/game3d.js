@@ -2423,6 +2423,13 @@ function kill(e,missile=false){
  logAction('combat','Enemigo destruido: '+enemyName+' · +'+gold.toLocaleString('es')+' créditos · +'+xp+' XP · '+t.loot+' recursos',{enemy:e.type,sector:activeSector,credits:gold,xp,resources:t.loot});
  missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});
  player.gold+=gold;for(let i=0;i<t.loot;i++)spawnLoot(e);
+ if(e.type==='granTitan'){
+  // Recompensa garantizada del Cementerio: 3 unidades de cada recurso exclusivo.
+  for(const id of ['nucleo_demolicion','bobina_anclaje','cristal_punteria']){
+    const item=LOOT_TYPES.find(resource=>resource.id===id);
+    for(let n=0;n<3;n++)spawnLoot(e,item);
+  }
+ }
  const specialDrop={catapult:['nucleo_demolicion',.25],harpooner:['bobina_anclaje',.25],stalker:['cristal_punteria',.20]}[e.type];
  if(specialDrop&&Math.random()<specialDrop[1])spawnLoot(e,LOOT_TYPES.find(item=>item.id===specialDrop[0]));
  gainXp(xp);
