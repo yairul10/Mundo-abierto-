@@ -1,4 +1,4 @@
-import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=245';
+import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=246';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=210';
 import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
