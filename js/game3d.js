@@ -372,10 +372,11 @@ function syncPlayerShipVisuals(){
  const selected=keys[player.shipId],loaded=!!(selected&&playerMesh.userData[selected]);
  for(const key of Object.values(keys)){const model=playerMesh.userData[key];if(model)model.visible=loaded&&key===selected}
  let hasOriginal=false;
+ const waiting=!!selected&&!loaded&&!playerMesh.userData[selected+'Failed'];
  for(const key of ['xWingModel','auroraModel']){
-  const model=playerMesh.userData[key];if(model){model.visible=!loaded;hasOriginal=true}
+  const model=playerMesh.userData[key];if(model){model.visible=!loaded&&!waiting;hasOriginal=true}
  }
- proceduralShip.visible=!loaded&&!hasOriginal;
+ proceduralShip.visible=!loaded&&!waiting&&!hasOriginal;
 }
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
 const assembledModelPaths={segadora:'./assets/models/segadora.glb?v=240',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=208'};
@@ -397,7 +398,7 @@ function loadAssembledVisual(id){
   const pivot=new THREE.Group();pivot.rotation.y=ASSEMBLED_SHIPS[id].yaw+(id==='segadora'?-Math.PI/2:0);pivot.add(source);
   const visual=new THREE.Group();if(id==='segadora')visual.rotation.z=-0.055;visual.add(pivot);attachAssembledEngines(THREE,visual,id);
   mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false;
- },undefined,error=>{playerMesh.userData[id+'Loading']=false;console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
+ },undefined,error=>{playerMesh.userData[id+'Loading']=false;playerMesh.userData[id+'ModelFailed']=true;syncPlayerShipVisuals();console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
 }
 deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
  const source=gltf.scene;
@@ -527,7 +528,7 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=115',gltf=>{
  }
 
  mountPlayerModel(pivot,'titanModel');
-},undefined,err=>console.warn('Modelo Titán no disponible; se conserva la apariencia original.',err));
+},undefined,err=>{playerMesh.userData.titanModelFailed=true;syncPlayerShipVisuals();console.warn('Modelo titan no disponible; se conserva la apariencia original.',err)});
 deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  const source=gltf.scene;
  const maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
@@ -673,7 +674,7 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  }
 
  mountPlayerModel(pivot,'espectroModel');
-},undefined,err=>console.warn('Modelo Espectro no disponible; se conserva la apariencia original.',err));
+},undefined,err=>{playerMesh.userData.espectroModelFailed=true;syncPlayerShipVisuals();console.warn('Modelo espectro no disponible; se conserva la apariencia original.',err)});
 function loadAuroraFallback(){
  modelLoader.load('./assets/models/aurora_s1.glb?v=105',gltf=>{
   const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
