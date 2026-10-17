@@ -1,6 +1,6 @@
 # PvP abierto · Cosmos Legacy
 
-Contenido 256, Worker 0.4.0. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
+Contenido 257, Worker 0.5.0. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
 
 ## Mapa y protección
 
@@ -10,7 +10,17 @@ Una nave recién aparecida en la base está protegida. Salir elimina inmediatame
 
 El hangar, los cambios de nave y la selección de habilidades requieren estar dentro de la base y haber recuperado la protección. El aterrizaje mantiene las plataformas y la aproximación existentes. Nadie puede usar el hangar para anticipar esos cinco segundos.
 
-Al destruir una nave solo esa nave reaparece con casco y energía completos en la base. El atacante permanece donde estaba y conserva su vida. No hay créditos, XP, botín, premios ni pérdidas por combatir. Las compras y el ensamblaje dentro del hangar siguen usando el inventario offline real y su editor separado.
+Al destruir una nave solo esa nave reaparece con casco y energía completos en la base. El atacante permanece donde estaba y conserva su vida. No hay premios ni pérdidas por destruir jugadores. Las compras y el ensamblaje dentro del hangar siguen usando el inventario offline real y su editor separado.
+
+## Jefe cooperativo
+
+El Titán del Nexo aparece en `[0,120,-1800]`, fuera de la base, con 1.000.000 PV compartidos y sin regeneración. Reutiliza el modelo 3D existente del Gran Titán. Solo despierta al recibir daño. Cada 5 segundos elige al piloto conectado y vulnerable con mayor vida **actual** a 1.200 m; aplica 1.000 de daño base a través de las defensas, escudos y habilidades normales. El hangar y la protección de la base bloquean sus ataques. No dispara ráfagas acumuladas tras inactividad.
+
+Láseres, misiles, drones y mascota usan las trayectorias y funciones de combate existentes. El servidor registra únicamente daño efectivo (sin contar sobre-daño, mensajes de daño del cliente ni golpes a jugadores). El premio total de 1.000.000 créditos se reparte proporcionalmente: causar el 25 % concede 250.000 créditos; los redondeos conservan exactamente el total. No hay cajas ni premio por el último golpe. Los participantes conservan su contribución al morir o salir.
+
+La derrota y los recibos de premio se guardan juntos en una transacción SQLite. Los recibos se envían solo a su participante y se reintentan hasta recibir confirmación autenticada. El cliente guarda créditos e identificadores en una sola escritura antes de confirmar; reconectarse no duplica el premio y un fallo de almacenamiento permite reintentar. El hangar conserva sus compras y las estadísticas offline sin escalar. Pruebas y normal mantienen jefes y premios independientes. La identidad y el progreso siguen siendo locales al dispositivo: no se añade una cuenta sincronizada entre dispositivos.
+
+Reaparece con vida completa 5 minutos después de morir, con una nueva ronda de participación. El estado se conserva al hibernar; la simulación usa las entradas y alarmas existentes.
 
 ## Equipo y combate
 
@@ -43,3 +53,5 @@ npm test
 Las pruebas verifican combate entre varios pilotos, selección de misiles, impactos al primer objetivo, protección a los 5.000 ms exactos, ausencia de reinicio por disparos/impactos, persistencia de la entrada, reaparición individual, hangar, separación normal/pruebas y ausencia de conteo en el cliente. La prueba WebSocket usa Miniflare y los módulos reales.
 
 Para probar en Android: actualizar la APK y reconectar al PvP; usar dos o tres dispositivos, salir de la base, dispararse, volver a ella y comprobar que durante cinco segundos sigue habiendo daño y después se bloquea en ambas direcciones. Repetir entrando y saliendo antes de vencer el plazo y usando habilidades. Los pilotos dentro del hangar deben quedar protegidos.
+
+Prueba cooperativa: entrar con dos dispositivos al mismo modo, volar hacia el jefe, disparar con ambos y comprobar la misma barra de vida. Al derrotarlo, cada uno debe recibir su porcentaje del millón de créditos; reconectar no debe repetir el abono. Verificar también ataques cada 5 s al piloto con mayor vida actual, retirada hacia la base, reaparición del jefe y compras de hangar mientras llega un premio.

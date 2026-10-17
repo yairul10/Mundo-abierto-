@@ -32,9 +32,9 @@ export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Ma
     if(target.id===b.owner||!target.connected||target.hp<=0||s.canDamage&&!s.canDamage(owner,target,now))continue;
     if(!b.missile&&Math.hypot(...target.pos.map((v,i)=>v-owner.pos[i]))>(b.range||1200))continue;
     const along=Math.max(0,Math.min(1,target.pos.reduce((sum,v,i)=>sum+(v-prev[i])*segment[i],0)/(length2||1))),distance=Math.hypot(...target.pos.map((v,i)=>v-prev[i]-segment[i]*along));
-    if(distance<(b.missile?44:30)&&along<best){victim=target;best=along}
+    if(distance<(target.hitRadius||(b.missile?44:30))&&along<best){victim=target;best=along}
    }
-   if(victim){const damage=Math.min(victim.hp,defenseDamage(victim,b.damage*(skillActive(owner,'fury',now)?2:1),now));victim.hp=Math.max(0,victim.hp-damage);if(owner.hp>0&&skillActive(owner,'transfer',now))owner.hp=Math.min(owner.profile.maxHp,owner.hp+damage*.5);victim.lastHit=victim.lastIncoming=now;victim.lastDamagedBy=owner.id;b.life=0}
+   if(victim){const damage=Math.min(victim.hp,defenseDamage(victim,b.damage*(skillActive(owner,'fury',now)?2:1),now));victim.hp=Math.max(0,victim.hp-damage);s.onDamage?.(owner,victim,damage,now);if(owner.hp>0&&skillActive(owner,'transfer',now))owner.hp=Math.min(owner.profile.maxHp,owner.hp+damage*.5);victim.lastHit=victim.lastIncoming=now;victim.lastDamagedBy=owner.id;b.life=0}
   }
  }
  s.bullets=(s.bullets||[]).filter(b=>b.life>0);

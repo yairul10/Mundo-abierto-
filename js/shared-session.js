@@ -12,7 +12,7 @@ export function startSharedSession(bridge){
  let identity=null,ws=null,state=null,me=null,seq=0,pending=[],lastSend=0,lastPing=0,lastReceived=performance.now(),retryAt=0,attempts=0,busy=false,closed=false,selected='',clockOffset=0,lastRevision=-1,portalTime=0,lastFrame=performance.now(),firstState=true,hangarRequested=false,hangarRequestAt=0,lastLuck=0,pingMs=null,messageUntil=0;
  const seenEvents=new Set(),$=id=>document.getElementById(id);
  const style=document.createElement('link');style.rel='stylesheet';style.href='./css/shared-world.css?v=256';document.head.appendChild(style);document.body.classList.add('pvp-hud');
- const panel=document.createElement('section');panel.id='worldPanel';panel.setAttribute('aria-label','PvP abierto');panel.innerHTML='<div class="world-top"><strong id="worldStatus">Conectando al mapa…</strong><button id="worldExit">Salir del PvP</button></div><small id="worldDetails">Invitado · Sin premios ni pérdidas</small><button id="worldHangar">Aterrizar y abrir hangar</button><div id="worldTools" hidden><label>Apodo <input id="worldName" maxlength="20" value="Invitado"></label><button id="worldSaveName">Guardar apodo</button><small>Usas tus naves y equipo. Casco ×20 en PvP.</small></div><div id="worldMessage" role="status"></div><button id="worldRetry" hidden>Reconectar</button>';
+ const panel=document.createElement('section');panel.id='worldPanel';panel.setAttribute('aria-label','PvP abierto');panel.innerHTML='<div class="world-top"><strong id="worldStatus">Conectando al mapa…</strong><button id="worldExit">Salir del PvP</button></div><small id="worldDetails">Invitado · Jefe cooperativo · Recompensas por daño</small><button id="worldHangar">Aterrizar y abrir hangar</button><div id="worldTools" hidden><label>Apodo <input id="worldName" maxlength="20" value="Invitado"></label><button id="worldSaveName">Guardar apodo</button><small>Usas tus naves y equipo. Casco ×20 en PvP.</small></div><div id="worldMessage" role="status"></div><button id="worldRetry" hidden>Reconectar</button>';
  document.body.append(panel);const zoom=$('zoomControls');if(zoom){const actions=document.createElement('div');actions.id='pvpMapActions';actions.append($('worldExit'),zoom);document.body.append(actions)}
  const home=$('hangarHomeView');if(home){const section=document.createElement('section');section.id='pvpHangarLoadout';section.innerHTML='<h3>Equipamiento PvP</h3><p>Equipa tus naves y habilidades al aterrizar.</p>';section.append($('worldTools'));home.append(section)}
  const targetCard=document.createElement('section');targetCard.id='worldTarget';targetCard.hidden=true;targetCard.setAttribute('role','dialog');targetCard.setAttribute('aria-label','Objetivo seleccionado');targetCard.innerHTML='<strong id="worldTargetName"></strong><small id="worldTargetDetail"></small><button id="worldTargetClose">Cerrar</button>';document.body.append(targetCard);
@@ -21,7 +21,7 @@ export function startSharedSession(bridge){
  function send(m){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(m))}
  const active=()=>!!me&&ws?.readyState===WebSocket.OPEN&&performance.now()-lastReceived<3000;
  const canFight=()=>active()&&me.protected===false&&!me.hangar;
- const canTarget=id=>!!state?.players.some(p=>p.id===id&&id!==me?.id&&!p.protected&&!p.hangar&&p.hp>0);
+ const canTarget=id=>state?.boss?.id===id?state.boss.hp>0:!!state?.players.some(p=>p.id===id&&id!==me?.id&&!p.protected&&!p.hangar&&p.hp>0);
  const targetId=()=>selected||bridge.targetId?.()||null;
  const skillUI=mountPvpSkills({tools,getState:()=>({state,me,now:Date.now()+clockOffset}),canUse:canFight,send:m=>send({...m,targetId:targetId()}),isHangarOpen:bridge.isHangarOpen,storage:localStorage,key:'mundoAbierto.pvpSkills.'+realm});
  mountPvpControlEditor({realm,isHangarOpen:bridge.isHangarOpen});
@@ -34,7 +34,7 @@ export function startSharedSession(bridge){
   status.textContent=me.protected?'Base PvP · Protegido':'PvP abierto';
   details.textContent=(realm==='test'?'PRUEBAS · ':'')+me.name+' #'+me.id.slice(-6)+' · '+state.players.length+' pilotos · '+(pingMs===null?'Conectado':pingMs+' ms');
   $('worldHangar').disabled=!me.protected||!!me.hangar||hangarRequested||!bridge.canLand();tools.hidden=!bridge.isHangarOpen();
-  const other=state.players.find(p=>p.id===selected&&p.id!==me.id);if(!other){clearSelection()}else if(!targetCard.hidden){$('worldTargetName').textContent=other.name+' #'+other.id.slice(-6);$('worldTargetDetail').textContent=NAMES[other.profile.shipId]+(other.hangar?' · En hangar':other.protected?' · Protegido':' · Objetivo PvP')}
+  const other=state.players.find(p=>p.id===selected&&p.id!==me.id);if(state.boss?.id===selected&&state.boss.hp>0){$('worldTargetName').textContent=state.boss.name;$('worldTargetDetail').textContent=Math.ceil(state.boss.hp).toLocaleString()+' / '+state.boss.maxHp.toLocaleString()+' PV · Premio total: 1.000.000 créditos'}else if(!other){clearSelection()}else if(!targetCard.hidden){$('worldTargetName').textContent=other.name+' #'+other.id.slice(-6);$('worldTargetDetail').textContent=NAMES[other.profile.shipId]+(other.hangar?' · En hangar':other.protected?' · Protegido':' · Objetivo PvP')}
  }
  async function connect(){if(busy||closed)return;busy=true;$('worldRetry').hidden=true;status.textContent='Conectando al mapa…';try{
   if(bridge.isHangarOpen())loadout=offlineRoster(readOfflinePilot(localStorage));if(!identity)identity={...guestIdentity(),shipId:loadout.selected};$('worldName').value=identity.name;
@@ -44,6 +44,7 @@ export function startSharedSession(bridge){
   ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}lastReceived=performance.now();
    if(m.type==='pong'){pingMs=Math.max(0,Math.round(Date.now()-m.echo));return}
    if(m.type==='error'){hangarRequested=false;note(ERRORS[m.error]||'No se pudo completar la acción.');return}
+   if(m.type==='bossRewards'){try{const result=bridge.bossRewards?.(m.receipts);if(result?.ids?.length)send({type:'bossRewardAck',ids:result.ids});if(result?.added)note('Jefe derrotado · +'+result.added.toLocaleString()+' créditos por tu daño.')}catch{note('No se pudo guardar el premio. Se reintentará automáticamente.')}return}
    if(m.type==='volley'){if(m.owner!==ticket.playerId)bridge.remoteShots(m.shots);return}if(m.type!=='world')return;
    state=m;clockOffset=m.serverTime-Date.now();me=m.players.find(p=>p.id===ticket.playerId);if(!me)return;
    if(me.hangar&&hangarRequested){hangarRequested=false;if(bridge.openHangar()===false){send({type:'loadout',roster:loadout.profiles,shipId:loadout.selected});note('Vuelve a situarte sobre una plataforma para aterrizar.')}}
@@ -51,6 +52,7 @@ export function startSharedSession(bridge){
    if(identity.shipId!==me.profile.shipId){identity.shipId=me.profile.shipId;try{localStorage.setItem(SHIP_KEY,identity.shipId)}catch{}}
    pending=pending.filter(p=>p.seq>(me.seq??-1));const snap=lastRevision!==me.revision;bridge.snapshot(me,m.players.filter(p=>p.id!==me.id),firstState||snap,pending,state);lastRevision=me.revision;
    for(const event of m.events||[]){if(seenEvents.has(event.id))continue;seenEvents.add(event.id);if(seenEvents.size>200)seenEvents.delete(seenEvents.values().next().value);if(!firstState&&event.type==='destroyed'){if(event.victim===me.id){clearSelection();note('Nave destruida. Reapareciste en la base.');bridge.clearFight()}else if(event.winner===me.id)note('Enemigo destruido.')}}
+   for(const event of m.events||[])if(event.type==='bossDefeated'&&!seenEvents.has('boss:'+event.id)){seenEvents.add('boss:'+event.id);if(!firstState)note('Titán del Nexo derrotado · Recompensas según el daño causado.')}
    const luck=me.skillReadyAt?.luck||0;if(!firstState&&luck>lastLuck&&luck>m.serverTime&&m.serverTime>=luck-30000&&m.serverTime<luck-27000)bridge.repeatMissiles?.();lastLuck=luck;firstState=false;updateUI();
   };
   ws.onclose=()=>{if(closed)return;clearSelection();state=null;me=null;pending=[];hangarRequested=false;bridge.pause();status.textContent='Sin conexión · Reconectando…';retryAt=performance.now()+2000};ws.onerror=()=>{};

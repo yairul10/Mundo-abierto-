@@ -1,3 +1,4 @@
+import {bossSnapshot} from './cooperative-boss.mjs';
 import {equippedSkills,validSkills} from './skills.mjs';
 import {testServerEnabled} from './test-config.mjs';
 import {DurableObject} from 'cloudflare:workers';
@@ -6,11 +7,12 @@ const json=(x,status=200)=>Response.json(x,{status});
 const pForProtection=(s,id)=>s.players.find(p=>p.id===id);
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
 export class SharedWorld extends DurableObject {
- constructor(ctx,env){super(ctx,env);this.env=env;ctx.blockConcurrencyWhile(async()=>{ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS shared_world (id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)')})}
+ constructor(ctx,env){super(ctx,env);this.env=env;ctx.blockConcurrencyWhile(async()=>{ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS shared_world (id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)');ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS boss_rewards (id TEXT PRIMARY KEY, player_id TEXT NOT NULL, amount INTEGER NOT NULL, damage REAL NOT NULL, total_damage REAL NOT NULL, boss_id TEXT NOT NULL, claimed INTEGER NOT NULL DEFAULT 0)');ctx.storage.sql.exec('CREATE INDEX IF NOT EXISTS boss_rewards_pending ON boss_rewards(player_id,claimed)')})}
  worldLoad(){const row=this.ctx.storage.sql.exec('SELECT data FROM shared_world WHERE id=1').toArray()[0];return row?JSON.parse(row.data):{players:[],duels:[],invites:[],events:[]}}
- worldSave(s){s.events=s.events.slice(-12);this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify(s))}
- worldSnapshot(s){return {type:'world',serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
- worldBroadcast(s){const data=JSON.stringify(this.worldSnapshot(s));for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{ws.send(data)}catch{}}
+ worldSave(s){s.events=s.events.slice(-12);this.ctx.storage.transactionSync(()=>{for(const r of s.bossRewards||[])this.ctx.storage.sql.exec('INSERT OR IGNORE INTO boss_rewards(id,player_id,amount,damage,total_damage,boss_id) VALUES(?,?,?,?,?,?)',r.id,r.playerId,r.amount,r.damage,r.totalDamage,r.bossId);s.bossRewards=[];this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify(s))})}
+ sendRewards(ws,id){const attachment=ws.deserializeAttachment(),now=Date.now();if(now-(attachment.lastRewardsAt||0)<3000)return;attachment.lastRewardsAt=now;ws.serializeAttachment(attachment);const receipts=this.ctx.storage.sql.exec('SELECT id,amount,damage,total_damage AS totalDamage,boss_id AS bossId FROM boss_rewards WHERE player_id=? AND claimed=0 LIMIT 50',id).toArray();if(receipts.length)ws.send(JSON.stringify({type:'bossRewards',receipts}))}
+ worldSnapshot(s){return {type:'world',boss:bossSnapshot(s.boss),serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
+ worldBroadcast(s){const data=JSON.stringify(this.worldSnapshot(s));for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{ws.send(data);this.sendRewards(ws,ws.deserializeAttachment().id)}catch{}}
  async enter(body){
   if(!/^[a-f0-9]{64}$/.test(body.guestKey||''))return {error:'invalid_guest'};
   const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body.guestKey)),id=Array.from(new Uint8Array(bytes)).map(v=>v.toString(16).padStart(2,'0')).join('').slice(0,24);
@@ -57,6 +59,7 @@ export class SharedWorld extends DurableObject {
   else if(m.type==='ability'){if(!useAbility(s,p,now))error='protected';}
   else if(m.type==='volley'){const bullets=attack(s,p,m,now);if(bullets){const data=JSON.stringify({type:'volley',owner:p.id,shots:bullets,serverTime:now});for(const peer of this.ctx.getWebSockets())try{peer.send(data)}catch{}}}
   else if(m.type==='surrender'){error='open_pvp'}
+  else if(m.type==='bossRewardAck'){for(const id of Array.isArray(m.ids)?m.ids.slice(0,50):[])if(typeof id==='string')this.ctx.storage.sql.exec('UPDATE boss_rewards SET claimed=1 WHERE id=? AND player_id=?',id,p.id);}
   else if(m.type==='ping'){ws.send(JSON.stringify({type:'pong',echo:m.time,serverTime:now}));}
   else if(m.type==='leave'){await this.worldDisconnect(ws);try{ws.close(1000,'leave')}catch{}return}
   else return;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
-const files=['worker.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs'];
+const files=['worker.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs'];
 const options={modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:'2026-10-11',compatibilityFlags:['nodejs_compat'],durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
 const mf=new Miniflare(convertV4MiniflareOptions(options)),connections=[];
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
@@ -12,7 +12,7 @@ async function waitFor(c,predicate){const end=Date.now()+4000;while(Date.now()<e
 const send=(c,m)=>c.ws.send(JSON.stringify(m));
 async function moveTo(c,id,goal){for(let i=0;i<20;i++){const state=await waitFor(c,s=>s.players.some(p=>p.id===id)),p=state.players.find(p=>p.id===id),delta=goal.map((v,i)=>v-p.pos[i]),d=Math.hypot(...delta);if(d<8)return;await pause(110);send(c,{type:'input',seq:++c.seq,move:delta.map(v=>v/d*Math.min(1,d/750)),aim:[0,0],firing:false});await pause(30)}throw Error('Movement failed')}
 try{
- assert.equal((await (await mf.dispatchFetch('https://arena.test/health')).json()).version,'0.4.0');
+ assert.equal((await (await mf.dispatchFetch('https://arena.test/health')).json()).version,'0.5.0');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
  const roster={aurora:{maxHp:1000,maxEnergy:500,attack:100,defense:0,speed:5000,level:40}};
@@ -34,5 +34,29 @@ try{
  send(ca,{type:'hangar',open:true});await waitFor(ca,s=>s.players.find(p=>p.id===a.playerId).hangar);
  const testTicket=(await post('/world/join',{guestKey:'d'.repeat(64),realm:'test',roster})).body,testClient=await connect(testTicket.token,'test');await waitFor(testClient,s=>s.players.length===1);
  const disabled=new Miniflare(convertV4MiniflareOptions({...options,bindings:{TEST_SERVER_ENABLED:'false'}}));try{const r=await disabled.dispatchFetch('https://arena.test/world/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guestKey:'f'.repeat(64),realm:'test'})});assert.equal(r.status,403)}finally{await disabled.dispose()}
+ // Two real WebSocket pilots attack the same boss with normal validated volleys.
+ const raidRoster={aurora:{maxHp:100000,maxEnergy:500,attack:100000,defense:0,speed:5000,level:40}};
+ const e=(await post('/world/join',{guestKey:'e'.repeat(64),name:'E',roster:raidRoster})).body,f=(await post('/world/join',{guestKey:'f'.repeat(64),name:'F',roster:raidRoster})).body;
+ const ce=await connect(e.token),cf=await connect(f.token);await waitFor(ce,s=>s.players.some(p=>p.id===f.playerId));
+ await moveTo(ce,e.playerId,[-450,120,-1800]);await moveTo(cf,f.playerId,[450,120,-1800]);
+ const heartbeat=setInterval(()=>{send(ce,{type:'ping',time:Date.now()});send(cf,{type:'ping',time:Date.now()})},100);
+ let rewardE,rewardF;
+ try{
+  const bossId=latest(ce).boss.id,instanceId=latest(ce).boss.instanceId;assert.equal(latest(ce).boss.hp,1000000);assert.equal(latest(cf).boss.instanceId,instanceId);
+  for(let i=0;i<15;i++){
+   const pe=latest(ce).players.find(p=>p.id===e.playerId),boss=latest(ce).boss,delta=boss.pos.map((v,j)=>v-pe.pos[j]),length=Math.hypot(...delta);
+   send(ce,{type:'volley',weapon:'laser',targetId:bossId,shots:[{offset:[0,0,0],direction:delta.map(v=>v/length)}]});
+   if(i<5){const pf=latest(cf).players.find(p=>p.id===f.playerId),delta=boss.pos.map((v,j)=>v-pf.pos[j]),length=Math.hypot(...delta);send(cf,{type:'volley',weapon:'laser',targetId:bossId,shots:[{offset:[0,0,0],direction:delta.map(v=>v/length)}]})}
+   const expected=1000000-(i+1)*50000-Math.min(i+1,5)*50000;await waitFor(ce,s=>s.boss.hp===expected);if(i<14)await pause(700);
+  }
+  await waitFor(cf,s=>s.boss.hp===0);assert.equal(latest(ce).boss.instanceId,instanceId);assert(latest(ce).boss.respawnAt>Date.now());
+  await pause(3200);rewardE=ce.messages.findLast(m=>m.type==='bossRewards')?.receipts[0];rewardF=cf.messages.findLast(m=>m.type==='bossRewards')?.receipts[0];assert.equal(rewardE.amount,750000);assert.equal(rewardF.amount,250000);assert.equal(rewardE.damage,750000);assert.equal(rewardF.damage,250000);
+  assert(!ca.messages.some(m=>m.type==='bossRewards'),'Nonparticipants receive no award');
+  send(cf,{type:'bossRewardAck',ids:[rewardE.id]});await pause(100);send(ce,{type:'leave'});await pause(100);
+ }finally{clearInterval(heartbeat)}
+ const reconnect=(await post('/world/join',{guestKey:'e'.repeat(64),roster:raidRoster})).body,ce2=await connect(reconnect.token);await waitFor(ce2,s=>s.players.some(p=>p.id===e.playerId));await pause(100);
+ assert.equal(ce2.messages.find(m=>m.type==='bossRewards').receipts[0].id,rewardE.id,'Pending receipt survives reconnect; another pilot cannot claim it');
+ send(ce2,{type:'bossRewardAck',ids:[rewardE.id]});await pause(100);const before=ce2.messages.filter(m=>m.type==='bossRewards').length;await pause(3100);send(ce2,{type:'ping',time:Date.now()});await pause(100);assert.equal(ce2.messages.filter(m=>m.type==='bossRewards').length,before,'ACK prevents redelivery');
+ console.log('WebSockets boss: synchronized HP, two-pilot 75/25 damage split, private durable receipts, reconnect replay and authenticated ACK passed.');
  console.log('WebSockets: shared open arena, protected spawn/hangar, free combat, fixed hidden entry delay, ×20 hull, auth and isolated test realm passed.');
 }finally{for(const ws of connections)try{ws.close()}catch{}await mf.dispose()}
