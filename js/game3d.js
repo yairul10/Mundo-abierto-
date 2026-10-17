@@ -3423,3 +3423,25 @@ if(PVP_MODE){
  },true);
  keepArena();
 }
+
+// Keep the initial scene covered until the first wave of models is ready.
+// A bounded fallback prevents a broken GLB or slow connection from trapping the player.
+window.cosmosModelsReady=new Promise(resolve=>{
+ const started=performance.now();
+ let quietSince=0;
+ const poll=()=>{
+  const selected=({titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel'})[player.shipId];
+  const playerReady=selected
+   ?!!(playerMesh.userData[selected]||playerMesh.userData[selected+'Failed'])
+   :!!(playerMesh.userData.xWingModel||playerMesh.userData.auroraModel);
+  const quiet=playerReady&&!modelQueue.busy;
+  if(quiet){if(!quietSince)quietSince=performance.now()}else quietSince=0;
+  const elapsed=performance.now()-started;
+  if((quietSince&&performance.now()-quietSince>=600)||elapsed>=15000){
+   if(elapsed>=15000&&!quiet)console.warn('Tiempo máximo de carga inicial alcanzado; los modelos restantes continuarán cargándose.');
+   resolve();return;
+  }
+  setTimeout(poll,120);
+ };
+ setTimeout(poll,120);
+});
