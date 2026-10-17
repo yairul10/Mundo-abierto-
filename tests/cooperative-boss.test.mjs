@@ -1,17 +1,32 @@
 import assert from 'node:assert/strict';
-import {BOSS_RULES,ensureBoss,recordBossDamage,tickBoss,splitBossReward,bossSnapshot} from '../server/pvp/cooperative-boss.mjs';
+import {BOSS_RULES,advanceBossMotion,bossPatrolPosition,ensureBoss,recordBossDamage,tickBoss,splitBossReward,bossSnapshot} from '../server/pvp/cooperative-boss.mjs';
 import {equip,advance,attack,updateProtection,combatEligible} from '../server/pvp/world-rules.mjs';
 const t=100000;
 function pilot(id,pos,hp=20000){const p={id,connected:true,pos,roster:{aurora:{maxHp:1000,maxEnergy:500,attack:100000,defense:0}}};equip(p,'aurora');p.hp=hp;updateProtection(p,t);return p}
 const world=(...players)=>({players,events:[],bullets:[],simTime:t});
 {
- const a=pilot('a',[0,120,-1500]),b=pilot('b',[100,120,-1500],19000),safe=pilot('safe',[0,120,0]),far=pilot('far',[2500,120,0]),s=world(a,b,safe,far),boss=ensureBoss(s,t);
- assert.equal(boss.hp,1000000);assert.equal(bossSnapshot(boss).contributions,undefined);tickBoss(s,t+5000,combatEligible);assert.equal(a.hp,20000,'Neutral until attacked');
- recordBossDamage(boss,a,10,t);tickBoss(s,t+4999,combatEligible);assert.equal(a.hp,20000);tickBoss(s,t+5000,combatEligible);assert.equal(a.hp,19000);assert.equal(boss.lastAttack.targetId,'a');
- a.hp=18000;tickBoss(s,t+10000,combatEligible);assert.equal(b.hp,18000);assert.equal(boss.lastAttack.targetId,'b','Retarget highest current HP');assert.equal(safe.hp,20000);assert.equal(far.hp,20000);
- b.pos=[0,120,-620];updateProtection(b,t+10001);b.hp=30000;a.hp=10000;tickBoss(s,t+15001,combatEligible);assert.equal(b.hp,30000,'Protected base cannot be hit');
+ const a=pilot('a',[0,120,-1500]),b=pilot('b',[100,120,-1500],19000),c=pilot('c',[-100,120,-1500],18000),safe=pilot('safe',[0,120,0]),far=pilot('far',[2500,120,0]),s=world(a,b,c,safe,far),boss=ensureBoss(s,t);
+ assert.equal(boss.hp,1000000);assert.equal(bossSnapshot(boss).contributions,undefined);tickBoss(s,t,combatEligible);assert.equal(a.hp,20000,'Neutral until attacked');
+ recordBossDamage(boss,a,10,t);tickBoss(s,t+2999,combatEligible);assert.equal(a.hp,20000);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,15000);assert.equal(b.hp,14000);assert.equal(c.hp,18000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['a','b']);
+ tickBoss(s,t+6000,combatEligible);assert.equal(c.hp,13000);assert.equal(a.hp,10000);assert.equal(b.hp,14000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['c','a'],'Re-rank all pilots using current HP before each volley');assert.equal(safe.hp,20000);assert.equal(far.hp,20000);
+ b.pos=[0,120,-620];updateProtection(b,t+6001);b.hp=30000;tickBoss(s,t+12000,combatEligible);assert.equal(b.hp,30000,'Protected base cannot be hit');
  const seq=boss.attackSeq;tickBoss(s,t+600000,combatEligible);assert.equal(boss.attackSeq,seq+1,'No burst after long inactivity');
 }
+{
+ const a=pilot('solo',[0,120,-1500]),s=world(a),b=ensureBoss(s,t);recordBossDamage(b,a,1,t);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,15000);assert.equal(b.lastAttack.targets.length,1,'Solo pilots take one hit, never two');
+}
+{
+ const a=pilot('mover',[0,120,-1500]),s=world(a),b=ensureBoss(s,t),start=[...b.pos];advanceBossMotion(s,t+1000,combatEligible);assert(Math.hypot(...b.pos.map((v,i)=>v-start[i]))>50,'Neutral boss patrols');assert.equal(b.teleportSeq,0);
+ const hitAt=t+1000;recordBossDamage(b,a,100,hitAt);b.hp-=100;advanceBossMotion(s,hitAt+19999,combatEligible);assert.equal(b.teleportSeq,0);a.pos=b.pos.map((v,i)=>v+(i===0?250:0));updateProtection(a,hitAt+19999);
+ advanceBossMotion(s,hitAt+20000,combatEligible,()=>.5);assert.equal(b.teleportSeq,1);assert(Math.hypot(...b.lastTeleport.from.map((v,i)=>v-b.pos[i]))>600);assert.equal(b.hp,999900);assert.equal(b.contributions.mover,100,'Teleport keeps HP and damage shares');
+ advanceBossMotion(s,hitAt+20000,combatEligible,()=>.5);assert.equal(b.teleportSeq,1,'Retry at same timestamp cannot jump twice');
+ const loaded=JSON.parse(JSON.stringify(s));advanceBossMotion(loaded,hitAt+20001,combatEligible);assert.equal(loaded.boss.teleportSeq,1);assert.equal(loaded.boss.nextTeleportAt,hitAt+40000,'Timers survive reload');
+ loaded.players[0].pos=[0,120,0];updateProtection(loaded.players[0],hitAt+21000);advanceBossMotion(loaded,hitAt+50000,combatEligible);assert.equal(loaded.boss.teleportSeq,1,'No combat teleport for protected pilots');
+ loaded.boss.hp=0;const pos=[...loaded.boss.pos];advanceBossMotion(loaded,hitAt+60000,combatEligible);assert.deepEqual(loaded.boss.pos,pos,'Dead bosses do not patrol');
+ for(let phase=0;phase<=Math.PI*2;phase+=.005){const pos=bossPatrolPosition(phase),distance=Math.hypot(...pos);assert(distance-BOSS_RULES.hitRadius>650);assert(distance+BOSS_RULES.hitRadius<3000)}
+ const old={...b};delete old.rulesVersion;old.hp=12345;old.nextAttackAt=t+5000;const upgraded=ensureBoss({boss:old},t);assert.equal(upgraded.hp,12345);assert.equal(upgraded.contributions.mover,100);assert.equal(upgraded.nextAttackAt,t+3000,'Live upgrade shortens cooldown without resetting round');
+}
+
 {
  const a=pilot('a',[0,120,-1500]),s=world(a),boss=ensureBoss(s,t);boss.hp=10;
  const bullets=attack(s,a,{weapon:'missile',targetId:boss.id,shots:[{offset:[0,0,0],direction:[0,0,-1],locked:true}]},t);assert.equal(bullets[0].target,boss.id);
@@ -25,4 +40,4 @@ const world=(...players)=>({players,events:[],bullets:[],simTime:t});
  assert.deepEqual(splitBossReward({a:750000,b:250000}).map(r=>r.amount),[750000,250000]);assert.deepEqual(splitBossReward({}),[]);
  const s=world(),b=ensureBoss(s,t);recordBossDamage(b,{id:'disconnected'},50,t);b.hp=0;tickBoss(s,t+1,combatEligible);assert.equal(s.bossRewards[0].playerId,'disconnected','Departed contributors retain awards');
 }
-console.log('Cooperative boss: shared HP, highest-current-HP targeting, base/range guards, cadence, actual damage, exact shares, offline contributors and respawn passed.');
+console.log('Cooperative boss: shared HP, two highest-current-HP targets, solo hits, bounded patrol, combat teleports and persistence, base/range guards, cadence, actual damage, exact shares, offline contributors and respawn passed.');

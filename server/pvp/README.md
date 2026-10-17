@@ -1,6 +1,6 @@
 # PvP abierto · Cosmos Legacy
 
-Contenido 257, Worker 0.5.0. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
+Contenido 258, Worker 0.5.1. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
 
 ## Mapa y protección
 
@@ -14,7 +14,7 @@ Al destruir una nave solo esa nave reaparece con casco y energía completos en l
 
 ## Jefe cooperativo
 
-El Titán del Nexo aparece en `[0,120,-1800]`, fuera de la base, con 1.000.000 PV compartidos y sin regeneración. Reutiliza el modelo 3D existente del Gran Titán. Solo despierta al recibir daño. Cada 5 segundos elige al piloto conectado y vulnerable con mayor vida **actual** a 1.200 m; aplica 1.000 de daño base a través de las defensas, escudos y habilidades normales. El hangar y la protección de la base bloquean sus ataques. No dispara ráfagas acumuladas tras inactividad.
+El Titán del Nexo aparece en `[0,120,-1800]`, fuera de la base, con 1.000.000 PV compartidos y sin regeneración. Reutiliza el modelo 3D existente del Gran Titán. Solo despierta al recibir daño. Cada 3 segundos elige hasta dos pilotos conectados y vulnerables distintos con mayor vida **actual** a 1.200 m; aplica a cada uno 5.000 de daño base a través de las defensas, escudos y habilidades normales. El hangar y la protección de la base bloquean sus ataques. No dispara ráfagas acumuladas tras inactividad. Patrulla a unos 80 m/s por una ruta fuera de la base y, en combate con pilotos vulnerables a su alcance, se teletransporta cada 20 segundos. El servidor elige el destino dentro de esa ruta; conserva vida y contribuciones. Los saltos y su destello se sincronizan y persisten junto al resto del estado. Un solo piloto recibe un solo golpe por ráfaga.
 
 Láseres, misiles, drones y mascota usan las trayectorias y funciones de combate existentes. El servidor registra únicamente daño efectivo (sin contar sobre-daño, mensajes de daño del cliente ni golpes a jugadores). El premio total de 1.000.000 créditos se reparte proporcionalmente: causar el 25 % concede 250.000 créditos; los redondeos conservan exactamente el total. No hay cajas ni premio por el último golpe. Los participantes conservan su contribución al morir o salir.
 
@@ -54,4 +54,4 @@ Las pruebas verifican combate entre varios pilotos, selección de misiles, impac
 
 Para probar en Android: actualizar la APK y reconectar al PvP; usar dos o tres dispositivos, salir de la base, dispararse, volver a ella y comprobar que durante cinco segundos sigue habiendo daño y después se bloquea en ambas direcciones. Repetir entrando y saliendo antes de vencer el plazo y usando habilidades. Los pilotos dentro del hangar deben quedar protegidos.
 
-Prueba cooperativa: entrar con dos dispositivos al mismo modo, volar hacia el jefe, disparar con ambos y comprobar la misma barra de vida. Al derrotarlo, cada uno debe recibir su porcentaje del millón de créditos; reconectar no debe repetir el abono. Verificar también ataques cada 5 s al piloto con mayor vida actual, retirada hacia la base, reaparición del jefe y compras de hangar mientras llega un premio.
+Prueba cooperativa: entrar con dos dispositivos al mismo modo, volar hacia el jefe, disparar con ambos y comprobar la misma barra de vida. Al derrotarlo, cada uno debe recibir su porcentaje del millón de créditos; reconectar no debe repetir el abono. Verificar también ataques cada 3 s a los dos pilotos con mayor vida actual, retirada hacia la base, reaparición del jefe y compras de hangar mientras llega un premio.

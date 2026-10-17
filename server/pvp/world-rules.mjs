@@ -1,4 +1,4 @@
-import {ensureBoss,recordBossDamage,tickBoss} from './cooperative-boss.mjs';
+import {ensureBoss,recordBossDamage,tickBoss,advanceBossMotion} from './cooperative-boss.mjs';
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
 export const WORLD={radius:3000,safeRadius:650,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
@@ -35,7 +35,7 @@ export const canDamage=(owner,target,now)=>combatEligible(owner,now)&&(!target||
 export function advance(s,now){
  s.invites=[];s.duels=[];s.events||=[];s.bullets||=[];
  for(const p of s.players){p.duelId=null;updateProtection(p,now)}
- const boss=ensureBoss(s,now);
+ const boss=ensureBoss(s,now);advanceBossMotion(s,now,combatEligible);
  const combat={status:'active',players:[...s.players,boss],bullets:s.bullets,simTime:s.simTime??now,canDamage,onDamage:(owner,target,damage,time)=>{if(target===boss)recordBossDamage(boss,owner,damage,time)}};
  stepCombat(combat,now);s.bullets=combat.bullets;s.simTime=combat.simTime;
  tickBoss(s,now,combatEligible);
