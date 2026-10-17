@@ -11,7 +11,7 @@ Juego espacial 3D en desarrollo para navegador y Android. Estado revisado contra
 - Hangar con siete formaciones, venta de materiales y potenciadores temporales.
 - Campañas, contratos largos, créditos, experiencia e inventario.
 - Guardado local automático y modo QA con partida separada.
-- Mapa PvP compartido con ID de invitado, portales desde Aurora (nivel 40) y Cementerio, y combate abierto fuera de la base. Sin pérdidas por PvP; naves y mejoras offline y casco ×20. El Titán del Nexo cooperativo comparte 1.000.000 PV: despierta al atacarlo, golpea cada 3 s a los dos pilotos vulnerables con más vida actual a 1.200 m (daño base 5.000 por piloto, defensas normales), y reaparece 5 min después de morir. Su premio total de 1.000.000 créditos se reparte según daño efectivo, con recibos persistentes por participante y guardado sin duplicados al reconectar. Posición: 0, 120, −1.800; patrulla y se teletransporta cada 20 s en combate, sin cajas ni premio por matar jugadores.
+- Mapa PvP compartido con ID de invitado, portales desde Aurora (nivel 40) y Cementerio, y combate abierto fuera de la base. Sin pérdidas por PvP; naves y mejoras offline y casco ×20. El Titán del Nexo usa un cuerpo mecánico erguido, dos cañones articulados independientes y flamas inferiores; comparte 1.000.000 PV: despierta al atacarlo, golpea cada 3 s a los dos pilotos vulnerables con más vida actual a 1.200 m (daño base 5.000 por piloto, defensas normales), y reaparece 5 min después de morir. Su premio total de 1.000.000 créditos se reparte según daño efectivo, con recibos persistentes por participante y guardado sin duplicados al reconectar. Posición: 0, 120, −1.800; patrulla y se teletransporta cada 20 s en combate, sin cajas ni premio por matar jugadores.
 
 ## Ejecutar
 

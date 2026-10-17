@@ -1,3 +1,4 @@
+import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
 import {shipThumbnail} from './ship-preview-catalog.js?v=252';
@@ -3318,11 +3319,10 @@ if(PVP_MODE){
  const bossRoot=new THREE.Group();scene.add(bossRoot);bossRoot.visible=false;bossRoot.userData.hitRadius=180;
  const bossLabel=document.createElement('div');bossLabel.className='world-nameplate';bossLabel.hidden=true;bossLabel.innerHTML='<span>Titán del Nexo</span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(bossLabel);
  const bossRemote={pvpRemote:true,playerId:'pvp-super-boss',type:'pilot',mesh:bossRoot,hp:0,maxHp:1000000,dead:1,aggressive:false,pilotName:'Titán del Nexo',pilotLevel:40};enemies.push(bossRemote);
- const bossFallback=new THREE.Mesh(new THREE.IcosahedronGeometry(140,1),new THREE.MeshStandardMaterial({color:0x9b5544,emissive:0x331000,metalness:.6,roughness:.5}));bossRoot.add(bossFallback);
- // Reuse the existing Titan asset once; no per-frame model loads or new textures.
- new GLTFLoader().load('./assets/models/gran_titan.glb?v=216',gltf=>{const model=gltf.scene,box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),scale=360/Math.max(size.x,size.y,size.z,1);model.scale.multiplyScalar(scale);model.position.sub(center.multiplyScalar(scale));bossRoot.add(model);bossFallback.visible=false},undefined,()=>{});
+ const bossRig=createNexoRig(THREE,bossRoot,scene);
+ const bossLoader=new GLTFLoader();bossLoader.load(NEXO_VISUAL.body,g=>bossRig.mountBody(g.scene),undefined,error=>console.warn('Titán del Nexo: cuerpo no disponible',error));bossLoader.load(NEXO_VISUAL.arm,g=>bossRig.mountArm(g.scene),undefined,error=>console.warn('Titán del Nexo: cañones no disponibles',error));
  bossLabel.setAttribute('role','button');bossLabel.tabIndex=0;bossLabel.onclick=()=>pvpSession?.select(bossRemote.playerId);bossLabel.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();bossLabel.click()},{passive:false});bossLabel.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();bossLabel.click()}};
- let bossInstance='',bossAttackSeq=0,bossTeleportSeq=0;const bossBeams=[],bossFlashes=[],bossGoal=new THREE.Vector3(0,120,-1800);
+ let bossInstance='',bossAttackSeq=0,bossTeleportSeq=0,bossFacing=0;const bossFlashes=[],bossGoal=new THREE.Vector3(0,120,-1800);
  function teleportFlash(pos){const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:0x88ddff,transparent:true,opacity:.6,wireframe:true,depthWrite:false}));mesh.position.set(...pos);scene.add(mesh);bossFlashes.push({mesh,life:.7})}
  function syncBoss(b,serverTime){
   if(!b){bossRoot.visible=false;bossLabel.hidden=true;bossRemote.dead=1;return}
@@ -3330,17 +3330,17 @@ if(PVP_MODE){
   const fresh=bossInstance!==b.instanceId,jump=b.lastTeleport&&b.lastTeleport.seq>bossTeleportSeq;
   if(fresh){bossInstance=b.instanceId;bossAttackSeq=b.lastAttack?.seq||0;bossTeleportSeq=b.lastTeleport?.seq||0;bossRoot.position.set(...b.pos)}
   else if(jump){bossTeleportSeq=b.lastTeleport.seq;bossRoot.position.set(...b.pos);if(b.hp>0&&serverTime-b.lastTeleport.time<1500){teleportFlash(b.lastTeleport.from);teleportFlash(b.lastTeleport.to)}}
-  else {const dx=b.pos[0]-bossGoal.x,dz=b.pos[2]-bossGoal.z;if(Math.hypot(dx,dz)>.01)bossRoot.rotation.y=Math.atan2(-dx,-dz)}
-  bossGoal.set(...b.pos);
+  else {const target=b.active?b.aimTargets?.[0]?.targetPos:null,dx=target?target[0]-b.pos[0]:b.pos[0]-bossGoal.x,dz=target?target[2]-b.pos[2]:b.pos[2]-bossGoal.z;if(Math.hypot(dx,dz)>.01)bossFacing=Math.atan2(-dx,-dz)}
+  bossGoal.set(...b.pos);bossRig.assignTargets(b.aimTargets||[]);bossRig.setCharge((b.nextAttackAt-serverTime)/1000);
   bossLabel.querySelector('small').textContent=Math.ceil(b.hp).toLocaleString()+' / '+b.maxHp.toLocaleString()+' PV · Premio 1M';bossLabel.querySelector('i').style.width=(100*b.hp/b.maxHp)+'%';
-  const attack=b.lastAttack;if(attack&&attack.seq>bossAttackSeq){bossAttackSeq=attack.seq;if(serverTime-attack.time<1500)for(const hit of attack.targets||[attack]){const points=[new THREE.Vector3(...(attack.origin||b.pos)),new THREE.Vector3(...hit.targetPos)],beam=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:0xff7744,transparent:true,opacity:1}));scene.add(beam);bossBeams.push({mesh:beam,life:.45})}}
+  const attack=b.lastAttack;if(attack&&attack.seq>bossAttackSeq){bossAttackSeq=attack.seq;if(serverTime-attack.time<1500)bossRig.fire(attack.targets||[attack])}
  }
  function updateBossVisual(dt){
-  bossRoot.position.lerp(bossGoal,1-Math.exp(-dt*12));
+  bossRoot.position.lerp(bossGoal,1-Math.exp(-dt*12));bossRoot.rotation.y+=Math.atan2(Math.sin(bossFacing-bossRoot.rotation.y),Math.cos(bossFacing-bossRoot.rotation.y))*(1-Math.exp(-dt*5));bossRig.update(dt,performance.now()/1000);
   for(let i=bossFlashes.length-1;i>=0;i--){const f=bossFlashes[i];f.life-=dt;f.mesh.scale.setScalar(180+(1-f.life/.7)*220);f.mesh.material.opacity=Math.max(0,f.life/.7)*.6;if(f.life<=0){scene.remove(f.mesh);f.mesh.geometry.dispose();f.mesh.material.dispose();bossFlashes.splice(i,1)}}
-  for(let i=bossBeams.length-1;i>=0;i--){const beam=bossBeams[i];beam.life-=dt;beam.mesh.material.opacity=Math.max(0,beam.life/.45);if(beam.life<=0){scene.remove(beam.mesh);beam.mesh.geometry.dispose();beam.mesh.material.dispose();bossBeams.splice(i,1)}}
+
   if(!bossRoot.visible){bossLabel.hidden=true;return}
-  const point=bossRoot.position.clone().add(new THREE.Vector3(0,220,0)).project(camera),view=bossRoot.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));bossLabel.hidden=!!pvpHangar||landing||view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;bossLabel.style.left=((point.x+1)*50)+'%';bossLabel.style.top=((1-point.y)*50)+'%';
+  const point=bossRoot.position.clone().add(new THREE.Vector3(0,235,0)).project(camera),view=bossRoot.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));bossLabel.hidden=!!pvpHangar||landing||view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;bossLabel.style.left=((point.x+1)*50)+'%';bossLabel.style.top=((1-point.y)*50)+'%';
  }
 
  function cloneClean(source){const saved=[];source.traverse(o=>{saved.push([o,o.userData]);o.userData={}});let copy;try{copy=source.clone(true)}finally{for(const [o,data]of saved)o.userData=data}return copy}

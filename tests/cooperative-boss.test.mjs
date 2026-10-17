@@ -7,9 +7,9 @@ const world=(...players)=>({players,events:[],bullets:[],simTime:t});
 {
  const a=pilot('a',[0,120,-1500]),b=pilot('b',[100,120,-1500],19000),c=pilot('c',[-100,120,-1500],18000),safe=pilot('safe',[0,120,0]),far=pilot('far',[2500,120,0]),s=world(a,b,c,safe,far),boss=ensureBoss(s,t);
  assert.equal(boss.hp,1000000);assert.equal(bossSnapshot(boss).contributions,undefined);tickBoss(s,t,combatEligible);assert.equal(a.hp,20000,'Neutral until attacked');
- recordBossDamage(boss,a,10,t);tickBoss(s,t+2999,combatEligible);assert.equal(a.hp,20000);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,15000);assert.equal(b.hp,14000);assert.equal(c.hp,18000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['a','b']);
+ recordBossDamage(boss,a,10,t);tickBoss(s,t+2999,combatEligible);assert.equal(a.hp,20000);assert.deepEqual(bossSnapshot(boss).aimTargets.map(x=>x.targetId),['a','b'],'Public pre-aim uses the same server-validated two targets before firing');assert.equal(bossSnapshot(boss).nextAttackAt,t+3000);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,15000);assert.equal(b.hp,14000);assert.equal(c.hp,18000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['a','b']);
  tickBoss(s,t+6000,combatEligible);assert.equal(c.hp,13000);assert.equal(a.hp,10000);assert.equal(b.hp,14000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['c','a'],'Re-rank all pilots using current HP before each volley');assert.equal(safe.hp,20000);assert.equal(far.hp,20000);
- b.pos=[0,120,-620];updateProtection(b,t+6001);b.hp=30000;tickBoss(s,t+12000,combatEligible);assert.equal(b.hp,30000,'Protected base cannot be hit');
+ b.pos=[0,120,-620];updateProtection(b,t+6001);b.hp=30000;tickBoss(s,t+12000,combatEligible);assert.equal(b.hp,30000,'Protected base cannot be hit');assert(!bossSnapshot(boss).aimTargets.some(x=>x.targetId==='b'),'Protected pilots are removed from cannon aiming');
  const seq=boss.attackSeq;tickBoss(s,t+600000,combatEligible);assert.equal(boss.attackSeq,seq+1,'No burst after long inactivity');
 }
 {

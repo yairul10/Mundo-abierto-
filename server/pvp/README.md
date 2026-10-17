@@ -1,6 +1,6 @@
 # PvP abierto · Cosmos Legacy
 
-Contenido 258, Worker 0.5.1. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
+Contenido 259, Worker 0.5.2. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
 
 ## Mapa y protección
 
@@ -14,7 +14,7 @@ Al destruir una nave solo esa nave reaparece con casco y energía completos en l
 
 ## Jefe cooperativo
 
-El Titán del Nexo aparece en `[0,120,-1800]`, fuera de la base, con 1.000.000 PV compartidos y sin regeneración. Reutiliza el modelo 3D existente del Gran Titán. Solo despierta al recibir daño. Cada 3 segundos elige hasta dos pilotos conectados y vulnerables distintos con mayor vida **actual** a 1.200 m; aplica a cada uno 5.000 de daño base a través de las defensas, escudos y habilidades normales. El hangar y la protección de la base bloquean sus ataques. No dispara ráfagas acumuladas tras inactividad. Patrulla a unos 80 m/s por una ruta fuera de la base y, en combate con pilotos vulnerables a su alcance, se teletransporta cada 20 segundos. El servidor elige el destino dentro de esa ruta; conserva vida y contribuciones. Los saltos y su destello se sincronizan y persisten junto al resto del estado. Un solo piloto recibe un solo golpe por ráfaga.
+El Titán del Nexo aparece en `[0,120,-1800]`, fuera de la base, con 1.000.000 PV compartidos y sin regeneración. Usa el cuerpo `nexo_body.glb` (battlemech) y dos instancias del mismo `nexo_arm.glb`. Geometría y materiales de ambos brazos se comparten; cada hombro conserva su objetivo y articulación independientes. El servidor publica los dos objetivos válidos antes del disparo para orientar los cañones y mostrar carga de energía. Los láseres rojos gruesos nacen en cada boca y las flamas rojas animadas salen de los dos propulsores inferiores. Texturas optimizadas: ambos archivos suman unos 6,4 MB frente a los 23,7 MB originales, sin modificar la geometría. Solo despierta al recibir daño. Cada 3 segundos elige hasta dos pilotos conectados y vulnerables distintos con mayor vida **actual** a 1.200 m; aplica a cada uno 5.000 de daño base a través de las defensas, escudos y habilidades normales. El hangar y la protección de la base bloquean sus ataques. No dispara ráfagas acumuladas tras inactividad. Patrulla a unos 80 m/s por una ruta fuera de la base y, en combate con pilotos vulnerables a su alcance, se teletransporta cada 20 segundos. El servidor elige el destino dentro de esa ruta; conserva vida y contribuciones. Los saltos y su destello se sincronizan y persisten junto al resto del estado. Un solo piloto recibe un solo golpe por ráfaga.
 
 Láseres, misiles, drones y mascota usan las trayectorias y funciones de combate existentes. El servidor registra únicamente daño efectivo (sin contar sobre-daño, mensajes de daño del cliente ni golpes a jugadores). El premio total de 1.000.000 créditos se reparte proporcionalmente: causar el 25 % concede 250.000 créditos; los redondeos conservan exactamente el total. No hay cajas ni premio por el último golpe. Los participantes conservan su contribución al morir o salir.
 

@@ -45,6 +45,8 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Instalar Capacitor
         run: npm ci --no-audit --no-fund
+      - name: Comprobar brazos y propulsores del jefe PvP
+        run: node --test test-boss-rig.mjs
       - name: Preparar firma permanente
         env:
           ANDROID_SIGNING_BUNDLE: ${{ secrets.ANDROID_SIGNING_BUNDLE }}

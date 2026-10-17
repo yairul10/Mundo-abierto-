@@ -40,14 +40,17 @@ export function splitBossReward(contributions,pool=BOSS_RULES.reward){
 export function tickBoss(s,now,eligible){
  const b=s.boss;if(!b)return;
  if(b.hp<=0){
+  b.aimTargets=[];
   if(!b.rewarded){b.rewarded=true;b.active=false;b.respawnAt=now+BOSS_RULES.respawnDelay;s.bossRewards||=[];for(const share of splitBossReward(b.contributions))if(share.amount>0)s.bossRewards.push({...share,id:b.instanceId+':'+share.playerId,bossId:b.instanceId});s.events.push({type:'bossDefeated',id:b.instanceId,time:now})}
   return;
  }
- if(!b.active||now<b.nextAttackAt)return;
+ if(!b.active){b.aimTargets=[];return}
  const targets=s.players.filter(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=BOSS_RULES.range).sort((a,b)=>b.hp-a.hp||a.id.localeCompare(b.id)).slice(0,BOSS_RULES.targets);
+ b.aimTargets=targets.map(p=>({targetId:p.id,targetPos:[...p.pos]}));
+ if(now<b.nextAttackAt)return;
  // No catch-up bursts after inactivity. Retarget at each shot.
  b.nextAttackAt=now+BOSS_RULES.attackInterval;if(!targets.length)return;
  const hits=targets.map(target=>{const damage=Math.min(target.hp,defenseDamage(target,BOSS_RULES.damage,now));target.hp=Math.max(0,target.hp-damage);target.lastHit=target.lastIncoming=now;target.lastDamagedBy=b.id;return {targetId:target.id,targetPos:[...target.pos],damage}});
  b.attackSeq++;b.lastAttack={seq:b.attackSeq,time:now,origin:[...b.pos],targets:hits,...hits[0]};
 }
-export function bossSnapshot(b){if(!b)return null;return {id:b.id,instanceId:b.instanceId,name:BOSS_RULES.name,pos:b.pos,hp:b.hp,maxHp:b.maxHp,active:b.active,respawnAt:b.respawnAt||0,reward:BOSS_RULES.reward,range:BOSS_RULES.range,lastAttack:b.lastAttack||null,lastTeleport:b.lastTeleport||null}}
+export function bossSnapshot(b){if(!b)return null;return {id:b.id,instanceId:b.instanceId,name:BOSS_RULES.name,pos:b.pos,hp:b.hp,maxHp:b.maxHp,active:b.active,respawnAt:b.respawnAt||0,reward:BOSS_RULES.reward,range:BOSS_RULES.range,lastAttack:b.lastAttack||null,lastTeleport:b.lastTeleport||null,aimTargets:b.aimTargets||[],nextAttackAt:b.nextAttackAt||0}}
