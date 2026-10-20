@@ -46,8 +46,8 @@ export function createGranTitan(T,scene,{position,source=null}={}){
   for(const t of thrusters){
    const pulse=.92+.08*Math.sin(time*12+t.phase);
    const length=moving?1:.25;
-   t.outer.scale.set(1,1,length*pulse);
-   t.core.scale.set(1,1,length*pulse);
+   t.outer.scale.set(1,length*pulse,1);
+   t.core.scale.set(1,length*pulse,1);
    t.outer.visible=t.core.visible=moving;
    t.ring.scale.setScalar(.95+.05*pulse);
   }
