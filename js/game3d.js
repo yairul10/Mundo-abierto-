@@ -1339,6 +1339,7 @@ function updateGranTitan(dt){if(PVP_MODE)return;
  if(titanEnemy.dead&&Date.now()>=titanEnemy.respawnAt){titanEnemy.dead=0;titanEnemy.hp=max;titanEnemy.aggressive=false;titanWaveTimer=12}
  titanEnemy.mesh.visible=activeSector==='graveyard'&&!titanEnemy.dead;
  if(titanEnemy.mesh.visible){
+  titanRig.updateEngines(performance.now()/1000,true);
   titanPatrolAngle+=dt*70/2800;
   const p=titanPatrolPoint(titanPatrolAngle),goal=new THREE.Vector3(GRAVEYARD.x+p.x,p.y,GRAVEYARD.z+p.z),delta=goal.sub(titanEnemy.mesh.position),d=delta.length();
   if(d>.01)titanEnemy.mesh.position.addScaledVector(delta,Math.min(d,70*dt)/d);
