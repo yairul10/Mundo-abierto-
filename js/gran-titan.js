@@ -26,28 +26,29 @@ export function createGranTitan(T,scene,{position,source=null}={}){
  }
  function mount(model){fallback.visible=false;const box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3()),c=box.getCenter(new T.Vector3()),s=400/size.z;model.scale.multiplyScalar(s);model.position.sub(c.multiplyScalar(s));model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;for(const m of Array.isArray(o.material)?o.material:[o.material]){m.metalnessMap=null;m.roughnessMap=null;m.metalness=.5;m.roughness=.72;if(m.normalScale)m.normalScale.set(.35,.35)}}});body.add(model)}
  if(source)mount(source);
- // Eight soft exhaust jets, fixed to the aft engine cluster of the imported ship.
- // The nozzles are intentionally dark: no visible torus or bright geometric rings.
+ // Visible eight-jet exhaust: two banks of four, positioned in the aft engine face.
+ // Keep all meshes on the rig so patrol turns and movement preserve alignment.
  const thrusters=[];
- const flameOuter=new T.MeshBasicMaterial({color:0xff8739,transparent:true,opacity:.33,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});
- const flameInner=new T.MeshBasicMaterial({color:0x75caff,transparent:true,opacity:.68,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});
- const glowMaterial=new T.MeshBasicMaterial({color:0xffa45a,transparent:true,opacity:.4,depthWrite:false,blending:T.AdditiveBlending});
- const flameGeometry=new T.ConeGeometry(3.8,27,16,1,true);
- const coreGeometry=new T.ConeGeometry(1.8,20,12,1,true);
- const glowGeometry=new T.SphereGeometry(4.4,12,8);
+ const flameOuter=new T.MeshBasicMaterial({color:0xff7e28,transparent:true,opacity:.7,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});
+ const flameInner=new T.MeshBasicMaterial({color:0x54bfff,transparent:true,opacity:.95,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});
+ const glowMaterial=new T.MeshBasicMaterial({color:0xffae55,transparent:true,opacity:.9,depthWrite:false,blending:T.AdditiveBlending});
+ const flameGeometry=new T.ConeGeometry(5.5,43,16,1,true);
+ const coreGeometry=new T.ConeGeometry(3,34,12,1,true);
+ const glowGeometry=new T.SphereGeometry(5.5,12,8);
  for(const x of [-27,-9,9,27])for(const y of [-11,11]){
-  const port=new T.Group();port.position.set(x,y,-173);port.rotation.y=Math.PI;body.add(port);
-  const glow=new T.Mesh(glowGeometry,glowMaterial);glow.position.z=1;port.add(glow);
-  const outer=new T.Mesh(flameGeometry,flameOuter);outer.rotation.x=Math.PI/2;outer.position.z=14;port.add(outer);
-  const core=new T.Mesh(coreGeometry,flameInner);core.rotation.x=Math.PI/2;core.position.z=10;port.add(core);
+  const port=new T.Group();port.position.set(x,y,-177);port.rotation.y=Math.PI;body.add(port);
+  const glow=new T.Mesh(glowGeometry,glowMaterial);glow.position.z=2;port.add(glow);
+  // Cone points along local +Z, so its wide base sits at the nozzle.
+  const outer=new T.Mesh(flameGeometry,flameOuter);outer.rotation.x=Math.PI/2;outer.position.z=22;port.add(outer);
+  const core=new T.Mesh(coreGeometry,flameInner);core.rotation.x=Math.PI/2;core.position.z=17;port.add(core);
   thrusters.push({outer,core,glow,phase:Math.random()*Math.PI*2});
  }
  function updateEngines(time,moving=true){
   for(const t of thrusters){
-   const pulse=.86+.14*Math.sin(time*15+t.phase);
-   const length=moving?1:.25;
-   t.outer.scale.set(.9,length*pulse,.9);
-   t.core.scale.set(.95,length*pulse,.95);
+   const pulse=.9+.1*Math.sin(time*13+t.phase);
+   const length=moving?1:.3;
+   t.outer.scale.set(1,length*pulse,1);
+   t.core.scale.set(1,length*pulse,1);
    t.outer.visible=t.core.visible=moving;
    t.glow.scale.setScalar(.95+.08*pulse);
   }
