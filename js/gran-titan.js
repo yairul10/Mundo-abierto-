@@ -35,7 +35,7 @@ export function createGranTitan(T,scene,{position,source=null}={}){
  const flameGeometry=new T.ConeGeometry(5.5,43,16,1,true);
  const coreGeometry=new T.ConeGeometry(3,34,12,1,true);
  const glowGeometry=new T.SphereGeometry(5.5,12,8);
- for(const x of [-27,-9,9,27])for(const y of [-11,11]){
+ for(const x of [-27,-9,9,27])for(const y of [-16,6]){
   const port=new T.Group();port.position.set(x,y,-177);port.rotation.y=Math.PI;body.add(port);
   const glow=new T.Mesh(glowGeometry,glowMaterial);glow.position.z=2;port.add(glow);
   // Cone points along local +Z, so its wide base sits at the nozzle.
