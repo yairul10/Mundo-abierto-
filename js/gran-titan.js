@@ -26,9 +26,35 @@ export function createGranTitan(T,scene,{position,source=null}={}){
  }
  function mount(model){fallback.visible=false;const box=new T.Box3().setFromObject(model),size=box.getSize(new T.Vector3()),c=box.getCenter(new T.Vector3()),s=400/size.z;model.scale.multiplyScalar(s);model.position.sub(c.multiplyScalar(s));model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;for(const m of Array.isArray(o.material)?o.material:[o.material]){m.metalnessMap=null;m.roughnessMap=null;m.metalness=.5;m.roughness=.72;if(m.normalScale)m.normalScale.set(.35,.35)}}});body.add(model)}
  if(source)mount(source);
+ // Lightweight thrusters attached to the Titan rig (no extra GLB or dynamic lights).
+ // Four clusters of two exhausts, oriented toward the rear (+Z).
+ const thrusters=[];
+ const flameOuter=new T.MeshBasicMaterial({color:0xff7b26,transparent:true,opacity:.8,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});
+ const flameInner=new T.MeshBasicMaterial({color:0x76caff,transparent:true,opacity:.82,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});
+ const nozzleMaterial=new T.MeshBasicMaterial({color:0xffa23e,side:T.DoubleSide});
+ const ringGeometry=new T.TorusGeometry(7,1.8,7,18);
+ const flameGeometry=new T.ConeGeometry(5,34,10,1,true);
+ const coreGeometry=new T.ConeGeometry(2.5,24,8,1,true);
+ for(const x of [-29,-12,12,29])for(const y of [-14,14]){
+  const port=new T.Group();port.position.set(x,y,173);body.add(port);
+  const ring=new T.Mesh(ringGeometry,nozzleMaterial);port.add(ring);
+  const outer=new T.Mesh(flameGeometry,flameOuter);outer.rotation.x=Math.PI/2;outer.position.z=18;port.add(outer);
+  const core=new T.Mesh(coreGeometry,flameInner);core.rotation.x=Math.PI/2;core.position.z=12;port.add(core);
+  thrusters.push({outer,core,ring,phase:Math.random()*Math.PI*2});
+ }
+ function updateEngines(time,moving=true){
+  for(const t of thrusters){
+   const pulse=.92+.08*Math.sin(time*12+t.phase);
+   const length=moving?1:.25;
+   t.outer.scale.set(1,1,length*pulse);
+   t.core.scale.set(1,1,length*pulse);
+   t.outer.visible=t.core.visible=moving;
+   t.ring.scale.setScalar(.95+.05*pulse);
+  }
+ }
  function pose(amount,kind){for(const p of ports){const a=p.kind===kind?amount:0;p.slide.visible=a>.5;p.hinge.rotation.z=p.side*Math.PI/2*Math.min(1,a*2);p.slide.position.x=p.side*(20+35*Math.max(0,(a-.5)*2))}}
  function muzzle(kind,side,index=0){const list=ports.filter(p=>p.kind===kind&&p.side===side),p=list[index%list.length];root.updateMatrixWorld(true);return p.slide.localToWorld(new T.Vector3(side*10,3,0))}
- return {root,ports,mount,pose,muzzle};
+ return {root,ports,mount,pose,muzzle,updateEngines};
 }
 export function createTitanCycle(){return {time:0,round:0,fired:false,kind:'spear'}}
 export function advanceTitanCycle(c,dt,active){if(!active){c.time=0;c.fired=false;return {open:0,fire:false}}c.time+=dt;const fire=!c.fired&&c.time>=2.5;if(fire)c.fired=true;const open=c.time<1?0:c.time<2.5?(c.time-1)/1.5:c.time<4?1:Math.max(0,1-(c.time-4)/1.5);if(c.time>=8){c.time=0;c.fired=false;c.round++;c.kind=c.round%2?'bomb':'spear'}return {open,fire}}
