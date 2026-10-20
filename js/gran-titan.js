@@ -36,7 +36,7 @@ export function createGranTitan(T,scene,{position,source=null}={}){
  const flameGeometry=new T.ConeGeometry(5,34,10,1,true);
  const coreGeometry=new T.ConeGeometry(2.5,24,8,1,true);
  for(const x of [-29,-12,12,29])for(const y of [-14,14]){
-  const port=new T.Group();port.position.set(x,y,173);body.add(port);
+  const port=new T.Group();port.position.set(x,y,-173);port.rotation.y=Math.PI;body.add(port);
   const ring=new T.Mesh(ringGeometry,nozzleMaterial);port.add(ring);
   const outer=new T.Mesh(flameGeometry,flameOuter);outer.rotation.x=Math.PI/2;outer.position.z=18;port.add(outer);
   const core=new T.Mesh(coreGeometry,flameInner);core.rotation.x=Math.PI/2;core.position.z=12;port.add(core);
