@@ -3,6 +3,18 @@ const API='https://cosmos-legacy-lite-test.yairul17.workers.dev/v1/light-backup-
 const FIELDS=['name','level','xp','gold','loot','ownedShips','shipId','shipSpecializations','shipBaseStats','droneCount','explorerDrone','explorerRangeLevel','repairRobot','repairRobotLevel','upgrades','formations','droneFormation','boosters','quests','pvpBossReceipts','maxHp','maxEnergy','attack','defense','speed'];
 export function mountLightBackupTest(){
  if(window.MUNDO_PLAY_MODE?.mode==='test'||new URLSearchParams(location.search).has('pvp'))return;
+ // Auditoría de cobertura: comprueba campos persistentes que no entran en la copia ligera.
+ const audit=document.createElement('button');audit.type='button';audit.textContent='🛡️ Revisar guardado';audit.title='Comprobar qué datos permanentes faltan antes de permitir restauración';
+ audit.style.cssText='position:fixed;left:12px;bottom:156px;z-index:1001;border:1px solid #f6d98b;border-radius:12px;padding:9px 12px;background:#3c2d12;color:#fff3d2;font:600 12px system-ui;opacity:.9';
+ document.body.appendChild(audit);
+ audit.onclick=()=>{
+  let save;try{save=JSON.parse(localStorage.getItem('mundoAbierto.player')||'null')}catch{}
+  if(!save||typeof save!=='object'){alert('No hay una partida local legible.');return}
+  const temporary=new Set(['x','y','z','yaw','pitch','sector','hp','energy','granTitanState','carrierState']);
+  const omitted=Object.keys(save).filter(key=>!FIELDS.includes(key)&&!temporary.has(key));
+  const included=FIELDS.filter(key=>Object.prototype.hasOwnProperty.call(save,key));
+  alert('🛡️ Auditoría de guardado ligero\\nCampos incluidos: '+included.length+'\\nCampos temporales excluidos: '+Object.keys(save).filter(k=>temporary.has(k)).length+'\\nCampos pendientes de revisión: '+omitted.length+(omitted.length?'\\n'+omitted.join(', '):'')+'\\n\\nEsta auditoría no modifica nada. La restauración continúa desactivada.');
+ };
  const button=document.createElement('button');button.type='button';button.textContent='☁️ Copia ligera';button.title='Prueba manual de progreso permanente, sin restauración';
  button.style.cssText='position:fixed;left:12px;bottom:60px;z-index:1001;border:1px solid #a8edc2;border-radius:12px;padding:9px 12px;background:#0b3027;color:#edfff5;font:600 12px system-ui;opacity:.9';
  document.body.appendChild(button);
