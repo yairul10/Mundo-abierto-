@@ -68,9 +68,9 @@ export function mountLightBackupTest(){
    const data=await res.json();if(!res.ok)throw Error(data.error||'HTTP '+res.status);
    const cloud=data.backup?.progress;
    if(!cloud||typeof cloud!=='object'||Array.isArray(cloud)||data.backup.schema!==1)throw Error('Copia de nube ausente o incompatible');
-   const missing=FIELDS.filter(key=>!Object.prototype.hasOwnProperty.call(cloud,key));
+   const missing=FIELDS.filter(key=>Object.prototype.hasOwnProperty.call(local,key)&&!Object.prototype.hasOwnProperty.call(cloud,key));
    if(missing.length)throw Error('La copia nube está incompleta: '+missing.join(', '));
-   const differences=FIELDS.filter(key=>JSON.stringify(cloud[key])!==JSON.stringify(local[key]));
+   const differences=FIELDS.filter(key=>Object.prototype.hasOwnProperty.call(local,key)&&Object.prototype.hasOwnProperty.call(cloud,key)&&JSON.stringify(cloud[key])!==JSON.stringify(local[key]));
    const key='cosmosLegacy.restoreSafety.v1';
    if(!confirm('Se encontró la copia nube ('+data.backup.bytes+' bytes).\\nDiferencias con la partida actual: '+differences.length+'.\\n\\n¿Guardar una copia de seguridad LOCAL antes de restaurar?\\n\\nNO se modificará tu partida actual.'))return;
    const snapshot=JSON.stringify({schema:1,createdAt:new Date().toISOString(),player:local});
