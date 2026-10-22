@@ -11,7 +11,8 @@ import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
-import com.getcapacitor.BridgeActivity;\nimport com.google.android.gms.games.PlayGamesSdk;
+import com.getcapacitor.BridgeActivity;
+import com.google.android.gms.games.PlayGamesSdk;
 public class MainActivity extends BridgeActivity {
     private void immersive() {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
