@@ -11,7 +11,7 @@ import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
-import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeActivity;\nimport com.google.android.gms.games.PlayGamesSdk;
 public class MainActivity extends BridgeActivity {
     private void immersive() {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -19,16 +19,64 @@ public class MainActivity extends BridgeActivity {
         bars.hide(WindowInsetsCompat.Type.systemBars());
         bars.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
     }
-    @Override public void onCreate(Bundle state) { super.onCreate(state); getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); immersive(); }
+    @Override public void onCreate(Bundle state) { registerPlugin(PlayGamesPlugin.class); PlayGamesSdk.initialize(this); super.onCreate(state); getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); immersive(); }
     @Override public void onWindowFocusChanged(boolean focus) { super.onWindowFocusChanged(focus); if (focus) immersive(); }
 }
 `);
 console.log('Android preparado en horizontal y pantalla completa');
 
+const pluginJava=`package com.cosmoslegacy.game;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.JSObject;
+import com.google.android.gms.games.PlayGames;
+
+@CapacitorPlugin(name = "CosmosPlayGames")
+public class PlayGamesPlugin extends Plugin {
+    @PluginMethod
+    public void status(PluginCall call) {
+        PlayGames.getGamesSignInClient(getActivity()).isAuthenticated().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) { call.reject("No se pudo consultar Play Games", task.getException()); return; }
+            boolean signedIn = task.getResult().isAuthenticated();
+            if (!signedIn) { JSObject result = new JSObject(); result.put("authenticated", false); call.resolve(result); return; }
+            PlayGames.getPlayersClient(getActivity()).getCurrentPlayer().addOnCompleteListener(playerTask -> {
+                if (!playerTask.isSuccessful()) { call.reject("No se pudo obtener el perfil", playerTask.getException()); return; }
+                JSObject result = new JSObject();
+                result.put("authenticated", true);
+                result.put("playerId", playerTask.getResult().getPlayerId());
+                result.put("displayName", playerTask.getResult().getDisplayName());
+                call.resolve(result);
+            });
+        });
+    }
+    @PluginMethod
+    public void signIn(PluginCall call) {
+        PlayGames.getGamesSignInClient(getActivity()).signIn().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) { call.reject("Inicio de sesión fallido", task.getException()); return; }
+            JSObject result = new JSObject();
+            result.put("authenticated", task.getResult().isAuthenticated());
+            call.resolve(result);
+        });
+    }
+}
+`;
+writeFileSync('android/app/src/main/java/com/cosmoslegacy/game/PlayGamesPlugin.java',pluginJava);
+const gamesId='430904114567';
+const stringsPath='android/app/src/main/res/values/strings.xml';
+let strings=readFileSync(stringsPath,'utf8');
+strings=strings.replace('</resources>',`    <string name="game_services_project_id" translatable="false">${gamesId}</string>\n</resources>`);
+writeFileSync(stringsPath,strings);
+manifest=readFileSync(manifestPath,'utf8').replace('<application', '<application');
+manifest=manifest.replace(/(<application\\b[^>]*>)/, '$1\n        <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/game_services_project_id" />');
+writeFileSync(manifestPath,manifest);
+
+
 const gradlePath='android/app/build.gradle';
 const code=Math.max(1,Number(process.env.GITHUB_RUN_NUMBER)||1);
 let gradle=readFileSync(gradlePath,'utf8').replace(/versionCode\s+1/,'versionCode '+code).replace(/versionName\s+"1.0"/,'versionName "1.0.0"');
-writeFileSync(gradlePath,gradle);
+gradle += '\n// Play Games Services v2 (Google Play identity)\ndependencies { implementation "com.google.android.gms:play-services-games-v2:22.1.0" }\n';\nwriteFileSync(gradlePath,gradle);
 
 if(process.env.MUNDO_KEYSTORE){
  let signed=readFileSync(gradlePath,'utf8');
