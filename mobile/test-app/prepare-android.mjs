@@ -52,6 +52,20 @@ public class PlayGamesPlugin extends Plugin {
         });
     }
     @PluginMethod
+    public void serverAuthCode(PluginCall call) {
+        String clientId = call.getString("serverClientId");
+        if (clientId == null || !clientId.endsWith(".apps.googleusercontent.com")) {
+            call.reject("Falta el cliente OAuth web"); return;
+        }
+        PlayGames.getGamesSignInClient(getActivity()).requestServerSideAccess(clientId, false)
+            .addOnCompleteListener(task -> {
+                if (!task.isSuccessful()) { call.reject("No se pudo autorizar el servidor", task.getException()); return; }
+                JSObject result = new JSObject();
+                result.put("code", task.getResult());
+                call.resolve(result);
+            });
+    }
+    @PluginMethod
     public void signIn(PluginCall call) {
         PlayGames.getGamesSignInClient(getActivity()).signIn().addOnCompleteListener(task -> {
             if (!task.isSuccessful()) { call.reject("Inicio de sesión fallido", task.getException()); return; }
