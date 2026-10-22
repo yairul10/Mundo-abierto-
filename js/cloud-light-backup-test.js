@@ -18,4 +18,24 @@ export function mountLightBackupTest(){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
   try{const response=await fetch(API,{method:'POST',headers:{authorization:'Bearer '+identity.guest_token,'content-type':'application/json'},body,signal:controller.signal});const data=await response.json();if(!response.ok||!data.stored)throw Error(data.error||'HTTP '+response.status);alert('☁️ Copia ligera guardada: '+data.bytes+' bytes. Partida local intacta.')}catch(e){alert('Error al enviar copia ligera: '+e.message)}finally{clearTimeout(timer);button.disabled=false;button.textContent='☁️ Copia ligera'}
  };
+ // Lectura de prueba: nunca escribe sobre la partida local.
+ const inspect=document.createElement('button');inspect.type='button';inspect.textContent='🔎 Ver copia nube';
+ inspect.style.cssText='position:fixed;left:12px;bottom:108px;z-index:1001;border:1px solid #c2b2ff;border-radius:12px;padding:9px 12px;background:#282046;color:#f2eeff;font:600 12px system-ui;opacity:.9';
+ document.body.appendChild(inspect);
+ inspect.onclick=async()=>{
+  let identity,local;try{identity=JSON.parse(localStorage.getItem('cosmosLegacy.guestIdentity.v1')||'null');local=JSON.parse(localStorage.getItem('mundoAbierto.player')||'null')}catch{}
+  if(!identity||!/^[a-f0-9]{64}$/.test(identity.guest_token)){alert('No hay identidad de invitado disponible.');return}
+  inspect.disabled=true;inspect.textContent='🔎 Consultando…';
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{
+   const res=await fetch(API,{method:'GET',headers:{authorization:'Bearer '+identity.guest_token},cache:'no-store',signal:controller.signal});
+   const data=await res.json();if(!res.ok)throw Error(data.error||'HTTP '+res.status);
+   if(!data.backup){alert('Todavía no hay copia ligera para esta identidad.');return}
+   const cloud=data.backup.progress||{},changes=[];
+   for(const key of FIELDS){if(Object.prototype.hasOwnProperty.call(cloud,key)&&JSON.stringify(cloud[key])!==JSON.stringify(local?.[key]))changes.push(key)}
+   const info='☁️ Copia ligera encontrada\nTamaño: '+data.backup.bytes+' bytes\nFecha (UTC): '+data.backup.updated_at+'\nNivel nube: '+(cloud.level??'—')+' / local: '+(local?.level??'—')+'\nCréditos nube: '+(cloud.gold??'—')+' / local: '+(local?.gold??'—')+'\nCampos diferentes: '+changes.length+(changes.length?'\n'+changes.join(', '):'')+'\n\nNo se ha restaurado ni modificado nada.';
+   alert(info);
+  }catch(e){alert('No se pudo consultar la copia: '+e.message)}finally{clearTimeout(timer);inspect.disabled=false;inspect.textContent='🔎 Ver copia nube'}
+ };
+
 }
