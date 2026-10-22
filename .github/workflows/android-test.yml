@@ -1,4 +1,4 @@
-name: Android APK offline
+name: Android APK + Play AAB
 on:
   workflow_dispatch:
   push:
@@ -56,6 +56,15 @@ jobs:
       - name: Compilar APK
         working-directory: mobile/test-app/android
         run: bash gradlew assembleDebug --no-daemon
+      - name: Compilar AAB firmado para Google Play
+        working-directory: mobile/test-app/android
+        run: bash gradlew bundleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cosmos-Legacy-Play-AAB
+          path: mobile/test-app/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: Mundo-Abierto-Offline-APK
