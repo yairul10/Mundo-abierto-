@@ -1,7 +1,7 @@
 {
   "name": "mundo-abierto-android-test",
   "private": true,
-  "version": "0.2.0",
+  "version": "1.0.0",
   "scripts": {
     "android:prepare": "npm run web:offline && cap add android && node prepare-android.mjs && cap sync android",
     "web:offline": "node prepare-offline.mjs"
