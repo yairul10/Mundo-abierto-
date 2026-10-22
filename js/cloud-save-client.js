@@ -10,10 +10,14 @@ export function createCloudSave({apiUrl,serverClientId,onConflict}={}){
  let token=null,revision=0,lastSent='',inFlight=false,active=false;
  const endpoint=apiUrl.replace(/\/$/,'');
  async function request(path,options={}){
-  const response=await fetch(endpoint+path,{...options,headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{}),...options.headers}});
-  const data=await response.json();
-  if(!response.ok)throw Object.assign(Error(data.error||'HTTP '+response.status),{status:response.status,data});
-  return data;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),12000);
+  try{
+   const response=await fetch(endpoint+path,{...options,signal:controller.signal,cache:'no-store',headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{}),...options.headers}});
+   const data=await response.json();
+   if(!response.ok)throw Object.assign(Error(data.error||'HTTP '+response.status),{status:response.status,data});
+   return data;
+  }finally{clearTimeout(timer)}
  }
  async function connect(){
   let status=await playGamesStatus();
@@ -31,6 +35,7 @@ export function createCloudSave({apiUrl,serverClientId,onConflict}={}){
    const different=JSON.stringify(progressOf(local))!==JSON.stringify(cloud);
    if(different){active=false;onConflict?.({local:progressOf(local),cloud,identity});return {status:'conflict',identity}}
   }
+  if(remote.save)lastSent=JSON.stringify(progressOf(localSave()||{}));
   active=true;
   return {status:'ready',identity};
  }
