@@ -1,6 +1,6 @@
 // Copia ligera experimental, separada de la copia completa. Nunca restaura partidas.
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev/v1/light-backup-test';
-const FIELDS=['name','classId','activityJournal','level','xp','gold','loot','ownedShips','shipId','shipSpecializations','shipBaseStats','droneCount','explorerDrone','explorerRangeLevel','repairRobot','repairRobotLevel','upgrades','formations','droneFormation','boosters','quests','pvpBossReceipts','maxHp','maxEnergy','attack','defense','speed'];
+const FIELDS=['name','classId','level','xp','gold','loot','ownedShips','shipId','shipSpecializations','shipBaseStats','droneCount','explorerDrone','explorerRangeLevel','repairRobot','repairRobotLevel','upgrades','formations','droneFormation','boosters','quests','pvpBossReceipts','maxHp','maxEnergy','attack','defense','speed'];
 export function mountLightBackupTest(){
  if(window.MUNDO_PLAY_MODE?.mode==='test'||new URLSearchParams(location.search).has('pvp'))return;
  // Auditoría de cobertura: comprueba campos persistentes que no entran en la copia ligera.
@@ -10,10 +10,12 @@ export function mountLightBackupTest(){
  audit.onclick=()=>{
   let save;try{save=JSON.parse(localStorage.getItem('mundoAbierto.player')||'null')}catch{}
   if(!save||typeof save!=='object'){alert('No hay una partida local legible.');return}
+  const localOnly=new Set(['activityJournal']);
   const temporary=new Set(['x','y','z','yaw','pitch','sector','hp','energy','granTitanState','carrierState']);
-  const omitted=Object.keys(save).filter(key=>!FIELDS.includes(key)&&!temporary.has(key));
+  const omitted=Object.keys(save).filter(key=>!FIELDS.includes(key)&&!temporary.has(key)&&!localOnly.has(key));
   const included=FIELDS.filter(key=>Object.prototype.hasOwnProperty.call(save,key));
-  alert('🛡️ Auditoría de guardado ligero\nCampos incluidos: '+included.length+'\nCampos temporales excluidos: '+Object.keys(save).filter(k=>temporary.has(k)).length+'\nCampos pendientes de revisión: '+omitted.length+(omitted.length?'\n'+omitted.join(', '):'')+'\n\nEsta auditoría no modifica nada. La restauración continúa desactivada.');
+  const localOnlyCount=Object.keys(save).filter(k=>localOnly.has(k)).length;
+  alert('🛡️ Auditoría de guardado ligero\nCampos incluidos: '+included.length+'\nCampos locales (diario): '+localOnlyCount+'\nCampos temporales excluidos: '+Object.keys(save).filter(k=>temporary.has(k)).length+'\nCampos pendientes de revisión: '+omitted.length+(omitted.length?'\n'+omitted.join(', '):'')+'\n\nEl diario completo sigue guardado en este dispositivo, pero NO se incluye en la copia nube. Esta auditoría no modifica nada. La restauración continúa desactivada.');
  };
  const button=document.createElement('button');button.type='button';button.textContent='☁️ Copia ligera';button.title='Prueba manual de progreso permanente, sin restauración';
  button.style.cssText='position:fixed;left:12px;bottom:60px;z-index:1001;border:1px solid #a8edc2;border-radius:12px;padding:9px 12px;background:#0b3027;color:#edfff5;font:600 12px system-ui;opacity:.9';
@@ -25,7 +27,7 @@ export function mountLightBackupTest(){
   const progress={};for(const key of FIELDS)if(Object.prototype.hasOwnProperty.call(local,key))progress[key]=local[key];
   const body=JSON.stringify({kind:'cosmos-light-backup-test',schema:1,progress});
   const size=new TextEncoder().encode(body).length;
-  if(!confirm('¿Enviar copia ligera de '+size+' bytes a Cloudflare? Se guardará separada de la copia completa y NO se restaurará automáticamente.'))return;
+  if(!confirm('¿Enviar copia ligera de '+size+' bytes a Cloudflare? El diario de actividad se mantiene SOLO en este dispositivo. No se restaurará automáticamente.'))return;
   button.disabled=true;button.textContent='☁️ Enviando…';
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
   try{const response=await fetch(API,{method:'POST',headers:{authorization:'Bearer '+identity.guest_token,'content-type':'application/json'},body,signal:controller.signal});const data=await response.json();if(!response.ok||!data.stored)throw Error(data.error||'HTTP '+response.status);alert('☁️ Copia ligera guardada: '+data.bytes+' bytes. Partida local intacta.')}catch(e){alert('Error al enviar copia ligera: '+e.message)}finally{clearTimeout(timer);button.disabled=false;button.textContent='☁️ Copia ligera'}
