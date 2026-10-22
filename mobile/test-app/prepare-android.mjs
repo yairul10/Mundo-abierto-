@@ -69,14 +69,15 @@ let strings=readFileSync(stringsPath,'utf8');
 strings=strings.replace('</resources>',`    <string name="game_services_project_id" translatable="false">${gamesId}</string>\n</resources>`);
 writeFileSync(stringsPath,strings);
 manifest=readFileSync(manifestPath,'utf8').replace('<application', '<application');
-manifest=manifest.replace(/(<application\\b[^>]*>)/, '$1\n        <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/game_services_project_id" />');
+manifest=manifest.replace(/(<application\b[^>]*>)/, '$1\n        <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/game_services_project_id" />');
 writeFileSync(manifestPath,manifest);
 
 
 const gradlePath='android/app/build.gradle';
 const code=Math.max(1,Number(process.env.GITHUB_RUN_NUMBER)||1);
 let gradle=readFileSync(gradlePath,'utf8').replace(/versionCode\s+1/,'versionCode '+code).replace(/versionName\s+"1.0"/,'versionName "1.0.0"');
-gradle += '\n// Play Games Services v2 (Google Play identity)\ndependencies { implementation "com.google.android.gms:play-services-games-v2:22.1.0" }\n';\nwriteFileSync(gradlePath,gradle);
+gradle += '\n// Play Games Services v2 (Google Play identity)\ndependencies { implementation "com.google.android.gms:play-services-games-v2:22.1.0" }\n';
+writeFileSync(gradlePath,gradle);
 
 if(process.env.MUNDO_KEYSTORE){
  let signed=readFileSync(gradlePath,'utf8');
