@@ -13,7 +13,7 @@ const reply=(data,status=200,origin='')=>new Response(JSON.stringify(data),{stat
 export default {
  async fetch(request,env){
   const origin=request.headers.get('origin')||'';
-  if(request.method==='OPTIONS'&&origins.has(origin))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-methods':'POST,OPTIONS','access-control-allow-headers':'Content-Type,Authorization','vary':'Origin'}});
+  if(request.method==='OPTIONS'&&origins.has(origin))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-methods':'GET,PUT,POST,OPTIONS','access-control-allow-headers':'Content-Type,Authorization','vary':'Origin'}});
   if(origin&&!origins.has(origin))return reply({error:'origin_not_allowed'},403);
   const pathname=new URL(request.url).pathname;
   if(!['/v1/play-games/session','/v1/play-games/save'].includes(pathname))return reply({error:'not_found'},404,origin);
@@ -63,7 +63,7 @@ export default {
     playerId=linked?.player_id;
    }
    if(!playerId)return reply({error:'identity_unavailable'},503,origin);
-   // Return identity only; save access must require a server-issued authenticated session.
+   // A short-lived signed session authorizes save access; never trust client-supplied player IDs.
    return reply({authenticated:true,displayName:String(profile.displayName||'').slice(0,100),playerId,sessionToken:await createSession(env.SESSION_SIGNING_KEY,playerId),expiresIn:86400},200,origin);
   }catch{return reply({error:'service_unavailable'},503,origin)}
  }
