@@ -3,8 +3,9 @@ const manifestPath='android/app/src/main/AndroidManifest.xml';
 let manifest=readFileSync(manifestPath,'utf8');
 manifest=manifest.replace('<activity','<activity android:screenOrientation="sensorLandscape"');
 writeFileSync(manifestPath,manifest);
-const javaPath='android/app/src/main/java/io/github/yairul10/mundoabierto/offline/MainActivity.java';
-writeFileSync(javaPath,`package io.github.yairul10.mundoabierto.offline;
+const javaPath='android/app/src/main/java/com/cosmoslegacy/game/MainActivity.java';
+mkdirSync('android/app/src/main/java/com/cosmoslegacy/game',{recursive:true});
+writeFileSync(javaPath,`package com.cosmoslegacy.game;
 import android.os.Bundle;
 import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
@@ -25,8 +26,8 @@ public class MainActivity extends BridgeActivity {
 console.log('Android preparado en horizontal y pantalla completa');
 
 const gradlePath='android/app/build.gradle';
-const code=Number(process.env.GITHUB_RUN_NUMBER)||2;
-let gradle=readFileSync(gradlePath,'utf8').replace(/versionCode\s+1/,'versionCode '+code).replace(/versionName\s+"1.0"/,'versionName "0.2.0"');
+const code=Math.max(1,Number(process.env.GITHUB_RUN_NUMBER)||1);
+let gradle=readFileSync(gradlePath,'utf8').replace(/versionCode\s+1/,'versionCode '+code).replace(/versionName\s+"1.0"/,'versionName "1.0.0"');
 writeFileSync(gradlePath,gradle);
 
 if(process.env.MUNDO_KEYSTORE){
@@ -41,7 +42,7 @@ if(process.env.MUNDO_KEYSTORE){
         }
     }
 `);
- signed=signed.replace(/buildTypes\s*\{/, 'buildTypes {\n        debug { signingConfig signingConfigs.permanent }');
+ signed=signed.replace(/buildTypes\s*\{/, 'buildTypes {\n        debug { signingConfig signingConfigs.permanent }\n        release { signingConfig signingConfigs.permanent }');
  writeFileSync(gradlePath,signed);
 }else if(process.env.CI){
  throw new Error('No se permite compilar en CI sin firma permanente');
