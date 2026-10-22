@@ -13,7 +13,7 @@ export function mountLightBackupTest(){
   const temporary=new Set(['x','y','z','yaw','pitch','sector','hp','energy','granTitanState','carrierState']);
   const omitted=Object.keys(save).filter(key=>!FIELDS.includes(key)&&!temporary.has(key));
   const included=FIELDS.filter(key=>Object.prototype.hasOwnProperty.call(save,key));
-  alert('🛡️ Auditoría de guardado ligero\\nCampos incluidos: '+included.length+'\nCampos temporales excluidos: '+Object.keys(save).filter(k=>temporary.has(k)).length+'\nCampos pendientes de revisión: '+omitted.length+(omitted.length?'\n'+omitted.join(', '):'')+'\n\nEsta auditoría no modifica nada. La restauración continúa desactivada.');
+  alert('🛡️ Auditoría de guardado ligero\nCampos incluidos: '+included.length+'\nCampos temporales excluidos: '+Object.keys(save).filter(k=>temporary.has(k)).length+'\nCampos pendientes de revisión: '+omitted.length+(omitted.length?'\n'+omitted.join(', '):'')+'\n\nEsta auditoría no modifica nada. La restauración continúa desactivada.');
  };
  const button=document.createElement('button');button.type='button';button.textContent='☁️ Copia ligera';button.title='Prueba manual de progreso permanente, sin restauración';
  button.style.cssText='position:fixed;left:12px;bottom:60px;z-index:1001;border:1px solid #a8edc2;border-radius:12px;padding:9px 12px;background:#0b3027;color:#edfff5;font:600 12px system-ui;opacity:.9';
