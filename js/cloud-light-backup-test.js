@@ -52,4 +52,32 @@ export function mountLightBackupTest(){
   }catch(e){alert('No se pudo consultar la copia: '+e.message)}finally{clearTimeout(timer);inspect.disabled=false;inspect.textContent='🔎 Ver copia nube'}
  };
 
+ // Preparación de restauración: respaldo local persistente y comparación, sin aplicar cambios.
+ const prepare=document.createElement('button');prepare.type='button';prepare.textContent='💾 Preparar restauración';
+ prepare.style.cssText='position:fixed;left:12px;bottom:204px;z-index:1001;border:1px solid #95d9fa;border-radius:12px;padding:9px 12px;background:#15334a;color:#ecf8ff;font:600 12px system-ui;opacity:.9';
+ document.body.appendChild(prepare);
+ prepare.onclick=async()=>{
+  const raw=localStorage.getItem('mundoAbierto.player');let identity,local;
+  try{identity=JSON.parse(localStorage.getItem('cosmosLegacy.guestIdentity.v1')||'null');local=JSON.parse(raw||'null')}catch{}
+  if(!raw||!local||typeof local!=='object'){alert('No hay partida local válida para respaldar.');return}
+  if(!identity||!/^[a-f0-9]{64}$/.test(identity.guest_token)){alert('No hay identidad de invitado disponible.');return}
+  prepare.disabled=true;prepare.textContent='💾 Comprobando…';
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{
+   const res=await fetch(API,{method:'GET',headers:{authorization:'Bearer '+identity.guest_token},cache:'no-store',signal:controller.signal});
+   const data=await res.json();if(!res.ok)throw Error(data.error||'HTTP '+res.status);
+   const cloud=data.backup?.progress;
+   if(!cloud||typeof cloud!=='object'||Array.isArray(cloud)||data.backup.schema!==1)throw Error('Copia de nube ausente o incompatible');
+   const missing=FIELDS.filter(key=>!Object.prototype.hasOwnProperty.call(cloud,key));
+   if(missing.length)throw Error('La copia nube está incompleta: '+missing.join(', '));
+   const differences=FIELDS.filter(key=>JSON.stringify(cloud[key])!==JSON.stringify(local[key]));
+   const key='cosmosLegacy.restoreSafety.v1';
+   if(!confirm('Se encontró la copia nube ('+data.backup.bytes+' bytes).\\nDiferencias con la partida actual: '+differences.length+'.\\n\\n¿Guardar una copia de seguridad LOCAL antes de restaurar?\\n\\nNO se modificará tu partida actual.'))return;
+   const snapshot=JSON.stringify({schema:1,createdAt:new Date().toISOString(),player:local});
+   localStorage.setItem(key,snapshot);
+   if(localStorage.getItem(key)!==snapshot)throw Error('No se pudo verificar el respaldo local');
+   alert('💾 Respaldo de seguridad local creado y verificado.\\nCampos comparados: '+FIELDS.length+'\\nDiferencias: '+differences.length+(differences.length?'\\n'+differences.join(', '):'')+'\\n\\nLa partida actual NO fue modificada. La restauración todavía no está activada.');
+  }catch(e){alert('No se pudo preparar la restauración: '+e.message)}finally{clearTimeout(timer);prepare.disabled=false;prepare.textContent='💾 Preparar restauración'}
+ };
+
 }
