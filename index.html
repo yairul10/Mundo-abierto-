@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Cosmos Legacy</title><link rel="stylesheet" href="css/game.css?v=3d-20261020-265"><link rel="stylesheet" href="css/journal.css?v=225"></head><body><div id="orientationGate" role="dialog" aria-label="Gira el dispositivo para jugar"><div class="orientation-card"><div class="orientation-icon">📱 <span>↻</span></div><h2>Gira tu dispositivo</h2><p>Cosmos Legacy se juega exclusivamente en horizontal para disfrutar mejor los combates y los controles.</p><button id="requestLandscape" type="button">Activar pantalla horizontal</button><small>Si el navegador no puede girarla automáticamente, activa la rotación del teléfono y colócalo de lado.</small></div></div><div id="worldLoading" role="status" aria-live="polite"><div class="cosmos-loading-ui"><p id="worldLoadingText">Preparando naves y escenario 3D…</p><div class="cosmos-loading-track" aria-label="Cargando recursos"><div class="cosmos-loading-indicator"></div></div><small>Espera mientras se cargan los modelos</small><span class="cosmos-loading-version">v1.0.0</span></div></div><style>
+<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Cosmos Legacy</title><link rel="stylesheet" href="css/game.css?v=3d-20261022-266"><link rel="stylesheet" href="css/journal.css?v=225"></head><body><div id="orientationGate" role="dialog" aria-label="Gira el dispositivo para jugar"><div class="orientation-card"><div class="orientation-icon">📱 <span>↻</span></div><h2>Gira tu dispositivo</h2><p>Cosmos Legacy se juega exclusivamente en horizontal para disfrutar mejor los combates y los controles.</p><button id="requestLandscape" type="button">Activar pantalla horizontal</button><small>Si el navegador no puede girarla automáticamente, activa la rotación del teléfono y colócalo de lado.</small></div></div><div id="worldLoading" role="status" aria-live="polite"><div class="cosmos-loading-ui"><p id="worldLoadingText">Preparando naves y escenario 3D…</p><div class="cosmos-loading-track" aria-label="Cargando recursos"><div class="cosmos-loading-indicator"></div></div><small>Espera mientras se cargan los modelos</small><span class="cosmos-loading-version">v1.0.0</span></div></div><style>
 #worldLoading{position:fixed;inset:0;z-index:9998;background:#020611 url('./assets/loading-cosmos-legacy.png') center center/cover no-repeat;color:#e8f6ff;font-family:system-ui,sans-serif}
 .cosmos-loading-ui{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);width:min(560px,70vw);text-align:center;text-shadow:0 2px 8px #000,0 0 15px #000}
 #worldLoadingText{font-size:clamp(12px,1.7vw,18px);margin:0 0 8px;font-weight:600}
@@ -42,7 +42,7 @@ document.currentScript.after(threeMap);
 <script type="module">
 // GitHub Pages puede servir HTML cacheado: comprobamos la versión publicada
 // con una petición que evita caché y actualizamos una sola vez si cambió.
-const GAME_BUILD='3d-20261020-265';
+const GAME_BUILD='3d-20261022-266';
 const status=document.getElementById('bootStatus');
 try {
  const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store'});
@@ -75,7 +75,7 @@ try{
   const THREE=await import('three');
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
-  await import('./js/game3d.js?v=3d-20261020-265');
+  await import('./js/game3d.js?v=3d-20261022-266');
   status.remove();
   const overlay=document.getElementById('worldLoading');
   if(overlay){
