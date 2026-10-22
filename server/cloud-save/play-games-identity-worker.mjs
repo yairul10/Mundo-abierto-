@@ -4,11 +4,11 @@
 const headers={'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
 const origins=new Set(['https://yairul10.github.io','https://localhost','capacitor://localhost']);
 const encoder=new TextEncoder();
-const b64=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+const b64=bytes=>btoa(String.fromCharCode(...bytes)).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 const unb64=value=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-value.length%4)%4)),c=>c.charCodeAt(0));
 async function hmac(secret,value){const key=await crypto.subtle.importKey('raw',encoder.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);return new Uint8Array(await crypto.subtle.sign('HMAC',key,encoder.encode(value)))}
 async function createSession(secret,playerId){const payload=b64(encoder.encode(JSON.stringify({sub:playerId,exp:Math.floor(Date.now()/1000)+86400})));return payload+'.'+b64(await hmac(secret,payload))}
-async function sessionPlayer(request,env){const token=(request.headers.get('authorization')||'').replace(/^Bearer /,'');const parts=token.split('.');if(parts.length!==2||parts[0].length>2048)return null;try{const signature=await hmac(env.SESSION_SIGNING_KEY,parts[0]);const actual=unb64(parts[1]);if(actual.length!==signature.length||!signature.every((v,i)=>v===actual[i]))return null;const data=JSON.parse(new TextDecoder().decode(unb64(parts[0])));if(!data.sub||!Number.isSafeInteger(data.exp)||data.exp<=Date.now()/1000)return null;return data.sub}catch{return null}}
+async function sessionPlayer(request,env){const token=(request.headers.get('authorization')||'').replace(/^Bearer /,'');const parts=token.split('.');if(parts.length!==2||parts[0].length>2048)return null;try{const signature=await hmac(env.SESSION_SIGNING_KEY,parts[0]);const actual=unb64(parts[1]);if(actual.length!==signature.length||!(await crypto.subtle.verify('HMAC',await crypto.subtle.importKey('raw',encoder.encode(env.SESSION_SIGNING_KEY),{name:'HMAC',hash:'SHA-256'},false,['verify']),actual,encoder.encode(parts[0]))))return null;const data=JSON.parse(new TextDecoder().decode(unb64(parts[0])));if(!data.sub||!Number.isSafeInteger(data.exp)||data.exp<=Date.now()/1000)return null;return data.sub}catch{return null}}
 const reply=(data,status=200,origin='')=>new Response(JSON.stringify(data),{status,headers:{...headers,...(origins.has(origin)?{'access-control-allow-origin':origin,'vary':'Origin'}:{})}});
 export default {
  async fetch(request,env){
