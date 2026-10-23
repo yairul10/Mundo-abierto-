@@ -6,7 +6,7 @@ const API='https://cosmos-legacy-lite-test.yairul17.workers.dev';
 const WEB_CLIENT_ID='430904114567-2s03dmhry4o4lfp73qal65kseu837035.apps.googleusercontent.com';
 const safeError=e=>String(e?.message||e||'Error desconocido').replace(/(?:ya29\\.|4\\/|eyJ)[A-Za-z0-9_.\\/-]{12,}/g,'[DATO_OCULTO]').slice(0,300);
 export function mountCloudSaveDiagnostics(){
- if(!isNativePlayGames()||new URLSearchParams(location.search).has('pvp')||window.MUNDO_PLAY_MODE?.mode==='test')return;
+ if(new URLSearchParams(location.search).has('pvp')||window.MUNDO_PLAY_MODE?.mode==='test')return;
  const panel=document.getElementById('characterPanel'),anchor=document.getElementById('saveBtn');
  if(!panel||!anchor)return;
  const button=document.createElement('button');
@@ -24,7 +24,9 @@ export function mountCloudSaveDiagnostics(){
   const lines=['Cosmos Legacy / diagnóstico Google Play','Fecha: '+new Date().toISOString(),'Modo: solo lectura','Cliente OAuth web: configurado'];
   const mark=(step,detail)=>lines.push(step+': '+detail);
   try{
-   mark('1. SDK Android','disponible');
+   const nativeAvailable=isNativePlayGames();
+   mark('1. SDK Android',nativeAvailable?'disponible':'complemento CosmosPlayGames no detectado');
+   if(!nativeAvailable)throw new Error('Complemento nativo CosmosPlayGames no disponible en esta compilación');
    const {playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode}=await import('./play-games-auth.js');
    let status=await playGamesStatus();mark('2. Autenticación inicial',status.authenticated?'correcta':'no iniciada');
    if(!status.authenticated){status=await playGamesSignIn();mark('3. Inicio de sesión',status.authenticated?'correcto':'fallido')}
@@ -39,6 +41,6 @@ export function mountCloudSaveDiagnostics(){
    mark('6. Resultado','autorización completada; sin guardar ni restaurar datos');
    alert('☁️ Autorización correcta. No se ha modificado tu partida.');
   }catch(e){mark('ERROR',safeError(e));alert('☁️ La prueba encontró un error. Abre «Copiar diagnóstico» en el menú. Tu partida local no se modificó.')}
-  finally{report.value=lines.join('\\n');report.style.display='block';copy.style.display='block';button.disabled=false;button.textContent='☁️ Probar Google Play';copy.textContent='📋 Copiar diagnóstico'}
+  finally{report.value=lines.join('\n');report.style.display='block';copy.style.display='block';button.disabled=false;button.textContent='☁️ Probar Google Play';copy.textContent='📋 Copiar diagnóstico'}
  });
 }
