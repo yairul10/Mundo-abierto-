@@ -76,6 +76,23 @@ try{
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
   await import('./js/game3d.js?v=3d-20261022-285');
+  // Guardado Google Play: solo partida normal Android. Primera fase: subir y verificar,
+  // sin restaurar automáticamente ni sobrescribir una copia existente.
+  if(window.MUNDO_PLAY_MODE?.mode==='normal'&&!new URLSearchParams(location.search).has('pvp')&&globalThis.Capacitor?.Plugins?.CosmosPlayGames){
+    import('./js/cloud-save-client.js?v=2').then(async({createCloudSave})=>{
+      const cloud=createCloudSave({
+        apiUrl:'https://cosmos-legacy-lite-test.yairul17.workers.dev',
+        serverClientId:'430904114567-2s03dmhrv4o4lfp73qal65kseu837035.apps.googleusercontent.com',
+        onConflict:()=>console.warn('[Cosmos Legacy] Guardado nube pausado: partida diferente; no se sobrescribió nada.')
+      });
+      const connection=await cloud.connect();
+      if(connection.status!=='ready'){console.info('[Cosmos Legacy] Nube:',connection.status,'; partida local intacta');return}
+      const syncSafely=async()=>{try{const result=await cloud.sync();if(result.status==='stored')console.info('[Cosmos Legacy] Copia nube guardada, revisión',result.revision)}catch(e){console.warn('[Cosmos Legacy] No se pudo sincronizar; guardado local conservado:',e?.message||e)}};
+      await syncSafely();
+      const timer=setInterval(()=>{if(!cloud.active){clearInterval(timer);return}void syncSafely()},15000);
+      addEventListener('pagehide',()=>clearInterval(timer),{once:true});
+    }).catch(e=>console.warn('[Cosmos Legacy] Nube no disponible; partida local intacta:',e?.message||e));
+  }
   status.remove();
   const overlay=document.getElementById('worldLoading');
   if(overlay){
