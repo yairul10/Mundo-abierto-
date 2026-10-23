@@ -9,7 +9,9 @@ export function mountCloudSaveDiagnostics(){
  if(new URLSearchParams(location.search).has('pvp')||window.MUNDO_PLAY_MODE?.mode==='test')return;
  const panel=document.getElementById('characterPanel'),anchor=document.getElementById('saveBtn');
  if(!panel||!anchor)return;
- const button=document.createElement('button');
+ const button=document.getElementById('googlePlayDiagnosticBtn')||document.createElement('button');
+ if(button.dataset.diagnosticMounted==='1')return;
+ button.dataset.diagnosticMounted='1';
  button.type='button';button.textContent='☁️ Probar Google Play';
  button.style.cssText='display:block;width:100%;margin:10px 0;border:1px solid #80c6ff;border-radius:12px;padding:10px 12px;background:#122b50;color:white;font:600 13px system-ui';
  const report=document.createElement('textarea');
@@ -17,7 +19,8 @@ export function mountCloudSaveDiagnostics(){
  report.style.cssText='display:none;width:100%;box-sizing:border-box;margin:6px 0;color:white;background:#101b30;border:1px solid #80c6ff;border-radius:8px;padding:8px;font:12px monospace';
  const copy=document.createElement('button');copy.type='button';copy.textContent='📋 Copiar diagnóstico';
  copy.style.cssText='display:none;width:100%;padding:10px;margin:5px 0;border:1px solid #80c6ff;border-radius:9px;background:#122b50;color:white';
- panel.insertBefore(button,anchor);panel.insertBefore(report,anchor);panel.insertBefore(copy,anchor);
+ if(!button.isConnected)panel.insertBefore(button,anchor);
+ panel.insertBefore(report,anchor);panel.insertBefore(copy,anchor);
  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(report.value);copy.textContent='✓ Informe copiado'}catch(_){report.focus();report.select();copy.textContent='Selecciona y copia el texto'}})
  button.addEventListener('click',async()=>{
   button.disabled=true;button.textContent='☁️ Comprobando…';
