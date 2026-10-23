@@ -4,7 +4,7 @@ import {createCloudSave} from './cloud-save-client.js';
 import {isNativePlayGames} from './play-games-auth.js';
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev';
 const WEB_CLIENT_ID='430904114567-2s03dmhry4o4lfp73qal65kseu837035.apps.googleusercontent.com';
-const safeError=e=>String(e?.message||e||'Error desconocido').replace(/(?:ya29\\.|4\\/|eyJ)[A-Za-z0-9_.\\/-]{12,}/g,'[DATO_OCULTO]').slice(0,300);
+const safeError=e=>String(e?.message||e||'Error desconocido').replace(/(?:ya29[.]|4[/]|eyJ)[A-Za-z0-9_.\/-]{12,}/g,'[DATO_OCULTO]').slice(0,300);
 export function mountCloudSaveDiagnostics(){
  if(new URLSearchParams(location.search).has('pvp'))return;
  const panel=document.getElementById('characterPanel'),anchor=document.getElementById('saveBtn');
