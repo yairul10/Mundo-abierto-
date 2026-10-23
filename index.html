@@ -68,8 +68,8 @@ try{
   await startPlayMode();
   // La identidad de invitado se solicita sin bloquear la carga ni alterar el progreso local.
   import('./js/guest-identity.js?v=1').then(m=>m.ensureGuestIdentity()).then(result=>{if(result)console.info('[Cosmos Legacy] Identidad invitado:',result.status,result.playerId||'');}).catch(()=>{});
-  import('./js/cloud-backup-test.js?v=1').then(m=>m.mountBackupTest()).catch(()=>{});
-  import('./js/cloud-light-backup-test.js?v=8').then(m=>m.mountLightBackupTest()).catch(()=>{});
+  if(new URLSearchParams(location.search).get('cloudqa')==='1') import('./js/cloud-backup-test.js?v=1').then(m=>m.mountBackupTest()).catch(()=>{});
+  if(new URLSearchParams(location.search).get('cloudqa')==='1') import('./js/cloud-light-backup-test.js?v=8').then(m=>m.mountLightBackupTest()).catch(()=>{});
   // Prueba Android solo lectura: no activa guardado ni restauración automática.
   import('./js/cloud-save-diagnostics.js?v=1').then(m=>m.mountCloudSaveDiagnostics()).catch(err=>console.warn('Diagnóstico Google Play no disponible:',err));
   const THREE=await import('three');
