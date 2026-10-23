@@ -8,8 +8,11 @@ export function mountCloudSaveDiagnostics(){
  if(!isNativePlayGames()||new URLSearchParams(location.search).has('pvp')||window.MUNDO_PLAY_MODE?.mode==='test')return;
  const button=document.createElement('button');
  button.type='button';button.textContent='☁️ Probar Google Play';
- button.style.cssText='position:fixed;left:12px;bottom:254px;z-index:1002;border:1px solid #80c6ff;border-radius:12px;padding:9px 12px;background:#122b50;color:white;font:600 12px system-ui';
- document.body.appendChild(button);
+ button.style.cssText='display:block;width:100%;margin:10px 0;border:1px solid #80c6ff;border-radius:12px;padding:10px 12px;background:#122b50;color:white;font:600 13px system-ui';
+ const panel=document.getElementById('characterPanel');
+ const anchor=document.getElementById('saveBtn');
+ if(!panel||!anchor)return;
+ panel.insertBefore(button,anchor);
  button.addEventListener('click',async()=>{
   button.disabled=true;button.textContent='☁️ Comprobando…';
   try{
