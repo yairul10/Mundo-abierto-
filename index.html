@@ -71,7 +71,7 @@ try{
   if(new URLSearchParams(location.search).get('cloudqa')==='1') import('./js/cloud-backup-test.js?v=1').then(m=>m.mountBackupTest()).catch(()=>{});
   if(new URLSearchParams(location.search).get('cloudqa')==='1') import('./js/cloud-light-backup-test.js?v=8').then(m=>m.mountLightBackupTest()).catch(()=>{});
   // Prueba Android solo lectura: no activa guardado ni restauración automática.
-  import('./js/cloud-save-diagnostics.js?v=5').then(m=>m.mountCloudSaveDiagnostics()).catch(err=>{console.warn('Diagnóstico Google Play no disponible:',err);const button=document.getElementById('googlePlayDiagnosticBtn');if(button){button.addEventListener('click',()=>alert('No se pudo cargar el diagnóstico de Google Play: '+String(err?.message||err).slice(0,180)));button.title='Error al cargar diagnóstico';}});
+  import('./js/cloud-save-diagnostics.js?v=6').then(m=>m.mountCloudSaveDiagnostics()).catch(err=>{console.warn('Diagnóstico Google Play no disponible:',err);const button=document.getElementById('googlePlayDiagnosticBtn');if(button){button.addEventListener('click',()=>alert('No se pudo cargar el diagnóstico de Google Play: '+String(err?.message||err).slice(0,180)));button.title='Error al cargar diagnóstico';}});
   const THREE=await import('three');
   window.THREE=THREE;
   status.textContent='Motor 3D OK · cargando mundo…';
