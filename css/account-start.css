@@ -1,0 +1,26 @@
+#worldLoading{background:#020611!important;isolation:isolate;overflow:hidden}
+#worldLoading::before{content:"";position:absolute;inset:-20px;background:url('../assets/cosmos-start-background.webp') center/cover no-repeat;filter:blur(16px) brightness(.45);z-index:-1}
+.cosmos-splash{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100vw,150vh);height:min(100vh,66.666667vw);background:url('../assets/cosmos-start-background.webp') center/100% 100% no-repeat}
+#accountActions{position:absolute;left:25.4%;top:46%;width:49.2%;display:grid;gap:clamp(7px,1.4vh,16px)}
+#accountActions[hidden]{display:none}
+.account-choice{display:flex;align-items:center;gap:5%;width:100%;min-height:clamp(54px,13vh,145px);padding:2% 5%;border:2px solid #6cddff;border-radius:12px;background:linear-gradient(125deg,#052c51f5,#00132ded);box-shadow:0 0 0 3px #063354,0 0 18px #23b8ff80,inset 0 0 25px #00a2ff35;color:#f4fbff;text-align:left;cursor:pointer;touch-action:manipulation;font-family:system-ui,sans-serif}
+.account-choice.google{border-color:#9ffb9b;background:linear-gradient(125deg,#063b22f5,#001d11ed);box-shadow:0 0 0 3px #164b29,0 0 18px #52ff6680,inset 0 0 25px #5bff6835}
+.account-choice svg{width:12%;flex:none;fill:currentColor;color:#b5edff}
+.account-choice.google svg{color:#8ef26b}
+.account-choice span{display:block;flex:1}
+.account-choice strong{display:block;font-size:clamp(10px,2.6vh,30px);letter-spacing:.05em;line-height:1.15}
+.account-choice small{display:block;margin-top:5px;font-size:clamp(9px,1.8vh,21px);color:#76c9ff;line-height:1.2}
+.account-choice.google small{color:#93e6a6}
+.account-choice:focus-visible,.account-dialog button:focus-visible{outline:3px solid white;outline-offset:5px}
+.account-choice:disabled{opacity:.6;cursor:wait}
+#accountMessage{margin:0;padding:6px 10px;white-space:pre-line;text-align:center;background:#03101fdd;border-radius:8px;font-size:clamp(11px,1.7vh,17px);color:#fff}
+#accountMessage:empty{display:none}
+#worldLoading .cosmos-loading-ui,#bootStatus{display:none}
+.account-dialog{max-width:min(500px,85vw);max-height:85vh;overflow:auto;box-sizing:border-box;padding:24px;border:1px solid #64d9ff;border-radius:18px;background:#071a2bf5;color:#e9f8ff;font-family:system-ui,sans-serif;box-shadow:0 0 40px #008dff44}
+.account-dialog::backdrop{background:#000b}
+.account-dialog h2{margin:0 0 12px;font-size:22px}
+.account-dialog p{white-space:pre-line;line-height:1.5}
+.account-dialog button{display:block;width:100%;padding:13px;margin-top:10px;border:1px solid #69cfff;border-radius:9px;background:#0b3758;color:white;font:600 15px system-ui;cursor:pointer}
+.cloud-paused-note{padding:12px;border:1px solid #e9ba63;border-radius:9px;color:#ffe3ad}
+@media(orientation:portrait){#accountActions{left:10%;width:80%;top:47%}.account-choice{min-height:64px}.account-choice strong{font-size:14px}.account-choice small{font-size:11px}}
+@media(max-height:420px){.account-dialog{padding:14px}.account-dialog h2{font-size:18px}.account-dialog p{font-size:13px}.account-dialog button{padding:9px;margin-top:7px}}

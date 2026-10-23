@@ -12,11 +12,11 @@ if(!cdn.test(html))throw new Error('Cambió el arranque del motor; revisar el em
 html=html.replace(cdn,"window.MUNDO_OFFLINE=true;\nconst threeCdn=new URL('./vendor/three',location.href).href;");
 html=html.replace("if(!new URLSearchParams(location.search).has('threecdn')","if(!window.MUNDO_OFFLINE && !new URLSearchParams(location.search).has('threecdn')");
 html=html.replace("{imports:{three:threeCdn+'/build/three.module.js'}}", "{imports:{three:threeCdn+'/build/three.module.js','three/addons/':threeCdn+'/examples/jsm/'}}");
-html=html.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://mundo-abierto-pvp.jairog940.workers.dev wss://mundo-abierto-pvp.jairog940.workers.dev https://cosmos-legacy-lite-test.yairul17.workers.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
+html=html.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://mundo-abierto-pvp.jairog940.workers.dev wss://mundo-abierto-pvp.jairog940.workers.dev https://cosmos-legacy-lite-test.yairul17.workers.dev https://cosmos-legacy-api.yairul17.workers.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
 writeFileSync(join(out,'index.html'),html);
 let pvp=readFileSync(join(root,'pvp.html'),'utf8');
 if(!pvp.includes('index.html?pvp=1'))throw new Error('Revisar acceso al mapa PvP compartido');
-pvp=pvp.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://mundo-abierto-pvp.jairog940.workers.dev wss://mundo-abierto-pvp.jairog940.workers.dev https://cosmos-legacy-lite-test.yairul17.workers.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
+pvp=pvp.replace('<head>',`<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://mundo-abierto-pvp.jairog940.workers.dev wss://mundo-abierto-pvp.jairog940.workers.dev https://cosmos-legacy-lite-test.yairul17.workers.dev https://cosmos-legacy-api.yairul17.workers.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'">`);
 writeFileSync(join(out,'pvp.html'),pvp);
 const gamePath=join(out,'js/game3d.js');
 let game=readFileSync(gamePath,'utf8');
@@ -26,7 +26,7 @@ const bundleText=[html,...readdirSync(join(out,'js')).filter(n=>n.endsWith('.js'
 for(const match of bundleText.matchAll(/(?:\.\/)?assets\/(?:[a-zA-Z0-9_./-]|%20|\([0-9]+\))+/g)){
  if(!existsSync(join(out,decodeURIComponent(match[0]))))throw new Error('Falta recurso: '+match[0]);
 }
-if(/https?:\/\//.test((html+'\n'+game).replaceAll('https://mundo-abierto-pvp.jairog940.workers.dev','').replaceAll('https://cosmos-legacy-lite-test.yairul17.workers.dev','')))throw new Error('Quedaron dependencias remotas en el arranque');
+if(/https?:\/\//.test((html+'\n'+game).replaceAll('https://mundo-abierto-pvp.jairog940.workers.dev','').replaceAll('https://cosmos-legacy-lite-test.yairul17.workers.dev','').replaceAll('https://cosmos-legacy-api.yairul17.workers.dev','')))throw new Error('Quedaron dependencias remotas en el arranque');
 let models=0;
 for(const name of readdirSync(join(out,'assets/models')).filter(n=>n.endsWith('.glb'))){
  const bytes=readFileSync(join(out,'assets/models',name));
@@ -36,3 +36,4 @@ for(const name of readdirSync(join(out,'assets/models')).filter(n=>n.endsWith('.
 }
 writeFileSync(join(out,'offline-bundle.json'),JSON.stringify({offline:true,three:'0.180.0',models,sourceBuild:JSON.parse(readFileSync(join(root,'version.json'),'utf8')).build},null,2));
 console.log('Paquete offline: '+models+' modelos incluidos; arranque y recursos locales.');
+

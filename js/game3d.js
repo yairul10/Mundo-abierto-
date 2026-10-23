@@ -3206,7 +3206,7 @@ function farmInput(dt,now){
  farmUiTick+=dt;if(farmUiTick>.5){farmUiTick=0;farmUI.refresh()}
  return command;
 }
-function loop(now){const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;
+function loop(now){if(document.getElementById('worldLoading')){last=now;renderer.render(scene,camera);requestAnimationFrame(loop);return}const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;
 const autoInput=farmInput(dt,now);
 if(graphicsLost){requestAnimationFrame(loop);return}
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
@@ -3429,20 +3429,21 @@ if(PVP_MODE){
 // A bounded fallback prevents a broken GLB or slow connection from trapping the player.
 window.cosmosModelsReady=new Promise(resolve=>{
  const started=performance.now();
- let quietSince=0;
+ let quietSince=0,slowPrompt=false;
  const poll=()=>{
   const selected=({titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel'})[player.shipId];
   const playerReady=selected
    ?!!(playerMesh.userData[selected]||playerMesh.userData[selected+'Failed'])
    :!!(playerMesh.userData.xWingModel||playerMesh.userData.auroraModel);
-  const quiet=playerReady&&!modelQueue.busy;
+  const quiet=playerReady&&!modelQueue.busy&&!window.cosmosAssetsLoading;
   if(quiet){if(!quietSince)quietSince=performance.now()}else quietSince=0;
   const elapsed=performance.now()-started;
-  if((quietSince&&performance.now()-quietSince>=600)||elapsed>=15000){
-   if(elapsed>=15000&&!quiet)console.warn('Tiempo máximo de carga inicial alcanzado; los modelos restantes continuarán cargándose.');
+  if(quietSince&&performance.now()-quietSince>=600){
    resolve();return;
   }
+  if(elapsed>=60000&&!slowPrompt&&window.cosmosLoadingSlow){slowPrompt=true;void window.cosmosLoadingSlow().then(proceed=>{if(proceed)resolve()}).catch(()=>{})}
   setTimeout(poll,120);
  };
  setTimeout(poll,120);
 });
+

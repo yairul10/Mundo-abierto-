@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Cosmos Legacy</title><link rel="stylesheet" href="css/game.css?v=3d-20261022-285"><link rel="stylesheet" href="css/journal.css?v=225"></head><body><div id="orientationGate" role="dialog" aria-label="Gira el dispositivo para jugar"><div class="orientation-card"><div class="orientation-icon">📱 <span>↻</span></div><h2>Gira tu dispositivo</h2><p>Cosmos Legacy se juega exclusivamente en horizontal para disfrutar mejor los combates y los controles.</p><button id="requestLandscape" type="button">Activar pantalla horizontal</button><small>Si el navegador no puede girarla automáticamente, activa la rotación del teléfono y colócalo de lado.</small></div></div><div id="worldLoading" role="status" aria-live="polite"><div class="cosmos-loading-ui"><p id="worldLoadingText">Preparando naves y escenario 3D…</p><div class="cosmos-loading-track" aria-label="Cargando recursos"><div class="cosmos-loading-indicator"></div></div><small>Espera mientras se cargan los modelos</small><span class="cosmos-loading-version">v1.0.0</span></div></div><style>
+<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Cosmos Legacy</title><link rel="stylesheet" href="css/game.css?v=3d-20261022-285"><link rel="stylesheet" href="css/journal.css?v=225"><link rel="stylesheet" href="css/account-start.css?v=1"></head><body><div id="orientationGate" role="dialog" aria-label="Gira el dispositivo para jugar"><div class="orientation-card"><div class="orientation-icon">📱 <span>↻</span></div><h2>Gira tu dispositivo</h2><p>Cosmos Legacy se juega exclusivamente en horizontal para disfrutar mejor los combates y los controles.</p><button id="requestLandscape" type="button">Activar pantalla horizontal</button><small>Si el navegador no puede girarla automáticamente, activa la rotación del teléfono y colócalo de lado.</small></div></div><div id="worldLoading" aria-label="Cosmos Legacy: inicio y carga"><div class="cosmos-splash"><section id="accountActions" hidden aria-label="Elige cómo jugar"><button id="startGuest" class="account-choice" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="13" r="9"/><path d="M7 44v-5a17 17 0 0 1 34 0v5z"/></svg><span><strong>JUGAR COMO INVITADO</strong><small>Continuar sin iniciar sesión</small></span></button><button id="startGoogle" class="account-choice google" type="button"><svg viewBox="0 0 64 48" aria-hidden="true"><path d="M15 5h34c7 0 10 8 12 19l3 15c1 8-7 11-12 5L42 34H22L12 44C7 50-1 47 0 39l3-15C5 13 8 5 15 5zm1 10v6h-6v5h6v6h5v-6h6v-5h-6v-6zm30 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm8 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg><span><strong>ENTRAR CON GOOGLE PLAY</strong><small>Guardar y recuperar tu partida en la nube</small></span></button><p id="accountMessage" role="status" aria-live="polite"></p></section></div><div class="cosmos-loading-ui"><p id="worldLoadingText">Preparando naves y escenario 3D…</p></div></div><style>
 #worldLoading{position:fixed;inset:0;z-index:9998;background:#020611 url('./assets/loading-cosmos-legacy.png') center center/cover no-repeat;color:#e8f6ff;font-family:system-ui,sans-serif}
 .cosmos-loading-ui{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);width:min(560px,70vw);text-align:center;text-shadow:0 2px 8px #000,0 0 15px #000}
 #worldLoadingText{font-size:clamp(12px,1.7vw,18px);margin:0 0 8px;font-weight:600}
@@ -42,7 +42,7 @@ document.currentScript.after(threeMap);
 <script type="module">
 // GitHub Pages puede servir HTML cacheado: comprobamos la versión publicada
 // con una petición que evita caché y actualizamos una sola vez si cambió.
-const GAME_BUILD='3d-20261022-285';
+const GAME_BUILD='3d-20261023-286';
 const status=document.getElementById('bootStatus');
 try {
  const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store'});
@@ -66,39 +66,31 @@ if(!mountDisplayShell()){
 try{
   const {startPlayMode}=await import('./js/play-mode.js?v=224');
   await startPlayMode();
+  const {startAccount,startCloudSync}=await import('./js/account-start.js?v=1');
+  const engineReady=import('three');
+  void engineReady.catch(()=>{});
+  const cloud=await startAccount();
   // La identidad de invitado se solicita sin bloquear la carga ni alterar el progreso local.
   import('./js/guest-identity.js?v=1').then(m=>m.ensureGuestIdentity()).then(result=>{if(result)console.info('[Cosmos Legacy] Identidad invitado:',result.status,result.playerId||'');}).catch(()=>{});
   if(new URLSearchParams(location.search).get('cloudqa')==='1') import('./js/cloud-backup-test.js?v=1').then(m=>m.mountBackupTest()).catch(()=>{});
   if(new URLSearchParams(location.search).get('cloudqa')==='1') import('./js/cloud-light-backup-test.js?v=8').then(m=>m.mountLightBackupTest()).catch(()=>{});
   // Prueba Android solo lectura: no activa guardado ni restauración automática.
   import('./js/cloud-save-diagnostics.js?v=6').then(m=>m.mountCloudSaveDiagnostics()).catch(err=>{console.warn('Diagnóstico Google Play no disponible:',err);const button=document.getElementById('googlePlayDiagnosticBtn');if(button){button.addEventListener('click',()=>alert('No se pudo cargar el diagnóstico de Google Play: '+String(err?.message||err).slice(0,180)));button.title='Error al cargar diagnóstico';}});
-  const THREE=await import('three');
+  const THREE=await engineReady;
   window.THREE=THREE;
+  window.cosmosAssetsLoading=false;
+  THREE.DefaultLoadingManager.onStart=()=>{window.cosmosAssetsLoading=true};
+  THREE.DefaultLoadingManager.onLoad=()=>{window.cosmosAssetsLoading=false};
   status.textContent='Motor 3D OK · cargando mundo…';
-  await import('./js/game3d.js?v=3d-20261022-285');
-  // Guardado Google Play: solo partida normal Android. Primera fase: subir y verificar,
-  // sin restaurar automáticamente ni sobrescribir una copia existente.
-  if(window.MUNDO_PLAY_MODE?.mode==='normal'&&!new URLSearchParams(location.search).has('pvp')&&globalThis.Capacitor?.Plugins?.CosmosPlayGames){
-    import('./js/cloud-save-client.js?v=2').then(async({createCloudSave})=>{
-      const cloud=createCloudSave({
-        apiUrl:'https://cosmos-legacy-lite-test.yairul17.workers.dev',
-        serverClientId:'430904114567-2s03dmhrv4o4lfp73qal65kseu837035.apps.googleusercontent.com',
-        onConflict:()=>console.warn('[Cosmos Legacy] Guardado nube pausado: partida diferente; no se sobrescribió nada.')
-      });
-      const connection=await cloud.connect();
-      if(connection.status!=='ready'){console.info('[Cosmos Legacy] Nube:',connection.status,'; partida local intacta');return}
-      const syncSafely=async()=>{try{const result=await cloud.sync();if(result.status==='stored')console.info('[Cosmos Legacy] Copia nube guardada, revisión',result.revision)}catch(e){console.warn('[Cosmos Legacy] No se pudo sincronizar; guardado local conservado:',e?.message||e)}};
-      await syncSafely();
-      const timer=setInterval(()=>{if(!cloud.active){clearInterval(timer);return}void syncSafely()},15000);
-      addEventListener('pagehide',()=>clearInterval(timer),{once:true});
-    }).catch(e=>console.warn('[Cosmos Legacy] Nube no disponible; partida local intacta:',e?.message||e));
-  }
+  await import('./js/game3d.js?v=3d-20261023-286');
   status.remove();
   const overlay=document.getElementById('worldLoading');
   if(overlay){
    const ready=window.cosmosModelsReady;
    if(ready&&typeof ready.then==='function')await ready;
+   window.dispatchEvent(new Event('cosmos:world-ready'));
    overlay.remove();
+   void startCloudSync(cloud);
   }
 }catch(err){
   if(!new URLSearchParams(location.search).has('threecdn') && /fetch|module|network|load/i.test(String(err?.message||err))){
@@ -109,9 +101,11 @@ try{
     status.textContent='ERROR 3D: '+(err?.message||err);
   }
   const loading=document.getElementById('worldLoading');if(loading)loading.remove();
+  status.style.display='block';
   status.classList.add('error');
   console.error(err);
 }
 }
 </script></body></html>
+
 
