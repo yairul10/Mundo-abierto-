@@ -60,7 +60,7 @@ public class PlayGamesPlugin extends Plugin {
         }
         PlayGames.getGamesSignInClient(getActivity()).requestServerSideAccess(clientId, false)
             .addOnCompleteListener(task -> {
-                if (!task.isSuccessful()) { call.reject("No se pudo autorizar el servidor", task.getException()); return; }
+                if (!task.isSuccessful()) { Exception e = task.getException(); call.reject("No se pudo autorizar el servidor: " + (e == null ? "error desconocido" : e.getClass().getSimpleName() + " - " + e.getMessage()), e); return; }
                 JSObject result = new JSObject();
                 result.put("code", task.getResult());
                 call.resolve(result);
