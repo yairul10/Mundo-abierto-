@@ -58,7 +58,7 @@ public class PlayGamesPlugin extends Plugin {
         if (clientId == null || !clientId.endsWith(".apps.googleusercontent.com")) {
             call.reject("Falta el cliente OAuth web"); return;
         }
-        PlayGames.getGamesSignInClient(getActivity()).requestServerSideAccess(clientId, false)
+        PlayGames.getGamesSignInClient(getActivity()).requestServerSideAccess(clientId, true)
             .addOnCompleteListener(task -> {
                 if (!task.isSuccessful()) { Exception e = task.getException(); call.reject("No se pudo autorizar el servidor: " + (e == null ? "error desconocido" : e.getClass().getSimpleName() + " - " + e.getMessage()), e); return; }
                 JSObject result = new JSObject();
