@@ -24,11 +24,12 @@ function ask({title,text,options,dismissOnReady=false}){
 
 export async function startAccount({mode=window.MUNDO_PLAY_MODE?.mode}={}){
  window.cosmosLoadingSlow=async()=>{
-  const choice=await ask({title:'La carga está tardando más de lo habitual',text:'Puedes seguir esperando a que terminen de cargar las naves y el escenario, o entrar mientras se completan en segundo plano.',dismissOnReady:true,options:[['wait','Seguir esperando'],['continue','Entrar ahora']]});
+  const choice=await ask({title:'La carga está tardando más de lo habitual',text:'La conexión o algún recurso no ha terminado de responder. Puedes esperar, reintentar la carga o entrar con los recursos disponibles. Tu partida se conserva.',dismissOnReady:true,options:[['wait','Seguir esperando'],['retry','Reintentar carga'],['continue','Entrar con los recursos disponibles']]});
+  if(choice==='retry')location.reload();
   return choice==='continue';
  };
  const actions=document.getElementById('accountActions'),message=document.getElementById('accountMessage');
- if(mode==='test'||new URLSearchParams(location.search).has('pvp')){actions.hidden=true;return null}
+ if(mode==='test'||new URLSearchParams(location.search).has('pvp')){actions.hidden=true;document.getElementById('worldLoading').classList.add('account-selected');return null}
  const guest=document.getElementById('startGuest'),google=document.getElementById('startGoogle');
  let client=null,busy=false;
  const show=()=>{actions.hidden=false;google.disabled=false;guest.disabled=false;busy=false};

@@ -679,7 +679,7 @@ function loadAuroraFallback(){
  modelLoader.load('./assets/models/aurora_s1.glb?v=105',gltf=>{
   const model=gltf.scene;model.traverse(o=>{if(o.isMesh)auroraMaterial(o)});
   mountPlayerModel(fitPlayerModel(model,-Math.PI/2),'auroraModel');
- },undefined,err=>console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err));
+ },undefined,err=>{playerMesh.userData.auroraModelFailed=true;console.warn('Los modelos GLB no cargaron; se usa la nave procedural.',err)});
 }
 modelLoader.load('./assets/models/x_wing_starfighter.glb?v=105',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
@@ -3206,7 +3206,7 @@ function farmInput(dt,now){
  farmUiTick+=dt;if(farmUiTick>.5){farmUiTick=0;farmUI.refresh()}
  return command;
 }
-function loop(now){if(document.getElementById('worldLoading')){last=now;renderer.render(scene,camera);requestAnimationFrame(loop);return}const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;
+function loop(now){if(document.getElementById('worldLoading')){last=now;requestAnimationFrame(loop);return}const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;
 const autoInput=farmInput(dt,now);
 if(graphicsLost){requestAnimationFrame(loop);return}
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
@@ -3434,14 +3434,14 @@ window.cosmosModelsReady=new Promise(resolve=>{
   const selected=({titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel'})[player.shipId];
   const playerReady=selected
    ?!!(playerMesh.userData[selected]||playerMesh.userData[selected+'Failed'])
-   :!!(playerMesh.userData.xWingModel||playerMesh.userData.auroraModel);
+   :!!(playerMesh.userData.xWingModel||playerMesh.userData.auroraModel||playerMesh.userData.auroraModelFailed);
   const quiet=playerReady&&!modelQueue.busy&&!window.cosmosAssetsLoading;
   if(quiet){if(!quietSince)quietSince=performance.now()}else quietSince=0;
   const elapsed=performance.now()-started;
   if(quietSince&&performance.now()-quietSince>=600){
    resolve();return;
   }
-  if(elapsed>=60000&&!slowPrompt&&window.cosmosLoadingSlow){slowPrompt=true;void window.cosmosLoadingSlow().then(proceed=>{if(proceed)resolve()}).catch(()=>{})}
+  if(elapsed>=30000&&!slowPrompt&&window.cosmosLoadingSlow){slowPrompt=true;void window.cosmosLoadingSlow().then(proceed=>{if(proceed)resolve();else setTimeout(()=>{slowPrompt=false},30000)}).catch(()=>{slowPrompt=false})}
   setTimeout(poll,120);
  };
  setTimeout(poll,120);
