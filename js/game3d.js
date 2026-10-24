@@ -242,13 +242,13 @@ const auroraPlanetLoader=new GLTFLoader();
 // Cola móvil: descarga y procesa un GLB secundario a la vez. La nave del
 // jugador conserva carga inmediata; el resto aprovecha períodos de reposo.
 let modelSector=PVP_MODE?'aurora':player.sector||'aurora';
-const graveyardModels=['rustedmetalpanel','derelicthullblock','trussgirder','girdersection','metalcrate','estacion_recuperacion','restos_anillo','spaceship%20(3)','spacecruiser%20(1)','catapulta_','arponero_','devastador','acechador_','gran_titan'];
+const graveyardModels=['rustedmetalpanel','derelicthullblock','trussgirder','girdersection','metalcrate','estacion_recuperacion','restos_anillo','spaceship%20(3)','spacecruiser%20(1)','catapulta_','arponero_','acechador_','gran_titan'];
 const modelQueue=createModelLoadQueue({
  priority:path=>/spaceship%20|spacecruiser%20/.test(path)?3:/rustedmetalpanel|derelicthullblock|trussgirder|girdersection|metalcrate|restos_anillo/.test(path)?2:0,
  schedule:fn=>{if('requestIdleCallback' in window)requestIdleCallback(fn,{timeout:1200});else setTimeout(fn,80)},
  eligible:path=>{
   if(graveyardModels.some(name=>path.includes('/'+name)))return modelSector==='graveyard';
-  if(/\/(moon_optimizada|coloso)\.glb/.test(path))return modelSector==='ember';
+  if(/\/(moon_optimizada|coloso|devastador)\.glb/.test(path))return modelSector==='ember';
   if(path.includes('/planeta_aurora.glb'))return modelSector==='aurora';
   return true;
  }
