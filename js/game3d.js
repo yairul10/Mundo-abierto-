@@ -3145,8 +3145,18 @@ const recoveryPanel=document.createElement('div');
 recoveryPanel.style.cssText='position:fixed;inset:0;z-index:100;background:#020611dd;display:none;align-items:center;justify-content:center;padding:20px;color:white;font:16px system-ui';
 recoveryPanel.innerHTML='<div style="max-width:440px;padding:24px;background:#101c30;border:1px solid #68bdde;border-radius:18px;text-align:center"><h2>Nave destruida</h2><p>Elige dónde recuperar tu nave.</p><p id="recoveryBalance"></p><button id="recoverCurrent" style="display:block;width:100%;padding:14px;margin:12px 0">Reparar en este mapa · 1.000 créditos</button><button id="recoverAurora" style="display:block;width:100%;padding:14px;margin:12px 0">Volver a base Aurora · 100 créditos</button><small id="recoveryHelp"></small></div>';
 document.body.appendChild(recoveryPanel);
+// Breve destello de destrucción para la nave del jugador, también en PvP.
+function playerDestructionBurst(){
+ const burst=document.createElement('div');
+ burst.setAttribute('aria-hidden','true');
+ burst.style.cssText='position:fixed;left:50%;top:50%;width:110px;height:110px;border-radius:50%;pointer-events:none;z-index:9990;transform:translate(-50%,-50%) scale(.2);opacity:1;background:radial-gradient(circle,#fff 0%,#ffe9a0 13%,#ff8b21 31%,#e83c17 48%,#ff551a55 65%,transparent 73%);box-shadow:0 0 35px 12px #ff8c2866;transition:transform .48s ease-out,opacity .48s ease-out';
+ document.body.appendChild(burst);
+ requestAnimationFrame(()=>{burst.style.transform='translate(-50%,-50%) scale(2.1)';burst.style.opacity='0'});
+ setTimeout(()=>burst.remove(),550);
+}
 function showRecovery(){
  if(recoveryPending)return;
+ playerDestructionBurst();
  recoveryPending=true;resetDockControls();explorerThreat=null;clearCombatShots();
  repairRobot.visible=repairBeam.visible=false;lockFrame.classList.add('hidden');
  sectorNotice.style.display='none';portalMessage.style.display='none';portalCountdown=0;
