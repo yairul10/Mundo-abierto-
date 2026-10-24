@@ -1,5 +1,5 @@
 import {createCloudSave} from './cloud-save-client.js?v=3';
-import {isNativePlayGames} from './play-games-auth.js';
+import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 
 const CHOICE='cosmosLegacy.accountChoice.v1';
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev';
@@ -51,6 +51,18 @@ export async function startAccount({mode=window.MUNDO_PLAY_MODE?.mode}={}){
   return true;
  }
  if(readChoice()==='guest'){finish();mountAccountSettings();return null}
+ // Sin elección previa: si Play Games ya autenticó al jugador, recuperar su cuenta
+ // automáticamente. Nunca activar nube si eligió expresamente invitado.
+ if(readChoice()===null&&isNativePlayGames()){
+  actions.hidden=true;
+  try{
+   const status=await playGamesStatus();
+   if(status.authenticated){
+    if(await connect()){remember('google');finish();mountAccountSettings();return client}
+   }
+  }catch(error){console.warn('[Cosmos Legacy] Inicio automático de Google Play no disponible:',error?.message||error)}
+  message.textContent='';
+ }
  if(readChoice()==='google'){
   actions.hidden=false;guest.disabled=true;google.disabled=true;
   try{if(await connect()){finish();mountAccountSettings();return client}}
