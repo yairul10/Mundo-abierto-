@@ -61,7 +61,7 @@ async function loadWithDeadline(promise,label){
 const {mountDisplayShell}=await import('./js/display-shell.js?v=228');
 if(!mountDisplayShell()){
 try{
-  const {startAccount,startCloudSync}=await import('./js/account-start.js?v=2');
+  const {startAccount,startCloudSync}=await import('./js/account-start.js?v=3');
   const {startPlayMode}=await import('./js/play-mode.js?v=224');
   const realm=await startPlayMode();
   document.getElementById('worldLoadingText').textContent='Preparando pantalla de inicio…';
