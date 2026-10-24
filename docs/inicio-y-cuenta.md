@@ -1,4 +1,6 @@
-# Inicio y cuenta (Android 1.1.6)
+# Inicio y cuenta (Android 1.1.4)
+
+La versión Android se mantiene en `1.1.4` (`versionCode: 325`) durante estas correcciones previas a la subida a Google Play. Las compilaciones no incrementan automáticamente el código de versión; solo se cambia cuando el propietario lo solicita. El identificador de contenido web de `version.json` es independiente y sirve para actualizar la caché.
 
 La pantalla inicial vuelve a utilizar `assets/loading-cosmos-legacy.webp` a pantalla completa (`cover`), sin bandas ni relleno borroso. La conversión WebP conserva el mismo arte y reduce el tamaño de descarga. Primero se consulta la configuración y, si hay servidor de pruebas habilitado, se elige el servidor. El fondo se descarga en paralelo y solo se muestra después de decodificarse completo; después aparecen las opciones de cuenta para la partida normal. Si el fondo falla o tarda más de 8 segundos, se permite continuar con color sólido sin bloquear la entrada. Al confirmar la entrada desaparecen y se muestra una barra con los recursos preparados hasta cargar la nave y el sector inicial. Los demás sectores conservan su carga diferida.
 
