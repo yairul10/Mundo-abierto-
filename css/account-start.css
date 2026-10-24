@@ -26,3 +26,7 @@
 .cloud-paused-note{padding:12px;border:1px solid #e9ba63;border-radius:9px;color:#ffe3ad}
 @media(orientation:portrait){#accountActions{width:80%}.account-choice{min-height:64px}.account-choice strong{font-size:14px}.account-choice small{font-size:11px}}
 @media(max-height:420px){.account-dialog{padding:14px}.account-dialog h2{font-size:18px}.account-dialog p{font-size:13px}.account-dialog button{padding:9px;margin-top:7px}}
+
+#worldLoading.splash-ready{background-image:url("../assets/loading-cosmos-legacy.webp")}
+#worldLoading.server-pending{background-image:none}
+#worldLoading.server-pending .cosmos-loading-ui{display:block}

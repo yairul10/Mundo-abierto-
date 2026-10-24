@@ -1,6 +1,6 @@
-# Inicio y cuenta (Android 1.1.5)
+# Inicio y cuenta (Android 1.1.6)
 
-La pantalla inicial vuelve a utilizar `assets/loading-cosmos-legacy.png` a pantalla completa (`cover`), sin bandas ni relleno borroso. Los botones HTML se activan antes de las consultas de versión y configuración. Al confirmar la entrada desaparecen y se muestra una barra con los recursos preparados hasta cargar la nave y el sector inicial. Los demás sectores conservan su carga diferida.
+La pantalla inicial vuelve a utilizar `assets/loading-cosmos-legacy.webp` a pantalla completa (`cover`), sin bandas ni relleno borroso. La conversión WebP conserva el mismo arte y reduce el tamaño de descarga. Primero se consulta la configuración y, si hay servidor de pruebas habilitado, se elige el servidor. El fondo se descarga en paralelo y solo se muestra después de decodificarse completo; después aparecen las opciones de cuenta para la partida normal. Si el fondo falla o tarda más de 8 segundos, se permite continuar con color sólido sin bloquear la entrada. Al confirmar la entrada desaparecen y se muestra una barra con los recursos preparados hasta cargar la nave y el sector inicial. Los demás sectores conservan su carga diferida.
 
 La primera entrada a la partida normal permite elegir invitado o Google Play. Invitado muestra una advertencia y conserva el guardado local existente; no inicia sincronización de partidas. La elección se recuerda en `cosmosLegacy.accountChoice.v1`. Desde el menú de nave, **Cuenta y guardado en la nube** permite volver a elegir.
 
