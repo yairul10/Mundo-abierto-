@@ -1,5 +1,5 @@
 import {defenseDamage} from './combat.mjs';
-export const BOSS_RULES=Object.freeze({id:'pvp-super-boss',name:'Titán del Nexo',maxHp:1000000,damage:5000,reward:1000000,attackInterval:3000,targets:2,patrolSpeed:80,teleportInterval:20000,range:1200,respawnDelay:300000,pos:[0,120,-1800],hitRadius:180});
+export const BOSS_RULES=Object.freeze({id:'pvp-super-boss',name:'Titán del Nexo',maxHp:1000000,damage:5000,reward:1000000,attackInterval:3000,targets:3,patrolSpeed:80,teleportInterval:20000,range:1200,respawnDelay:300000,pos:[0,120,-1800],hitRadius:180});
 export function ensureBoss(s,now){
  if(!s.boss||s.boss.hp<=0&&now>=s.boss.respawnAt)s.boss={id:BOSS_RULES.id,instanceId:crypto.randomUUID(),boss:true,connected:true,pos:[...BOSS_RULES.pos],hp:BOSS_RULES.maxHp,maxHp:BOSS_RULES.maxHp,hitRadius:BOSS_RULES.hitRadius,contributions:{},active:false,nextAttackAt:0,attackSeq:0,motionAt:now,patrolPhase:0,teleportSeq:0,rulesVersion:2};
  const b=s.boss;
@@ -45,12 +45,13 @@ export function tickBoss(s,now,eligible){
   return;
  }
  if(!b.active){b.aimTargets=[];return}
- const targets=s.players.filter(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=BOSS_RULES.range).sort((a,b)=>b.hp-a.hp||a.id.localeCompare(b.id)).slice(0,BOSS_RULES.targets);
+ const targets=s.players.filter(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=BOSS_RULES.range).sort((a,b)=>a.hp-b.hp||a.id.localeCompare(b.id)).slice(0,BOSS_RULES.targets);
  b.aimTargets=targets.map(p=>({targetId:p.id,targetPos:[...p.pos]}));
  if(now<b.nextAttackAt)return;
  // No catch-up bursts after inactivity. Retarget at each shot.
  b.nextAttackAt=now+BOSS_RULES.attackInterval;if(!targets.length)return;
- const hits=targets.map(target=>{const damage=Math.min(target.hp,defenseDamage(target,BOSS_RULES.damage,now));target.hp=Math.max(0,target.hp-damage);target.lastHit=target.lastIncoming=now;target.lastDamagedBy=b.id;return {targetId:target.id,targetPos:[...target.pos],damage}});
+ const sharedDamage=BOSS_RULES.damage*BOSS_RULES.targets/targets.length;
+ const hits=targets.map(target=>{const damage=Math.min(target.hp,defenseDamage(target,sharedDamage,now));target.hp=Math.max(0,target.hp-damage);target.lastHit=target.lastIncoming=now;target.lastDamagedBy=b.id;return {targetId:target.id,targetPos:[...target.pos],damage}});
  b.attackSeq++;b.lastAttack={seq:b.attackSeq,time:now,origin:[...b.pos],targets:hits,...hits[0]};
 }
 export function bossSnapshot(b){if(!b)return null;return {id:b.id,instanceId:b.instanceId,name:BOSS_RULES.name,pos:b.pos,hp:b.hp,maxHp:b.maxHp,active:b.active,respawnAt:b.respawnAt||0,reward:BOSS_RULES.reward,range:BOSS_RULES.range,lastAttack:b.lastAttack||null,lastTeleport:b.lastTeleport||null,aimTargets:b.aimTargets||[],nextAttackAt:b.nextAttackAt||0}}
