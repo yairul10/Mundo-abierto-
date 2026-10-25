@@ -16,10 +16,11 @@ const audio=createCombatAudio({host:{AudioContext:Context},document:doc,listener
 assert.equal(audio.play('laser'),false,'Never starts before a user gesture');listeners.get('pointerdown')();assert.equal(context.state,'running');
 assert.equal(audio.play('laser'),true);assert.equal(audio.play('laser'),false,'Rapid repeats are throttled');context.currentTime+=.1;assert.equal(audio.play('laser'),true);assert.equal(buffers,1,'Reuses effect buffers');
 assert.equal(audio.play('explosion',{x:2000,y:0,z:0}),false,'Distant effects are culled');
-for(const kind of ['enemyLaser','drone','missile','impact','explosion','resource','portalCharge','portalTravel']){context.currentTime++;assert.equal(audio.play(kind),true)}
+for(const kind of ['enemyLaser','drone','missile','impact','explosion','resource','portalCharge','portalTravel','ui','purchase','mission','levelUp','landing','touchdown','takeoff','ability','shield','fury','repair','lowLife','boundary','incoming']){context.currentTime++;doc.hidden=true;listeners.get('visibilitychange')();doc.hidden=false;listeners.get('visibilitychange')();assert.equal(audio.play(kind),true)}
 assert(samples.every(data=>data.every(Number.isFinite)&&data.some(x=>Math.abs(x)>.01)),'Every effect has valid audible samples');
 audio.setMuted(true);assert.equal(saved.muted,true);assert.equal(audio.play('laser'),false);audio.setMuted(false);audio.setVolume(0);assert.equal(audio.play('laser'),false);audio.setVolume(2);assert.equal(saved.volume,1);
-for(let i=0;i<30;i++){context.currentTime++;audio.play('laser')}assert.equal(starts,18,'Caps simultaneous effect voices');
+doc.hidden=true;listeners.get('visibilitychange')();doc.hidden=false;listeners.get('visibilitychange')();const beforeCap=starts;
+for(let i=0;i<30;i++){context.currentTime++;audio.play('laser')}assert.equal(starts-beforeCap,18,'Caps simultaneous effect voices');
 doc.hidden=true;listeners.get('visibilitychange')();assert.equal(context.state,'suspended');assert.equal(audio.play('laser'),false);doc.hidden=false;listeners.get('visibilitychange')();context.currentTime++;assert.equal(audio.play('laser'),true,'Stopped voices release their slots');audio.dispose();assert.equal(context.state,'closed');assert.equal(listeners.size,0);
 assert.doesNotThrow(()=>{const unsupported=createCombatAudio({host:{},document:null,storage:{getItem(){throw Error('blocked')}}});unsupported.unlock();assert.equal(unsupported.play('laser'),false);unsupported.dispose()});
 const restored=createCombatAudio({host:{},document:null,storage:{getItem:()=>JSON.stringify({volume:.2,muted:true})}});assert.deepEqual(restored.settings,{volume:.2,musicVolume:.2,muted:true});

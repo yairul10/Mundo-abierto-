@@ -9,6 +9,20 @@ export const EFFECTS=Object.freeze({
  resource:{duration:.24,volume:.23,cooldown:.12,frequency:950,end:1900},
  portalCharge:{duration:.38,volume:.18,cooldown:.42,frequency:240,end:700},
  portalTravel:{duration:1.1,volume:.38,cooldown:.8,noise:.5,frequency:180,end:1500},
+ ui:{duration:.055,volume:.08,cooldown:.07,frequency:900,end:1200},
+ purchase:{duration:.32,volume:.24,cooldown:.2,frequency:650,end:1450},
+ mission:{duration:.7,volume:.28,cooldown:1,frequency:520,end:1100},
+ levelUp:{duration:1,volume:.3,cooldown:1.4,frequency:440,end:1760},
+ landing:{duration:.55,volume:.2,cooldown:1,noise:.25,frequency:210,end:70},
+ touchdown:{duration:.28,volume:.2,cooldown:1,noise:.35,frequency:150,end:50},
+ takeoff:{duration:.85,volume:.26,cooldown:1,noise:.25,frequency:100,end:500},
+ ability:{duration:.5,volume:.24,cooldown:.5,frequency:350,end:1400},
+ shield:{duration:.65,volume:.24,cooldown:.5,frequency:250,end:650},
+ fury:{duration:.55,volume:.24,cooldown:.5,noise:.2,frequency:180,end:800},
+ repair:{duration:.3,volume:.12,cooldown:8,frequency:440,end:800},
+ lowLife:{duration:.35,volume:.2,cooldown:8,frequency:600,end:420},
+ boundary:{duration:.4,volume:.19,cooldown:6,frequency:400,end:250},
+ incoming:{duration:.24,volume:.19,cooldown:4,frequency:1100,end:750},
  explosion:{duration:.85,volume:.5,cooldown:.09,noise:1,frequency:75,end:24}
 });
 export const MUSIC_TRACKS=Object.freeze(['./assets/audio/trench-run-velocity.mp3','./assets/audio/horizon-of-the-iron-moon.mp3']);
@@ -83,6 +97,8 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
   if(doc?.hidden){music?.pause();for(const voice of voices){try{voice.stop()}catch{}}context.suspend()?.catch(()=>{})}
   else if(unlocked){context.resume()?.catch(()=>{});startMusic()}
  }
+ function uiClick(event){const button=event.target?.closest?.('button');if(!button||button.disabled||!button.closest('#characterPanel,#hangarPanel,#questPanel'))return;unlock();play('ui')}
+ doc?.addEventListener('click',uiClick);
  doc?.addEventListener('pointerdown',unlock,{passive:true});doc?.addEventListener('keydown',unlock);doc?.addEventListener('visibilitychange',visibility);
  return {play,unlock,setEngine,get settings(){return {...settings}},setVolume(value){if(Number.isFinite(+value)){settings.volume=Math.max(0,Math.min(1,+value));persist()}},setMuted(value){settings.muted=!!value;persist()},setMusicVolume(value){if(Number.isFinite(+value)){settings.musicVolume=Math.max(0,Math.min(1,+value));persist()}},
   mount(parent){
@@ -98,6 +114,6 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
    const preview=doc.createElement('button');preview.type='button';preview.textContent='Probar sonido';preview.style.marginLeft='8px';preview.onclick=()=>{unlock();setTimeout(()=>play('laser'),40)};
    const refresh=()=>{slider.value=String(Math.round(settings.volume*100));value.textContent=slider.value+'%';musicSlider.value=String(Math.round(settings.musicVolume*100));musicValue.textContent=musicSlider.value+'%';mute.textContent=settings.muted?'Activar sonido':'Silenciar';mute.setAttribute('aria-pressed',String(settings.muted))};views.add(refresh);refresh();section.append(label,slider,musicLabel,musicSlider,mute,preview);parent.append(section);
   },
-  dispose(){disposed=true;doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();try{engineSource?.stop();engineSource?.disconnect();engineGain?.disconnect()}catch{}if(music){music.pause();music.removeEventListener('ended',nextTrack);music.removeAttribute('src');music.load();music=null;}context?.close()?.catch(()=>{})}
+  dispose(){disposed=true;doc?.removeEventListener('click',uiClick);doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();try{engineSource?.stop();engineSource?.disconnect();engineGain?.disconnect()}catch{}if(music){music.pause();music.removeEventListener('ended',nextTrack);music.removeAttribute('src');music.load();music=null;}context?.close()?.catch(()=>{})}
  };
 }
