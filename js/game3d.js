@@ -3024,8 +3024,11 @@ deferredModelLoad(modelLoader,'./assets/models/ancestral-portal.glb?v=300',gltf=
  });
  portalMesh.add(model);portalMesh.userData.portalModel=model;
  portalRing.visible=false;portalDisk.visible=false;
- portalHalo.position.z=size.z*scale*.5+.3;portalHalo.visible=true;
- portalChargeFront.position.z=size.z*scale*.5+.5;portalChargeBack.position.z=-size.z*scale*.5-.5;
+ // The GLB is centered above: keep energy inside its aperture, not on the
+ // outer faces of the thick frame (which drift sideways in oblique views).
+ portalHalo.position.set(0,0,0);portalHalo.visible=true;
+ portalCharge.position.set(0,0,0);
+ portalChargeFront.position.z=.08;portalChargeBack.position.z=-.08;
  portalLight.color.setHex(0x3bafff);refreshSecondaryPortal();
 },undefined,err=>console.warn('Modelo de portal no disponible; se conserva el portal provisional.',err));
 const portalLight=new THREE.PointLight(0x8a65ff,20,180);portalMesh.add(portalLight);scene.add(portalMesh);
