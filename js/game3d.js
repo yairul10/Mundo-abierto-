@@ -1893,10 +1893,25 @@ function decorateCarrierMissile(mesh){
  const exhaust=new THREE.Mesh(new THREE.ConeGeometry(6,19,10),new THREE.MeshBasicMaterial({color:0x4dbdff,transparent:true,opacity:.85}));
  exhaust.rotation.z=Math.PI;exhaust.position.y=-28;mesh.add(exhaust);
 }
+function createCarrierMissileMesh(){
+ if(!rocketTemplate){
+  const fallback=new THREE.Mesh(carrierMissileGeometry,carrierMissileMaterial);
+  decorateCarrierMissile(fallback);return fallback;
+ }
+ // Reutilizar el GLB con sus texturas, centrado en un soporte independiente.
+ const mesh=new THREE.Group(),visual=rocketTemplate.clone(true);
+ visual.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(visual),size=bounds.getSize(new THREE.Vector3());
+ const length=Math.max(size.x,size.y,size.z);
+ const centered=new THREE.Group();centered.add(visual);
+ visual.position.sub(bounds.getCenter(new THREE.Vector3()));
+ centered.scale.setScalar(52/Math.max(.001,length));mesh.add(centered);
+ return mesh;
+}
 function fireCarrierMissile(){
  lastIncomingAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
- const dir=playerMesh.position.clone().sub(carrierMesh.position).normalize(),mesh=new THREE.Mesh(carrierMissileGeometry,carrierMissileMaterial);
- decorateCarrierMissile(mesh);mesh.position.copy(carrierMesh.position).addScaledVector(dir,carrierMesh.userData.hitRadius||255);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
+ const dir=playerMesh.position.clone().sub(carrierMesh.position).normalize(),mesh=createCarrierMissileMesh();
+ mesh.position.copy(carrierMesh.position).addScaledVector(dir,carrierMesh.userData.hitRadius||255);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
  enemyShots.push({owner:carrierEnemy,mesh,velocity:dir.multiplyScalar(650),life:4,damage:TYPES.carrier.damage*advancedEnemyScale(player.level,30),guided:true,missileEffects:addMissileEffects(mesh)});
  lootToast('🚀 Coloso · Misil guiado');
 }
