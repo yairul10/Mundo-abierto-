@@ -1,6 +1,6 @@
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=238';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=256';
-import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=309';
+import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=310';
 const API='https://mundo-abierto-pvp.jairog940.workers.dev';
 const GUEST_KEY='mundoAbierto.guestKey',NAME_KEY='mundoAbierto.guestName',SHIP_KEY='mundoAbierto.guestShip';
 const NAMES={aurora:'Aurora',titan:'Titán',espectro:'Espectro',segadora:'Segadora',bastion:'Bastión',centella:'Centella'};

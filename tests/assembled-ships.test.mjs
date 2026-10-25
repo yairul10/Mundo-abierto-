@@ -6,10 +6,10 @@ for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS)){
  assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],id==='obsidian'?[200,200,200]:[100,100,100]);
  const player={level:40,gold:ship.cost,loot:{...ship.recipe},ownedShips:{aurora:true},shipId:'aurora'};
  const missing=structuredClone(player);missing.loot.cristal_punteria--;
- const before=JSON.stringify(missing);assert.equal(assembleShip(missing,id),false);assert.equal(JSON.stringify(missing),before);
- assert.equal(canAssembleShip({...player,level:39},id),false);
- assert.equal(assembleShip(player,id),true);assert.equal(player.gold,0);assert.ok(Object.values(player.loot).every(v=>v===0));assert.equal(player.ownedShips.aurora,true);assert.equal(player.ownedShips[id],true);
- assert.equal(assembleShip(player,id),false);assert.equal(JSON.parse(JSON.stringify(player)).ownedShips[id],true);
+ const before=JSON.stringify(missing);assert.equal(assembleShip(missing,id,ship.assemblyZone||'pve'),false);assert.equal(JSON.stringify(missing),before);
+ assert.equal(canAssembleShip({...player,level:39},id,ship.assemblyZone||'pve'),false);
+ assert.equal(assembleShip(player,id,ship.assemblyZone||'pve'),true);assert.equal(player.gold,0);assert.ok(Object.values(player.loot).every(v=>v===0));assert.equal(player.ownedShips.aurora,true);assert.equal(player.ownedShips[id],true);
+ assert.equal(assembleShip(player,id,ship.assemblyZone||'pve'),false);assert.equal(JSON.parse(JSON.stringify(player)).ownedShips[id],true);
  const raw={shipId:id,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:30,defense:5,speed:220};
  assert.equal(profile(raw).shipId,id);const p={};makeCombatPlayer(p,raw);assert.equal(ability(p,1000),true);assert.ok(p.abilityUntil>1000);
  if(shipRole(id)==='titan')assert.ok(defenseDamage(p,50,2000)<defenseDamage(p,50,10000)*.5);

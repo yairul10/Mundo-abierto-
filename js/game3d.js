@@ -13,14 +13,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=265';
 import {attachAssembledEngines} from './assembled-engines.js?v=304';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=309';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=310';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=309';
+import {mountHangarUI} from './hangar-ui.js?v=310';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=309';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=309';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=309';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=310';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=310';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=310';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -1604,7 +1604,7 @@ const activeBooster=id=>boosterBonus(player,id,!PVP_MODE||!!pvpHangar);
 const supportRange=()=>PVP_MODE?(pvpSession?.profile?.droneRange||COMBAT_RANGE):COMBAT_RANGE*equippedBonus().range;
 let hangarUI=null;
 function equipFormation(id){
- if((PVP_MODE&&!pvpHangar)||!player.formations[id])return;
+ if(!docked||(PVP_MODE&&!pvpHangar)||!player.formations[id])return;
  player.droneFormation=id;syncShipStats();save();hud();refreshFormationButton();
  if(hangarUI)hangarUI.render(true);
 }
@@ -1807,18 +1807,16 @@ function refreshFormationButton(){
  if(!formationBtn)return;
  const f=FORMATIONS.find(f=>f.id===player.droneFormation)||FORMATIONS[0];
  formationBtn.textContent=f.icon;
- formationBtn.title=f.name+' · Cambiar entre formaciones disponibles';
+ formationBtn.title=f.name+' · Equipar desde el Hangar';
  formationBtn.setAttribute('aria-label',formationBtn.title);
  formationBtn.setAttribute('aria-pressed',String(f.id!=='fan'));
- formationBtn.disabled=PVP_MODE;
+ formationBtn.disabled=PVP_MODE&&!pvpHangar;
 }
 function cycleFormation(){
- if(PVP_MODE)return;
- const available=FORMATIONS.filter(f=>player.formations[f.id]);
- if(available.length===1){lootToast('Abanico equipado · Ensambla nuevas formaciones en el hangar');return}
- const index=available.findIndex(f=>f.id===player.droneFormation),next=available[(index+1)%available.length];
- equipFormation(next.id);lootToast('Formación: '+next.name);
+ if(!docked){lootToast('Aterriza y abre el Hangar para equipar una formación.');return}
+ hangarUI?.show('equipment');
 }
+
 if(formationBtn){
  // No depender del clic sintetizado: otro dedo puede seguir en el joystick.
  formationBtn.addEventListener('touchstart',e=>{
@@ -2309,7 +2307,7 @@ function syncShipStats(){
  player.hp=Math.max(0,Math.min(player.maxHp,ratio*player.maxHp));
 }
 function changeShip(id){
- if(!SHIP_TYPES[id]||!player.ownedShips[id]||player.shipId===id)return;
+ if(!docked||!SHIP_TYPES[id]||!player.ownedShips[id]||player.shipId===id)return;
  ensureShipBaseStats();
  player.shipId=id;loadAssembledVisual(id);classAbilityCd=0;classAbilityTime=0;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
  lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
@@ -2322,17 +2320,17 @@ function renderShips(){
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
   const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Escudo ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
   const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
-  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(selected||(!owned&&!canBuy)?'disabled':'')+'>'+(selected?'Equipada':owned?'Equipar':t.recipe?'Ensamblar':'Comprar')+'</button></div>';
+  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(owned||!canBuy?'disabled':'')+'>'+(owned?'Disponible en Hangar':'Comprar')+'</button></div>';
  }).join('');
  fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
-  const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t)return;
+  const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t||!docked||t.recipe||player.ownedShips[id])return;
   if(!player.ownedShips[id]){
    if(t.recipe){if(!assembleShip(player,id))return;logAction('commerce','Nave ensamblada: '+t.name+' · −'+t.cost.toLocaleString('es')+' créditos y materiales del plano');}else{
     if(player.level<t.level||player.gold<t.cost)return;
     player.gold-=t.cost;player.ownedShips[id]=true;logAction('commerce','Compra: nave '+t.name+' · −'+t.cost.toLocaleString('es')+' créditos');
    }
   }
-  changeShip(id);save();renderShips();hangarRefresh();
+  save();hud();renderShips();hangarRefresh();
  });
  renderSpecialUpgrades();
 }
@@ -3210,7 +3208,7 @@ $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;comba
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
 $('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-hangarUI=mountHangarUI({player,isDocked:()=>docked,isOffline:()=>!PVP_MODE||!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
+hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!PVP_MODE||!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
 let boosterStatusSecond=-1;
 function updateBoosterStatus(){
  const second=Math.floor(performance.now()/1000);if(second===boosterStatusSecond)return;boosterStatusSecond=second;
@@ -3411,7 +3409,7 @@ function openPvpHangar(){
  player=createHangarEditor(readOfflinePilot(localStorage));normalizeHangar(player);
  missionBoard=createMissionBoard(missionCatalog,player.quests);docked=true;landing=false;resetDockControls();fireHeld=false;clearCombatShots();
  document.body.classList.add('docked');$('saleConfirm').classList.add('hidden');hangar.classList.remove('hidden');$('launchBtn').textContent='🚀 Despegar al mapa PvP';
- hangarUI=mountHangarUI({player,isDocked:()=>docked,isOffline:()=>!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
+ hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
  hangarUI.show('home');hangarRefresh();
 }
 function closePvpHangar(){

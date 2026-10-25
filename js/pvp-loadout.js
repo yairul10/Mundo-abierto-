@@ -1,4 +1,4 @@
-import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=309';
+import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=310';
 const SHIPS={aurora:{hp:1,attack:1,defense:1,speed:1},titan:{hp:1.8,attack:.85,defense:1.5,speed:.75},espectro:{hp:.7,attack:1.35,defense:.65,speed:1.4},...ASSEMBLED_SHIPS};
 const number=(value,fallback)=>Number.isFinite(Number(value))&&Number(value)>0?Number(value):fallback;
 export function readOfflinePilot(storage){try{const test=typeof window!=='undefined'&&window.MUNDO_PLAY_MODE?window.MUNDO_PLAY_MODE.mode==='test':storage.getItem('mundoAbierto.qaActive')==='1';const key=test?'mundoAbierto.qaPlayer':'mundoAbierto.player';return JSON.parse(storage.getItem(key)||'{}')||{}}catch{return {}}}
