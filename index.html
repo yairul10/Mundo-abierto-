@@ -111,7 +111,7 @@ try {
   };
   THREE.DefaultLoadingManager.onLoad=()=>{window.cosmosAssetsLoading=false};
   status.textContent='Motor 3D OK · cargando mundo…';
-  await loadWithDeadline(import('./js/game3d.js?v=3d-20261025-305'),'el módulo del mundo 3D');
+  await loadWithDeadline(import('./js/game3d.js?v=3d-20261025-306'),'el módulo del mundo 3D');
   status.remove();
   const overlay=document.getElementById('worldLoading');
   if(overlay){

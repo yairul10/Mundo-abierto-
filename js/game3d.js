@@ -1,4 +1,4 @@
-import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=305';
+import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=306';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
@@ -16,7 +16,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=304';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=301';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=305';
+import {mountHangarUI} from './hangar-ui.js?v=306';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=299';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=301';
