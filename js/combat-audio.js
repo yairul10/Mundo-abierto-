@@ -8,19 +8,42 @@ export const EFFECTS=Object.freeze({
  impact:{duration:.17,volume:.22,cooldown:.075,noise:.65,frequency:310,end:80},
  explosion:{duration:.85,volume:.5,cooldown:.09,noise:1,frequency:75,end:24}
 });
+// Original seamless ambient score: warm pads and sparse, soft bell notes.
+export function createAmbientBuffer(context){
+ const duration=32,rate=16000,result=context.createBuffer(1,duration*rate,rate),data=result.getChannelData(0);
+ const chords=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]];
+ const frequency=midi=>Math.round(440*Math.pow(2,(midi-69)/12)*duration)/duration;
+ const notes=chords.map(chord=>chord.map(frequency));
+ for(let i=0;i<data.length;i++){
+  const t=i/rate;let sample=0;
+  for(let chord=0;chord<4;chord++){
+   const age=(t-chord*8+duration)%duration;if(age>=16)continue;
+   const swell=Math.pow(Math.sin(Math.PI*age/16),2);
+   for(const f of notes[chord])sample+=swell*(Math.sin(2*Math.PI*f*t)+.22*Math.sin(2*Math.PI*f*2*t))*.035;
+  }
+  const beat=Math.floor(t/4),age=t%4,f=frequency([76,72,69,67,72,76,74,71][beat]);
+  sample+=Math.sin(2*Math.PI*f*t)*Math.min(1,age/.08)*Math.exp(-age*2)*.018;
+  data[i]=sample*Math.min(1,t/.04,(duration-t)/.04);
+ }
+ return result;
+}
 export function createCombatAudio({host=globalThis,listener=()=>null,storage,document:doc=host.document}={}){
- let settings={volume:.55,muted:false};
- try{const saved=JSON.parse(storage?.getItem(AUDIO_KEY)||'null');if(saved){if(Number.isFinite(saved.volume))settings.volume=Math.max(0,Math.min(1,saved.volume));settings.muted=saved.muted===true}}catch{}
- let context,master,unlocked=false;
+ let settings={volume:.55,musicVolume:.2,muted:false};
+ try{const saved=JSON.parse(storage?.getItem(AUDIO_KEY)||'null');if(saved){if(Number.isFinite(saved.volume))settings.volume=Math.max(0,Math.min(1,saved.volume));if(Number.isFinite(saved.musicVolume))settings.musicVolume=Math.max(0,Math.min(1,saved.musicVolume));settings.muted=saved.muted===true}}catch{}
+ let context,master,musicGain,musicSource,musicBuffer,unlocked=false;
  const buffers=new Map(),last=new Map(),voices=new Set(),views=new Set();
- function gain(){if(master)master.gain.setTargetAtTime(settings.muted?0:settings.volume,context.currentTime,.02)}
- function persist(){try{storage?.setItem(AUDIO_KEY,JSON.stringify(settings))}catch{}gain();for(const refresh of views)refresh()}
+ function gain(){if(master)master.gain.setTargetAtTime(settings.muted?0:settings.volume,context.currentTime,.02);if(musicGain)musicGain.gain.setTargetAtTime(settings.muted?0:settings.musicVolume,context.currentTime,.5)}
+ function startMusic(){
+  if(!context||musicSource||settings.muted||settings.musicVolume<=0||doc?.hidden)return;
+  try{musicBuffer??=createAmbientBuffer(context);musicSource=context.createBufferSource();musicSource.buffer=musicBuffer;musicSource.loop=true;musicSource.connect(musicGain);musicSource.start()}catch{musicSource=null}
+ }
+ function persist(){try{storage?.setItem(AUDIO_KEY,JSON.stringify(settings))}catch{}gain();if(unlocked)startMusic();for(const refresh of views)refresh()}
  function unlock(){
   if(doc?.hidden)return;
   try{
    const AudioContext=host.AudioContext||host.webkitAudioContext;if(!AudioContext)return;
-   if(!context){context=new AudioContext();master=context.createGain();const compressor=context.createDynamicsCompressor();master.connect(compressor);compressor.connect(context.destination);gain()}
-   unlocked=true;if(context.state!=='running')context.resume()?.catch(()=>{});
+   if(!context){context=new AudioContext();master=context.createGain();const compressor=context.createDynamicsCompressor();master.connect(compressor);musicGain=context.createGain();musicGain.connect(compressor);compressor.connect(context.destination);gain()}
+   unlocked=true;if(context.state!=='running')context.resume()?.catch(()=>{});startMusic();
   }catch{}
  }
  function buffer(kind){
@@ -54,10 +77,10 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
  function visibility(){
   if(!context)return;
   if(doc?.hidden){for(const voice of voices){try{voice.stop()}catch{}}context.suspend()?.catch(()=>{})}
-  else if(unlocked)context.resume()?.catch(()=>{});
+  else if(unlocked){context.resume()?.catch(()=>{});startMusic()}
  }
  doc?.addEventListener('pointerdown',unlock,{passive:true});doc?.addEventListener('keydown',unlock);doc?.addEventListener('visibilitychange',visibility);
- return {play,unlock,get settings(){return {...settings}},setVolume(value){if(Number.isFinite(+value)){settings.volume=Math.max(0,Math.min(1,+value));persist()}},setMuted(value){settings.muted=!!value;persist()},
+ return {play,unlock,get settings(){return {...settings}},setVolume(value){if(Number.isFinite(+value)){settings.volume=Math.max(0,Math.min(1,+value));persist()}},setMuted(value){settings.muted=!!value;persist()},setMusicVolume(value){if(Number.isFinite(+value)){settings.musicVolume=Math.max(0,Math.min(1,+value));persist()}},
   mount(parent){
    if(!doc||!parent)return;
    const section=doc.createElement('section');section.style.cssText='margin:14px 0;padding:12px;border:1px solid #426078;border-radius:12px;background:#101d2b;color:#e9f6ff';
@@ -65,10 +88,12 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
    const label=doc.createElement('label');label.textContent='Volumen de efectos ';const value=doc.createElement('span');label.append(value);
    const slider=doc.createElement('input');slider.type='range';slider.min='0';slider.max='100';slider.step='1';slider.setAttribute('aria-label','Volumen de efectos');slider.style.cssText='display:block;width:100%;margin:10px 0';
    slider.oninput=()=>{unlock();this.setVolume(Number(slider.value)/100)};
+   const musicLabel=doc.createElement('label');musicLabel.textContent='Música ambiental ';const musicValue=doc.createElement('span');musicLabel.append(musicValue);
+   const musicSlider=doc.createElement('input');musicSlider.type='range';musicSlider.min='0';musicSlider.max='100';musicSlider.step='1';musicSlider.setAttribute('aria-label','Volumen de música ambiental');musicSlider.style.cssText=slider.style.cssText;musicSlider.oninput=()=>{unlock();this.setMusicVolume(Number(musicSlider.value)/100)};
    const mute=doc.createElement('button');mute.type='button';mute.onclick=()=>{unlock();this.setMuted(!settings.muted)};
    const preview=doc.createElement('button');preview.type='button';preview.textContent='Probar sonido';preview.style.marginLeft='8px';preview.onclick=()=>{unlock();setTimeout(()=>play('laser'),40)};
-   const refresh=()=>{slider.value=String(Math.round(settings.volume*100));value.textContent=slider.value+'%';mute.textContent=settings.muted?'Activar sonido':'Silenciar';mute.setAttribute('aria-pressed',String(settings.muted))};views.add(refresh);refresh();section.append(label,slider,mute,preview);parent.append(section);
+   const refresh=()=>{slider.value=String(Math.round(settings.volume*100));value.textContent=slider.value+'%';musicSlider.value=String(Math.round(settings.musicVolume*100));musicValue.textContent=musicSlider.value+'%';mute.textContent=settings.muted?'Activar sonido':'Silenciar';mute.setAttribute('aria-pressed',String(settings.muted))};views.add(refresh);refresh();section.append(label,slider,musicLabel,musicSlider,mute,preview);parent.append(section);
   },
-  dispose(){doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();context?.close()?.catch(()=>{})}
+  dispose(){doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();try{musicSource?.stop();musicSource?.disconnect()}catch{}musicSource=null;musicBuffer=null;context?.close()?.catch(()=>{})}
  };
 }
