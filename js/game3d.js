@@ -1604,7 +1604,7 @@ const activeBooster=id=>boosterBonus(player,id,!PVP_MODE||!!pvpHangar);
 const supportRange=()=>PVP_MODE?(pvpSession?.profile?.droneRange||COMBAT_RANGE):COMBAT_RANGE*equippedBonus().range;
 let hangarUI=null;
 function equipFormation(id){
- if(!docked||(PVP_MODE&&!pvpHangar)||!player.formations[id])return;
+ if((PVP_MODE&&!pvpHangar)||!player.formations[id])return;
  player.droneFormation=id;syncShipStats();save();hud();refreshFormationButton();
  if(hangarUI)hangarUI.render(true);
 }
@@ -1807,14 +1807,17 @@ function refreshFormationButton(){
  if(!formationBtn)return;
  const f=FORMATIONS.find(f=>f.id===player.droneFormation)||FORMATIONS[0];
  formationBtn.textContent=f.icon;
- formationBtn.title=f.name+' · Equipar desde el Hangar';
+ formationBtn.title=f.name+' · Cambiar entre formaciones disponibles';
  formationBtn.setAttribute('aria-label',formationBtn.title);
  formationBtn.setAttribute('aria-pressed',String(f.id!=='fan'));
  formationBtn.disabled=PVP_MODE&&!pvpHangar;
 }
 function cycleFormation(){
- if(!docked){lootToast('Aterriza y abre el Hangar para equipar una formación.');return}
- hangarUI?.show('equipment');
+ if(PVP_MODE&&!pvpHangar)return;
+ const available=FORMATIONS.filter(f=>player.formations[f.id]);
+ if(available.length<=1){lootToast('Abanico equipado · Ensambla nuevas formaciones en la base');return}
+ const index=available.findIndex(f=>f.id===player.droneFormation),next=available[(index+1)%available.length];
+ equipFormation(next.id);lootToast('Formación: '+next.name);
 }
 
 if(formationBtn){
