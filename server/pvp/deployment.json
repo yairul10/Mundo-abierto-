@@ -1,6 +1,6 @@
 {
   "main_module": "worker.mjs",
-  "compatibility_date": "2026-10-11",
+  "compatibility_date": "2026-10-25",
   "compatibility_flags": [
     "nodejs_compat"
   ],
@@ -23,6 +23,11 @@
         "limit": 60,
         "period": 60
       }
+    },
+    {
+      "type": "plain_text",
+      "name": "TEST_SERVER_ENABLED",
+      "text": "true"
     }
   ],
   "exports": {

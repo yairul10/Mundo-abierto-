@@ -62,7 +62,7 @@ const {mountDisplayShell}=await import('./js/display-shell.js?v=228');
 if(!mountDisplayShell()){
 try{
   const {startAccount,startCloudSync}=await import('./js/account-start.js?v=3');
-  const {startPlayMode}=await import('./js/play-mode.js?v=224');
+  const {startPlayMode}=await import('./js/play-mode.js?v=313');
   const realm=await startPlayMode();
   document.getElementById('worldLoadingText').textContent='Preparando pantalla de inicio…';
   await window.cosmosSplashReady;
@@ -111,7 +111,7 @@ try {
   };
   THREE.DefaultLoadingManager.onLoad=()=>{window.cosmosAssetsLoading=false};
   status.textContent='Motor 3D OK · cargando mundo…';
-  await loadWithDeadline(import('./js/game3d.js?v=3d-20261025-312'),'el módulo del mundo 3D');
+  await loadWithDeadline(import('./js/game3d.js?v=3d-20261025-313'),'el módulo del mundo 3D');
   status.remove();
   const overlay=document.getElementById('worldLoading');
   if(overlay){

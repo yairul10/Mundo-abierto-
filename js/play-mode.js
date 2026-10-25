@@ -1,4 +1,4 @@
-const CONFIG_URL='https://mundo-abierto-pvp.jairog940.workers.dev/game-config';
+const CONFIG_URL='https://mundo-abierto-pvp.yairul17.workers.dev/game-config';
 export const QA_FLAG='mundoAbierto.qaActive';
 const SESSION='mundoAbierto.selectedRealm';
 export const savedMode=storage=>storage.getItem(QA_FLAG)==='1'?'test':'normal';

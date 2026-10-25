@@ -1,6 +1,6 @@
 # PvP abierto · Cosmos Legacy
 
-Contenido 259, Worker 0.5.2. Servidor: https://mundo-abierto-pvp.jairog940.workers.dev. Independiente de Gallina Cósmica.
+Contenido 313, Worker 0.5.3. Servidor: https://mundo-abierto-pvp.yairul17.workers.dev. Independiente de Gallina Cósmica.
 
 ## Mapa y protección
 
@@ -55,3 +55,6 @@ Las pruebas verifican combate entre varios pilotos, selección de misiles, impac
 Para probar en Android: actualizar la APK y reconectar al PvP; usar dos o tres dispositivos, salir de la base, dispararse, volver a ella y comprobar que durante cinco segundos sigue habiendo daño y después se bloquea en ambas direcciones. Repetir entrando y saliendo antes de vencer el plazo y usando habilidades. Los pilotos dentro del hangar deben quedar protegidos.
 
 Prueba cooperativa: entrar con dos dispositivos al mismo modo, volar hacia el jefe, disparar con ambos y comprobar la misma barra de vida. Al derrotarlo, cada uno debe recibir su porcentaje del millón de créditos; reconectar no debe repetir el abono. Verificar también ataques cada 3 s a los dos pilotos con mayor vida actual, retirada hacia la base, reaparición del jefe y compras de hangar mientras llega un premio.
+
+## Cuenta personal y formaciones en vuelo (313)
+Servidor en la cuenta personal yairul17. Los mapas normal y de prueba conservan namespaces separados. El servidor anterior queda intacto; sus salas y premios pendientes no se migran. El inventario local se importa al entrar. `WORLD.formationSwitch` anuncia el cambio en vuelo; el servidor valida las formaciones adquiridas y conserva la proporción de casco, energía y recargas.

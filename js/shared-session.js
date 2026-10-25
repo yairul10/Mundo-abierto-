@@ -1,7 +1,7 @@
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=238';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=256';
 import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=312';
-const API='https://mundo-abierto-pvp.jairog940.workers.dev';
+const API='https://mundo-abierto-pvp.yairul17.workers.dev';
 const GUEST_KEY='mundoAbierto.guestKey',NAME_KEY='mundoAbierto.guestName',SHIP_KEY='mundoAbierto.guestShip';
 const NAMES={aurora:'Aurora',titan:'Titán',espectro:'Espectro',segadora:'Segadora',bastion:'Bastión',centella:'Centella'};
 const ERRORS={invalid_skills:'Elige dos habilidades distintas en la base.',skill_cooldown:'La habilidad todavía está recargando.',test_closed:'El servidor de prueba está desactivado.',already_connected:'Este invitado ya está conectado.',world_full:'El mapa está lleno (24 jugadores).',too_far:'Selecciona un objetivo vulnerable a menos de 1200 m.',rate_limit:'Espera unos segundos para volver a entrar.',prototype_retired:'La prueba anterior fue reemplazada por el mapa compartido.',base_only:'Disponible únicamente cuando la base te protege.',protected:'La protección de la base impide atacar.',open_pvp:'El combate es abierto al salir de la base.'};
