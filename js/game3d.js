@@ -2988,7 +2988,7 @@ function updatePortalEmission(portal,intensity){
   }
  });
 }
-deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/ancestral-portal.glb?v=300',gltf=>{
  const model=gltf.scene;
  const box=new THREE.Box3().setFromObject(model);
  const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
@@ -3002,7 +3002,7 @@ deferredModelLoad(modelLoader,'./assets/models/scifiportal.glb?v=1',gltf=>{
   for(const material of Array.isArray(o.material)?o.material:[o.material]){
    if(!material?.isMeshStandardMaterial)continue;
    material.metalnessMap=null;material.roughnessMap=null;
-   material.metalness=.35;material.roughness=.6;
+   material.metalness=.22;material.roughness=.78;
    material.normalScale.set(.4,.4);
    if(material.map){
     material.map.anisotropy=anisotropy;
