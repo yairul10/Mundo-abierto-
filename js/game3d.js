@@ -1,4 +1,4 @@
-import {createCombatAudio} from './combat-audio.js?v=294';
+import {createCombatAudio} from './combat-audio.js?v=295';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
