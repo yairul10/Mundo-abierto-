@@ -13,14 +13,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=265';
 import {attachAssembledEngines} from './assembled-engines.js?v=304';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=301';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=309';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=308';
+import {mountHangarUI} from './hangar-ui.js?v=309';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=299';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=301';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=301';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=309';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=309';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=309';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -2339,7 +2339,7 @@ function renderShips(){
 ensureShipBaseStats();
 // El guardado ya contiene las estadísticas de la nave equipada: no aplicar el bono otra vez al cargar.
 // Normalizar partidas antiguas cuyo perfil aún no tiene valores base fiables.
-if(!PVP_MODE&&player.shipId!=='aurora'){
+if(!PVP_MODE&&player.shipId!=='aurora'&&!(player.shipId==='obsidian'&&stored.shipBaseStats)){
  const bonus=shipBonuses(player.shipId);
  const expected=Math.round((player.shipBaseStats.maxHp+bonus.maxHp)*equippedBonus().hp);
  if(Math.abs(player.maxHp-expected)>2){

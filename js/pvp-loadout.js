@@ -1,4 +1,4 @@
-import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=301';
+import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=309';
 const SHIPS={aurora:{hp:1,attack:1,defense:1,speed:1},titan:{hp:1.8,attack:.85,defense:1.5,speed:.75},espectro:{hp:.7,attack:1.35,defense:.65,speed:1.4},...ASSEMBLED_SHIPS};
 const number=(value,fallback)=>Number.isFinite(Number(value))&&Number(value)>0?Number(value):fallback;
 export function readOfflinePilot(storage){try{const test=typeof window!=='undefined'&&window.MUNDO_PLAY_MODE?window.MUNDO_PLAY_MODE.mode==='test':storage.getItem('mundoAbierto.qaActive')==='1';const key=test?'mundoAbierto.qaPlayer':'mundoAbierto.player';return JSON.parse(storage.getItem(key)||'{}')||{}}catch{return {}}}
@@ -12,4 +12,21 @@ export function offlineRoster(source={}){
 export function initialPvpPilot(source={}){
  const copy=JSON.parse(JSON.stringify(source)),roster=offlineRoster(copy),q=roster.profiles[roster.selected];
  return {...copy,...q,name:copy.name||'Invitado',shipId:roster.selected,x:0,y:0,z:120,quests:{},shipBaseStats:roster.base,ownedShips:Object.fromEntries(Object.keys(roster.profiles).map(id=>[id,true])),shipSpecializations:copy.shipSpecializations||{},formations:copy.formations||{fan:true},droneFormation:q.droneFormation,boosters:{},loot:copy.loot||{},gold:copy.gold||0,xp:copy.xp||0};
+}
+
+// Build a transient arena roster from saved base stats; never persist arena modifiers.
+export function pvpMultipliers(id){
+ const ship=SHIPS[id]||SHIPS.aurora,offset=id==='obsidian'?.5:-.5;
+ return Object.fromEntries(['hp','attack','defense','speed'].map(key=>[key,Number((ship[key]+offset).toFixed(2))]));
+}
+export function pvpRoster(source={}){
+ const roster=offlineRoster(source);
+ for(const [id,q]of Object.entries(roster.profiles)){
+  const ship=pvpMultipliers(id),formation=q.droneFormation==='fortress'?1.15:1;
+  for(const [key,mult]of Object.entries({maxHp:ship.hp,attack:ship.attack,defense:ship.defense,speed:ship.speed})){
+   const base=Number(roster.base[key])||0;q[key]=Math.max(key==='defense'?0:1,base+Math.round(base*(mult-1)));
+  }
+  q.maxHp=Math.round(q.maxHp*formation);q.hp=q.maxHp;
+ }
+ return roster;
 }
