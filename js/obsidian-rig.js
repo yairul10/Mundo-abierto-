@@ -74,11 +74,11 @@ export function animateObsidian(root,dt,power=0){
   else if(o.name.startsWith('obsidian-wake-')){
    // Remote ship clones must own their animated buffers and material.
    if(!o.userData.wakeOwned){o.geometry=o.geometry.clone();o.material=o.material.clone();o.userData.wakeOwned=true}
-   o.visible=strength>.015;o.material.opacity=strength*.24;if(!o.visible)return;
+   o.visible=strength>.015;o.material.opacity=strength*.34;if(!o.visible)return;
    const ribbon=Number(o.name.slice(-1)),position=o.geometry.attributes.position,segments=position.count/2-1;
    for(let i=0;i<=segments;i++){
     const u=i/segments,phase=time*3.2-u*7+ribbon*2.1;
-    const x=(ribbon-1)*10+Math.sin(phase)*u*12,y=-2+Math.cos(phase*.8)*u*9,z=51+u*(45+strength*95),width=(1-u)*(1.3+Math.sin(u*Math.PI)*3.5);
+    const x=(ribbon-1)*10+Math.sin(phase)*u*12,y=-2+Math.cos(phase*.8)*u*9,z=51+u*(60+strength*130),width=(1-u)*(1.8+Math.sin(u*Math.PI)*4.8);
     position.setXYZ(i*2,x-width,y,z);position.setXYZ(i*2+1,x+width,y+width*.7,z);
    }
    position.needsUpdate=true;
