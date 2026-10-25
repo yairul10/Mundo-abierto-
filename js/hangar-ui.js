@@ -1,5 +1,5 @@
 import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=301';
-import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=302';
+import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=303';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=301';
 import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');

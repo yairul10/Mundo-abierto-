@@ -1,3 +1,4 @@
+import {attachAssembledEngines} from './assembled-engines.js?v=303';
 // Three independent models, centered before scaling so rings rotate around the reactor.
 export async function loadObsidian(THREE,loader){
  const parts=[];
@@ -11,11 +12,15 @@ export async function loadObsidian(THREE,loader){
  }
  // Uploaded hull points along -X; flight forward is -Z. Rotate hull only.
  const body=fit(parts[0],124);body.rotation.y=-Math.PI/2;root.add(body);
+ // Longitudinal hoops surround the reactor, rather than facing the pilot like a portal.
+ // The fixed frame sets the plane; only its centered child spins in that plane.
  for(let i=0;i<2;i++){
-  const pivot=new THREE.Group();pivot.name='obsidian-ring-'+i;pivot.position.set(0,5,20);pivot.rotation.y=i?Math.PI/2:0;
-  pivot.add(fit(parts[i+1],i?74:100));root.add(pivot);
+  const frame=new THREE.Group();frame.position.set(0,3,14);frame.rotation.y=Math.PI/2;frame.rotation.z=i?-.28:.12;
+  const pivot=new THREE.Group();pivot.name='obsidian-ring-'+i;
+  pivot.add(fit(parts[i+1],i?64:88));frame.add(pivot);root.add(frame);
  }
- const core=new THREE.Mesh(new THREE.SphereGeometry(12,16,12),new THREE.MeshStandardMaterial({color:0x44ffdc,emissive:0x16d9be,emissiveIntensity:1.6,roughness:.65}));core.position.set(0,5,20);root.add(core);
+ const core=new THREE.Mesh(new THREE.SphereGeometry(8,16,12),new THREE.MeshStandardMaterial({color:0x44ffdc,emissive:0x16d9be,emissiveIntensity:1.6,roughness:.65}));core.position.set(0,3,14);root.add(core);
+ attachAssembledEngines(THREE,root,'obsidian');
  return root;
 }
 export function animateObsidian(root,dt){root?.traverse(o=>{if(o.name==='obsidian-ring-0')o.rotation.z+=dt*.38;else if(o.name==='obsidian-ring-1')o.rotation.z-=dt*.55})}
