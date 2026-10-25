@@ -1279,7 +1279,24 @@ function patrolCarrierAdd(e,dt,now){
  if(distance>1)e.mesh.position.addScaledVector(delta,Math.min(distance,TYPES[e.type].speed*.65*dt)/distance);
  e.mesh.lookAt(e.patrolTarget);
 }
+let carrierPatrolClock=0;
 function updateCarrier(dt){if(PVP_MODE)return;
+ // Movimiento continuo y pausado del portanaves; no modifica cadencia de disparo.
+ if(activeSector==='ember'&&bossState.hp>0){
+  carrierPatrolClock+=dt;
+  const origin=carrierEnemy.home;
+  const target=new THREE.Vector3(origin.x+Math.cos(carrierPatrolClock*.055)*620,origin.y+Math.sin(carrierPatrolClock*.12)*35,origin.z+Math.sin(carrierPatrolClock*.055)*620);
+  const step=target.sub(carrierMesh.position);
+  const distance=step.length();
+  if(distance>2)carrierMesh.position.addScaledVector(step,Math.min(distance,32*dt)/distance);
+  carrierMesh.rotation.y=Math.sin(carrierPatrolClock*.055)*.12;
+ }
+ const flames=carrierMesh.userData.colosoFlames;
+ if(flames)for(let i=0;i<flames.length;i++){
+  const f=flames[i];f.scale.z=1+.13*Math.sin(carrierPatrolClock*12+i*1.7);
+  f.material.opacity=.72+.16*Math.sin(carrierPatrolClock*15+i);
+ }
+
  const maximum=enemyMaxHp('carrier');
  if(carrierEnemy.maxHp!==maximum){bossState.hp=scaledHealth(bossState.hp,carrierEnemy.maxHp,maximum);carrierEnemy.maxHp=maximum;carrierEnemy.hp=bossState.hp}
  if(activeSector==='ember'&&bossState.hp>0&&!docked&&!landing&&!inSafeZone(playerMesh.position)&&carrierMesh.position.distanceTo(playerMesh.position)<=COMBAT_RANGE){
@@ -1436,6 +1453,21 @@ function assembleColosoModels(){
  for(const child of carrierMesh.children)child.visible=false;
  carrierPanels.length=0;carrierPanels.push(...rig.panels);
  carrierMesh.add(rig.root);carrierMesh.userData.colosoVisual=rig.root;
+ // Los cuatro escapes están anclados al casco 3D, no al escenario.
+ // Eje longitudinal del GLB: X; la cola corresponde al extremo positivo.
+ const exhausts=[];
+ const hullBounds=new THREE.Box3().setFromObject(colosoHullTemplate);
+ const hs=hullBounds.getSize(new THREE.Vector3()),hc=hullBounds.getCenter(new THREE.Vector3());
+ const longitudinal=620/Math.max(.001,hs.x);
+ const exhaustMat=new THREE.MeshBasicMaterial({color:0x42baff,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide});
+ for(const lateral of [-.24,.24])for(const vertical of [-.20,.20]){
+  const exhaust=new THREE.Group();
+  exhaust.position.set((hullBounds.max.x-hc.x)*longitudinal+8,vertical*620,lateral*620);
+  const flame=new THREE.Mesh(new THREE.ConeGeometry(22,115,12,1,true),exhaustMat.clone());
+  flame.rotation.z=-Math.PI/2;flame.position.x=58;
+  exhaust.add(flame);rig.root.add(exhaust);exhausts.push(flame);
+ }
+ carrierMesh.userData.colosoFlames=exhausts;
  carrierMesh.userData.hangarExits=rig.exits;carrierMesh.userData.hangarDirections=rig.directions;carrierMesh.userData.hitRadius=255;
 }
 deferredModelLoad(modelLoader,'./assets/models/coloso.glb?v=187',gltf=>{
@@ -1837,11 +1869,24 @@ function enemyFire(e){
  const mesh=new THREE.Mesh(enemyShotGeometry,enemyShotMaterials[e.type]);mesh.position.copy(start).addScaledVector(dir,48);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
  enemyShots.push({owner:e,mesh,velocity:dir.multiplyScalar(e.type==='sentinel'?1050:1250),life:1.8,damage:t.damage*proMultiplier(e)});
 }
-const carrierMissileGeometry=new THREE.ConeGeometry(8,42,8),carrierMissileMaterial=new THREE.MeshStandardMaterial({color:0xad5b36,roughness:.75});
+// Misil visual detallado; la física, el guiado y el daño permanecen intactos.
+const carrierMissileGeometry=new THREE.CylinderGeometry(7,10,40,12),carrierMissileMaterial=new THREE.MeshStandardMaterial({color:0xcbd8e5,metalness:.82,roughness:.32});
+function decorateCarrierMissile(mesh){
+ const tip=new THREE.Mesh(new THREE.ConeGeometry(7,16,12),new THREE.MeshStandardMaterial({color:0xf27832,metalness:.65,roughness:.4}));
+ tip.position.y=28;mesh.add(tip);
+ const finMat=new THREE.MeshStandardMaterial({color:0x33465b,metalness:.8,roughness:.38,side:THREE.DoubleSide});
+ for(let i=0;i<4;i++){
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(2.5,14,19),finMat);
+  fin.position.set(Math.cos(i*Math.PI/2)*11,-12,Math.sin(i*Math.PI/2)*11);
+  fin.rotation.y=-i*Math.PI/2;mesh.add(fin);
+ }
+ const exhaust=new THREE.Mesh(new THREE.ConeGeometry(6,19,10),new THREE.MeshBasicMaterial({color:0x4dbdff,transparent:true,opacity:.85}));
+ exhaust.rotation.z=Math.PI;exhaust.position.y=-28;mesh.add(exhaust);
+}
 function fireCarrierMissile(){
  lastIncomingAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  const dir=playerMesh.position.clone().sub(carrierMesh.position).normalize(),mesh=new THREE.Mesh(carrierMissileGeometry,carrierMissileMaterial);
- mesh.position.copy(carrierMesh.position).addScaledVector(dir,carrierMesh.userData.hitRadius||255);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
+ decorateCarrierMissile(mesh);mesh.position.copy(carrierMesh.position).addScaledVector(dir,carrierMesh.userData.hitRadius||255);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
  enemyShots.push({owner:carrierEnemy,mesh,velocity:dir.multiplyScalar(650),life:4,damage:TYPES.carrier.damage*advancedEnemyScale(player.level,30),guided:true,missileEffects:addMissileEffects(mesh)});
  lootToast('🚀 Coloso · Misil guiado');
 }
