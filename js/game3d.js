@@ -1280,20 +1280,26 @@ function patrolCarrierAdd(e,dt,now){
  e.mesh.lookAt(e.patrolTarget);
 }
 let carrierPatrolClock=0;
+const carrierSteering=new THREE.Object3D();
 function updateCarrier(dt){if(PVP_MODE)return;
  // Movimiento continuo y pausado del portanaves; no modifica cadencia de disparo.
  if(activeSector==='ember'&&bossState.hp>0){
   carrierPatrolClock+=dt;
   const origin=carrierEnemy.home;
   const target=new THREE.Vector3(origin.x+Math.cos(carrierPatrolClock*.055)*620,origin.y+Math.sin(carrierPatrolClock*.12)*35,origin.z+Math.sin(carrierPatrolClock*.055)*620);
-  const step=target.sub(carrierMesh.position);
+  const step=target.clone().sub(carrierMesh.position);
   const distance=step.length();
-  if(distance>2)carrierMesh.position.addScaledVector(step,Math.min(distance,32*dt)/distance);
-  carrierMesh.rotation.y=Math.sin(carrierPatrolClock*.055)*.12;
+  if(distance>2){
+   // El frente del casco es +Z tras la rotación del rig. Girar y avanzar
+   // sobre ese mismo eje evita desplazamientos laterales o marcha atrás.
+   carrierSteering.position.copy(carrierMesh.position);carrierSteering.lookAt(target);
+   carrierMesh.quaternion.slerp(carrierSteering.quaternion,1-Math.exp(-dt*1.8));
+   carrierMesh.translateZ(Math.min(distance,32*dt));
+  }
  }
  const flames=carrierMesh.userData.colosoFlames;
  if(flames)for(let i=0;i<flames.length;i++){
-  const f=flames[i];f.scale.z=1+.13*Math.sin(carrierPatrolClock*12+i*1.7);
+  const f=flames[i];f.scale.y=1+.13*Math.sin(carrierPatrolClock*12+i*1.7);
   f.material.opacity=.72+.16*Math.sin(carrierPatrolClock*15+i);
  }
 
@@ -1453,19 +1459,23 @@ function assembleColosoModels(){
  for(const child of carrierMesh.children)child.visible=false;
  carrierPanels.length=0;carrierPanels.push(...rig.panels);
  carrierMesh.add(rig.root);carrierMesh.userData.colosoVisual=rig.root;
- // Los cuatro escapes están anclados al casco 3D, no al escenario.
- // Eje longitudinal del GLB: X; la cola corresponde al extremo positivo.
+ // Motores medidos en el GLB: popa en -X, dos filas y dos columnas.
+ // Convertir los puntos nativos al mismo marco centrado y escalado del rig.
  const exhausts=[];
  const hullBounds=new THREE.Box3().setFromObject(colosoHullTemplate);
  const hs=hullBounds.getSize(new THREE.Vector3()),hc=hullBounds.getCenter(new THREE.Vector3());
  const longitudinal=620/Math.max(.001,hs.x);
- const exhaustMat=new THREE.MeshBasicMaterial({color:0x42baff,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide});
- for(const lateral of [-.24,.24])for(const vertical of [-.20,.20]){
+ for(const lateral of [-.25,.25])for(const vertical of [-.19,.235]){
   const exhaust=new THREE.Group();
-  exhaust.position.set((hullBounds.max.x-hc.x)*longitudinal+8,vertical*620,lateral*620);
-  const flame=new THREE.Mesh(new THREE.ConeGeometry(22,115,12,1,true),exhaustMat.clone());
-  flame.rotation.z=-Math.PI/2;flame.position.x=58;
-  exhaust.add(flame);rig.root.add(exhaust);exhausts.push(flame);
+  exhaust.position.set(hullBounds.min.x-0.015,vertical,lateral).sub(hc).multiplyScalar(longitudinal);
+  for(const [radius,length,color,opacity]of [[23,115,0x168dff,.55],[12,85,0xa8eeff,.85]]){
+   const material=new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false});
+   const geometry=new THREE.ConeGeometry(radius,length,24,1,true);
+   geometry.translate(0,length/2,0);
+   const flame=new THREE.Mesh(geometry,material);flame.rotation.z=Math.PI/2;
+   exhaust.add(flame);exhausts.push(flame);
+  }
+  rig.root.add(exhaust);
  }
  carrierMesh.userData.colosoFlames=exhausts;
  carrierMesh.userData.hangarExits=rig.exits;carrierMesh.userData.hangarDirections=rig.directions;carrierMesh.userData.hitRadius=255;
