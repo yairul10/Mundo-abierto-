@@ -1,6 +1,6 @@
 # Comparativa de naves · contenido 314
 
-Implementación preparada localmente. Pendiente de publicación en GitHub y despliegue del servidor PvP.
+Implementación publicada en GitHub y servidor PvP. Web desplegada correctamente.
 
 Los valores son multiplicadores sobre las estadísticas base del piloto, con su nivel y mejoras generales. ×1,00 = 100 % de la base. No incluyen formaciones, potenciadores ni efectos temporales. El servidor PvP conserva su factor adicional de casco ×20 y sus límites de estadísticas; estas tablas comparan los coeficientes de cada nave antes de esos ajustes.
 
@@ -62,4 +62,4 @@ Se ensamblan solo en la base PvP, desde nivel 40, con la misma receta de sus equ
 
 ## Validación
 
-36 archivos de pruebas pasan, incluyendo ensamblaje por zona, habilidades, limpieza de parálisis, propiedad, guardados, viajes repetidos entre entornos y coeficientes de las diez naves. Los tres GLB optimizados se cargaron y renderizaron localmente con sus texturas. La prueba visual dentro del juego en navegador y la prueba contra el servidor publicado quedan pendientes.
+36 archivos de pruebas pasan, incluyendo ensamblaje por zona, habilidades, limpieza de parálisis, propiedad, guardados, viajes repetidos entre entornos y coeficientes de las diez naves. Los tres GLB optimizados se cargaron y renderizaron localmente con sus texturas. Código publicado del servidor verificado: reconoce Azote, Égida y Vértigo con sus estadísticas y arquetipos. La prueba visual dentro del juego en navegador queda pendiente.

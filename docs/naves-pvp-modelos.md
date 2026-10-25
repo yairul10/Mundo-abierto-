@@ -29,12 +29,12 @@ Solo se ensamblan en la base PvP y conviven con las naves originales.
 
 ## Estado
 
-Integración preparada en el contenido 314: Azote (ofensiva), Égida (defensiva)
+Integración publicada en el contenido 314: Azote (ofensiva), Égida (defensiva)
 y Vértigo (ágil), con catálogo, miniaturas, ensamblaje PvP, habilidades,
 identidades del servidor y balance separado por entorno. Modelos con texturas
 PNG de hasta 1024 px; geometría conservada. Cada nave utiliza la misma receta
 de su equivalente PvE. `spaceship (10).glb` tampoco se utiliza: el usuario
 eligió finalmente `spikedspaceship.glb` para la defensiva.
 
-Pendiente publicar GitHub y desplegar el servidor, y comprobar las naves
+GitHub y servidor PvP publicados. Web desplegada correctamente. Pendiente comprobar las naves
 dentro del juego. Consulta `comparativa-naves.md` para la tabla completa.
