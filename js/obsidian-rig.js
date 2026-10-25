@@ -9,7 +9,8 @@ export async function loadObsidian(THREE,loader){
   const box=new THREE.Box3().setFromObject(source),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   source.position.sub(center);const wrapper=new THREE.Group();wrapper.add(source);wrapper.scale.setScalar(span/Math.max(size.x,size.y,size.z));return wrapper;
  }
- const body=fit(parts[0],124);body.rotation.y=Math.PI;root.add(body);
+ // Uploaded hull points along -X; flight forward is -Z. Rotate hull only.
+ const body=fit(parts[0],124);body.rotation.y=-Math.PI/2;root.add(body);
  for(let i=0;i<2;i++){
   const pivot=new THREE.Group();pivot.name='obsidian-ring-'+i;pivot.position.set(0,5,20);pivot.rotation.y=i?Math.PI/2:0;
   pivot.add(fit(parts[i+1],i?74:100));root.add(pivot);
