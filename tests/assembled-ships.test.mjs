@@ -17,7 +17,7 @@ for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS)){
 assert.ok(ASSEMBLED_SHIPS.segadora.attack>1.35);
 assert.ok(ASSEMBLED_SHIPS.bastion.hp>1.8&&ASSEMBLED_SHIPS.bastion.defense>1.5);
 assert.ok(ASSEMBLED_SHIPS.centella.speed>1.4);
-console.log('Assembled ships: exact recipes, atomic debit, permanent ownership, three PvP identities and abilities.');
+console.log('Assembled ships: exact recipes, atomic debit, permanent ownership, all assembled identities and abilities.');
 
 const game=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
 const statsSource=game.slice(game.indexOf('function shipBonuses(id){'),game.indexOf('function changeShip(id){'));

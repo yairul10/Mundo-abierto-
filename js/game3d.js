@@ -3,7 +3,7 @@ import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299'
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
-import {shipThumbnail} from './ship-preview-catalog.js?v=301';
+import {shipThumbnail} from './ship-preview-catalog.js?v=314';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -13,14 +13,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=265';
 import {attachAssembledEngines} from './assembled-engines.js?v=304';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=310';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=314';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=312';
+import {mountHangarUI} from './hangar-ui.js?v=314';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=313';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=312';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=312';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=314';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=314';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -371,7 +371,7 @@ function fitPlayerModel(model,yaw=0){
  return model;
 }
 function syncPlayerShipVisuals(){
- const keys={titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel'};
+ const keys={titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'};
  const selected=keys[player.shipId],loaded=!!(selected&&playerMesh.userData[selected]);
  for(const key of Object.values(keys)){const model=playerMesh.userData[key];if(model)model.visible=loaded&&key===selected}
  let hasOriginal=false;
@@ -382,7 +382,7 @@ function syncPlayerShipVisuals(){
  proceduralShip.visible=!loaded&&!waiting&&!hasOriginal;
 }
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
-const assembledModelPaths={segadora:'./assets/models/segadora.glb?v=240',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=208'};
+const assembledModelPaths={azote:'./assets/models/pvp-ofensiva.glb?v=314',egida:'./assets/models/pvp-defensiva.glb?v=314',vertigo:'./assets/models/pvp-agil.glb?v=314',segadora:'./assets/models/segadora.glb?v=240',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=208'};
 function loadAssembledVisual(id){
  if(!ASSEMBLED_SHIPS[id]||playerMesh.userData[id+'Model']||playerMesh.userData[id+'Loading'])return;
  playerMesh.userData[id+'Loading']=true;
@@ -2016,7 +2016,7 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
- fireCd=classAbilityActive('aurora')?.68/(player.shipId==='centella'?1.4:1.3):.68; // Sobrecarga aumenta la cadencia.
+ fireCd=classAbilityActive('aurora')?.68/(['centella','vertigo'].includes(player.shipId)?1.4:1.3):.68; // Sobrecarga aumenta la cadencia.
 }
 function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){n=Math.round(n*activeBooster('xp'));player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;combatAudio.play('levelUp');player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
@@ -2084,6 +2084,9 @@ player.shipId=SHIP_TYPES[player.shipId]&&player.ownedShips[player.shipId]?player
 player.shipSpecializations=player.shipSpecializations&&typeof player.shipSpecializations==='object'?player.shipSpecializations:{};
 // Habilidades de clase: duración y recarga solo durante la sesión de vuelo.
 const SHIP_ABILITIES={
+ azote:{name:'Furia de Azote',icon:'🔥',duration:5,cooldown:25,energy:65},
+ egida:{name:'Fortaleza de Égida',icon:'🛡️',duration:6,cooldown:25,energy:55},
+ vertigo:{name:'Sobrecarga de Vértigo · rompe el arpón',icon:'⚡',duration:5,cooldown:20,energy:40},
  obsidian:{name:'Sobrecarga ancestral',icon:'⚡',duration:5,cooldown:20,energy:40},
  aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:20,energy:40},
  titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:25,energy:55},
@@ -2239,8 +2242,8 @@ function activateClassAbility(){if(PVP_MODE&&!pvpSession?.canFight)return;
  if(classAbilityTime>0||docked||landing||inSafeZone(playerMesh.position))return;
  const a=SHIP_ABILITIES[player.shipId];
  if(player.energy<a.energy){lootToast('🔋 Energía insuficiente: '+a.energy+' necesarios');return}
- combatAudio.play(['titan','bastion'].includes(player.shipId)?'shield':['espectro','segadora'].includes(player.shipId)?'fury':'ability');
- player.energy-=a.energy;if(player.shipId==='centella')scrapCombat.breakTether();classAbilityTime=abilityDuration();if(pvpSession)pvpSession.ability();hud();
+ combatAudio.play(['titan','bastion','egida'].includes(player.shipId)?'shield':['espectro','segadora','azote'].includes(player.shipId)?'fury':'ability');
+ player.energy-=a.energy;if(['centella','vertigo'].includes(player.shipId))scrapCombat.breakTether();classAbilityTime=abilityDuration();if(pvpSession)pvpSession.ability();hud();
  lootToast(a.icon+' '+a.name+' activada');
 }
 function classAbilityActive(id){return shipRole(player.shipId)===id&&classAbilityTime>0}
@@ -2249,14 +2252,14 @@ function applyPlayerDamage(amount){
  if(shipRole(player.shipId)==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
  let damage=Math.max(0,amount)*equippedBonus().resistance*activeBooster('resistance');
  if(shipRole(player.shipId)==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
- if(classAbilityActive('titan'))damage*=player.shipId==='bastion'?.2:.3;
- if(classAbilityActive('espectro'))damage*=player.shipId==='segadora'?1.2:1.3;
+ if(classAbilityActive('titan'))damage*=['bastion','egida'].includes(player.shipId)?.2:.3;
+ if(classAbilityActive('espectro'))damage*=['segadora','azote'].includes(player.shipId)?1.2:1.3;
  if(damage>0)combatAudio.play(damage>=player.hp?'explosion':classAbilityActive('titan')?'shieldHit':'impact');
  player.hp=Math.max(0,player.hp-damage);lastHitAt=performance.now()/1000;
  repairRobot.visible=repairBeam.visible=false;
 }
 function classDamageMultiplier(){
- return classAbilityActive('espectro')?(player.shipId==='segadora'?1.7:1.6):1;
+ return classAbilityActive('espectro')?(['segadora','azote'].includes(player.shipId)?1.7:1.6):1;
 }
 function classCritMultiplier(){
  return shipRole(player.shipId)==='espectro'&&Math.random()<.15+specialLevel('crit')*.01?1.5:1;
@@ -2289,7 +2292,8 @@ function renderSpecialUpgrades(){
  });
 }
 function shipBonuses(id){
- const t=SHIP_TYPES[id]||SHIP_TYPES.aurora;
+ const raw=SHIP_TYPES[id]||SHIP_TYPES.aurora;
+ const t=Object.fromEntries(['hp','attack','defense','speed'].map(key=>[key,Number((raw[key]-(raw.pvePenalty||0)).toFixed(2))]));
  return {maxHp:Math.round(player.shipBaseStats.maxHp*(t.hp-1)),
   attack:Math.round(player.shipBaseStats.attack*(t.attack-1)),
   defense:Math.round(player.shipBaseStats.defense*(t.defense-1)),
@@ -2340,7 +2344,7 @@ function renderShips(){
 ensureShipBaseStats();
 // El guardado ya contiene las estadísticas de la nave equipada: no aplicar el bono otra vez al cargar.
 // Normalizar partidas antiguas cuyo perfil aún no tiene valores base fiables.
-if(!PVP_MODE&&player.shipId!=='aurora'&&!(player.shipId==='obsidian'&&stored.shipBaseStats)){
+if(!PVP_MODE&&player.shipId!=='aurora'&&!((player.shipId==='obsidian'||ASSEMBLED_SHIPS[player.shipId]?.pvePenalty)&&stored.shipBaseStats)){
  const bonus=shipBonuses(player.shipId);
  const expected=Math.round((player.shipBaseStats.maxHp+bonus.maxHp)*equippedBonus().hp);
  if(Math.abs(player.maxHp-expected)>2){
@@ -3546,7 +3550,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  const started=performance.now();
  let quietSince=0,slowPrompt=false;
  const poll=()=>{
-  const selected=({titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel'})[player.shipId];
+  const selected=({titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'})[player.shipId];
   const playerReady=selected
    ?!!(playerMesh.userData[selected]||playerMesh.userData[selected+'Failed'])
    :!!(playerMesh.userData.xWingModel||playerMesh.userData.auroraModel||playerMesh.userData.auroraModelFailed);

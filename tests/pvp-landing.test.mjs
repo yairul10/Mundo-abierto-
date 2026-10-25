@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 // Exercise the production request guard without a network or DOM dependency.
 const shared=readFileSync(new URL('../js/shared-session.js',import.meta.url),'utf8');
-const methods=shared.slice(shared.indexOf('return {get canDock(){')+8,shared.indexOf('get active(){',shared.indexOf('return {get canDock(){')));
+const start=shared.indexOf('get canDock(){'),end=shared.indexOf('get active(){',start);
+assert.ok(start>=0&&end>start,'Production landing interface must exist');
+const methods=shared.slice(start,end);
 const makeRequest=new Function('bridge','me','state','send',`let hangarRequested=false,hangarRequestAt=0;const tools={hidden:false},clearSelection=()=>{};return {${methods}active:true};`);
 let overPad=false;const sent=[],me={pos:[0,120,0],protected:true,hangar:false},state={rules:{safeRadius:600}};
 const request=makeRequest({canLand:()=>overPad},me,state,m=>sent.push(m));

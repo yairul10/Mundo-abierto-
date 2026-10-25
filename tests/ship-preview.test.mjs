@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from '../js/ship-preview-catalog.js';
-assert.deepEqual(Object.keys(SHIP_PREVIEWS),['obsidian','aurora','titan','espectro','segadora','bastion','centella']);
+assert.deepEqual(Object.keys(SHIP_PREVIEWS),['azote','egida','vertigo','obsidian','aurora','titan','espectro','segadora','bastion','centella']);
 for(const [id,ship] of Object.entries(SHIP_PREVIEWS)){
  assert.ok(existsSync(new URL('../assets/models/'+ship.model,import.meta.url)));
  assert.ok(existsSync(new URL('../assets/ship-previews/'+id+'.webp',import.meta.url)));
@@ -19,4 +19,4 @@ assert.equal(centered.children[0],source);assert.equal(centered.factor,3/40);ass
 assert.deepEqual(source.position,new Vector3(-100,20,-50),'Centering must happen inside the normalized parent');
 const preview=readFileSync(new URL('../js/assembly-3d-preview.js',import.meta.url),'utf8');
 assert.match(preview,/if\(cancelled\)\{disposePreviewModel\(gltf.scene\);return\}/);assert.match(preview,/1000\/30/);
-console.log('Six current models/thumbnails, canonical orientation, scaled centering and unique GPU cleanup passed.');
+console.log('Ten current models/thumbnails, canonical orientation, scaled centering and unique GPU cleanup passed.');
