@@ -1,5 +1,5 @@
 import {clearSkills,skillActive} from './skills.mjs';
-const ASSEMBLED_SHIPS={segadora:'espectro',bastion:'titan',centella:'aurora'};
+const ASSEMBLED_SHIPS={obsidian:'aurora',segadora:'espectro',bastion:'titan',centella:'aurora'};
 const shipRole=id=>ASSEMBLED_SHIPS[id]||id;
 // Prueba con equipamiento local. No concede premios ni acredita propiedad de compras.
 const clamp=(n,a,b,f=a)=>Number.isFinite(Number(n))?Math.max(a,Math.min(b,Number(n))):f;

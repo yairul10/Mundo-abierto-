@@ -27,3 +27,15 @@ El APK incluye los tres modelos; el modo individual funciona offline. El servido
 Pruebas: `node --test tests/*.test.mjs server/pvp/combat.test.mjs`, integración HTTP/WebSocket del servidor y carga de los modelos en navegador con WebGL.
 
 Desde v218, Centella libera de la inmovilización tanto del Arponero como del Gran Titán al activar Sobrecarga. Requiere energía suficiente y que la habilidad pueda activarse. Comparte los 5 s de inmunidad posterior del arpón; no añade invulnerabilidad al daño. Bastión y Segadora conservan sus efectos.
+
+## Obsidian (contenido 301)
+Nave ancestral modular: casco ancestral-fighter, anillo exterior ancestral-portal
+(compartido con los portales del sector) y anillo interior ancestral-inner-ring.
+Los dos anillos giran en sentidos opuestos alrededor del reactor; no genera estela.
+Disponible en el ensamblaje del hangar, incluido el hangar de PvP, desde nivel 40.
+Receta propuesta: 1.000.000 créditos, 3.000 chatarra, 900 aleación, 240 núcleos,
+60 componentes ancestrales y 200 de cada material del cementerio.
+Estadísticas relativas: casco 1,8; ataque 1,65; defensa 1,5; velocidad 1,1.
+Hereda Sobrecarga y las especializaciones Aurora. La propiedad se guarda como
+el resto de naves ensambladas. El servidor PvP debe desplegar los cambios de
+combat.mjs y world-rules.mjs para admitir su identidad.

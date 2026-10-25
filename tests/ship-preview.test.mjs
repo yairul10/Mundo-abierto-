@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from '../js/ship-preview-catalog.js';
-assert.deepEqual(Object.keys(SHIP_PREVIEWS),['aurora','titan','espectro','segadora','bastion','centella']);
+assert.deepEqual(Object.keys(SHIP_PREVIEWS),['obsidian','aurora','titan','espectro','segadora','bastion','centella']);
 for(const [id,ship] of Object.entries(SHIP_PREVIEWS)){
  assert.ok(existsSync(new URL('../assets/models/'+ship.model,import.meta.url)));
  assert.ok(existsSync(new URL('../assets/ship-previews/'+id+'.webp',import.meta.url)));

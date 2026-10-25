@@ -1,5 +1,6 @@
 // The same GLBs and forward orientations used by the equipped fleet.
 export const SHIP_PREVIEWS=Object.freeze({
+ obsidian:{name:'Obsidian',model:'ancestral-fighter.glb',yaw:0},
  aurora:{name:'Aurora',model:'x_wing_starfighter.glb',yaw:Math.PI},
  titan:{name:'Titán',model:'titan.glb',yaw:Math.PI},
  espectro:{name:'Espectro',model:'espectro.glb',yaw:Math.PI/2},

@@ -1,4 +1,5 @@
-import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=252';
+import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=301';
+import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=301';
 // Only one independent, demand-loaded WebGL preview is alive across the hangar.
 let active=null;
 export function stopAssemblyPreview(){active?.cleanup();active=null}
@@ -23,7 +24,8 @@ export async function startAssemblyPreview(container,id){
   const fill=new THREE.DirectionalLight(0x9fcfff,1.8);fill.position.set(-4,2,3);scene.add(fill);
   renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:pan-y';
-  const gltf=await new GLTFLoader().loadAsync('./assets/models/'+SHIP_PREVIEWS[id].model+'?v=252');
+  const loader=new GLTFLoader();
+  const gltf=id==='obsidian'?{scene:await loadObsidian(THREE,loader)}:await loader.loadAsync('./assets/models/'+SHIP_PREVIEWS[id].model+'?v=252');
   if(cancelled){disposePreviewModel(gltf.scene);return}
   model=gltf.scene;const turntable=fitPreviewModel(THREE,model,id);scene.add(turntable);host.replaceChildren(renderer.domElement);
   renderer.domElement.setAttribute('role','img');renderer.domElement.setAttribute('aria-label','Modelo 3D de '+SHIP_PREVIEWS[id].name+'. Arrastra para girar.');
@@ -35,7 +37,7 @@ export async function startAssemblyPreview(container,id){
   function frame(t){
    if(cancelled)return;
    if(!host.isConnected||host.closest('#hangarPanel')?.classList.contains('hidden')){if(active===session)stopAssemblyPreview();return}
-   if(!document.hidden&&host.getClientRects().length&&t-lastRender>=1000/30){if(!dragging&&lastTime)turntable.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;renderer.render(scene,camera);lastTime=t;lastRender=t}else if(document.hidden)lastTime=0;
+   if(!document.hidden&&host.getClientRects().length&&t-lastRender>=1000/30){if(!dragging&&lastTime)turntable.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;animateObsidian(model,lastTime?Math.min((t-lastTime)/1000,.05):0);renderer.render(scene,camera);lastTime=t;lastRender=t}else if(document.hidden)lastTime=0;
    raf=requestAnimationFrame(frame);
   }
   raf=requestAnimationFrame(frame);

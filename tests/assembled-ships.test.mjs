@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from '../js/assembled-ships.js';
 import {profile,makeCombatPlayer,ability,defenseDamage} from '../server/pvp/combat.mjs';
 for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS)){
- assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],[100,100,100]);
+ assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],id==='obsidian'?[200,200,200]:[100,100,100]);
  const player={level:40,gold:ship.cost,loot:{...ship.recipe},ownedShips:{aurora:true},shipId:'aurora'};
  const missing=structuredClone(player);missing.loot.cristal_punteria--;
  const before=JSON.stringify(missing);assert.equal(assembleShip(missing,id),false);assert.equal(JSON.stringify(missing),before);
@@ -23,7 +23,7 @@ const game=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
 const statsSource=game.slice(game.indexOf('function shipBonuses(id){'),game.indexOf('function changeShip(id){'));
 const testPlayer={shipId:'aurora',maxHp:1000,hp:400,attack:100,defense:50,speed:220};
 const sync=new Function('player','SHIP_TYPES','equippedBonus',statsSource+';return syncShipStats;')(testPlayer,{aurora:{hp:1,attack:1,defense:1,speed:1},...ASSEMBLED_SHIPS},()=>({hp:1}));
-for(const id of ['segadora','bastion','centella','bastion','aurora']){
+for(const id of ['obsidian','segadora','bastion','centella','bastion','aurora']){
  testPlayer.shipId=id;sync();assert.ok(Math.abs(testPlayer.hp/testPlayer.maxHp-.4)<1e-9);
 }
 assert.deepEqual([testPlayer.maxHp,testPlayer.hp,testPlayer.attack,testPlayer.defense,testPlayer.speed],[1000,400,100,50,220]);
