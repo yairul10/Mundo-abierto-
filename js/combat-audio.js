@@ -8,45 +8,27 @@ export const EFFECTS=Object.freeze({
  impact:{duration:.17,volume:.22,cooldown:.075,noise:.65,frequency:310,end:80},
  explosion:{duration:.85,volume:.5,cooldown:.09,noise:1,frequency:75,end:24}
 });
-// Original 120 BPM space-electronic loop: driving bass, arpeggio and light drums.
-export function createAmbientBuffer(context){
- const duration=32,rate=16000,result=context.createBuffer(1,duration*rate,rate),data=result.getChannelData(0);
- const chords=[[45,52,57,60],[41,48,53,57],[48,55,60,64],[43,50,55,59]];
- const frequency=midi=>440*Math.pow(2,(midi-69)/12);
- for(let i=0;i<data.length;i++){
-  const t=i/rate,beat=Math.floor(t/.5),beatAge=t%.5,step=Math.floor(t/.25),stepAge=t%.25;
-  const chord=chords[Math.floor(t/8)],bass=frequency(chord[0]),arp=frequency(chord[[2,1,3,1,2,3,1,3][step%8]]+12);
-  const attack=Math.min(1,stepAge/.008),duck=.65+.35*Math.min(1,beatAge/.12);
-  let sample=(Math.sin(2*Math.PI*bass*t)+.28*Math.sin(4*Math.PI*bass*t))*Math.exp(-stepAge*6)*attack*.09*duck;
-  sample+=(Math.sin(2*Math.PI*arp*t)+.18*Math.sin(4*Math.PI*arp*t))*Math.exp(-stepAge*15)*attack*.065*duck;
-  // Warm chords remain behind the rhythm; fade at each harmony change.
-  const chordAge=t%8,padEnv=Math.min(1,chordAge/.35,(8-chordAge)/.35);
-  for(const midi of chord.slice(1))sample+=Math.sin(2*Math.PI*frequency(midi)*t)*.018*padEnv*duck;
-  // Kick on every beat, snare on alternate beats, closed hats on eighths.
-  sample+=Math.sin(2*Math.PI*(48*beatAge+80*.025*(1-Math.exp(-beatAge/.025))))*Math.exp(-beatAge*18)*Math.min(1,beatAge/.003)*.19;
-  const noise=Math.sin(i*78.233)*43758.5453,white=(noise-Math.floor(noise))*2-1;
-  sample+=white*Math.exp(-stepAge*75)*Math.min(1,stepAge/.002)*.025;
-  if(beat%2===1)sample+=(white*.7+Math.sin(2*Math.PI*185*beatAge)*.3)*Math.exp(-beatAge*24)*Math.min(1,beatAge/.003)*.09;
-  data[i]=sample*Math.min(1,t/.01,(duration-t)/.01);
- }
- return result;
-}
+export const MUSIC_TRACKS=Object.freeze(['./assets/audio/trench-run-velocity.mp3','./assets/audio/horizon-of-the-iron-moon.mp3']);
 export function createCombatAudio({host=globalThis,listener=()=>null,storage,document:doc=host.document}={}){
  let settings={volume:.55,musicVolume:.2,muted:false};
  try{const saved=JSON.parse(storage?.getItem(AUDIO_KEY)||'null');if(saved){if(Number.isFinite(saved.volume))settings.volume=Math.max(0,Math.min(1,saved.volume));if(Number.isFinite(saved.musicVolume))settings.musicVolume=Math.max(0,Math.min(1,saved.musicVolume));settings.muted=saved.muted===true}}catch{}
- let context,master,musicGain,musicSource,musicBuffer,unlocked=false;
+ let context,master,music,track=0,unlocked=false,disposed=false;
  const buffers=new Map(),last=new Map(),voices=new Set(),views=new Set();
- function gain(){if(master)master.gain.setTargetAtTime(settings.muted?0:settings.volume,context.currentTime,.02);if(musicGain)musicGain.gain.setTargetAtTime(settings.muted?0:settings.musicVolume,context.currentTime,.5)}
+ function gain(){if(master)master.gain.setTargetAtTime(settings.muted?0:settings.volume,context.currentTime,.02);if(music){music.volume=settings.muted?0:settings.musicVolume;if(settings.muted||settings.musicVolume<=0)music.pause()}}
+ function nextTrack(){track=(track+1)%MUSIC_TRACKS.length;music.src=MUSIC_TRACKS[track];if(!doc?.hidden)startMusic()}
  function startMusic(){
-  if(!context||musicSource||settings.muted||settings.musicVolume<=0||doc?.hidden)return;
-  try{musicBuffer??=createAmbientBuffer(context);musicSource=context.createBufferSource();musicSource.buffer=musicBuffer;musicSource.loop=true;musicSource.connect(musicGain);musicSource.start()}catch{musicSource=null}
+  if(disposed||!unlocked||settings.muted||settings.musicVolume<=0||doc?.hidden||!host.Audio)return;
+  try{
+   if(!music){music=new host.Audio(MUSIC_TRACKS[track]);music.preload='metadata';music.loop=false;music.addEventListener('ended',nextTrack);gain()}
+   if(music.paused)music.play()?.catch(()=>{});
+  }catch{}
  }
  function persist(){try{storage?.setItem(AUDIO_KEY,JSON.stringify(settings))}catch{}gain();if(unlocked)startMusic();for(const refresh of views)refresh()}
  function unlock(){
   if(doc?.hidden)return;
   try{
    const AudioContext=host.AudioContext||host.webkitAudioContext;if(!AudioContext)return;
-   if(!context){context=new AudioContext();master=context.createGain();const compressor=context.createDynamicsCompressor();master.connect(compressor);musicGain=context.createGain();musicGain.connect(compressor);compressor.connect(context.destination);gain()}
+   if(!context){context=new AudioContext();master=context.createGain();const compressor=context.createDynamicsCompressor();master.connect(compressor);compressor.connect(context.destination);gain()}
    unlocked=true;if(context.state!=='running')context.resume()?.catch(()=>{});startMusic();
   }catch{}
  }
@@ -80,7 +62,7 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
  }
  function visibility(){
   if(!context)return;
-  if(doc?.hidden){for(const voice of voices){try{voice.stop()}catch{}}context.suspend()?.catch(()=>{})}
+  if(doc?.hidden){music?.pause();for(const voice of voices){try{voice.stop()}catch{}}context.suspend()?.catch(()=>{})}
   else if(unlocked){context.resume()?.catch(()=>{});startMusic()}
  }
  doc?.addEventListener('pointerdown',unlock,{passive:true});doc?.addEventListener('keydown',unlock);doc?.addEventListener('visibilitychange',visibility);
@@ -98,6 +80,6 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
    const preview=doc.createElement('button');preview.type='button';preview.textContent='Probar sonido';preview.style.marginLeft='8px';preview.onclick=()=>{unlock();setTimeout(()=>play('laser'),40)};
    const refresh=()=>{slider.value=String(Math.round(settings.volume*100));value.textContent=slider.value+'%';musicSlider.value=String(Math.round(settings.musicVolume*100));musicValue.textContent=musicSlider.value+'%';mute.textContent=settings.muted?'Activar sonido':'Silenciar';mute.setAttribute('aria-pressed',String(settings.muted))};views.add(refresh);refresh();section.append(label,slider,musicLabel,musicSlider,mute,preview);parent.append(section);
   },
-  dispose(){doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();try{musicSource?.stop();musicSource?.disconnect()}catch{}musicSource=null;musicBuffer=null;context?.close()?.catch(()=>{})}
+  dispose(){disposed=true;doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();if(music){music.pause();music.removeEventListener('ended',nextTrack);music.removeAttribute('src');music.load();music=null;}context?.close()?.catch(()=>{})}
  };
 }
