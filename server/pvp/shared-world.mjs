@@ -2,7 +2,7 @@ import {bossSnapshot} from './cooperative-boss.mjs';
 import {equippedSkills,validSkills} from './skills.mjs';
 import {testServerEnabled} from './test-config.mjs';
 import {DurableObject} from 'cloudflare:workers';
-import {WORLD,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,protectedAt,updateProtection,openHangar,applyHangarLoadout,setSkills,usePvpSkill} from './world-rules.mjs';
+import {WORLD,changeFormation,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,protectedAt,updateProtection,openHangar,applyHangarLoadout,setSkills,usePvpSkill} from './world-rules.mjs';
 const json=(x,status=200)=>Response.json(x,{status});
 const pForProtection=(s,id)=>s.players.find(p=>p.id===id);
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
@@ -49,6 +49,7 @@ export class SharedWorld extends DurableObject {
    p.pos=p.pos.map((v,i)=>v+(p.hangar||(p.paralyzedUntil||0)>now?0:m.move[i])*p.profile.speed*dt);const r=Math.hypot(...p.pos);if(r>WORLD.radius)p.pos=p.pos.map(v=>v*WORLD.radius/r);updateProtection(p,now);if(protectedAt(p,now))p.firing=false;
   }else if(m.type==='hangar')error=openHangar(s,p,now);
   else if(m.type==='loadout')error=applyHangarLoadout(s,p,m.roster,m.shipId,now);
+  else if(m.type==='formation')error=changeFormation(p,m.formation);
   else if(m.type==='skills')error=setSkills(s,p,m.skills,now);
   else if(m.type==='pvpSkill')error=usePvpSkill(s,p,m.skill,now,m.targetId);
   else if(m.type==='invite')error=invite(s,p,m.target,now);

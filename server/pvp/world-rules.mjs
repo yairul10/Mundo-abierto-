@@ -1,7 +1,7 @@
 import {ensureBoss,recordBossDamage,tickBoss,advanceBossMotion} from './cooperative-boss.mjs';
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
-export const WORLD={radius:3000,safeRadius:650,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
+export const WORLD={formationSwitch:true,radius:3000,safeRadius:650,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
 export const SHIPS={obsidian:[1.9,1.75,1.6,1.2],aurora:[1,1,1,1],titan:[1.8,.85,1.5,.75],espectro:[.7,1.35,.65,1.4],segadora:[1.1,1.85,.95,1.05],bastion:[2.5,1,2,.85],centella:[.95,1.1,.85,1.85]};
 export const safe=p=>Math.hypot(...p.pos)<=WORLD.safeRadius;
 export const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
@@ -79,5 +79,22 @@ export function usePvpSkill(s,p,id,now,targetId){
  if(id==='paralyze')other.paralyzedUntil=now+3000;
  if(id==='luck')p.last_missile=now-7000;
  if(id==='interference')for(const bullet of s.bullets||[])if(bullet.target===p.id)bullet.target=null;
+ return null;
+}
+
+// A tactical formation change does not re-equip the ship or reset combat state.
+export function changeFormation(p,id){
+ const valid=['fan','shield','spear','fortress','hunter','drive','recovery'],q=p.profile,raw=p.roster?.[q?.shipId];
+ if(!p.connected||p.hp<=0||p.hangar||!q||!raw||!valid.includes(id))return 'invalid_formation';
+ const owned=Array.isArray(raw.ownedFormations)?raw.ownedFormations:['fan',raw.droneFormation];
+ if(id!=='fan'&&(!q.droneCount||!owned.includes(id)))return 'invalid_formation';
+ if(id===q.droneFormation)return null;
+ const ratio=Math.max(0,Math.min(1,p.hp/q.maxHp));
+ const baseHull=Number(raw.maxHp)/(raw.droneFormation==='fortress'?1.15:1);
+ q.offlineMaxHp=Math.round(baseHull*(id==='fortress'?1.15:1));q.maxHp=q.offlineMaxHp*20;
+ p.hp=Math.min(q.maxHp,ratio*q.maxHp);q.hp=p.hp;q.droneFormation=id;
+ q.speed=q.baseSpeed*(id==='drive'?1.12:1);
+ q.droneDamage=id==='spear'?1.2:1;q.resistance=(id==='shield'?.85:1)*(raw.boosters?.resistance===true?.85:1);
+ q.droneRange=id==='hunter'?1380:1200;q.repairBonus=id==='recovery'?1.25:1;
  return null;
 }

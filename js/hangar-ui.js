@@ -1,4 +1,4 @@
-import {pvpMultipliers} from './pvp-loadout.js?v=310';
+import {pvpMultipliers} from './pvp-loadout.js?v=312';
 import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=301';
 import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=308';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=310';

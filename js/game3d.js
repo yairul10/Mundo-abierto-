@@ -16,11 +16,11 @@ import {attachAssembledEngines} from './assembled-engines.js?v=304';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=310';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=310';
+import {mountHangarUI} from './hangar-ui.js?v=312';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=310';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=310';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=310';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=312';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=312';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=312';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -1604,7 +1604,8 @@ const activeBooster=id=>boosterBonus(player,id,!PVP_MODE||!!pvpHangar);
 const supportRange=()=>PVP_MODE?(pvpSession?.profile?.droneRange||COMBAT_RANGE):COMBAT_RANGE*equippedBonus().range;
 let hangarUI=null;
 function equipFormation(id){
- if((PVP_MODE&&!pvpHangar)||!player.formations[id])return;
+ if(!player.formations[id])return;
+ if(PVP_MODE&&!pvpHangar){pvpSession?.setFormation(id);return;}
  player.droneFormation=id;syncShipStats();save();hud();refreshFormationButton();
  if(hangarUI)hangarUI.render(true);
 }
@@ -1810,14 +1811,13 @@ function refreshFormationButton(){
  formationBtn.title=f.name+' · Cambiar entre formaciones disponibles';
  formationBtn.setAttribute('aria-label',formationBtn.title);
  formationBtn.setAttribute('aria-pressed',String(f.id!=='fan'));
- formationBtn.disabled=PVP_MODE&&!pvpHangar;
+ formationBtn.disabled=PVP_MODE&&!pvpHangar&&!pvpSession?.active;
 }
 function cycleFormation(){
- if(PVP_MODE&&!pvpHangar)return;
  const available=FORMATIONS.filter(f=>player.formations[f.id]);
  if(available.length<=1){lootToast('Abanico equipado · Ensambla nuevas formaciones en la base');return}
  const index=available.findIndex(f=>f.id===player.droneFormation),next=available[(index+1)%available.length];
- equipFormation(next.id);lootToast('Formación: '+next.name);
+ equipFormation(next.id);if(!PVP_MODE||pvpHangar)lootToast('Formación: '+next.name);
 }
 
 if(formationBtn){
@@ -3490,7 +3490,7 @@ if(PVP_MODE){
   const changed=player.shipId!==me.profile.shipId;
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
   const wasHit=me.hp<player.hp;if(wasHit){combatAudio.play(me.hp<=0?'explosion':(me.skillUntil?.instantShield||0)>state.serverTime?'shieldHit':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;if(me.lastDamagedBy===bossRemote.playerId)registerExplorerThreat(bossRemote);}
-  player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
+  player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;refreshFormationButton();for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
   const predicted=new THREE.Vector3(...me.pos);for(const input of pending)predicted.addScaledVector(new THREE.Vector3(...input.move),player.speed*input.dt);
   if(force){playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
   else if(playerMesh.position.distanceTo(predicted)>150)playerMesh.position.copy(predicted);else playerMesh.position.lerp(predicted,.18);
