@@ -3,7 +3,7 @@ import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299'
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
-import {shipThumbnail} from './ship-preview-catalog.js?v=316';
+import {shipThumbnail} from './ship-preview-catalog.js?v=317';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -12,11 +12,11 @@ import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffect
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=265';
-import {attachAssembledEngines} from './assembled-engines.js?v=316';
+import {attachAssembledEngines} from './assembled-engines.js?v=317';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=314';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=316';
+import {mountHangarUI} from './hangar-ui.js?v=317';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=314';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
@@ -382,7 +382,7 @@ function syncPlayerShipVisuals(){
  proceduralShip.visible=!loaded&&!waiting&&!hasOriginal;
 }
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
-const assembledModelPaths={azote:'./assets/models/pvp-ofensiva.glb?v=314',egida:'./assets/models/pvp-defensiva.glb?v=314',vertigo:'./assets/models/pvp-agil.glb?v=314',segadora:'./assets/models/segadora.glb?v=240',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=208'};
+const assembledModelPaths={azote:'./assets/models/pvp-ofensiva.glb?v=314',egida:'./assets/models/pvp-defensiva.glb?v=314',vertigo:'./assets/models/pvp-agil.glb?v=314',segadora:'./assets/models/segadora.glb?v=240',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=317'};
 function loadAssembledVisual(id){
  if(!ASSEMBLED_SHIPS[id]||playerMesh.userData[id+'Model']||playerMesh.userData[id+'Loading'])return;
  playerMesh.userData[id+'Loading']=true;
@@ -435,7 +435,7 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=316',gltf=>{
  attachAssembledEngines(THREE,visual,'titan');
  mountPlayerModel(visual,'titanModel');
 },undefined,err=>{playerMesh.userData.titanModelFailed=true;syncPlayerShipVisuals();console.warn('Modelo titan no disponible; se conserva la apariencia original.',err)});
-deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=317',gltf=>{
  const source=gltf.scene;
  const maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  source.traverse(o=>{
@@ -446,7 +446,7 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
    material.metalness=.4;material.roughness=.42;
    material.normalScale.set(.3,.3);
    // Conservar los paneles blancos, rojos y oscuros de la textura original.
-   material.color.setRGB(1.12,1.04,1.04);
+   material.color.setRGB(1,1,1);
    if(material.map)material.map.anisotropy=maxAnisotropy;
    material.needsUpdate=true;
   }
@@ -459,127 +459,11 @@ deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=120',gltf=>{
  source.scale.multiplyScalar(scale);
  source.position.sub(center.multiplyScalar(scale));
  const pivot=new THREE.Group();
- pivot.rotation.y=Math.PI/2;
+ pivot.rotation.y=Math.PI;
  pivot.add(source);
- // Carenado trasero: tres turbinas metálicas y aletas rojas como la referencia.
- const rear=new THREE.Group();
- rear.position.set(-size.x*scale*.34,0,0);
- rear.rotation.y=-Math.PI/2;
- pivot.add(rear);
- const darkMetal=new THREE.MeshStandardMaterial({color:0x161a20,metalness:.7,roughness:.38});
- const steel=new THREE.MeshStandardMaterial({color:0x555d67,metalness:.65,roughness:.4});
- const whiteArmor=new THREE.MeshStandardMaterial({color:0xe6e8eb,metalness:.45,roughness:.38});
- const redArmor=new THREE.MeshStandardMaterial({color:0xc41423,metalness:.55,roughness:.3});
- const redLight=new THREE.MeshBasicMaterial({color:0xff2810,toneMapped:false});
- const hotCore=new THREE.MeshBasicMaterial({color:0xffe6a0,toneMapped:false});
- function rearPlate(points,material,depth=1.8,z=3){
-  const shape=new THREE.Shape();
-  points.forEach(([x,y],i)=>i?shape.lineTo(x,y):shape.moveTo(x,y));shape.closePath();
-  const mesh=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false}),material);
-  mesh.position.z=z;rear.add(mesh);return mesh;
- }
- // Las nuevas placas cubren las antiguas cinco bocas y definen una silueta más angular.
- rearPlate([[-33,-12],[-32,9],[-15,17],[0,20],[15,17],[32,9],[33,-12],[13,-17],[-13,-17]],darkMetal,6,-4);
- for(const sign of [-1,1]){
-  const pts=points=>points.map(([x,y])=>[x*sign,y]);
-  rearPlate(pts([[13,8],[19,16],[30,11],[49,-2],[36,2],[25,7]]),whiteArmor);
-  rearPlate(pts([[27,10],[35,8],[51,-4],[43,-2],[33,5]]),redArmor,1.6,5);
-  rearPlate(pts([[18,10],[20,35],[24,12],[23,7]]),redArmor,2,0);
-  rearPlate(pts([[20,13],[21,28],[22,13]]),darkMetal,1,2.2);
-  rearPlate(pts([[17,-9],[25,-10],[29,-28],[20,-20]]),redArmor,2,2);
-  const strip=new THREE.Mesh(new THREE.BoxGeometry(8,1.2,1),redLight);
-  strip.position.set(sign*34,2,6);strip.rotation.z=-sign*.25;rear.add(strip);
- }
- rearPlate([[-12,14],[-8,20],[8,20],[12,14],[8,11],[-8,11]],whiteArmor,2,4);
- const topLight=new THREE.Mesh(new THREE.BoxGeometry(10,1.5,1),redLight);
- topLight.position.set(0,13,7);rear.add(topLight);
- pivot.userData.engineFlames=[];
- for(const [side,height,radius,length] of [[-22,-5,9,1],[0,-2,12,1.3],[22,-5,9,1]]){
-  const engine=new THREE.Group();engine.position.set(side,height,7);rear.add(engine);
-  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius*1.05,9,24),darkMetal);
-  barrel.rotation.x=Math.PI/2;barrel.position.z=-3;engine.add(barrel);
-  for(const [r,t,z,material] of [[radius,.95,2,steel],[radius*.79,.8,2.5,darkMetal],[radius*.6,.7,3,redLight]]){
-   const ring=new THREE.Mesh(new THREE.TorusGeometry(r,t,6,32),material);
-   ring.position.z=z;engine.add(ring);
-  }
-  for(let i=0;i<12;i++){
-   const angle=i*Math.PI/6;
-   const rib=new THREE.Mesh(new THREE.BoxGeometry(1.3,radius*.28,1.4),steel);
-   rib.position.set(Math.sin(angle)*radius*.87,Math.cos(angle)*radius*.87,2.7);
-   rib.rotation.z=-angle;engine.add(rib);
-   const segment=new THREE.Mesh(new THREE.BoxGeometry(1,radius*.16,.6),redLight);
-   segment.position.set(Math.sin(angle)*radius*.69,Math.cos(angle)*radius*.69,3.5);
-   segment.rotation.z=-angle;engine.add(segment);
-  }
-  const face=new THREE.Mesh(new THREE.CircleGeometry(radius*.55,32),redLight);face.position.z=3.6;
-  const core=new THREE.Mesh(new THREE.CircleGeometry(radius*.29,24),hotCore);core.position.z=3.7;
-  const glow=new THREE.Mesh(new THREE.CircleGeometry(radius*.8,32),new THREE.MeshBasicMaterial({color:0xff3b0a,transparent:true,opacity:.25,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
-  glow.position.z=3.9;
-  const geometry=new THREE.ConeGeometry(radius*.4,46,12,1,true);geometry.translate(0,23,0);
-  const flame=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0xff581c,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
-  flame.rotation.x=Math.PI/2;flame.position.z=4;flame.visible=false;flame.userData.lengthFactor=length;
-  pivot.userData.engineFlames.push(flame);engine.add(face,core,glow,flame);
- }
-
- // Cubierta superior independiente; no altera el carenado trasero ni sus motores.
- const dorsal=new THREE.Group();pivot.add(dorsal);
- source.updateWorldMatrix(true,true);
- const deckRay=new THREE.Raycaster();
- const deckDirection=new THREE.Vector3(0,-1,0).transformDirection(pivot.matrixWorld);
- const deckHeights=new Map();
- function deckHeight(x,z){
-  const key=x.toFixed(3)+','+z.toFixed(3);
-  if(deckHeights.has(key))return deckHeights.get(key);
-  const origin=pivot.localToWorld(new THREE.Vector3(x,40,z));
-  deckRay.set(origin,deckDirection);
-  const hit=deckRay.intersectObject(source,true)[0];
-  const height=hit?pivot.worldToLocal(hit.point.clone()).y:Math.max(-4,15-Math.abs(z)*.4-Math.max(0,x)*.25);
-  // Mantener las placas bajo el perfil del carenado visto directamente desde atrás.
-  const ceiling=Math.abs(z)<10?19:19-Math.abs(z)*.38;
-  const fitted=Math.min(height+.45,ceiling-1.8);
-  deckHeights.set(key,fitted);return fitted;
- }
- function deckPlate(points,material,thickness=1.2,lift=0){
-  const shape=new THREE.Shape();
-  points.forEach(([x,z],i)=>i?shape.lineTo(x,z):shape.moveTo(x,z));shape.closePath();
-  const geometry=new THREE.ExtrudeGeometry(shape,{depth:thickness,bevelEnabled:false,curveSegments:1});
-  const positions=geometry.attributes.position;
-  for(let i=0;i<positions.count;i++){
-   const x=positions.getX(i),z=positions.getY(i),depth=positions.getZ(i);
-   positions.setXYZ(i,x,deckHeight(x,z)+depth+lift,z);
-  }
-  // El intercambio de Y y Z invierte el orden de los triángulos.
-  for(let i=0;i<positions.count;i+=3){
-   const x=positions.getX(i+1),y=positions.getY(i+1),z=positions.getZ(i+1);
-   positions.setXYZ(i+1,positions.getX(i+2),positions.getY(i+2),positions.getZ(i+2));
-   positions.setXYZ(i+2,x,y,z);
-  }
-  geometry.computeVertexNormals();geometry.computeBoundingBox();
-  const mesh=new THREE.Mesh(geometry,material);dorsal.add(mesh);return mesh;
- }
- // Espina dorsal, proa afilada y cabina roja facetada.
- deckPlate([[-28,-6],[-28,6],[-9,8],[12,7],[39,4],[59,0],[39,-4],[12,-7],[-9,-8]],darkMetal,1.6);
- deckPlate([[-25,-4.8],[-25,4.8],[-5,6],[10,4.5],[15,0],[10,-4.5],[-5,-6]],whiteArmor,1.1,.7);
- deckPlate([[12,-6],[12,6],[29,5],[45,2.8],[57,0],[45,-2.8],[29,-5]],whiteArmor,1.1,.6);
- deckPlate([[18,-4],[18,4],[25,4.8],[36,2.7],[42,0],[36,-2.7],[25,-4.8]],redArmor,1.8,1);
- deckPlate([[44,-2],[44,2],[60,0]],redArmor,1.1,.7);
- // Blindaje simétrico: paneles blancos separados por canales de metal oscuro.
- for(const sign of [-1,1]){
-  const pts=points=>points.map(([x,z])=>[x,z*sign]);
-  deckPlate(pts([[-28,10],[-26,21],[-7,25],[16,18],[29,10],[8,9],[-12,9]]),darkMetal,1.5);
-  deckPlate(pts([[-26,11],[-23,19],[-7,22],[12,17],[24,11],[5,11],[-12,10.8]]),whiteArmor,1.1,.6);
-  deckPlate(pts([[-24,19],[-8,23],[12,18],[21,13],[13,15],[-8,20],[-23,17]]),redArmor,1,.8);
-  deckPlate(pts([[-27,26],[-25,35],[-15,40],[7,31],[16,24],[-6,25]]),darkMetal,1.3);
-  deckPlate(pts([[-25,27],[-23,33],[-14,37],[3,30],[11,26],[-7,27]]),whiteArmor,1,.6);
-  deckPlate(pts([[-24,33],[-15,40],[7,31],[14,25],[6,29],[-14,36],[-24,31]]),redArmor,1.1,.7);
-  // Pequeñas luces rojas encastradas, sin añadir luces dinámicas.
-  for(const [x,z] of [[-15,14],[2,21],[-14,31]]){
-   deckPlate(pts([[x-3,z-.9],[x-3,z+.9],[x+3,z+.9],[x+3,z-.9]]),darkMetal,.8,1);
-   deckPlate(pts([[x-2.3,z-.4],[x-2.3,z+.4],[x+2.3,z+.4],[x+2.3,z-.4]]),redLight,.35,1.8);
-  }
- }
-
- mountPlayerModel(pivot,'espectroModel');
+ const visual=new THREE.Group();visual.add(pivot);
+ attachAssembledEngines(THREE,visual,'espectro');
+ mountPlayerModel(visual,'espectroModel');
 },undefined,err=>{playerMesh.userData.espectroModelFailed=true;syncPlayerShipVisuals();console.warn('Modelo espectro no disponible; se conserva la apariencia original.',err)});
 function loadAuroraFallback(){
  modelLoader.load('./assets/models/aurora_s1.glb?v=105',gltf=>{

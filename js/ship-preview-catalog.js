@@ -6,10 +6,10 @@ export const SHIP_PREVIEWS=Object.freeze({
  obsidian:{name:'Obsidian',model:'ancestral-fighter.glb',yaw:0},
  aurora:{name:'Aurora',model:'x_wing_starfighter.glb',yaw:Math.PI},
  titan:{name:'Titán',model:'titan.glb',yaw:Math.PI,version:316},
- espectro:{name:'Espectro',model:'espectro.glb',yaw:Math.PI/2},
+ espectro:{name:'Espectro',model:'espectro.glb',yaw:Math.PI,version:317},
  segadora:{name:'Segadora',model:'segadora.glb',yaw:-Math.PI,roll:-.055},
  bastion:{name:'Bastión',model:'bastion.glb',yaw:Math.PI},
- centella:{name:'Centella',model:'centella.glb',yaw:Math.PI}
+ centella:{name:'Centella',model:'centella.glb',yaw:Math.PI,version:317}
 });
 export function shipThumbnail(id){const ship=SHIP_PREVIEWS[id];return ship?'<img class="formation-preview ship-preview" src="./assets/ship-previews/'+id+'.webp?v='+(ship.version||252)+'" alt="Nave '+ship.name+'" width="480" height="360" loading="lazy" decoding="async">':''}
 export function disposePreviewModel(model){

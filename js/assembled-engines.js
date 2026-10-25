@@ -5,13 +5,14 @@ export const ASSEMBLED_ENGINE_LAYOUTS=Object.freeze({
   {position:[19,-3,60],radius:6.7},
   {position:[0,9,49],radius:2.3}
  ]},
+ espectro:{color:0xff493b,core:0xffc19b,radius:3.5,positions:[[-22,0,43],[22,0,43]]},
  obsidian:{color:0x26e6cf,core:0xc4fff5,radius:2.7,positions:[[-10,-2,51],[10,-2,51]]},
  segadora:{color:0xff493b,core:0xffb28b,radius:4.4,nozzles:[
   {position:[-12.5,5.5,43],direction:[0,0,1],radius:3.6},
   {position:[12.5,5.5,43],direction:[0,0,1],radius:3.6}
  ]},
  bastion:{color:0x398aff,core:0xb3ddff,radius:5.5,positions:[[-26.5,-3.2,56],[26.5,-3.2,56]]},
- centella:{color:0x37dfff,core:0xc1fbff,radius:3.8,positions:[[-23.5,-3.8,60],[23.5,-3.8,60]]}
+ centella:{color:0x37dfff,core:0xc1fbff,radius:3.8,positions:[[-25,2,42],[25,2,42]]}
 });
 export function attachAssembledEngines(THREE,visual,id){
  const layout=ASSEMBLED_ENGINE_LAYOUTS[id];if(!layout)return;
