@@ -1,5 +1,5 @@
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
-import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=314';
+import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=316';
 // Only one independent, demand-loaded WebGL preview is alive across the hangar.
 let active=null;
 export function stopAssemblyPreview(){active?.cleanup();active=null}
@@ -25,7 +25,7 @@ export async function startAssemblyPreview(container,id){
   renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:pan-y';
   const loader=new GLTFLoader();
-  const gltf=id==='obsidian'?{scene:await loadObsidian(THREE,loader)}:await loader.loadAsync('./assets/models/'+SHIP_PREVIEWS[id].model+'?v=252');
+  const gltf=id==='obsidian'?{scene:await loadObsidian(THREE,loader)}:await loader.loadAsync('./assets/models/'+SHIP_PREVIEWS[id].model+'?v='+(SHIP_PREVIEWS[id].version||252));
   if(cancelled){disposePreviewModel(gltf.scene);return}
   model=gltf.scene;const turntable=fitPreviewModel(THREE,model,id);scene.add(turntable);host.replaceChildren(renderer.domElement);
   renderer.domElement.setAttribute('role','img');renderer.domElement.setAttribute('aria-label','Modelo 3D de '+SHIP_PREVIEWS[id].name+'. Arrastra para girar.');

@@ -5,13 +5,13 @@ export const SHIP_PREVIEWS=Object.freeze({
  vertigo:{name:'Vértigo',model:'pvp-agil.glb',yaw:Math.PI},
  obsidian:{name:'Obsidian',model:'ancestral-fighter.glb',yaw:0},
  aurora:{name:'Aurora',model:'x_wing_starfighter.glb',yaw:Math.PI},
- titan:{name:'Titán',model:'titan.glb',yaw:Math.PI},
+ titan:{name:'Titán',model:'titan.glb',yaw:Math.PI,version:316},
  espectro:{name:'Espectro',model:'espectro.glb',yaw:Math.PI/2},
  segadora:{name:'Segadora',model:'segadora.glb',yaw:-Math.PI,roll:-.055},
  bastion:{name:'Bastión',model:'bastion.glb',yaw:Math.PI},
  centella:{name:'Centella',model:'centella.glb',yaw:Math.PI}
 });
-export function shipThumbnail(id){const ship=SHIP_PREVIEWS[id];return ship?'<img class="formation-preview ship-preview" src="./assets/ship-previews/'+id+'.webp?v=252" alt="Nave '+ship.name+'" width="480" height="360" loading="lazy" decoding="async">':''}
+export function shipThumbnail(id){const ship=SHIP_PREVIEWS[id];return ship?'<img class="formation-preview ship-preview" src="./assets/ship-previews/'+id+'.webp?v='+(ship.version||252)+'" alt="Nave '+ship.name+'" width="480" height="360" loading="lazy" decoding="async">':''}
 export function disposePreviewModel(model){
  const resources=new Set();model?.traverse(o=>{if(o.geometry)resources.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){resources.add(m);for(const value of Object.values(m))if(value?.isTexture)resources.add(value)}});
  for(const resource of resources)resource.dispose?.();

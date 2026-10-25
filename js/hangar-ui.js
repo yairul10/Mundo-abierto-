@@ -1,6 +1,6 @@
 import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=314';
-import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=314';
-import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=314';
+import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=316';
+import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=316';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=314';
 import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');

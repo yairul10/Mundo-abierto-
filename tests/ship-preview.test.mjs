@@ -5,7 +5,7 @@ assert.deepEqual(Object.keys(SHIP_PREVIEWS),['azote','egida','vertigo','obsidian
 for(const [id,ship] of Object.entries(SHIP_PREVIEWS)){
  assert.ok(existsSync(new URL('../assets/models/'+ship.model,import.meta.url)));
  assert.ok(existsSync(new URL('../assets/ship-previews/'+id+'.webp',import.meta.url)));
- assert.match(shipThumbnail(id),new RegExp(id+'\\.webp\\?v=252'));
+ assert.match(shipThumbnail(id),new RegExp(id+'\\.webp\\?v='+(ship.version||252)));
  assert.ok(Number.isFinite(ship.yaw));
 }
 assert.equal(shipThumbnail('invalid'),'');assert.equal(SHIP_PREVIEWS.segadora.yaw,-Math.PI);

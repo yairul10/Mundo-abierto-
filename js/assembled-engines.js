@@ -1,5 +1,10 @@
 // Nozzle centers in the ship's normalized flight frame (forward = -Z).
 export const ASSEMBLED_ENGINE_LAYOUTS=Object.freeze({
+ titan:{color:0xff9a20,core:0xffd66b,radius:6.7,nozzles:[
+  {position:[-19,-3,60],radius:6.7},
+  {position:[19,-3,60],radius:6.7},
+  {position:[0,9,49],radius:2.3}
+ ]},
  obsidian:{color:0x26e6cf,core:0xc4fff5,radius:2.7,positions:[[-10,-2,51],[10,-2,51]]},
  segadora:{color:0xff493b,core:0xffb28b,radius:4.4,nozzles:[
   {position:[-12.5,5.5,43],direction:[0,0,1],radius:3.6},
