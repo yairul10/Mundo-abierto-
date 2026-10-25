@@ -1,4 +1,4 @@
-import {attachAssembledEngines} from './assembled-engines.js?v=303';
+import {attachAssembledEngines} from './assembled-engines.js?v=304';
 // Three independent models, centered before scaling so rings rotate around the reactor.
 export async function loadObsidian(THREE,loader){
  const parts=[];
@@ -12,10 +12,10 @@ export async function loadObsidian(THREE,loader){
  }
  // Uploaded hull points along -X; flight forward is -Z. Rotate hull only.
  const body=fit(parts[0],124);body.rotation.y=-Math.PI/2;root.add(body);
- // Longitudinal hoops surround the reactor, rather than facing the pilot like a portal.
+ // Oblique planes keep both hoops visible from the rear flight camera.
  // The fixed frame sets the plane; only its centered child spins in that plane.
  for(let i=0;i<2;i++){
-  const frame=new THREE.Group();frame.position.set(0,3,14);frame.rotation.y=Math.PI/2;frame.rotation.z=i?-.28:.12;
+  const frame=new THREE.Group();frame.position.set(0,3,14);frame.rotation.set(i?.35:-.12,i?-.60:.65,i?-.20:.18);
   const pivot=new THREE.Group();pivot.name='obsidian-ring-'+i;
   pivot.add(fit(parts[i+1],i?64:88));frame.add(pivot);root.add(frame);
  }
