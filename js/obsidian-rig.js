@@ -16,8 +16,8 @@ export function slimObsidianRing(THREE,ring){
  for(const {mesh,position,world,inverse} of points){
   for(let i=0;i<position.count;i++){
    v.fromBufferAttribute(position,i).applyMatrix4(world);const r=Math.hypot(v.x,v.y);
-   if(r>1e-6){const scale=(outside-(outside-r)*.72)/r;v.x*=scale;v.y*=scale}
-   v.z*=.65;v.applyMatrix4(inverse);position.setXYZ(i,v.x,v.y,v.z);
+   if(r>1e-6){const scale=(outside-(outside-r)*.504)/r;v.x*=scale;v.y*=scale}
+   v.z*=.455;v.applyMatrix4(inverse);position.setXYZ(i,v.x,v.y,v.z);
   }
   position.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingBox();mesh.geometry.computeBoundingSphere();
  }
@@ -45,6 +45,43 @@ export async function loadObsidian(THREE,loader){
  }
  const core=new THREE.Mesh(new THREE.SphereGeometry(8,16,12),new THREE.MeshStandardMaterial({color:0x0ab7a8,emissive:0x09cdb8,emissiveIntensity:.45,roughness:.65}));core.position.set(0,3,14);root.add(core);
  attachAssembledEngines(THREE,root,'obsidian');
+ attachObsidianWake(THREE,root);
  return root;
 }
-export function animateObsidian(root,dt){root?.traverse(o=>{if(o.name==='obsidian-ring-0')o.rotation.z+=dt*.38;else if(o.name==='obsidian-ring-1')o.rotation.z-=dt*.55})}
+// Three lightweight flowing ribbons, fading toward their tips (additive black = invisible).
+function attachObsidianWake(THREE,root){
+ for(let ribbon=0;ribbon<3;ribbon++){
+  const segments=24,positions=new Float32Array((segments+1)*6),colors=new Float32Array((segments+1)*6),indices=[];
+  for(let i=0;i<=segments;i++){
+   const u=i/segments,fade=Math.pow(1-u,1.7);
+   for(let side=0;side<2;side++)colors.set([.08*fade,.85*fade,.72*fade],i*6+side*3);
+   if(i<segments){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}
+  }
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));geometry.setIndex(indices);
+  const material=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
+  const mesh=new THREE.Mesh(geometry,material);mesh.name='obsidian-wake-'+ribbon;mesh.userData.wakeOwned=true;mesh.visible=false;mesh.frustumCulled=false;root.add(mesh);
+ }
+}
+export function animateObsidian(root,dt,power=0){
+ if(!root)return;
+ const step=Math.max(0,Math.min(.1,Number(dt)||0)),target=Math.max(0,Math.min(1,Number(power)||0));
+ root.userData.wakeTime=(root.userData.wakeTime||0)+step;
+ root.userData.wakePower=(root.userData.wakePower||0)+(target-(root.userData.wakePower||0))*(1-Math.exp(-step*9));
+ const time=root.userData.wakeTime,strength=root.userData.wakePower;
+ root.traverse(o=>{
+  if(o.name==='obsidian-ring-0')o.rotation.z+=step*.38;
+  else if(o.name==='obsidian-ring-1')o.rotation.z-=step*.55;
+  else if(o.name.startsWith('obsidian-wake-')){
+   // Remote ship clones must own their animated buffers and material.
+   if(!o.userData.wakeOwned){o.geometry=o.geometry.clone();o.material=o.material.clone();o.userData.wakeOwned=true}
+   o.visible=strength>.015;o.material.opacity=strength*.24;if(!o.visible)return;
+   const ribbon=Number(o.name.slice(-1)),position=o.geometry.attributes.position,segments=position.count/2-1;
+   for(let i=0;i<=segments;i++){
+    const u=i/segments,phase=time*3.2-u*7+ribbon*2.1;
+    const x=(ribbon-1)*10+Math.sin(phase)*u*12,y=-2+Math.cos(phase*.8)*u*9,z=51+u*(45+strength*95),width=(1-u)*(1.3+Math.sin(u*Math.PI)*3.5);
+    position.setXYZ(i*2,x-width,y,z);position.setXYZ(i*2+1,x+width,y+width*.7,z);
+   }
+   position.needsUpdate=true;
+  }
+ });
+}

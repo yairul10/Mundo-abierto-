@@ -1,4 +1,4 @@
-import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=306';
+import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=307';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
@@ -16,7 +16,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=304';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=301';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=306';
+import {mountHangarUI} from './hangar-ui.js?v=307';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=299';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=301';
@@ -3331,7 +3331,7 @@ const titanEnginesActive=player.shipId==='titan'&&!!titanVisual?.visible;
 const espectroEnginesActive=player.shipId==='espectro'&&!!espectroVisual?.visible;
 const assembledVisual=ASSEMBLED_SHIPS[player.shipId]?playerMesh.userData[player.shipId+'Model']:null;
 const assembledEnginesActive=!!assembledVisual?.visible;
-if(player.shipId==='obsidian')animateObsidian(assembledVisual,dt);
+if(player.shipId==='obsidian')animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe));
 const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive;
 for(const glow of engineGlows)glow.visible=!customEnginesActive;
 for(const l of engineLights){l.visible=!customEnginesActive&&graphics.profile.lights;l.intensity=18+Math.abs(throttle)*48}
@@ -3475,7 +3475,7 @@ if(PVP_MODE){
   updateBossVisual(dt);
   for(const shot of shots){if(!shot.pvpRemote&&pvpSession?.active&&!pvpSession.canFight)shot.life=0;if(shot.target?.playerId&&(pvpSession?.isJammed(shot.target.playerId)||(shot.target.playerId===pvpSession?.myId?!pvpSession?.canFight:!pvpSession?.canTarget(shot.target.playerId))))shot.target=null;}
   for(const r of remotes.values()){
-   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);if(r.shipId==='obsidian')animateObsidian(r.mesh,dt);r.pet.visible=!!r.hasPet;if(r.hasPet){if(r.petStamp!==explorerMesh.children.length){r.pet.clear();const clone=cloneClean(explorerMesh);clone.visible=true;clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=explorerMesh.children.length}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
+   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);if(r.shipId==='obsidian')animateObsidian(r.mesh,dt,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));r.pet.visible=!!r.hasPet;if(r.hasPet){if(r.petStamp!==explorerMesh.children.length){r.pet.clear();const clone=cloneClean(explorerMesh);clone.visible=true;clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=explorerMesh.children.length}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
    const point=r.mesh.position.clone().add(new THREE.Vector3(0,68,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;
    r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';r.label.classList.toggle('dueling',!!pvpSession?.canTarget(r.playerId));r.label.classList.toggle('jammed',!!pvpSession?.isJammed(r.playerId));
   }
