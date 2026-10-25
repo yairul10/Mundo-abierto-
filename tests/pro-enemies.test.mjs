@@ -12,7 +12,7 @@ assert.equal(enemies.length,11);for(const e of enemies.filter(e=>e.pro)){assert.
 const belongs=game.slice(game.indexOf('function enemyBelongsToSector'),game.indexOf('// Activate the assembled model'));
 for(const sector of Object.keys(PRO_TYPES_BY_SECTOR)){const test=new Function('activeSector',belongs+';return enemyBelongsToSector')(sector);assert.equal(enemies.filter(e=>e.pro&&test(e)).length,PRO_TYPES_BY_SECTOR[sector].length)}
 const damageText=game.slice(game.indexOf('function damageEnemy('),game.indexOf('function clearCombatShots()'));
-const damage=new Function(damageText+';return damageEnemy')();const elite=enemies.find(e=>e.pro&&e.type==='scout');damage(elite,5);assert.equal(elite.aggressive,true);assert.equal(elite.hp,195);
+const damage=new Function('combatAudio',damageText+';return damageEnemy')({play(){}});const elite=enemies.find(e=>e.pro&&e.type==='scout');damage(elite,5);assert.equal(elite.aggressive,true);assert.equal(elite.hp,195);
 const config=farmConfig();for(const [sector,types]of Object.entries(PRO_TYPES_BY_SECTOR))for(const type of types){assert.ok(!config.selections[sector].includes(type+'Pro'));assert.equal(farmEnemyKey({type,pro:true}),type+'Pro')}
 const p=createFarmPilot({selections:{aurora:['scoutPro']}});p.start(40);const normal={type:'scout',hp:100,dead:0,mesh:{visible:true,position:{x:800,y:0,z:0}}},pro={...normal,pro:true,mesh:{visible:true,position:{x:1000,y:0,z:0}}};
 const s={active:true,hp:100,maxHp:100,position:{x:0,y:0,z:0},sector:'aurora',safe:()=>false,enemies:[normal,pro],center:{x:0,z:0},radius:3000,attacks:[],obstacles:[]};assert.equal(p.tick(s,1).target,pro);
