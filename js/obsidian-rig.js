@@ -1,4 +1,4 @@
-import {attachAssembledEngines} from './assembled-engines.js?v=304';
+import {attachAssembledEngines} from './assembled-engines.js?v=305';
 // Three independent models, centered before scaling so rings rotate around the reactor.
 export async function loadObsidian(THREE,loader){
  const parts=[];
@@ -12,14 +12,14 @@ export async function loadObsidian(THREE,loader){
  }
  // Uploaded hull points along -X; flight forward is -Z. Rotate hull only.
  const body=fit(parts[0],124);body.rotation.y=-Math.PI/2;root.add(body);
- // Oblique planes keep both hoops visible from the rear flight camera.
+ // Near-parallel concentric hoops stand across the hull, as in the concept.
  // The fixed frame sets the plane; only its centered child spins in that plane.
  for(let i=0;i<2;i++){
-  const frame=new THREE.Group();frame.position.set(0,3,14);frame.rotation.set(i?.35:-.12,i?-.60:.65,i?-.20:.18);
+  const frame=new THREE.Group();frame.position.set(0,3,14);frame.rotation.set(i?.08:-.04,i?-.08:.06,0);
   const pivot=new THREE.Group();pivot.name='obsidian-ring-'+i;
-  pivot.add(fit(parts[i+1],i?64:88));frame.add(pivot);root.add(frame);
+  pivot.add(fit(parts[i+1],i?68:98));frame.add(pivot);root.add(frame);
  }
- const core=new THREE.Mesh(new THREE.SphereGeometry(8,16,12),new THREE.MeshStandardMaterial({color:0x44ffdc,emissive:0x16d9be,emissiveIntensity:1.6,roughness:.65}));core.position.set(0,3,14);root.add(core);
+ const core=new THREE.Mesh(new THREE.SphereGeometry(8,16,12),new THREE.MeshStandardMaterial({color:0x0ab7a8,emissive:0x09cdb8,emissiveIntensity:.45,roughness:.65}));core.position.set(0,3,14);root.add(core);
  attachAssembledEngines(THREE,root,'obsidian');
  return root;
 }
