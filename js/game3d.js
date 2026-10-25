@@ -1,4 +1,4 @@
-import {createCombatAudio} from './combat-audio.js?v=298';
+import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
@@ -17,10 +17,10 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=253';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=257';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=299';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=224';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=224';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=255';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_MODE=sharedRequested();let pvpSession=null,pvpHangar=null;
@@ -1333,6 +1333,7 @@ function clearTitanShots(){for(const p of titanProjectiles){titanEffects.dispose
 function titanHit(point){const p=titanEnemy.mesh.worldToLocal(point.clone());return (p.x/145)**2+(p.y/170)**2+(p.z/600)**2<1}
 function fireTitan(){
  const scale=titanScale(player.level),kind=titanCycle.kind;
+ combatAudio.play(kind==='spear'?'harpoon':'bombLaunch',titanEnemy.mesh.position);
  titanEnemy.mesh.updateMatrixWorld(true);
  const local=titanEnemy.mesh.worldToLocal(playerMesh.position.clone()),side=local.x<0?-1:1;
  if(kind==='spear'){
@@ -1380,7 +1381,7 @@ function updateGranTitan(dt){if(PVP_MODE)return;
  if(active){titanWaveTimer-=dt;if(titanWaveTimer<=0){spawnTitanWave();titanWaveTimer=30}}else titanWaveTimer=12;
  for(let i=titanProjectiles.length-1;i>=0;i--){const p=titanProjectiles[i],before=p.mesh.position.clone();p.life-=dt;
   p.age+=dt;titanEffects.animateProjectile(p.mesh,p.age,p.bomb);
-  if(p.bomb){p.mesh.position.lerpVectors(p.start,p.target,titanBombProgress(p.age));titanEffects.animateMarker(p.marker,p.age,camera);if(p.life<=0&&available){combatAudio.play('explosion',p.target);const mesh=titanEffects.blast(p.target);scene.add(mesh);titanBlasts.push({mesh,age:0})}if(p.life<=0&&available&&p.target.distanceTo(playerMesh.position)<150)applyPlayerDamage(Math.max(1,p.damage-player.defense*.25))}
+  if(p.bomb){p.mesh.position.lerpVectors(p.start,p.target,titanBombProgress(p.age));titanEffects.animateMarker(p.marker,p.age,camera);if(p.life<=0&&available){combatAudio.play('heavyBlast',p.target);const mesh=titanEffects.blast(p.target);scene.add(mesh);titanBlasts.push({mesh,age:0})}if(p.life<=0&&available&&p.target.distanceTo(playerMesh.position)<150)applyPlayerDamage(Math.max(1,p.damage-player.defense*.25))}
   else{p.mesh.position.addScaledVector(p.velocity,dt);if(available&&segmentDistance(before,p.mesh.position,playerMesh.position)<40){scrapCombat.snag(titanEnemy,p.start);applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0}}
   if(p.life<=0||!available){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker);titanProjectiles.splice(i,1)}
  }
@@ -1860,12 +1861,12 @@ function fireSupportDrones(aimPoint,locked,noseDir){
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
-const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1,source=null)=>applyPlayerDamage(Math.max(1,amount*proMultiplier(source)*advancedEnemyScale(player.level,40)-player.defense*.25)*elapsed),notify:message=>lootToast(message)});
+const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1,source=null)=>applyPlayerDamage(Math.max(1,amount*proMultiplier(source)*advancedEnemyScale(player.level,40)-player.defense*.25)*elapsed),notify:message=>lootToast(message),sound:(kind,position)=>combatAudio.play(kind,position)});
 const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={stalker:new THREE.MeshBasicMaterial({color:0xff1838}),scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff}),destroyer:new THREE.MeshBasicMaterial({color:0xff3d9b}),devastator:new THREE.MeshBasicMaterial({color:0xff7733})};
 function enemyFire(e){
- combatAudio.play(e.type==='catapult'?'missile':'enemyLaser',e.mesh.position);
+ if(!['catapult','harpooner','stalker'].includes(e.type))combatAudio.play('enemyLaser',e.mesh.position);
  lastIncomingAttackAt=performance.now()/1000;
  repairRobot.visible=repairBeam.visible=false;
  const t=TYPES[e.type];
@@ -1873,6 +1874,7 @@ function enemyFire(e){
  if(e.type==='catapult'||e.type==='harpooner'){scrapCombat.fire(e);return}
  if(e.type==='stalker'){
   if(e.aiming)return;
+  combatAudio.play('sniperCharge',e.mesh.position);
   const target=playerMesh.position.clone();
   const geometry=new THREE.BufferGeometry().setFromPoints([e.mesh.position,target]);
   const line=new THREE.Line(geometry,new THREE.LineBasicMaterial({color:0xff243a,transparent:true,opacity:.85,depthWrite:false}));scene.add(line);
@@ -1929,6 +1931,7 @@ function updateEnemyShots(dt){
   }
   aim.target.copy(playerMesh.position);aim.line.geometry.setFromPoints([e.mesh.position,aim.target]);
   if(aim.time>0)continue;
+  combatAudio.play('sniperShot',e.mesh.position);
   const start=e.mesh.position.clone(),dir=aim.target.clone().sub(start).normalize();
   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(5,5,65,10),enemyShotMaterials.stalker);
   mesh.position.copy(start).addScaledVector(dir,55);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
@@ -2244,7 +2247,7 @@ function applyPlayerDamage(amount){
  if(shipRole(player.shipId)==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
  if(classAbilityActive('titan'))damage*=player.shipId==='bastion'?.2:.3;
  if(classAbilityActive('espectro'))damage*=player.shipId==='segadora'?1.2:1.3;
- if(damage>0)combatAudio.play(damage>=player.hp?'explosion':'impact');
+ if(damage>0)combatAudio.play(damage>=player.hp?'explosion':classAbilityActive('titan')?'shieldHit':'impact');
  player.hp=Math.max(0,player.hp-damage);lastHitAt=performance.now()/1000;
  repairRobot.visible=repairBeam.visible=false;
 }
@@ -3243,7 +3246,7 @@ function playerDestructionBurst(){
 }
 function showRecovery(){
  if(recoveryPending)return;
- playerDestructionBurst();
+ combatAudio.play('defeat');playerDestructionBurst();
  recoveryPending=true;resetDockControls();explorerThreat=null;clearCombatShots();
  repairRobot.visible=repairBeam.visible=false;lockFrame.classList.add('hidden');
  sectorNotice.style.display='none';portalMessage.style.display='none';portalCountdown=0;
@@ -3260,7 +3263,7 @@ function recoverShip(inCurrentMap){
  docked=false;landing=false;landingArmed=false;hangar.classList.add('hidden');
  if(!inCurrentMap&&activeSector!=='aurora')switchSector({to:'aurora',level:0,arrival:auroraStation.position.clone().add(new THREE.Vector3(0,165,350))});
  else playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,350));
- recoveryPending=false;recoveryPanel.style.display='none';clearCombatShots();explorerThreat=null;
+ combatAudio.play('respawn');recoveryPending=false;recoveryPanel.style.display='none';clearCombatShots();explorerThreat=null;
  camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));
  lootToast('🔧 Nave reparada · -'+cost+' créditos');save();hud();
 }
@@ -3419,6 +3422,9 @@ if(PVP_MODE){
  for(const e of enemies)scene.remove(e.mesh);enemies.length=0;
  for(const drop of drops)scene.remove(drop.mesh);drops.length=0;
  const remotes=new Map();
+ const pvpSounds=createPvpSoundObserver((kind,point)=>combatAudio.play(kind,point));
+ let respawnSoundTimer;
+ const pvpDefeated=isMe=>{if(isMe){combatAudio.play('defeat');clearTimeout(respawnSoundTimer);respawnSoundTimer=setTimeout(()=>combatAudio.play('respawn'),900)}};
  const bossRoot=new THREE.Group();scene.add(bossRoot);bossRoot.visible=false;bossRoot.userData.hitRadius=180;
  const bossLabel=document.createElement('div');bossLabel.className='world-nameplate';bossLabel.hidden=true;bossLabel.innerHTML='<span>Titán del Nexo</span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(bossLabel);
  const bossRemote={pvpRemote:true,playerId:'pvp-super-boss',type:'pilot',mesh:bossRoot,hp:0,maxHp:1000000,dead:1,aggressive:false,pilotName:'Titán del Nexo',pilotLevel:40};enemies.push(bossRemote);
@@ -3460,7 +3466,7 @@ if(PVP_MODE){
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
  for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel','formationBtn'])$(id).classList.add('hidden');
  $('hint').textContent='PvP abierto · Fuera de la base todos pueden atacarse';$('stationDistance').textContent='Mapa PvP';
- pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:clearFight,clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
+ pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
   updateBossVisual(dt);
   for(const shot of shots){if(!shot.pvpRemote&&pvpSession?.active&&!pvpSession.canFight)shot.life=0;if(shot.target?.playerId&&(pvpSession?.isJammed(shot.target.playerId)||(shot.target.playerId===pvpSession?.myId?!pvpSession?.canFight:!pvpSession?.canTarget(shot.target.playerId))))shot.target=null;}
@@ -3471,12 +3477,14 @@ if(PVP_MODE){
   }
   updatePortalEmission(returnPortal,1.3+Math.sin(performance.now()*.002)*.2);
  },
+ destroyed:pvpDefeated,
  snapshot(me,others,force,pending,state){
+  pvpSounds.update([me,...others],state.serverTime);
   syncBoss(state.boss,state.serverTime);
   if(pvpHangar||landing)return;
   const changed=player.shipId!==me.profile.shipId;
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
-  const wasHit=me.hp<player.hp;if(wasHit){combatAudio.play(me.hp<=0?'explosion':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;if(me.lastDamagedBy===bossRemote.playerId)registerExplorerThreat(bossRemote);}
+  const wasHit=me.hp<player.hp;if(wasHit){combatAudio.play(me.hp<=0?'explosion':(me.skillUntil?.instantShield||0)>state.serverTime?'shieldHit':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;if(me.lastDamagedBy===bossRemote.playerId)registerExplorerThreat(bossRemote);}
   player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
   const predicted=new THREE.Vector3(...me.pos);for(const input of pending)predicted.addScaledVector(new THREE.Vector3(...input.move),player.speed*input.dt);
   if(force){playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}

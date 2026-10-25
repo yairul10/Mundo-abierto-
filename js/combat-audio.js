@@ -23,6 +23,19 @@ export const EFFECTS=Object.freeze({
  lowLife:{duration:.35,volume:.2,cooldown:8,frequency:600,end:420},
  boundary:{duration:.4,volume:.19,cooldown:6,frequency:400,end:250},
  incoming:{duration:.24,volume:.19,cooldown:4,frequency:1100,end:750},
+ harpoon:{duration:.32,volume:.3,cooldown:.15,noise:.4,frequency:650,end:110},
+ tether:{duration:.4,volume:.26,cooldown:.4,noise:.35,frequency:420,end:140},
+ bombLaunch:{duration:.6,volume:.32,cooldown:.25,noise:.6,frequency:120,end:48},
+ heavyBlast:{duration:1.2,volume:.5,cooldown:.12,noise:1,frequency:55,end:20},
+ sniperCharge:{duration:.45,volume:.18,cooldown:.6,frequency:350,end:1800},
+ sniperShot:{duration:.22,volume:.32,cooldown:.15,noise:.18,frequency:2200,end:90},
+ interference:{duration:.65,volume:.23,cooldown:.4,noise:.65,frequency:1000,end:250},
+ paralyze:{duration:.42,volume:.25,cooldown:.4,noise:.3,frequency:1350,end:160},
+ transfer:{duration:.65,volume:.23,cooldown:.4,frequency:500,end:1200},
+ luck:{duration:.4,volume:.24,cooldown:.4,frequency:900,end:1800},
+ shieldHit:{duration:.2,volume:.22,cooldown:.09,frequency:800,end:320},
+ defeat:{duration:.8,volume:.3,cooldown:2,noise:.2,frequency:320,end:45},
+ respawn:{duration:.85,volume:.25,cooldown:2,frequency:180,end:1100},
  explosion:{duration:.85,volume:.5,cooldown:.09,noise:1,frequency:75,end:24}
 });
 export const MUSIC_TRACKS=Object.freeze(['./assets/audio/trench-run-velocity.mp3','./assets/audio/horizon-of-the-iron-moon.mp3']);
@@ -116,4 +129,20 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
   },
   dispose(){disposed=true;doc?.removeEventListener('click',uiClick);doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();try{engineSource?.stop();engineSource?.disconnect();engineGain?.disconnect()}catch{}if(music){music.pause();music.removeEventListener('ended',nextTrack);music.removeAttribute('src');music.load();music=null;}context?.close()?.catch(()=>{})}
  };
+}
+
+// React only to server-confirmed activations, never replay skills on join/reconnect.
+export function createPvpSoundObserver(play){
+ let previous=new Map();
+ const effects={interference:'interference',instantShield:'shield',fury:'fury',paralyze:'paralyze',transfer:'transfer',luck:'luck'};
+ return {reset(){previous.clear()},update(players,now){
+  const next=new Map();
+  for(const player of players){
+   const ready={...player.skillReadyAt},old=previous.get(player.id);next.set(player.id,ready);
+   if(!old)continue;
+   const point=player.pos?{x:player.pos[0],y:player.pos[1],z:player.pos[2]}:undefined;
+   for(const [id,effect]of Object.entries(effects))if(ready[id]>(old[id]||0)&&ready[id]>now)play(effect,point);
+  }
+  previous=next;
+ }};
 }

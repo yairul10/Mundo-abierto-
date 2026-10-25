@@ -171,7 +171,7 @@ export function createGraveyard(THREE,scene){
  }
  return {environment,station,pads,background,enemyVisual,mountStation,mountRings,mountWreckShips,mountScrapModels};
 }
-export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
+export function createScrapCombat(THREE,scene,{position,canHit,damage,notify,sound=()=>{}}){
  const pending=[],projectiles=[],effects=[];let tether=null,immune=0;const rigs=new Set();
  const metal=new THREE.MeshStandardMaterial({color:0x7d6757,roughness:.9});
  const rockGeo=new THREE.IcosahedronGeometry(16,0),harpoonGeo=new THREE.ConeGeometry(7,35,6);
@@ -199,7 +199,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
    const start=rig?rig.launch():enemy.mesh.position.clone(),dir=position().clone().sub(start).normalize();
    const mesh=rig?rig.projectile():new THREE.Mesh(harpoonGeo,metal);mesh.position.copy(start);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,rig?0:1,rig?1:0),dir);scene.add(mesh);
    const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([rig?rig.cableOrigin():start,start]),cableMaterial.clone());scene.add(line);
-   projectiles.push({enemy,mesh,line,velocity:dir.multiplyScalar(650),life:2.2});
+   sound('harpoon',start);projectiles.push({enemy,mesh,line,velocity:dir.multiplyScalar(650),life:2.2});
   }
  }
  function update(dt){
@@ -212,14 +212,14 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
    if(p.time>0)continue;
    if(arm)arm.rotation.x=.6;
    const mesh=rig?rig.projectile():new THREE.Mesh(rockGeo,metal);mesh.position.copy(rig?rig.release():p.enemy.mesh.position);scene.add(mesh);
-   projectiles.push({enemy:p.enemy,mesh,marker:p.marker,start:mesh.position.clone(),target:p.target,age:0,duration:1.5,bomb:true});pending.splice(i,1);
+   sound('bombLaunch',mesh.position);projectiles.push({enemy:p.enemy,mesh,marker:p.marker,start:mesh.position.clone(),target:p.target,age:0,duration:1.5,bomb:true});pending.splice(i,1);
   }
   for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],previous=p.mesh.position.clone();let done=false;
    if(p.bomb){p.age+=dt;updateImpactMarker(p.marker,p.duration-p.age);const t=Math.min(1,p.age/p.duration);p.mesh.position.lerpVectors(p.start,p.target,t);p.mesh.position.y+=Math.sin(t*Math.PI)*180;p.mesh.rotation.x+=dt*4;
-    if(t>=1){if(canHit()&&position().distanceTo(p.target)<180)damage(300,1,p.enemy);
+    if(t>=1){sound('heavyBlast',p.target);if(canHit()&&position().distanceTo(p.target)<180)damage(300,1,p.enemy);
      const burst=new THREE.Mesh(new THREE.SphereGeometry(1,16,8),new THREE.MeshBasicMaterial({color:0xffa13b,transparent:true,opacity:.7,depthWrite:false}));burst.position.copy(p.target);scene.add(burst);effects.push({mesh:burst,time:.55});done=true}
    }else{p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;p.line.geometry.setFromPoints([p.enemy.mesh.userData.harpoonRig?.cableOrigin()||p.enemy.mesh.position,p.mesh.position]);
-    if(canHit()&&segmentDistance(previous,p.mesh.position,position())<45){if(!tether&&immune<=0&&!p.enemy.dead&&p.enemy.mesh.visible){tether={enemy:p.enemy,line:p.line,time:3};p.line=null;notify('⚓ Arpón enganchado · Inmovilizado 3 s · Puedes disparar');const partner=p.enemy.partner;if(partner&&!partner.dead&&partner.mesh.visible){fire(partner);partner.fireTimer=6}}done=true}
+    if(canHit()&&segmentDistance(previous,p.mesh.position,position())<45){if(!tether&&immune<=0&&!p.enemy.dead&&p.enemy.mesh.visible){tether={enemy:p.enemy,line:p.line,time:3};p.line=null;sound('tether',position());notify('⚓ Arpón enganchado · Inmovilizado 3 s · Puedes disparar');const partner=p.enemy.partner;if(partner&&!partner.dead&&partner.mesh.visible){fire(partner);partner.fireTimer=6}}done=true}
     if(p.life<=0||p.enemy.dead||!p.enemy.mesh.visible)done=true;
    }
    if(done){if(!p.bomb&&p.line)p.enemy.mesh.userData.harpoonRig?.retrieve();scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker);projectiles.splice(i,1)}
@@ -235,7 +235,7 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify}){
   const origin=start?.clone()||enemy.mesh.position.clone();
   const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([origin,position()]),cableMaterial.clone());scene.add(line);
   enemy.mesh.updateMatrixWorld(true);tether={enemy,line,time:3,anchor:enemy.mesh.worldToLocal(origin)};
-  notify('⚓ Lanza del Gran Titán · Inmovilizado 3 s · Puedes disparar');return true;
+  sound('tether',position());notify('⚓ Lanza del Gran Titán · Inmovilizado 3 s · Puedes disparar');return true;
  }
  return {fire,update,clear,snag,breakTether:()=>{if(!tether)return false;release();return true},blocked:()=>!!tether&&tether.time>0&&!tether.enemy.dead&&tether.enemy.mesh.visible&&canHit()};
 }

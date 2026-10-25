@@ -51,7 +51,7 @@ export function startSharedSession(bridge){
    if(bridge.isHangarOpen()&&!me.hangar&&performance.now()-hangarRequestAt>1500){hangarRequestAt=performance.now();send({type:'hangar',open:true})}
    if(identity.shipId!==me.profile.shipId){identity.shipId=me.profile.shipId;try{localStorage.setItem(SHIP_KEY,identity.shipId)}catch{}}
    pending=pending.filter(p=>p.seq>(me.seq??-1));const snap=lastRevision!==me.revision;bridge.snapshot(me,m.players.filter(p=>p.id!==me.id),firstState||snap,pending,state);lastRevision=me.revision;
-   for(const event of m.events||[]){if(seenEvents.has(event.id))continue;seenEvents.add(event.id);if(seenEvents.size>200)seenEvents.delete(seenEvents.values().next().value);if(!firstState&&event.type==='destroyed'){if(event.victim===me.id){clearSelection();note('Nave destruida. Reapareciste en la base.');bridge.clearFight()}else if(event.winner===me.id)note('Enemigo destruido.')}}
+   for(const event of m.events||[]){if(seenEvents.has(event.id))continue;seenEvents.add(event.id);if(seenEvents.size>200)seenEvents.delete(seenEvents.values().next().value);if(!firstState&&event.type==='destroyed'){bridge.destroyed?.(event.victim===me.id);if(event.victim===me.id){clearSelection();note('Nave destruida. Reapareciste en la base.');bridge.clearFight()}else if(event.winner===me.id)note('Enemigo destruido.')}}
    for(const event of m.events||[])if(event.type==='bossDefeated'&&!seenEvents.has('boss:'+event.id)){seenEvents.add('boss:'+event.id);if(!firstState)note('Titán del Nexo derrotado · Recompensas según el daño causado.')}
    const luck=me.skillReadyAt?.luck||0;if(!firstState&&luck>lastLuck&&luck>m.serverTime&&m.serverTime>=luck-30000&&m.serverTime<luck-27000)bridge.repeatMissiles?.();lastLuck=luck;firstState=false;updateUI();
   };
