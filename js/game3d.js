@@ -1,4 +1,4 @@
-import {createCombatAudio} from './combat-audio.js?v=296';
+import {createCombatAudio} from './combat-audio.js?v=297';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
@@ -2501,6 +2501,7 @@ function updateLoot(dt){
   d.mesh.position.y=d.baseY+Math.sin(d.age*2.7)*8;
   if(d.mesh.position.distanceTo(playerMesh.position)<90||(player.explorerDrone&&explorerMesh.visible&&explorerTask().mode==='collect'&&d.mesh.position.distanceTo(explorerMesh.position)<45)){
    player.loot[d.item.id]=(player.loot[d.item.id]||0)+1;
+   combatAudio.play('resource');
    lootToast('✦ '+d.item.name+' · '+d.item.rarity);
    scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1);missionEvent('loot',{sector:d.sector||activeSector});save();
   }else if(d.age>90){scene.remove(d.mesh);d.mesh.traverse(o=>{if(o.isSprite)o.material.dispose();if(o.isMesh&&o.geometry===dropGeo)o.material.dispose()});drops.splice(i,1)}
@@ -3085,6 +3086,7 @@ function portalChargePulse(seconds){
 }
 function switchSector(route){
  if(!route||player.level<route.level)return;
+ combatAudio.play('portalTravel');
  if(route.to==='pvp'){
   const portal=route.pos||graveyardPvpPortal,towardBase=currentStation().position.clone().sub(portal).normalize();
   playerMesh.position.copy(portal).addScaledVector(towardBase,350);
@@ -3111,7 +3113,7 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  const distance=playerMesh.position.distanceTo(route.pos),near=distance<=350,unlocked=player.level>=route.level;
  if(activeSector==='aurora'&&unlocked&&near)missionEvent('portalNear',{sector:'aurora'});
  const charging=distance<=100&&unlocked&&!docked&&!landing;
- if(charging){portalCountdown+=dt;if(portalCountdown>=3){switchSector(route);portalMessage.style.display='none';return}}else portalCountdown=0;
+ if(charging){combatAudio.play('portalCharge');portalCountdown+=dt;if(portalCountdown>=3){switchSector(route);portalMessage.style.display='none';return}}else portalCountdown=0;
  const pulse=charging?portalChargePulse(portalCountdown):0;
  const idleGlow=1.15+Math.sin(performance.now()*.0016)*.18;
  updatePortalEmission(portalMesh,idleGlow+(charging ? .8+pulse*1.4 : 0));
@@ -3299,6 +3301,8 @@ function farmInput(dt,now){
 }
 function loop(now){if(document.getElementById('worldLoading')){last=now;requestAnimationFrame(loop);return}const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;
 const autoInput=farmInput(dt,now);
+const enginePower=Math.min(1,Math.hypot((autoInput?.throttle??joy.throttle)+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),(autoInput?.strafe??joy.strafe??0)+(keys.d?1:0)-(keys.a?1:0)));
+combatAudio.setEngine(enginePower,player.hp>0&&!recoveryPending&&!graphicsLost&&!docked&&!landing&&panel.classList.contains('hidden')&&!farmUI?.open&&!document.body.classList.contains('journal-open')&&!document.body.classList.contains('portrait-blocked')&&(!pvpSession||pvpSession.active&&!pvpHangar));
 if(graphicsLost){requestAnimationFrame(loop);return}
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
 updateGraphicsDetail(now);

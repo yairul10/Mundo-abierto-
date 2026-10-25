@@ -8,7 +8,7 @@ class Context{
  constructor(){context=this;this.state='suspended';this.currentTime=0;this.sampleRate=8000;this.destination=node()}
  createGain(){return node()}createDynamicsCompressor(){return node()}createStereoPanner(){return node()}
  createBuffer(_,size){buffers++;const data=new Float32Array(size);samples.push(data);return {getChannelData:()=>data}}
- createBufferSource(){return {...node(),playbackRate:{value:1},start(){starts++},stop(){this.onended?.()}}}
+ createBufferSource(){return {...node(),playbackRate:{value:1,setTargetAtTime(value){this.value=value}},start(){starts++},stop(){this.onended?.()}}}
  resume(){this.state='running';return Promise.resolve()}suspend(){this.state='suspended';return Promise.resolve()}close(){this.state='closed';return Promise.resolve()}
 }
 let saved=null;const storage={getItem:()=>null,setItem:(key,value)=>{assert.equal(key,AUDIO_KEY);saved=JSON.parse(value)}};
@@ -16,7 +16,7 @@ const audio=createCombatAudio({host:{AudioContext:Context},document:doc,listener
 assert.equal(audio.play('laser'),false,'Never starts before a user gesture');listeners.get('pointerdown')();assert.equal(context.state,'running');
 assert.equal(audio.play('laser'),true);assert.equal(audio.play('laser'),false,'Rapid repeats are throttled');context.currentTime+=.1;assert.equal(audio.play('laser'),true);assert.equal(buffers,1,'Reuses effect buffers');
 assert.equal(audio.play('explosion',{x:2000,y:0,z:0}),false,'Distant effects are culled');
-for(const kind of ['enemyLaser','drone','missile','impact','explosion']){context.currentTime++;assert.equal(audio.play(kind),true)}
+for(const kind of ['enemyLaser','drone','missile','impact','explosion','resource','portalCharge','portalTravel']){context.currentTime++;assert.equal(audio.play(kind),true)}
 assert(samples.every(data=>data.every(Number.isFinite)&&data.some(x=>Math.abs(x)>.01)),'Every effect has valid audible samples');
 audio.setMuted(true);assert.equal(saved.muted,true);assert.equal(audio.play('laser'),false);audio.setMuted(false);audio.setVolume(0);assert.equal(audio.play('laser'),false);audio.setVolume(2);assert.equal(saved.volume,1);
 for(let i=0;i<30;i++){context.currentTime++;audio.play('laser')}assert.equal(starts,18,'Caps simultaneous effect voices');
@@ -34,3 +34,5 @@ class Audio{
 const playlist=createCombatAudio({host:{AudioContext:Context,Audio},document:doc});playlist.unlock();assert.equal(media.src,MUSIC_TRACKS[0]);assert.equal(media.paused,false);media.events.get('ended')();assert.equal(media.src,MUSIC_TRACKS[1]);media.events.get('ended')();assert.equal(media.src,MUSIC_TRACKS[0]);
 playlist.setMusicVolume(.32);assert.equal(media.volume,.32);playlist.setMuted(true);assert.equal(media.paused,true);playlist.setMuted(false);assert.equal(media.paused,false);doc.hidden=true;listeners.get('visibilitychange')();assert.equal(media.paused,true);doc.hidden=false;listeners.get('visibilitychange')();assert.equal(media.paused,false);playlist.dispose();assert.equal(media.paused,true);assert.equal(media.events.size,0);
 console.log('Music playlist: ordered tracks, repeat, independent volume, mute, background pause/resume and cleanup passed.');
+
+const engine=createCombatAudio({host:{AudioContext:Context},document:doc});engine.unlock();const beforeEngine=starts;engine.setEngine(1);assert.equal(starts,beforeEngine+1);engine.setEngine(.3);assert.equal(starts,beforeEngine+1,'Engine reuses one looping voice');engine.setEngine(0,false);engine.dispose();

@@ -6,13 +6,16 @@ export const EFFECTS=Object.freeze({
  drone:{duration:.12,volume:.09,cooldown:.12,frequency:2100,end:500},
  missile:{duration:.65,volume:.32,cooldown:.16,noise:.8,frequency:160,end:55},
  impact:{duration:.17,volume:.22,cooldown:.075,noise:.65,frequency:310,end:80},
+ resource:{duration:.24,volume:.23,cooldown:.12,frequency:950,end:1900},
+ portalCharge:{duration:.38,volume:.18,cooldown:.42,frequency:240,end:700},
+ portalTravel:{duration:1.1,volume:.38,cooldown:.8,noise:.5,frequency:180,end:1500},
  explosion:{duration:.85,volume:.5,cooldown:.09,noise:1,frequency:75,end:24}
 });
 export const MUSIC_TRACKS=Object.freeze(['./assets/audio/trench-run-velocity.mp3','./assets/audio/horizon-of-the-iron-moon.mp3']);
 export function createCombatAudio({host=globalThis,listener=()=>null,storage,document:doc=host.document}={}){
  let settings={volume:.55,musicVolume:.2,muted:false};
  try{const saved=JSON.parse(storage?.getItem(AUDIO_KEY)||'null');if(saved){if(Number.isFinite(saved.volume))settings.volume=Math.max(0,Math.min(1,saved.volume));if(Number.isFinite(saved.musicVolume))settings.musicVolume=Math.max(0,Math.min(1,saved.musicVolume));settings.muted=saved.muted===true}}catch{}
- let context,master,music,track=0,unlocked=false,disposed=false;
+ let context,master,music,track=0,unlocked=false,disposed=false,engineSource,engineGain;
  const buffers=new Map(),last=new Map(),voices=new Set(),views=new Set();
  function gain(){if(master)master.gain.setTargetAtTime(settings.muted?0:settings.volume,context.currentTime,.02);if(music){music.volume=settings.muted?0:settings.musicVolume;if(settings.muted||settings.musicVolume<=0)music.pause()}}
  function nextTrack(){track=(track+1)%MUSIC_TRACKS.length;music.src=MUSIC_TRACKS[track];if(!doc?.hidden)startMusic()}
@@ -21,6 +24,21 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
   try{
    if(!music){music=new host.Audio(MUSIC_TRACKS[track]);music.preload='metadata';music.loop=false;music.addEventListener('ended',nextTrack);gain()}
    if(music.paused)music.play()?.catch(()=>{});
+  }catch{}
+ }
+ function setEngine(power,active=true){
+  if(!context||disposed)return;
+  const running=active&&unlocked&&!settings.muted&&settings.volume>0&&!doc?.hidden&&context.state==='running';
+  if(!running){engineGain?.gain.setTargetAtTime(0,context.currentTime,.12);return}
+  try{
+   if(!engineSource){
+    const rate=context.sampleRate,b=context.createBuffer(1,rate,rate),data=b.getChannelData(0);
+    for(let i=0;i<rate;i++){const t=i/rate;data[i]=.22*Math.sin(2*Math.PI*48*t)+.08*Math.sin(2*Math.PI*96*t)+.035*Math.sin(2*Math.PI*151*t)*(1+.25*Math.sin(2*Math.PI*3*t))}
+    engineSource=context.createBufferSource();engineSource.buffer=b;engineSource.loop=true;engineGain=context.createGain();engineGain.gain.value=0;engineSource.connect(engineGain);engineGain.connect(master);engineSource.start();
+   }
+   const amount=Math.max(0,Math.min(1,Number(power)||0));
+   engineSource.playbackRate.setTargetAtTime(.7+amount*.65,context.currentTime,.18);
+   engineGain.gain.setTargetAtTime(.035+amount*.11,context.currentTime,.18);
   }catch{}
  }
  function persist(){try{storage?.setItem(AUDIO_KEY,JSON.stringify(settings))}catch{}gain();if(unlocked)startMusic();for(const refresh of views)refresh()}
@@ -66,7 +84,7 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
   else if(unlocked){context.resume()?.catch(()=>{});startMusic()}
  }
  doc?.addEventListener('pointerdown',unlock,{passive:true});doc?.addEventListener('keydown',unlock);doc?.addEventListener('visibilitychange',visibility);
- return {play,unlock,get settings(){return {...settings}},setVolume(value){if(Number.isFinite(+value)){settings.volume=Math.max(0,Math.min(1,+value));persist()}},setMuted(value){settings.muted=!!value;persist()},setMusicVolume(value){if(Number.isFinite(+value)){settings.musicVolume=Math.max(0,Math.min(1,+value));persist()}},
+ return {play,unlock,setEngine,get settings(){return {...settings}},setVolume(value){if(Number.isFinite(+value)){settings.volume=Math.max(0,Math.min(1,+value));persist()}},setMuted(value){settings.muted=!!value;persist()},setMusicVolume(value){if(Number.isFinite(+value)){settings.musicVolume=Math.max(0,Math.min(1,+value));persist()}},
   mount(parent){
    if(!doc||!parent)return;
    const section=doc.createElement('section');section.style.cssText='margin:14px 0;padding:12px;border:1px solid #426078;border-radius:12px;background:#101d2b;color:#e9f6ff';
@@ -80,6 +98,6 @@ export function createCombatAudio({host=globalThis,listener=()=>null,storage,doc
    const preview=doc.createElement('button');preview.type='button';preview.textContent='Probar sonido';preview.style.marginLeft='8px';preview.onclick=()=>{unlock();setTimeout(()=>play('laser'),40)};
    const refresh=()=>{slider.value=String(Math.round(settings.volume*100));value.textContent=slider.value+'%';musicSlider.value=String(Math.round(settings.musicVolume*100));musicValue.textContent=musicSlider.value+'%';mute.textContent=settings.muted?'Activar sonido':'Silenciar';mute.setAttribute('aria-pressed',String(settings.muted))};views.add(refresh);refresh();section.append(label,slider,musicLabel,musicSlider,mute,preview);parent.append(section);
   },
-  dispose(){disposed=true;doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();if(music){music.pause();music.removeEventListener('ended',nextTrack);music.removeAttribute('src');music.load();music=null;}context?.close()?.catch(()=>{})}
+  dispose(){disposed=true;doc?.removeEventListener('pointerdown',unlock);doc?.removeEventListener('keydown',unlock);doc?.removeEventListener('visibilitychange',visibility);for(const voice of voices){try{voice.stop()}catch{}}voices.clear();views.clear();try{engineSource?.stop();engineSource?.disconnect();engineGain?.disconnect()}catch{}if(music){music.pause();music.removeEventListener('ended',nextTrack);music.removeAttribute('src');music.load();music=null;}context?.close()?.catch(()=>{})}
  };
 }
