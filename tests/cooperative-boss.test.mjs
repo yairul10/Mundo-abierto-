@@ -2,24 +2,24 @@ import assert from 'node:assert/strict';
 import {BOSS_RULES,advanceBossMotion,bossPatrolPosition,ensureBoss,recordBossDamage,tickBoss,splitBossReward,bossSnapshot} from '../server/pvp/cooperative-boss.mjs';
 import {equip,advance,attack,updateProtection,combatEligible} from '../server/pvp/world-rules.mjs';
 const t=100000;
-function pilot(id,pos,hp=20000){const p={id,connected:true,pos,roster:{aurora:{maxHp:1000,maxEnergy:500,attack:100000,defense:0}}};equip(p,'aurora');p.hp=hp;updateProtection(p,t);return p}
+function pilot(id,pos,hp=100000){const p={id,connected:true,pos,roster:{aurora:{maxHp:5000,maxEnergy:500,attack:100000,defense:0}}};equip(p,'aurora');p.hp=hp;updateProtection(p,t);return p}
 const world=(...players)=>({players,events:[],bullets:[],simTime:t});
 {
- const a=pilot('a',[0,120,-1500]),b=pilot('b',[100,120,-1500],19000),c=pilot('c',[-100,120,-1500],18000),d=pilot('d',[150,120,-1500],21000),safe=pilot('safe',[0,120,0]),far=pilot('far',[2500,120,0]),s=world(a,b,c,d,safe,far),boss=ensureBoss(s,t);
- assert.equal(boss.hp,1000000);assert.equal(bossSnapshot(boss).contributions,undefined);tickBoss(s,t,combatEligible);assert.equal(a.hp,20000,'Neutral until attacked');
- recordBossDamage(boss,a,10,t);tickBoss(s,t+2999,combatEligible);assert.equal(a.hp,20000);assert.deepEqual(bossSnapshot(boss).aimTargets.map(x=>x.targetId),['c','b','a'],'Public pre-aim selects the three lowest-current-HP eligible pilots');assert.equal(bossSnapshot(boss).nextAttackAt,t+3000);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,15000);assert.equal(b.hp,14000);assert.equal(c.hp,13000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['c','b','a']);
- tickBoss(s,t+6000,combatEligible);assert.equal(c.hp,8000);assert.equal(a.hp,10000);assert.equal(b.hp,9000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['c','b','a'],'Re-rank all pilots using current HP before each volley');assert.equal(safe.hp,20000);assert.equal(far.hp,20000);assert.equal(d.hp,21000,'Fourth eligible pilot with more HP is not selected');
+ const a=pilot('a',[0,120,-1500]),b=pilot('b',[100,120,-1500],99000),c=pilot('c',[-100,120,-1500],98000),d=pilot('d',[150,120,-1500],101000),safe=pilot('safe',[0,120,0]),far=pilot('far',[2500,120,0]),s=world(a,b,c,d,safe,far),boss=ensureBoss(s,t);
+ assert.equal(boss.hp,1000000);assert.equal(bossSnapshot(boss).contributions,undefined);tickBoss(s,t,combatEligible);assert.equal(a.hp,100000,'Neutral until attacked');
+ recordBossDamage(boss,a,10,t);tickBoss(s,t+2999,combatEligible);assert.equal(a.hp,100000);assert.deepEqual(bossSnapshot(boss).aimTargets.map(x=>x.targetId),['c','b','a'],'Public pre-aim selects the three lowest-current-HP eligible pilots');assert.equal(bossSnapshot(boss).nextAttackAt,t+3000);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,88500);assert.equal(b.hp,87500);assert.equal(c.hp,86500);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['c','b','a']);
+ tickBoss(s,t+6000,combatEligible);assert.equal(c.hp,75000);assert.equal(a.hp,77000);assert.equal(b.hp,76000);assert.deepEqual(boss.lastAttack.targets.map(h=>h.targetId),['c','b','a'],'Re-rank all pilots using current HP before each volley');assert.equal(safe.hp,100000);assert.equal(far.hp,100000);assert.equal(d.hp,101000,'Fourth eligible pilot with more HP is not selected');
  b.pos=[0,120,-620];updateProtection(b,t+6001);b.hp=30000;tickBoss(s,t+12000,combatEligible);assert.equal(b.hp,30000,'Protected base cannot be hit');assert(!bossSnapshot(boss).aimTargets.some(x=>x.targetId==='b'),'Protected pilots are removed from cannon aiming');
  const seq=boss.attackSeq;tickBoss(s,t+600000,combatEligible);assert.equal(boss.attackSeq,seq+1,'No burst after long inactivity');
 }
 {
- const a=pilot('solo',[0,120,-1500]),s=world(a),b=ensureBoss(s,t);recordBossDamage(b,a,1,t);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,5000);assert.equal(b.lastAttack.targets.length,1,'Solo pilots receive the entire 15000 damage volley in one hit');
+ const a=pilot('solo',[0,120,-1500]),s=world(a),b=ensureBoss(s,t);recordBossDamage(b,a,1,t);tickBoss(s,t+3000,combatEligible);assert.equal(a.hp,65500);assert.equal(b.lastAttack.targets.length,1,'Solo pilots receive the entire 34500 damage volley in one hit');
 }
 {
  const a=pilot('a',[0,120,-1500]),b=pilot('b',[100,120,-1500]),s=world(a,b),boss=ensureBoss(s,t);
  recordBossDamage(boss,a,1,t);tickBoss(s,t+3000,combatEligible);
- assert.equal(a.hp,12500);assert.equal(b.hp,12500);
- assert.equal(boss.lastAttack.targets.reduce((sum,hit)=>sum+hit.damage,0),15000,'Two pilots split the full volley equally');
+ assert.equal(a.hp,82750);assert.equal(b.hp,82750);
+ assert.equal(boss.lastAttack.targets.reduce((sum,hit)=>sum+hit.damage,0),34500,'Two pilots split the full volley equally');
 }
 {
  const a=pilot('mover',[0,120,-1500]),s=world(a),b=ensureBoss(s,t),start=[...b.pos];advanceBossMotion(s,t+1000,combatEligible);assert(Math.hypot(...b.pos.map((v,i)=>v-start[i]))>50,'Neutral boss patrols');assert.equal(b.teleportSeq,0);
@@ -46,4 +46,4 @@ const world=(...players)=>({players,events:[],bullets:[],simTime:t});
  assert.deepEqual(splitBossReward({a:750000,b:250000}).map(r=>r.amount),[750000,250000]);assert.deepEqual(splitBossReward({}),[]);
  const s=world(),b=ensureBoss(s,t);recordBossDamage(b,{id:'disconnected'},50,t);b.hp=0;tickBoss(s,t+1,combatEligible);assert.equal(s.bossRewards[0].playerId,'disconnected','Departed contributors retain awards');
 }
-console.log('Cooperative boss: shared HP, three lowest-current-HP targets, shared 15000 damage, solo hits, bounded patrol, combat teleports and persistence, base/range guards, cadence, actual damage, exact shares, offline contributors and respawn passed.');
+console.log('Cooperative boss: shared HP, three lowest-current-HP targets, shared 34500 damage, solo hits, bounded patrol, combat teleports and persistence, base/range guards, cadence, actual damage, exact shares, offline contributors and respawn passed.');

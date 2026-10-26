@@ -1,5 +1,5 @@
 import {defenseDamage} from './combat.mjs';
-export const BOSS_RULES=Object.freeze({id:'pvp-super-boss',name:'Titán del Nexo',maxHp:1000000,damage:5000,reward:1000000,attackInterval:3000,targets:3,patrolSpeed:80,teleportInterval:20000,range:1200,respawnDelay:300000,pos:[0,120,-1800],hitRadius:180});
+export const BOSS_RULES=Object.freeze({id:'pvp-super-boss',name:'Titán del Nexo',maxHp:1000000,damage:11500,reward:1000000,attackInterval:3000,targets:3,patrolSpeed:80,teleportInterval:20000,range:1200,respawnDelay:300000,pos:[0,120,-1800],hitRadius:180});
 export function ensureBoss(s,now){
  if(!s.boss||s.boss.hp<=0&&now>=s.boss.respawnAt)s.boss={id:BOSS_RULES.id,instanceId:crypto.randomUUID(),boss:true,connected:true,pos:[...BOSS_RULES.pos],hp:BOSS_RULES.maxHp,maxHp:BOSS_RULES.maxHp,hitRadius:BOSS_RULES.hitRadius,contributions:{},active:false,nextAttackAt:0,attackSeq:0,motionAt:now,patrolPhase:0,teleportSeq:0,rulesVersion:2};
  const b=s.boss;
