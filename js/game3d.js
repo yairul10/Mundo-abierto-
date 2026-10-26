@@ -13,7 +13,7 @@ import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=230';
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
-import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=265';
+import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=325';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=314';
 import {createColosoRig} from './coloso-rig.js?v=187';
@@ -1144,7 +1144,7 @@ function fireTitan(){
   const target=playerMesh.position.clone().add(new THREE.Vector3(offset.x,0,offset.z));
   const marker=titanEffects.marker();marker.position.copy(target);scene.add(marker);
   const mesh=titanEffects.bomb();mesh.position.copy(titanRig.muzzle(kind,side,i));mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),target.clone().sub(mesh.position).normalize());scene.add(mesh);
-  titanProjectiles.push({mesh,marker,target,start:mesh.position.clone(),age:0,life:TITAN_BOMB_FUSE,damage:450*scale,bomb:true});
+  titanProjectiles.push({mesh,marker,target,start:mesh.position.clone(),age:0,life:TITAN_BOMB_FUSE,damage:TITAN_STATS.bombDamage*scale,bomb:true});
  }
 }
 function spawnTitanWave(){

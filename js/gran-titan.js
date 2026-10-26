@@ -1,5 +1,5 @@
 // Gran Titán: independent moving doors/launchers and telegraphed attack cycle.
-export const TITAN_STATS={hp:80000,damage:320,gold:30000,xp:45000,loot:30};
+export const TITAN_STATS={hp:80000,damage:736,bombDamage:1035,gold:30000,xp:45000,loot:30};
 export function titanScale(level){return 1+Math.max(0,Math.min(105,Math.floor(Number(level)||1))-40)*.02}
 export function titanPattern(round){return [-3,-2,-1,0,1,2,3].filter(i=>i!==[-2,-1,1,2][Math.abs(round)%4])}
 export function titanBombOffsets(round){const a=round*Math.PI/4;return [{x:0,z:0},...[-1,0,1].map(i=>({x:Math.cos(a+i*2*Math.PI/3)*220,z:Math.sin(a+i*2*Math.PI/3)*220}))]}
