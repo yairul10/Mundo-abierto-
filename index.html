@@ -73,7 +73,7 @@ try{
   void (async()=>{
 // GitHub Pages puede servir HTML cacheado: comprobamos la versión publicada
 // con una petición que evita caché y actualizamos una sola vez si cambió.
-const GAME_BUILD='3d-20261024-288';
+const GAME_BUILD='3d-20261025-324';
 try {
  const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(4000)});
  if(response.ok){
@@ -111,7 +111,7 @@ try {
   };
   THREE.DefaultLoadingManager.onLoad=()=>{window.cosmosAssetsLoading=false};
   status.textContent='Motor 3D OK · cargando mundo…';
-  await loadWithDeadline(import('./js/game3d.js?v=3d-20261025-323'),'el módulo del mundo 3D');
+  await loadWithDeadline(import('./js/game3d.js?v=3d-20261025-324'),'el módulo del mundo 3D');
   status.remove();
   const overlay=document.getElementById('worldLoading');
   if(overlay){

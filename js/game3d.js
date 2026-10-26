@@ -1,3 +1,4 @@
+import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -19,13 +20,13 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=320';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=323';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=324';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=314';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
-const PVP_MODE=sharedRequested();let pvpSession=null,pvpHangar=null;
+const PVP_MODE=sharedRequested();let pvpSession=null,pvpHangar=null,pvpCorrection=[0,0,0];
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
 const THREE=window.THREE;if(!THREE)throw new Error('Three.js no disponible');
 const $=id=>document.getElementById(id), canvas=$('world');
@@ -3124,7 +3125,8 @@ if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderer.render(scen
 const menuOpen=docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
-const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp((autoInput?.strafe??joy.strafe)+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()||pvpSession?.paralyzed?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(menuOpen?[0,0,0]:forward.clone().multiplyScalar(throttle/movementScale).addScaledVector(right,strafe/movementScale).toArray(),[yaw,pitch],!menuOpen&&fireHeld,dt,now);
+const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp((autoInput?.strafe??joy.strafe)+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()||pvpSession?.paralyzed?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(menuOpen?[0,0,0]:forward.clone().multiplyScalar(throttle*scrapMovement/movementScale).addScaledVector(right,strafe*scrapMovement/movementScale).toArray(),[yaw,pitch],!menuOpen&&fireHeld,dt,now,player.speed);
+if(pvpSession&&!docked&&!landing){const power=Math.min(1,Math.hypot(throttle,strafe)),step=correctionStep(pvpCorrection,player.speed*(power||1),dt);playerMesh.position.add(new THREE.Vector3(...step));pvpCorrection=pvpCorrection.map((v,i)=>v-step[i])}
 // Vuelo libre en los tres ejes: el límite esférico del sector sustituye al antiguo techo/suelo.
 updateSectorBoundary(dt);updateSectorPortal();
 playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=pitch;const bankTarget=(bankInput-strafe*.16)*Math.min(1,.35+Math.abs(throttle)+Math.abs(strafe)*.65);playerMesh.rotation.z=THREE.MathUtils.lerp(playerMesh.rotation.z,bankTarget,1-Math.pow(.0008,dt));bankInput=THREE.MathUtils.lerp(bankInput,0,1-Math.pow(.02,dt));
@@ -3292,9 +3294,9 @@ if(PVP_MODE){
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
   const wasHit=me.hp<player.hp;if(wasHit){combatAudio.play(me.hp<=0?'explosion':(me.skillUntil?.instantShield||0)>state.serverTime?'shieldHit':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;if(me.lastDamagedBy===bossRemote.playerId)registerExplorerThreat(bossRemote);}
   player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;refreshFormationButton();for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
-  const predicted=new THREE.Vector3(...me.pos);for(const input of pending)predicted.addScaledVector(new THREE.Vector3(...input.move),player.speed*input.dt);
-  if(force){playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
-  else if(playerMesh.position.distanceTo(predicted)>150)playerMesh.position.copy(predicted);else playerMesh.position.lerp(predicted,.18);
+  const predicted=new THREE.Vector3(...me.pos).add(new THREE.Vector3(...pending.offset));
+  if(force){pvpCorrection=[0,0,0];playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
+  else if(pending.fresh)pvpCorrection=predicted.sub(playerMesh.position).toArray();
   const ids=new Set(others.map(p=>p.id));for(const [id,r]of remotes)if(!ids.has(id)){scene.remove(r.mesh,r.drones,r.pet);r.label.remove();enemies.splice(enemies.indexOf(r),1);remotes.delete(id)}
   for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),pet=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones,pet);label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>pvpSession.select(other.id);label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();pvpSession.select(other.id)},{passive:false});label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvpSession.select(other.id)}};r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,pet,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:other.profile.level};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
     for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i%2?1:-1)*[78,135,195,250][Math.floor(i/2)],14,125+Math.floor(i/2)*40);d.rotation.set(0,0,0);drones.add(d)}
