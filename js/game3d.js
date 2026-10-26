@@ -747,8 +747,8 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
 const modularPaths=[
- './assets/models/scififortress_optimizado.glb?v=105',
- './assets/models/landingpad_optimizado.glb?v=105',
+ './assets/models/scififortress_optimizado.glb?v=319',
+ './assets/models/landingpad_optimizado.glb?v=319',
  './assets/models/scificorridormodule_optimizado.glb?v=105'
 ];
 Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLoad(modelLoader,path,gltf=>resolve(gltf.scene),undefined,reject))))
@@ -766,15 +766,21 @@ Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLo
  const hub=fitted(hubSource,315);assembly.add(hub);
  const positions=[[450,0],[-450,0],[0,450],[0,-450]];
  for(const [x,z] of positions){
-  const pad=fitted(padSource,250);pad.position.set(x,0,z);assembly.add(pad);
-  modularLandingPads.push(pad);
-  const bridge=fitted(bridgeSource,245);
-  // Eje largo del corredor local alineado con el radio hacia cada plataforma.
-  const bridgeBounds=new THREE.Box3().setFromObject(bridge);
-  const bridgeSize=bridgeBounds.getSize(new THREE.Vector3());
-  const angle=Math.atan2(x,z);
-  bridge.rotation.y=angle+(bridgeSize.x>bridgeSize.z?Math.PI/2:0);
-  bridge.position.set(x*.56,0,z*.56);assembly.add(bridge);
+  const direction=new THREE.Vector3(x,0,z).normalize();
+  const port=stationConnector(hub,direction);
+  const pad=fitted(padSource,250),rim=stationConnector(pad,direction.clone().negate(),18,25);
+  pad.position.set(x,port.center.y-rim.center.y,z);
+  pad.position[port.side]=port.center[port.side]-rim.center[port.side];
+  assembly.add(pad);modularLandingPads.push(pad);
+  const start=port.center.clone().addScaledVector(direction,-3);
+  const end=rim.center.clone().add(pad.position).addScaledVector(direction,4);
+  const bridge=fitted(bridgeSource,start.distanceTo(end));
+  const bridgeSize=new THREE.Box3().setFromObject(bridge).getSize(new THREE.Vector3());
+  if(bridgeSize.x>bridgeSize.z)bridge.scale.z=Math.max(20,port.size[port.side]*1.12)/bridgeSize.z;
+  else bridge.scale.x=Math.max(20,port.size[port.side]*1.12)/bridgeSize.x;
+  bridge.scale.y=Math.max(20,port.size.y*1.12)/bridgeSize.y;
+  bridge.rotation.y=Math.atan2(x,z)+(bridgeSize.x>bridgeSize.z?Math.PI/2:0);
+  bridge.position.copy(start).add(end).multiplyScalar(.5);assembly.add(bridge);
  }
  // La estación conserva la posición original en el mundo y su luz.
  const old=[...auroraStation.children];for(const child of old)if(!child.isLight)auroraStation.remove(child);
