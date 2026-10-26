@@ -13,17 +13,21 @@ export function formationPreview(id){
 }
 export function assembledShipPreview(id){return ASSEMBLED_SHIPS[id]?shipThumbnail(id):''}
 export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equip,equipShip,log=()=>{},changed}){
- const $=id=>document.getElementById(id);let selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='',assemblyZone=isPvpBase()?'pvp':'pve';
+ const $=id=>document.getElementById(id);let equipmentShip=player.shipId,selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='',assemblyZone=isPvpBase()?'pvp':'pve';
  const note=text=>{message=text;const el=$('hangarNotice');el.textContent=text;el.hidden=!text};
  function show(next){stopAssemblyPreview();view=next;for(const v of ['home','equipment','shop','assembly'])$('hangar'+v[0].toUpperCase()+v.slice(1)+'View').classList.toggle('hidden',v!==view);$('hangarPanel').classList.toggle('expanded',view!=='home');note('');render(true);if(view==='shop'&&category==='ships')previewShip()}
  document.querySelectorAll('[data-hangar-view]').forEach(b=>b.onclick=()=>show(b.dataset.hangarView));
  document.querySelectorAll('[data-shop-category]').forEach(b=>b.onclick=()=>{category=b.dataset.shopCategory;stopAssemblyPreview();render(true);if(view==='shop'&&category==='ships')previewShip()});
- document.querySelectorAll('[data-assembly-zone]').forEach(b=>b.onclick=()=>{assemblyZone=b.dataset.assemblyZone;selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear();stopAssemblyPreview();note('');render(true)});
+ document.querySelectorAll('[data-assembly-zone]').forEach(b=>b.onclick=()=>{if(b.dataset.assemblyZone!==baseZone())return;assemblyZone=baseZone();selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear();stopAssemblyPreview();note('');render(true)});
  const baseZone=()=>isPvpBase()?'pvp':'pve';
  const allowedShip=id=>(ASSEMBLED_SHIPS[id]?.assemblyZone||'pve')===assemblyZone;
  function renderEquipment(){
-  const host=$('hangarEquipmentCatalog');
-  host.innerHTML='<h4>Naves disponibles</h4>'+Object.entries(SHIP_PREVIEWS).filter(([id])=>player.ownedShips?.[id]).map(([id,ship])=>'<article class="commerce-card">'+shipThumbnail(id)+'<h4>'+ship.name+'</h4><button data-equip-owned="'+id+'" '+(player.shipId===id?'disabled':'')+'>'+(player.shipId===id?'Equipada':'Equipar nave')+'</button></article>').join('')+'<h4>Formaciones disponibles</h4>'+FORMATIONS.filter(f=>player.formations?.[f.id]).map(f=>'<article class="commerce-card">'+formationPreview(f.id)+'<h4>'+f.name+'</h4><button data-equip-owned-formation="'+f.id+'" '+(player.droneFormation===f.id?'disabled':'')+'>'+(player.droneFormation===f.id?'Equipada':'Equipar formación')+'</button></article>').join('');
+  const host=$('hangarEquipmentCatalog');host.classList.remove('commerce-grid');
+  if(!player.ownedShips?.[equipmentShip])equipmentShip=player.shipId;
+  const profile=(isPvpBase()?pvpMultipliers:pveMultipliers)(equipmentShip),ship=SHIP_PREVIEWS[equipmentShip];
+  host.innerHTML='<h4>Naves disponibles</h4><div class="equipment-roster">'+Object.entries(SHIP_PREVIEWS).filter(([id])=>player.ownedShips?.[id]).map(([id,item])=>'<button class="equipment-ship-tile" data-inspect-ship="'+id+'" aria-pressed="'+(equipmentShip===id)+'">'+shipThumbnail(id)+'<strong>'+item.name+'</strong><small>'+(player.shipId===id?'Equipada':'Ver características')+'</small></button>').join('')+'</div><section class="equipment-detail"><div id="equipmentShipPreview" class="ship-model-preview"></div><div><h4>'+ship.name+'</h4><p>Casco ×'+profile.hp+' · Ataque ×'+profile.attack+'<br>Escudo ×'+profile.defense+' · Velocidad ×'+profile.speed+'</p><p>'+ (ASSEMBLED_SHIPS[equipmentShip]?.description||'') +'</p><button data-equip-owned="'+equipmentShip+'" '+(player.shipId===equipmentShip?'disabled':'')+'>'+(player.shipId===equipmentShip?'Equipada':'Equipar nave')+'</button></div></section><h4>Formaciones disponibles</h4>'+FORMATIONS.filter(f=>player.formations?.[f.id]).map(f=>'<article class="commerce-card equipment-formation">'+formationPreview(f.id)+'<h4>'+f.name+'</h4><button data-equip-owned-formation="'+f.id+'" '+(player.droneFormation===f.id?'disabled':'')+'>'+(player.droneFormation===f.id?'Equipada':'Equipar formación')+'</button></article>').join('');
+  host.querySelectorAll('[data-inspect-ship]').forEach(b=>b.onclick=()=>{equipmentShip=b.dataset.inspectShip;render(true)});
+  if(view==='equipment')void startAssemblyPreview($('equipmentShipPreview'),equipmentShip);
   host.querySelectorAll('[data-equip-owned]').forEach(b=>b.onclick=()=>{if(view!=='equipment'||!isDocked()||!isOffline()||!player.ownedShips?.[b.dataset.equipOwned])return;equipShip(b.dataset.equipOwned);render(true)});
   host.querySelectorAll('[data-equip-owned-formation]').forEach(b=>b.onclick=()=>{if(view!=='equipment'||!isDocked()||!isOffline()||!player.formations?.[b.dataset.equipOwnedFormation])return;equip(b.dataset.equipOwnedFormation);render(true)});
  }
@@ -43,12 +47,13 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
 
  function render(force=false){
   $('hangarCredits').textContent=fmt(player.gold)+' créditos';
-  const next=JSON.stringify([player.gold,player.loot,player.formations,player.droneFormation,player.droneCount,player.repairRobotLevel,player.boosters,player.ownedShips,player.shipId,player.level]);
+  if(assemblyZone!==baseZone()){assemblyZone=baseZone();selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear();stopAssemblyPreview();force=true}
+  const next=JSON.stringify([baseZone(),player.gold,player.loot,player.formations,player.droneFormation,player.droneCount,player.repairRobotLevel,player.boosters,player.ownedShips,player.shipId,player.level]);
   if(!force&&next===stamp)return;stamp=next;
   document.querySelectorAll('[data-shop-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.shopCategory===category)));
   for(const c of ['ships','drones','upgrades','boosters','sell'])$('shop'+c[0].toUpperCase()+c.slice(1)).classList.toggle('hidden',c!==category);
   renderEquipment();
-  document.querySelectorAll('[data-assembly-zone]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.assemblyZone===assemblyZone)));
+  document.querySelectorAll('[data-assembly-zone]').forEach(b=>{b.hidden=b.dataset.assemblyZone!==baseZone();b.setAttribute('aria-pressed',String(b.dataset.assemblyZone===assemblyZone))});
   $('assemblyZoneNotice').textContent=baseZone()===assemblyZone?'Planos '+assemblyZone.toUpperCase()+' · Ensamblaje disponible en esta base.':'Puedes revisar los planos. Para ensamblar, aterriza en una base '+assemblyZone.toUpperCase()+'.';
   if(selected.startsWith('ship:')&&!allowedShip(selected.slice(5))||assemblyZone==='pvp'&&!selected.startsWith('ship:')){selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear()}
   const list=$('formationCatalog');list.innerHTML='<h4>Naves</h4>'+Object.entries(ASSEMBLED_SHIPS).filter(([id])=>allowedShip(id)).map(([id,ship])=>'<button class="formation-tile '+(selected==='ship:'+id?'chosen':'')+'" data-plan="ship:'+id+'" aria-pressed="'+(selected==='ship:'+id)+'" style="--formation-color:'+('#'+ship.color.toString(16).padStart(6,'0'))+'">'+assembledShipPreview(id)+'<strong>'+ship.name+'</strong><small>'+(player.shipId===id?'Equipada':player.ownedShips?.[id]?'Disponible':'Por ensamblar')+'</small></button>').join('')+(assemblyZone==='pve'?'<h4>Formaciones</h4>'+FORMATIONS.map(f=>'<button class="formation-tile '+(f.id===selected?'chosen':'')+'" data-plan="'+f.id+'" aria-pressed="'+(f.id===selected)+'" style="--formation-color:'+f.color+'">'+formationPreview(f.id)+'<strong>'+f.name+'</strong><small>'+(player.droneFormation===f.id?'Equipada':player.formations[f.id]?'Disponible':'Por ensamblar')+'</small></button>').join(''):'');

@@ -224,3 +224,19 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 #hangarPanel .ship-model-preview{position:relative;min-height:160px;height:230px;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:radial-gradient(ellipse at center,#203851,#091625);isolation:isolate}#hangarPanel .ship-model-preview>img{width:100%;height:100%;object-fit:contain}#hangarPanel .shop-model-hero{display:flex;align-items:center;gap:16px;margin:12px 0 18px}#hangarPanel .shop-model-hero .ship-model-preview{width:min(60%,360px);flex-shrink:0}#hangarPanel .shop-model-hero small{display:block;line-height:1.5;margin-top:10px}#hangarPanel .ship-preview-button{padding:0;width:110px;min-width:80px;flex-shrink:0;border:1px solid #456583;border-radius:10px;background:#0c1b2b}#hangarPanel .ship-preview-button .ship-preview{width:100%;height:auto;margin:0}@media(max-width:600px){#hangarPanel .ship-preview-button{width:80px}#hangarPanel .shop-model-hero{gap:10px}#hangarPanel .ship-model-preview{height:180px}}
 
 @media(max-width:550px){.hangar-destinations{grid-template-columns:1fr}}
+
+/* Compact fleet selection, with one live preview for the selected ship. */
+#hangarPanel{padding:16px;align-items:center;overflow:hidden}
+#hangarPanel .hangar-inner{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+#hangarPanel [hidden]{display:none!important}
+.equipment-roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+#hangarPanel .equipment-ship-tile{margin:0;padding:8px;background:#102638;color:#eaf8ff;border:1px solid #456583}
+#hangarPanel .equipment-ship-tile[aria-pressed="true"]{border-color:#70e1f1;background:#19475a}
+#hangarPanel .equipment-ship-tile .ship-preview{height:76px;aspect-ratio:auto;background:transparent}
+.equipment-ship-tile strong,.equipment-ship-tile small{display:block;font-size:12px}
+.equipment-ship-tile small{font-size:10px;margin-top:5px}
+.equipment-detail{display:flex;align-items:center;gap:16px;padding:12px;margin:14px 0;background:#0b1b2b;border-radius:12px}
+#hangarPanel .equipment-detail .ship-model-preview{width:180px;min-width:120px;min-height:100px;height:130px;flex-shrink:0}
+.equipment-formation{display:inline-block;width:min(180px,45%);margin:5px;padding:10px;vertical-align:top}
+#hangarPanel .equipment-formation .formation-preview{height:70px}
+@media(max-height:500px){#hangarPanel{padding:12px 28px}#hangarPanel .hangar-inner{max-height:calc(100dvh - 24px)}#characterPanel{inset:5% 7%;max-height:90%;overflow-y:auto}}
