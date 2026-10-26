@@ -1,10 +1,10 @@
 {
   "name": "mundo-abierto-pvp",
-  "version": "0.5.6",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test combat.test.mjs world-rules.test.mjs skills.test.mjs ../../tests/cooperative-boss.test.mjs ../../tests/pvp-boss-rewards.test.mjs && node test.mjs"
+    "test": "node --test combat.test.mjs world-rules.test.mjs skills.test.mjs ../../tests/cooperative-boss.test.mjs ../../tests/pvp-boss-rewards.test.mjs ../../tests/pvp-arena-enemies.test.mjs && node test.mjs && node arena-test.mjs"
   },
   "dependencies": {
     "miniflare": "5.20261006.1-alpha"

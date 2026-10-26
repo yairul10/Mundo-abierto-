@@ -1,9 +1,10 @@
+import {createArenaEnemyView} from './pvp-enemies.js?v=329';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=329';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
 import {shipThumbnail} from './ship-preview-catalog.js?v=327';
 import {createFarmPilot} from './farm-pilot.js?v=255';
@@ -20,7 +21,7 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=328';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=324';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=329';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=314';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
@@ -3230,6 +3231,7 @@ if(PVP_MODE){
  for(const e of enemies)scene.remove(e.mesh);enemies.length=0;
  for(const drop of drops)scene.remove(drop.mesh);drops.length=0;
  const remotes=new Map();
+ const arenaView=createArenaEnemyView({THREE,scene,camera,enemies,loader:new GLTFLoader(),onSelect:id=>pvpSession?.select(id),hidden:()=>!!pvpHangar||landing,makeMissile:createMissileMesh,targetPosition:id=>id===pvpSession?.myId?playerMesh.position:remotes.get(id)?.mesh.position,sound:(kind,point)=>combatAudio.play(kind,point)});
  const pvpSounds=createPvpSoundObserver((kind,point)=>combatAudio.play(kind,point));
  let respawnSoundTimer;
  const pvpDefeated=isMe=>{if(isMe){combatAudio.play('defeat');clearTimeout(respawnSoundTimer);respawnSoundTimer=setTimeout(()=>combatAudio.play('respawn'),900)}};
@@ -3237,7 +3239,7 @@ if(PVP_MODE){
  const bossLabel=document.createElement('div');bossLabel.className='world-nameplate';bossLabel.hidden=true;bossLabel.innerHTML='<span>Titán del Nexo</span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(bossLabel);
  const bossRemote={pvpRemote:true,playerId:'pvp-super-boss',type:'pilot',mesh:bossRoot,hp:0,maxHp:1000000,dead:1,aggressive:false,pilotName:'Titán del Nexo',pilotLevel:40};enemies.push(bossRemote);
  const bossRig=createNexoRig(THREE,bossRoot,scene);
- const bossLoader=new GLTFLoader();bossLoader.load(NEXO_VISUAL.body,g=>bossRig.mountBody(g.scene),undefined,error=>console.warn('Titán del Nexo: cuerpo no disponible',error));bossLoader.load(NEXO_VISUAL.arm,g=>bossRig.mountArm(g.scene),undefined,error=>console.warn('Titán del Nexo: cañones no disponibles',error));
+ const bossLoader=new GLTFLoader();if(window.MUNDO_PLAY_MODE?.mode!=='test'){bossLoader.load(NEXO_VISUAL.body,g=>bossRig.mountBody(g.scene),undefined,error=>console.warn('Titán del Nexo: cuerpo no disponible',error));bossLoader.load(NEXO_VISUAL.arm,g=>bossRig.mountArm(g.scene),undefined,error=>console.warn('Titán del Nexo: cañones no disponibles',error))}
  bossLabel.setAttribute('role','button');bossLabel.tabIndex=0;bossLabel.onclick=()=>pvpSession?.select(bossRemote.playerId);bossLabel.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();bossLabel.click()},{passive:false});bossLabel.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();bossLabel.click()}};
  let bossInstance='',bossAttackSeq=0,bossTeleportSeq=0,bossFacing=0;const bossFlashes=[],bossGoal=new THREE.Vector3(0,120,-1800);
  function teleportFlash(pos){const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:0x88ddff,transparent:true,opacity:.6,wireframe:true,depthWrite:false}));mesh.position.set(...pos);scene.add(mesh);bossFlashes.push({mesh,life:.7})}
@@ -3276,7 +3278,7 @@ if(PVP_MODE){
  $('hint').textContent='PvP abierto · Fuera de la base todos pueden atacarse';$('stationDistance').textContent='Mapa PvP';
  pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
-  updateBossVisual(dt);
+  updateBossVisual(dt);arenaView.update(dt);
   for(const shot of shots){if(!shot.pvpRemote&&pvpSession?.active&&!pvpSession.canFight)shot.life=0;if(shot.target?.playerId&&(pvpSession?.isJammed(shot.target.playerId)||(shot.target.playerId===pvpSession?.myId?!pvpSession?.canFight:!pvpSession?.canTarget(shot.target.playerId))))shot.target=null;}
   for(const r of remotes.values()){
    r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);if(r.shipId==='obsidian')animateObsidian(r.mesh,dt,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));r.pet.visible=!!r.hasPet;if(r.hasPet){if(r.petStamp!==explorerMesh.children.length){r.pet.clear();const clone=cloneClean(explorerMesh);clone.visible=true;clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=explorerMesh.children.length}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
@@ -3288,11 +3290,11 @@ if(PVP_MODE){
  destroyed:pvpDefeated,
  snapshot(me,others,force,pending,state){
   pvpSounds.update([me,...others],state.serverTime);
-  syncBoss(state.boss,state.serverTime);
+  syncBoss(state.enemies?.length?null:state.boss,state.serverTime);arenaView.sync(state.enemies||[],state.serverTime);
   if(pvpHangar||landing)return;
   const changed=player.shipId!==me.profile.shipId;
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
-  const wasHit=me.hp<player.hp;if(wasHit){combatAudio.play(me.hp<=0?'explosion':(me.skillUntil?.instantShield||0)>state.serverTime?'shieldHit':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;if(me.lastDamagedBy===bossRemote.playerId)registerExplorerThreat(bossRemote);}
+  const wasHit=me.hp<player.hp;if(wasHit){combatAudio.play(me.hp<=0?'explosion':(me.skillUntil?.instantShield||0)>state.serverTime?'shieldHit':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;const npcThreat=arenaView.entities.get(me.lastDamagedBy)||(me.lastDamagedBy===bossRemote.playerId?bossRemote:null);if(npcThreat)registerExplorerThreat(npcThreat);}
   player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;refreshFormationButton();for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);
   const predicted=new THREE.Vector3(...me.pos).add(new THREE.Vector3(...pending.offset));
   if(force){pvpCorrection=[0,0,0];playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
@@ -3311,13 +3313,13 @@ if(PVP_MODE){
  bossRewards(receipts){
   const latest=readOfflinePilot(localStorage),source=pvpHangar?player:latest;
   const result=saveBossReceipts(localStorage,SAVE_KEY,source,receipts,p=>pvpHangar?serializeHangarEditor(p,latest):p);
-  if(result.ids.length){player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
+  if(result.ids.length){player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
   return result;
  },
  remoteShots(bullets){for(const b of bullets){
   combatAudio.play(b.missile?'missile':'enemyLaser',{x:b.pos[0],y:b.pos[1],z:b.pos[2]});
   const mesh=b.missile?createMissileMesh():new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0xff7777,transparent:true,opacity:.95,depthWrite:false}));mesh.position.set(...b.pos);const vel=new THREE.Vector3(...b.vel);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vel.clone().normalize());scene.add(mesh);
-  const target=b.target===pvpSession?.myId?{mesh:playerMesh,dead:false,playerId:pvpSession?.myId}:b.target===bossRemote.playerId?bossRemote:remotes.get(b.target);
+  const target=b.target===pvpSession?.myId?{mesh:playerMesh,dead:false,playerId:pvpSession?.myId}:b.target===bossRemote.playerId&&bossRoot.visible?bossRemote:arenaView.entities.get(b.target)||remotes.get(b.target);
   const shot={pvpRemote:true,pvpSent:true,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
  }},
  });
@@ -3331,10 +3333,10 @@ if(PVP_MODE){
   const tap=taps.get(e.pointerId);taps.delete(e.pointerId);if(!tap||tap.moved||Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>15)return;
   picker.setFromCamera(new THREE.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);
   let selected=null,best=65,near=Infinity;
-  for(const r of [...remotes.values(),bossRemote]){
+  for(const r of [...remotes.values(),bossRemote,...arenaView.entities.values()]){
    if(r.dead)continue;const hit=picker.intersectObject(r.mesh,true)[0];if(hit&&hit.distance<near){near=hit.distance;selected=r.playerId}
   }
-  if(!selected)for(const r of [...remotes.values(),bossRemote]){
+  if(!selected)for(const r of [...remotes.values(),bossRemote,...arenaView.entities.values()]){
    if(r.dead)continue;const p=r.mesh.position.clone().project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));if(p.z>1||view<=0)continue;
    const d=Math.hypot((p.x+1)*innerWidth/2-e.clientX,(1-p.y)*innerHeight/2-e.clientY);if(d<best){best=d;selected=r.playerId}
   }

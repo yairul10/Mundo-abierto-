@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
-const files=['worker.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs'];
+const files=['worker.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'];
 const options={modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:'2026-10-11',compatibilityFlags:['nodejs_compat'],durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
 const mf=new Miniflare(convertV4MiniflareOptions(options)),connections=[];
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
@@ -12,7 +12,7 @@ async function waitFor(c,predicate,timeout=4000){const end=Date.now()+timeout;wh
 const send=(c,m)=>c.ws.send(JSON.stringify(m));
 async function moveTo(c,id,goal){for(let i=0;i<20;i++){const state=await waitFor(c,s=>s.players.some(p=>p.id===id)),p=state.players.find(p=>p.id===id),delta=goal.map((v,i)=>v-p.pos[i]),d=Math.hypot(...delta);if(d<8)return;await pause(110);send(c,{type:'input',seq:++c.seq,move:delta.map(v=>v/d*Math.min(1,d/750)),aim:[0,0],firing:false});await pause(30)}throw Error('Movement failed')}
 try{
- assert.equal((await (await mf.dispatchFetch('https://arena.test/health')).json()).version,'0.5.6');
+ assert.equal((await (await mf.dispatchFetch('https://arena.test/health')).json()).version,'0.6.0');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
  const roster={aurora:{maxHp:1000,maxEnergy:500,attack:100,defense:0,speed:5000,level:40}};

@@ -1,3 +1,4 @@
+import {ensureArenaEnemies,advanceArenaEnemies,recordArenaDamage} from './arena-enemies.mjs';
 import {ensureBoss,recordBossDamage,tickBoss,advanceBossMotion} from './cooperative-boss.mjs';
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
@@ -31,14 +32,14 @@ export function updateProtection(p,now){
 }
 export const protectedAt=(p,now)=>!!p&&safe(p)&&(p.baseEnteredAt===undefined||p.baseEnteredAt===null||now>=p.baseEnteredAt+WORLD.protectionDelay);
 export const combatEligible=(p,now)=>!!p&&p.connected&&p.hp>0&&!p.hangar&&!protectedAt(p,now);
-export const canDamage=(owner,target,now)=>combatEligible(owner,now)&&(!target||target.id!==owner.id&&(target.boss?target.hp>0:combatEligible(target,now)));
+export const canDamage=(owner,target,now)=>owner?.npc?!!owner.connected&&owner.hp>0&&(!target||!target.npc&&!target.boss&&combatEligible(target,now)):combatEligible(owner,now)&&(!target||target.id!==owner.id&&(target.boss?target.hp>0:combatEligible(target,now)));
 export function advance(s,now){
  s.invites=[];s.duels=[];s.events||=[];s.bullets||=[];
  for(const p of s.players){p.duelId=null;updateProtection(p,now)}
- const boss=ensureBoss(s,now);advanceBossMotion(s,now,combatEligible);
- const combat={status:'active',players:[...s.players,boss],bullets:s.bullets,simTime:s.simTime??now,canDamage,onDamage:(owner,target,damage,time)=>{if(target===boss)recordBossDamage(boss,owner,damage,time)}};
+ const boss=ensureBoss(s,now),targets=s.realm==='test'?ensureArenaEnemies(s,now):[boss];if(s.realm!=='test')advanceBossMotion(s,now,combatEligible);
+ const combat={status:'active',players:[...s.players,...targets],bullets:s.bullets,simTime:s.simTime??now,canDamage,onDamage:(owner,target,damage,time)=>{if(targets.includes(target)){if(s.realm==='test')recordArenaDamage(s,target,owner,damage,time);else recordBossDamage(boss,owner,damage,time)}}};
  stepCombat(combat,now);s.bullets=combat.bullets;s.simTime=combat.simTime;
- tickBoss(s,now,combatEligible);
+ if(s.realm==='test')advanceArenaEnemies(s,now,combatEligible);else tickBoss(s,now,combatEligible);
  for(const p of s.players)if(p.connected&&p.hp<=0){
   const winner=p.lastDamagedBy||null;s.bullets=s.bullets.filter(b=>b.owner!==p.id&&b.target!==p.id);
   reset(p,true);s.events.push({type:'destroyed',id:crypto.randomUUID(),victim:p.id,winner,time:now});
@@ -50,7 +51,7 @@ export const reply=()=> 'open_pvp';
 export function attack(s,p,m,now){
  updateProtection(p,now);if(!combatEligible(p,now))return null;
  const clean={...m,shots:Array.isArray(m.shots)?m.shots.map(x=>({...x,crit:Math.random()<.15+(p.profile.special.crit||0)*.01})):null};
- const targets=[...s.players,ensureBoss(s,now)],target=targets.find(x=>x.id===m.targetId&&canDamage(p,x,now));
+ const targets=[...s.players,...(s.realm==='test'?ensureArenaEnemies(s,now):[ensureBoss(s,now)])],target=targets.find(x=>x.id===m.targetId&&canDamage(p,x,now));
  if(m.weapon==='explorer'&&(!target||(target.skillUntil?.interference||0)>now))return null;
  const combat={players:targets,bullets:s.bullets||[],canDamage};const bullets=volley(combat,p,clean,now);s.bullets=combat.bullets;return bullets;
 }
