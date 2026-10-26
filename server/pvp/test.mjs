@@ -12,7 +12,7 @@ async function waitFor(c,predicate,timeout=4000){const end=Date.now()+timeout;wh
 const send=(c,m)=>c.ws.send(JSON.stringify(m));
 async function moveTo(c,id,goal){for(let i=0;i<20;i++){const state=await waitFor(c,s=>s.players.some(p=>p.id===id)),p=state.players.find(p=>p.id===id),delta=goal.map((v,i)=>v-p.pos[i]),d=Math.hypot(...delta);if(d<8)return;await pause(110);send(c,{type:'input',seq:++c.seq,move:delta.map(v=>v/d*Math.min(1,d/750)),aim:[0,0],firing:false});await pause(30)}throw Error('Movement failed')}
 try{
- assert.equal((await (await mf.dispatchFetch('https://arena.test/health')).json()).version,'0.5.3');
+ assert.equal((await (await mf.dispatchFetch('https://arena.test/health')).json()).version,'0.5.5');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
  const roster={aurora:{maxHp:1000,maxEnergy:500,attack:100,defense:0,speed:5000,level:40}};

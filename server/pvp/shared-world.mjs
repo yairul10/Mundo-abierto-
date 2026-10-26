@@ -1,4 +1,3 @@
-import {movementDuration} from './movement-time.mjs';
 import {bossSnapshot} from './cooperative-boss.mjs';
 import {equippedSkills,validSkills} from './skills.mjs';
 import {testServerEnabled} from './test-config.mjs';
@@ -33,7 +32,7 @@ export class SharedWorld extends DurableObject {
   if(protocols[0]!=='mundo-world-v1'||!p)return json({error:'invalid_ticket'},403);
   if(p.connected)return json({error:'already_connected'},409);
   const [client,server]=Object.values(new WebSocketPair());this.ctx.acceptWebSocket(server);server.serializeAttachment({world:true,id:p.id,windowStart:now,count:0});
-  p.connected=true;p.movementCredit=.15;p.lastSeen=p.lastInput=now;this.worldSave(s);this.worldBroadcast(s);await this.ctx.storage.setAlarm(now+3000);
+  p.connected=true;p.lastSeen=p.lastInput=now;this.worldSave(s);this.worldBroadcast(s);await this.ctx.storage.setAlarm(now+3000);
   return new Response(null,{status:101,webSocket:client,headers:{'Sec-WebSocket-Protocol':'mundo-world-v1'}});
  }
  async webSocketMessage(ws,message){
@@ -45,7 +44,7 @@ export class SharedWorld extends DurableObject {
   let error=null;
   if(m.type==='input'){
    if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;
-   const dt=movementDuration(p,m,now);p.seq=m.seq;p.firing=!p.hangar&&!!m.firing;
+   const dt=Math.max(0,Math.min(.15,(now-p.lastInput)/1000));p.lastInput=now;p.seq=m.seq;p.firing=!p.hangar&&!!m.firing;
    if(Array.isArray(m.aim)&&m.aim.length===2&&m.aim.every(Number.isFinite))p.aim=[Math.max(-1000,Math.min(1000,m.aim[0])),Math.max(-1.15,Math.min(1.15,m.aim[1]))];
    p.pos=p.pos.map((v,i)=>v+(p.hangar||(p.paralyzedUntil||0)>now?0:m.move[i])*p.profile.speed*dt);const r=Math.hypot(...p.pos);if(r>WORLD.radius)p.pos=p.pos.map(v=>v*WORLD.radius/r);updateProtection(p,now);if(protectedAt(p,now))p.firing=false;
   }else if(m.type==='hangar')error=openHangar(s,p,now);
@@ -74,3 +73,4 @@ export class SharedWorld extends DurableObject {
   advance(s,now);s.players=s.players.filter(p=>p.connected||now-p.lastSeen<30000);this.worldSave(s);this.worldBroadcast(s);if(s.players.length)await this.ctx.storage.setAlarm(now+3000);
  }
 }
+
