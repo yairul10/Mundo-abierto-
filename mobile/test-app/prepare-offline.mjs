@@ -1,11 +1,11 @@
+import {copyGameAssets,copyThreeRuntime,EXCLUDED_ASSETS} from './package-assets.mjs';
 import {readFileSync,writeFileSync,cpSync,rmSync,mkdirSync,existsSync,readdirSync} from 'node:fs';
 import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../..'),out=join(here,'www'),three=join(here,'node_modules/three');
 rmSync(out,{recursive:true,force:true});mkdirSync(out,{recursive:true});
-for(const name of ['js','css','assets','version.json'])cpSync(join(root,name),join(out,name),{recursive:true});
-mkdirSync(join(out,'vendor/three'),{recursive:true});
-for(const name of ['build','examples/jsm','LICENSE'])cpSync(join(three,name),join(out,'vendor/three',name),{recursive:true});
+copyGameAssets(root,out);
+const runtime=copyThreeRuntime(three,join(out,'vendor/three'));
 let html=readFileSync(join(root,'index.html'),'utf8');
 const cdn=/const threeCdn=new URLSearchParams\(location.search\).get\('threecdn'\)==='backup'[\s\S]*?:'https:\/\/cdn.jsdelivr.net\/npm\/three@0\.180\.0';/;
 if(!cdn.test(html))throw new Error('Cambió el arranque del motor; revisar el empaquetado offline');
@@ -34,6 +34,6 @@ for(const name of readdirSync(join(out,'assets/models')).filter(n=>n.endsWith('.
  for(const item of [...json.buffers||[],...json.images||[]])if(item.uri&&!item.uri.startsWith('data:'))throw new Error('Dependencia externa en '+name);
  models++;
 }
-writeFileSync(join(out,'offline-bundle.json'),JSON.stringify({offline:true,three:'0.180.0',models,sourceBuild:JSON.parse(readFileSync(join(root,'version.json'),'utf8')).build},null,2));
-console.log('Paquete offline: '+models+' modelos incluidos; arranque y recursos locales.');
+writeFileSync(join(out,'offline-bundle.json'),JSON.stringify({offline:true,three:'0.180.0',runtime,excludedAssets:[...EXCLUDED_ASSETS],models,sourceBuild:JSON.parse(readFileSync(join(root,'version.json'),'utf8')).build},null,2));
+console.log('Paquete offline: '+models+' modelos; motor '+runtime.files.length+' módulos ('+runtime.bytes+' bytes).');
 

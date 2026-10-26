@@ -1,15 +1,15 @@
 // The same GLBs and forward orientations used by the equipped fleet.
 export const SHIP_PREVIEWS=Object.freeze({
- azote:{name:'Azote',model:'pvp-ofensiva.glb',yaw:Math.PI},
- egida:{name:'Égida',model:'pvp-defensiva.glb',yaw:Math.PI},
- vertigo:{name:'Vértigo',model:'pvp-agil.glb',yaw:Math.PI},
+ azote:{name:'Azote',model:'pvp-ofensiva.glb',yaw:Math.PI,version:327},
+ egida:{name:'Égida',model:'pvp-defensiva.glb',yaw:Math.PI,version:327},
+ vertigo:{name:'Vértigo',model:'pvp-agil.glb',yaw:Math.PI,version:327},
  obsidian:{name:'Obsidian',model:'ancestral-fighter.glb',yaw:0},
  aurora:{name:'Aurora',model:'x_wing_starfighter.glb',yaw:Math.PI,version:320},
- titan:{name:'Titán',model:'titan.glb',yaw:Math.PI,version:316},
- espectro:{name:'Espectro',model:'espectro.glb',yaw:Math.PI,version:317},
- segadora:{name:'Segadora',model:'segadora.glb',yaw:-Math.PI,roll:-.055},
+ titan:{name:'Titán',model:'titan.glb',yaw:Math.PI,version:327},
+ espectro:{name:'Espectro',model:'espectro.glb',yaw:Math.PI,version:327},
+ segadora:{name:'Segadora',model:'segadora.glb',yaw:-Math.PI,roll:-.055,version:327},
  bastion:{name:'Bastión',model:'bastion.glb',yaw:Math.PI},
- centella:{name:'Centella',model:'centella.glb',yaw:Math.PI,version:317}
+ centella:{name:'Centella',model:'centella.glb',yaw:Math.PI,version:327}
 });
 export function shipThumbnail(id){const ship=SHIP_PREVIEWS[id];return ship?'<img class="formation-preview ship-preview" src="./assets/ship-previews/'+id+'.webp?v='+(ship.version||252)+'" alt="Nave '+ship.name+'" width="480" height="360" loading="lazy" decoding="async">':''}
 export function disposePreviewModel(model){

@@ -5,7 +5,7 @@ import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299'
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
-import {shipThumbnail} from './ship-preview-catalog.js?v=320';
+import {shipThumbnail} from './ship-preview-catalog.js?v=327';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -18,7 +18,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=314';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=320';
+import {mountHangarUI} from './hangar-ui.js?v=327';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=324';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
@@ -384,7 +384,7 @@ function syncPlayerShipVisuals(){
  proceduralShip.visible=!loaded&&!waiting&&!hasOriginal;
 }
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
-const assembledModelPaths={azote:'./assets/models/pvp-ofensiva.glb?v=314',egida:'./assets/models/pvp-defensiva.glb?v=314',vertigo:'./assets/models/pvp-agil.glb?v=314',segadora:'./assets/models/segadora.glb?v=240',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=317'};
+const assembledModelPaths={azote:'./assets/models/pvp-ofensiva.glb?v=327',egida:'./assets/models/pvp-defensiva.glb?v=327',vertigo:'./assets/models/pvp-agil.glb?v=327',segadora:'./assets/models/segadora.glb?v=327',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=327'};
 function loadAssembledVisual(id){
  if(!ASSEMBLED_SHIPS[id]||playerMesh.userData[id+'Model']||playerMesh.userData[id+'Loading'])return;
  playerMesh.userData[id+'Loading']=true;
@@ -406,7 +406,7 @@ function loadAssembledVisual(id){
   mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false;
  },undefined,error=>{playerMesh.userData[id+'Loading']=false;playerMesh.userData[id+'ModelFailed']=true;syncPlayerShipVisuals();console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
 }
-deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=316',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=327',gltf=>{
  const source=gltf.scene;
  // Acabado metálico moderado con el material estándar de Three.js.
  const maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
@@ -437,7 +437,7 @@ deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=316',gltf=>{
  attachAssembledEngines(THREE,visual,'titan');
  mountPlayerModel(visual,'titanModel');
 },undefined,err=>{playerMesh.userData.titanModelFailed=true;syncPlayerShipVisuals();console.warn('Modelo titan no disponible; se conserva la apariencia original.',err)});
-deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=317',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/espectro.glb?v=327',gltf=>{
  const source=gltf.scene;
  const maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  source.traverse(o=>{
@@ -521,10 +521,10 @@ function assembleWreck(){
  try{graveyard.mountWreckShips([wreckSourceA,wreckSourceB])}
  catch(error){console.warn('Restos GLB no disponibles; se conserva respaldo',error)}
 }
-deferredModelLoad(modelLoader,'./assets/models/spaceship%20(3).glb?v=229',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/spaceship%20(3).glb?v=327',gltf=>{
  wreckSourceA=gltf.scene;assembleWreck();
 },undefined,error=>console.warn('No se pudo cargar spaceship (3)',error));
-deferredModelLoad(modelLoader,'./assets/models/spacecruiser%20(1).glb?v=229',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/spacecruiser%20(1).glb?v=327',gltf=>{
  wreckSourceB=gltf.scene;assembleWreck();
 },undefined,error=>console.warn('No se pudo cargar spacecruiser (1)',error));
 const SECTOR_BELT={x:10000,z:-650,radius:3000,warning:600,damagePerSecond:8};
@@ -749,8 +749,8 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
 // Se ensambla solo cuando se descargan correctamente las tres piezas.
 const modularLandingPads=[];
 const modularPaths=[
- './assets/models/scififortress_optimizado.glb?v=319',
- './assets/models/landingpad_optimizado.glb?v=319',
+ './assets/models/scififortress_optimizado.glb?v=327',
+ './assets/models/landingpad_optimizado.glb?v=327',
  './assets/models/scificorridormodule_optimizado.glb?v=105'
 ];
 Promise.all(modularPaths.map(path=>new Promise((resolve,reject)=>deferredModelLoad(modelLoader,path,gltf=>resolve(gltf.scene),undefined,reject))))
@@ -950,7 +950,7 @@ function ensureAcechadorVisual(e){
  for(const child of e.mesh.children)if(child!==pivot)child.visible=false;
  e.mesh.userData.acechadorModel=pivot;
 }
-deferredModelLoad(modelLoader,'./assets/models/acechador_optimizado.glb?v=202',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/acechador_optimizado.glb?v=327',gltf=>{
  const template=gltf.scene;
  const bounds=new THREE.Box3().setFromObject(template);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
@@ -1124,7 +1124,7 @@ if(Array.isArray(titanSaved.position)&&titanSaved.position.length===3&&titanSave
  const v=new THREE.Vector3().fromArray(titanSaved.position),r=Math.hypot(v.x-GRAVEYARD.x,v.z-GRAVEYARD.z);
  if(r>1800&&r<3400&&Math.abs(v.y)<350)titanEnemy.mesh.position.copy(v);
 }
-deferredModelLoad(new GLTFLoader(),'./assets/models/gran_titan.glb?v=216',gltf=>titanRig.mount(gltf.scene),undefined,error=>console.warn('Gran Titán: modelo no disponible',error));
+deferredModelLoad(new GLTFLoader(),'./assets/models/gran_titan.glb?v=327',gltf=>titanRig.mount(gltf.scene),undefined,error=>console.warn('Gran Titán: modelo no disponible',error));
 function clearTitanShots(){for(const p of titanProjectiles){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker)}titanProjectiles.length=0;for(const b of titanBlasts)titanEffects.dispose(b.mesh);titanBlasts.length=0}
 function titanHit(point){const p=titanEnemy.mesh.worldToLocal(point.clone());return (p.x/145)**2+(p.y/170)**2+(p.z/600)**2<1}
 function fireTitan(){
