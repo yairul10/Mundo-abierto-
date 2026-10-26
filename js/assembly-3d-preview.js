@@ -1,5 +1,5 @@
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
-import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=317';
+import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=320';
 // Only one independent, demand-loaded WebGL preview is alive across the hangar.
 let active=null;
 export function stopAssemblyPreview(){active?.cleanup();active=null}

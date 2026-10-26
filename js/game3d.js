@@ -1,9 +1,10 @@
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=257';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
-import {shipThumbnail} from './ship-preview-catalog.js?v=317';
+import {shipThumbnail} from './ship-preview-catalog.js?v=320';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -12,11 +13,11 @@ import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffect
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=265';
-import {attachAssembledEngines} from './assembled-engines.js?v=317';
+import {attachAssembledEngines} from './assembled-engines.js?v=320';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=314';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=318';
+import {mountHangarUI} from './hangar-ui.js?v=320';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=314';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
@@ -3079,6 +3080,7 @@ if(!PVP_MODE){
  let config={};try{config=JSON.parse(safeStorageGet(SAVE_KEY+'.farmPilot')||'{}')}catch{}
  farmPilot=createFarmPilot(config);
  farmUI=mountFarmPilotUI({pilot:farmPilot,level:()=>player.level,onStart:resetDockControls,persist:c=>safeStorageSet(SAVE_KEY+'.farmPilot',JSON.stringify(c))});
+ if(!PVP_MODE)mountPvpControlEditor({realm:window.MUNDO_PLAY_MODE?.mode||'normal',isHangarOpen:()=>docked,pve:true});
  const manual=e=>{if(e.target.closest?.('#farmAutoBtn,#farmAutoMenu'))return;if(farmPilot.running){farmPilot.stop();farmUI.refresh()}};
  document.addEventListener('pointerdown',manual,true);
  document.addEventListener('touchstart',manual,{capture:true,passive:true});

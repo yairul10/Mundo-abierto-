@@ -4,7 +4,7 @@ export const SHIP_PREVIEWS=Object.freeze({
  egida:{name:'Égida',model:'pvp-defensiva.glb',yaw:Math.PI},
  vertigo:{name:'Vértigo',model:'pvp-agil.glb',yaw:Math.PI},
  obsidian:{name:'Obsidian',model:'ancestral-fighter.glb',yaw:0},
- aurora:{name:'Aurora',model:'x_wing_starfighter.glb',yaw:Math.PI},
+ aurora:{name:'Aurora',model:'x_wing_starfighter.glb',yaw:Math.PI,version:320},
  titan:{name:'Titán',model:'titan.glb',yaw:Math.PI,version:316},
  espectro:{name:'Espectro',model:'espectro.glb',yaw:Math.PI,version:317},
  segadora:{name:'Segadora',model:'segadora.glb',yaw:-Math.PI,roll:-.055},
