@@ -34,7 +34,7 @@ try{
  assert.equal(Object.hasOwn(me(),'baseEnteredAt'),false,'No entry deadline/countdown is sent to UI');
  send(ca,{type:'hangar',open:true});await waitFor(ca,s=>s.players.find(p=>p.id===a.playerId).hangar);
  const testTicket=(await post('/world/join',{guestKey:'d'.repeat(64),realm:'test',roster})).body,testClient=await connect(testTicket.token,'test');await waitFor(testClient,s=>s.players.length===1);
- const disabled=new Miniflare(convertV4MiniflareOptions({...options,bindings:{TEST_SERVER_ENABLED:'false'}}));try{const r=await disabled.dispatchFetch('https://arena.test/world/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guestKey:'f'.repeat(64),realm:'test'})});assert.equal(r.status,403)}finally{await disabled.dispose()}
+ const disabled=new Miniflare(convertV4MiniflareOptions({...options,bindings:{TEST_SERVER_ENABLED:'false'}}));try{const r=await disabled.dispatchFetch('https://arena.test/world/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guestKey:'f'.repeat(64),realm:'test',clientVersion:1})});assert.equal(r.status,403)}finally{await disabled.dispose()}
  // Two real WebSocket pilots attack the same boss with normal validated volleys.
  const raidRoster={aurora:{maxHp:100000,maxEnergy:500,attack:100000,defense:0,speed:5000,level:40}};
  const e=(await post('/world/join',{guestKey:'e'.repeat(64),name:'E',roster:raidRoster})).body,f=(await post('/world/join',{guestKey:'f'.repeat(64),name:'F',roster:raidRoster})).body;
