@@ -56,3 +56,8 @@ Pruebas de fronteras, proyectiles, niveles 199/200, 60 % con redondeo, límite d
 ## Ampliación 336
 Radio total de 5.900 m (diámetro 11.800 m), frente a 4.500 m del Cementerio. La base conserva 650 m; ambos anillos tienen 2.625 m de ancho. Divisiones atravesables de aspecto vidrio, sin reflejos duros.
 El Gran Titán Pro conserva ×2 PV y daño respecto al nivel 105, +10 % de créditos/materiales. Libera tres escoltas Pro al 70 % y tres al 40 %: Catapulta, Arponero y Acechador (máximo seis por combate). Sus PV/daño duplican el equivalente PvE de nivel 105; créditos +20 %. No reproduce todavía todas las armas especiales del combate PvE: las escoltas usan proyectiles autoritativos del servidor.
+
+
+## Escoltas y XP (servidor 0.7.2)
+Los escoltas del Coloso y del Gran Titán sobreviven a la muerte del jefe. Conservan daño, propietario de recompensa y estado al reiniciar. Se retiran si son destruidos o al comenzar la siguiente instancia del jefe; no se generan oleadas adicionales mientras el jefe está muerto. Atacar una escolta superviviente permite que responda sin reactivar al jefe muerto.
+Coloso Pro: 55.000 créditos y 82.500 XP; Gran Titán Pro: 151.800 créditos y 227.700 XP. Ambos fondos se reparten por daño efectivo. La proporción de recompensas es 2,76 al tomar las bases PvE de nivel 105. No se modifican los recibos ya cobrados.

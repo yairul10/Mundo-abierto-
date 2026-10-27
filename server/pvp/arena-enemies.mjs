@@ -4,7 +4,7 @@ import {zoneOf,constrainEnemy} from './zones.mjs';
 export const ARENA_ENEMIES=Object.freeze([
  {...BOSS_RULES,id:'pvp-super-boss',name:'Titán del Nexo',kind:'nexo',zone:'hostile',pos:[0,120,-4550],patrolRadius:150,reward:1100000},
  {...BOSS_RULES,id:'pvp-gran-titan',name:'Gran Titán Pro',kind:'granTitanPro',zone:'pve',pos:[0,120,1250],patrolRadius:100,maxHp:368000,damage:1472,targets:2,attackInterval:4000,teleportInterval:0,reward:151800,xpReward:227700,materialCount:60,hitRadius:270,projectile:'missile'},
- ...[-1,1].map((side,i)=>({...BOSS_RULES,id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),kind:'colossusPro',zone:'pve',projectile:'missile',pos:[side*1200,120,-250],patrolRadius:100,maxHp:200000,damage:750,targets:1,attackInterval:5000,teleportInterval:0,reward:55000,hitRadius:220,materialCount:60}))
+ ...[-1,1].map((side,i)=>({...BOSS_RULES,id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),kind:'colossusPro',zone:'pve',projectile:'missile',pos:[side*1200,120,-250],patrolRadius:100,maxHp:200000,damage:750,targets:1,attackInterval:5000,teleportInterval:0,reward:55000,xpReward:82500,hitRadius:220,materialCount:60}))
 ]);
 // PvE rewards at level 105 use min(2.5, 1 + (level - 1) * .035).
 // PvP Coloso reinforcements are Pro (2x health and damage), with 20% bonus
@@ -28,13 +28,13 @@ export function ensureArenaEnemies(s,now){
   next.push(b);
  }
  const parents=new Map(next.map(b=>[b.id,b]));
- for(const b of s.arenaEnemies.filter(b=>b.kind==='reinforcement'))if(parents.get(b.parentId)?.instanceId===b.parentInstance&&parents.get(b.parentId).hp>0){b.rules.zone=parents.get(b.parentId).rules.zone;next.push(b);}
+ for(const b of s.arenaEnemies.filter(b=>b.kind==='reinforcement'))if(parents.get(b.parentId)?.instanceId===b.parentInstance){b.rules.zone=parents.get(b.parentId).rules.zone;next.push(b);}
  s.arenaEnemies=next;s.boss=next[0];return next;
 }
 export function recordArenaDamage(s,target,owner,damage,now){
  recordBossDamage(target,owner,damage,now);
  if(target.kind==='reinforcement'){
-  const parent=s.arenaEnemies?.find(b=>b.id===target.parentId);if(parent?.hp>0){(parent.participants||={})[owner.id]=true;if(!parent.active){parent.active=true;parent.nextAttackAt=now+parent.rules.attackInterval;parent.nextTeleportAt=now+parent.rules.teleportInterval}}
+  const parent=s.arenaEnemies?.find(b=>b.id===target.parentId);if(parent?.instanceId===target.parentInstance){(parent.participants||={})[owner.id]=true;if(parent.hp>0&&!parent.active){parent.active=true;parent.nextAttackAt=now+parent.rules.attackInterval;parent.nextTeleportAt=now+parent.rules.teleportInterval}}
  }
 }
 function spawnWave(s,parent,threshold,now){
@@ -83,7 +83,7 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
   else{
    const dt=Math.max(0,Math.min(.3,(now-b.motionAt)/1000));b.motionAt=now;
    const parent=s.arenaEnemies.find(p=>p.id===b.parentId),targets=s.players.filter(p=>eligible(p,now)&&(parent?.contributions?.[p.id]>0||parent?.participants?.[p.id])&&distance(p,parent)<1400).sort((a,c)=>distance(a,b)-distance(c,b)),target=targets[0];
-   if(!parent||parent.hp<=0){b.hp=0;b.rewarded=true;continue}
+   if(!parent||parent.instanceId!==b.parentInstance){b.hp=0;b.rewarded=true;continue}
    if(target&&distance(target,b)>400){const direction=target.pos.map((v,i)=>v-b.pos[i]),length=Math.hypot(...direction)||1;b.pos=b.pos.map((v,i)=>v+direction[i]/length*180*dt)}
    // Reinforcements remain in their parent's sector and never cross the base.
    const leash=distance(b,parent);if(leash>900)b.pos=b.pos.map((v,i)=>parent.pos[i]+(v-parent.pos[i])*900/leash);
@@ -95,8 +95,7 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
   constrainEnemy(b);const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);
   if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId))if(b.rules.xpReward)receipt.xp=b.kind==='reinforcement'?b.rules.xpReward:Math.max(0,Math.round(b.rules.xpReward*receipt.damage/Math.max(1,receipt.totalDamage)));}
  }
- // Remove leftovers on the next snapshot when their carrier is destroyed.
- for(const b of s.arenaEnemies)if(b.kind==='reinforcement'&&s.arenaEnemies.find(p=>p.id===b.parentId)?.hp<=0){b.hp=0;b.rewarded=true}
+ // Keep surviving escorts until killed or their parent begins a new instance.
 }
 export function arenaEnemySnapshots(s){
  return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105}));
