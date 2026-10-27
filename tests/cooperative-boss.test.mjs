@@ -36,13 +36,15 @@ function hitBoss(boss,owner,damage,now){const effective=Math.min(boss.hp,damage)
 }
 
 {
- const a=pilot('a',[0,120,-1500]),s=world(a),boss=ensureBoss(s,t);boss.hp=10;
- const bullets=attack(s,a,{weapon:'missile',targetId:boss.id,shots:[{offset:[0,0,0],direction:[0,0,-1],locked:true}]},t);assert.equal(bullets[0].target,boss.id);
- for(let time=t+100;time<=t+600;time+=100)advance(s,time);
- assert.equal(boss.hp,0);assert.equal(boss.contributions.a,10,'Overkill contributes only remaining HP');assert.equal(s.bossRewards[0].amount,1000000);const receipt=s.bossRewards[0].id;
- advance(s,t+700);assert.equal(s.bossRewards.length,1,'No repeat awards');assert.equal(s.bossRewards[0].id,receipt);
+ const a=pilot('a',[0,120,-2600]),s=world(a);advance(s,t);const boss=s.boss;boss.hp=10;
+ const delta=boss.pos.map((v,i)=>v-a.pos[i]),length=Math.hypot(...delta);
+ const bullets=attack(s,a,{weapon:'missile',targetId:boss.id,shots:[{offset:[0,0,0],direction:delta.map(v=>v/length),locked:true}]},t);assert.equal(bullets[0].target,boss.id);
+ for(let time=t+100;time<=t+1800&&boss.hp>0;time+=100)advance(s,time);
+ assert.equal(boss.hp,0);assert.equal(boss.contributions.a,10,'Overkill contributes only remaining HP');assert.equal(s.bossRewards[0].amount,1100000);const receipt=s.bossRewards[0].id;
+ advance(s,t+1900);assert.equal(s.bossRewards.length,1,'No repeat awards');assert.equal(s.bossRewards[0].id,receipt);
  const persisted=JSON.parse(JSON.stringify(s));advance(persisted,boss.respawnAt-1);assert.equal(persisted.boss.hp,0);advance(persisted,boss.respawnAt);assert.equal(persisted.boss.hp,1000000);assert.notEqual(persisted.boss.instanceId,boss.instanceId);assert.deepEqual(persisted.boss.contributions,{});
 }
+
 {
  const shares=splitBossReward({c:1,b:1,a:1,zero:0,nan:NaN});assert.deepEqual(shares.map(r=>r.amount),[333334,333333,333333]);assert.equal(shares.reduce((n,r)=>n+r.amount,0),1000000);
  assert.deepEqual(splitBossReward({a:750000,b:250000}).map(r=>r.amount),[750000,250000]);assert.deepEqual(splitBossReward({}),[]);

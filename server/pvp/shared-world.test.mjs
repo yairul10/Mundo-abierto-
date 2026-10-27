@@ -73,3 +73,9 @@ for(const realm of ['normal','test']){
   w.startSimulation(world(realm));assert.equal(w.simulation,null);w.startSimulation(s);const timer=w.simulation;assert(timer);w.startSimulation(s);assert.equal(w.simulation,timer);w.stopSimulation();assert.equal(w.simulation,null);
  });
 }
+
+test('valid kill, ranking counters, XP receipt and rolling window commit together and survive reconstruction',async()=>{
+ const {awardKill}=await import('./pvp-results.mjs');const db=new DatabaseSync(':memory:');let fail=false;
+ const ctx={getWebSockets:()=>[],blockConcurrencyWhile:fn=>fn(),storage:{setAlarm:async()=>{},sql:{exec(q,...args){if(fail&&q.startsWith('INSERT INTO shared_world'))throw Error('disk failure');const rows=db.prepare(q).all(...args);return {toArray:()=>rows}}},transactionSync(fn){db.exec('BEGIN');try{fn();db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}}};
+ try{const w=new SharedWorld(ctx,{}),s=world('normal');s.killHistory=[];awardKill(s,{id:'winner',name:'Verified',profile:{level:100}},{id:'victim',profile:{level:60}},100000,'valid');fail=true;assert.throws(()=>w.worldSave(s,true),/disk failure/);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM pvp_ranking').get().n,0);assert.equal(s.pendingKills.length,1);fail=false;w.worldSave(s,true);w.worldSave(s,true);assert.equal(db.prepare('SELECT kills FROM pvp_ranking').get().kills,1);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM boss_rewards WHERE amount=0 AND xp>0').get().n,1);const fresh=new SharedWorld(ctx,{});assert.equal(fresh.worldLoad().killHistory.length,1);assert.equal(fresh.worldLoad().pendingKills.length,0);}finally{db.close()}
+});

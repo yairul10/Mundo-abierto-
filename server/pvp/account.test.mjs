@@ -19,7 +19,7 @@ test('Worker ignores claimed account IDs and never admits unauthenticated guests
  const source=readFileSync(new URL('./worker.mjs',import.meta.url),'utf8').replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {}').replace("import {SharedWorld} from './shared-world.mjs';",'class SharedWorld {}').replace(/from '(\.\/[^']+)'/g,(_,p)=>`from '${new URL(p,import.meta.url).href}'`);
  const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
  let calls=0,body;const bindings={PLAY_IDENTITY:service,API_LIMIT:{limit:async()=>({success:true})},ROOMS:{getByName:()=>({enter:async b=>{calls++;body=b;return {playerId:'verified'}}})}};
- const join=token=>new Request('https://pvp.test/world/join',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({clientVersion:1,accountId:'forged',guestKey:'a'.repeat(64),realm:'normal'})});
+ const join=token=>new Request('https://pvp.test/world/join',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({clientVersion:2,accountId:'forged',guestKey:'a'.repeat(64),realm:'normal'})});
  assert.equal((await worker.fetch(join(),bindings)).status,401);assert.equal(calls,0);
  assert.equal((await worker.fetch(join(signed(Math.floor(Date.now()/1000)+300)),bindings)).status,200);assert.equal(calls,1);assert.equal(body.accountId,playerId);
 });

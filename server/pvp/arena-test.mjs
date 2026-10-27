@@ -1,7 +1,7 @@
 import {fixtureIdentity,authenticateFixtureRequests} from './test-identity.mjs';
 import assert from 'node:assert/strict';import {readFileSync,mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';
 const MF=await import(process.env.COSMOS_MINIFLARE||'miniflare');
-const modules=['worker.mjs','client-version.mjs','account.mjs','chat.mjs','chat-language.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'].map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')}));
+const modules=['worker.mjs','zones.mjs','duels.mjs','pvp-results.mjs','respawn.mjs','client-version.mjs','account.mjs','chat.mjs','chat-language.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'].map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')}));
 const persist=mkdtempSync(join(tmpdir(),'arena-npcs-')),options={modules,compatibilityDate:process.env.COSMOS_COMPAT_DATE||'2026-10-11',compatibilityFlags:['nodejs_compat'],serviceBindings:{PLAY_IDENTITY:request=>fixtureIdentity.fetch(request)},durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},durableObjectsPersist:persist,ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
 const create=()=>authenticateFixtureRequests(new MF.Miniflare(MF.convertV4MiniflareOptions?MF.convertV4MiniflareOptions(options):options));let mf=create();const connections=[];const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const raw={aurora:{maxHp:100000,maxEnergy:500,attack:100000,defense:0,speed:5000,level:105}};
@@ -16,7 +16,7 @@ async function approach(c,id){for(let i=0;i<35;i++){const s=await wait(c,s=>s.en
 function shoot(c,id,count=1){const s=last(c),me=s.players.find(p=>p.id===c.id),enemy=s.enemies.find(e=>e.id===id),delta=enemy.pos.map((v,i)=>v-me.pos[i]),d=Math.hypot(...delta);send(c,{type:'volley',weapon:'laser',targetId:id,shots:Array.from({length:count},()=>({offset:[0,0,0],direction:delta.map(v=>v/d)}))})}
 try{
  const a=await connect('a'.repeat(64)),b=await connect('b'.repeat(64)),normal=await connect('c'.repeat(64),'normal');
- let s=await wait(a,s=>s.enemies?.length===4);assert.equal(s.enemies.filter(e=>e.kind==='nexo').length,2);assert.equal(s.enemies.filter(e=>e.kind==='colossusPro').length,2);const normalState=await wait(normal,s=>s.players.length===1);assert.equal(normalState.enemies.length,0);assert.equal(normalState.boss.reward,1000000);
+ let s=await wait(a,s=>s.enemies?.length===4);assert.equal(s.enemies.filter(e=>e.kind==='nexo').length,1);assert.equal(s.enemies.filter(e=>e.kind==='colossusPro').length,2);const normalState=await wait(normal,s=>s.players.length===1);assert.equal(normalState.enemies.length,4);assert.equal(normalState.boss.reward,1100000);
  const id='pvp-coloso-1';await approach(a,id);await approach(b,id);shoot(a,id);await wait(a,s=>s.enemies.find(e=>e.id===id).hp<=150000);shoot(b,id);await wait(a,s=>s.enemies.some(e=>e.parentId===id&&e.hp>0));
  const fromA=last(a).enemies.find(e=>e.id===id);await wait(b,s=>s.enemies.find(e=>e.id===id).hp===fromA.hp);assert(last(a).enemies.filter(e=>e.parentId===id&&e.hp>0).length<=6);
  await pause(720);shoot(a,id,2);await wait(a,s=>s.enemies.find(e=>e.id===id).hp===0);await wait(b,s=>s.enemies.find(e=>e.id===id).hp===0);const dead=last(a).enemies.find(e=>e.id===id);
@@ -25,5 +25,5 @@ try{
  // Disconnect before ACK and restart the isolate: the durable receipt must return unchanged.
  for(const c of connections){send(c,{type:'leave'});await pause(30);c.ws.close()}await pause(100);await mf.dispose();mf=create();
  const re=await connect('a'.repeat(64));await wait(re,s=>s.enemies.find(e=>e.id===id)?.instanceId===dead.instanceId);const end=Date.now()+7000;while(Date.now()<end&&!re.messages.some(m=>m.type==='bossRewards'))await pause(20);const replay=re.messages.find(m=>m.type==='bossRewards')?.receipts.find(r=>r.id===ra.id);assert.deepEqual(replay,ra);send(re,{type:'bossRewardAck',ids:[ra.id]});await pause(100);
- console.log('PASS WebSockets + SQLite: shared 2+2 bosses, test-only isolation, bounded reinforcements, two-player combat, credits/materials and durable receipt replay after restart');
+ console.log('PASS WebSockets + SQLite: shared zone bosses, realm isolation, bounded reinforcements, two-player combat, credits/materials and durable receipt replay after restart');
 }finally{for(const c of connections)try{c.ws.close()}catch{}await mf.dispose();rmSync(persist,{recursive:true,force:true})}

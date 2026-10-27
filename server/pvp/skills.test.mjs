@@ -8,7 +8,7 @@ function setup(shipId='aurora'){
  const a={id:'a',pos:[0,120,0],connected:true,roster:importRoster({[shipId]:raw})},b={id:'b',pos:[100,120,0],connected:true,roster:importRoster({aurora:raw})};equip(a,shipId);equip(b,'aurora');updateProtection(a,t);updateProtection(b,t);
  const s={players:[a,b],duels:[],invites:[],events:[]};return {a,b,s};
 }
-function duel(s,a,b){a.pos=[800,120,0];b.pos=[900,120,0];updateProtection(a,t);updateProtection(b,t)}
+function duel(s,a,b){a.pos=[2100,120,0];b.pos=[2200,120,0];updateProtection(a,t);updateProtection(b,t)}
 function hit(a,b,now,damage=100){const state={status:'active',players:[a,b],simTime:now,bullets:[{owner:a.id,pos:[a.pos[0]+50,120,0],vel:[1150,0,0],damage,life:1,age:0,range:1200,travelled:0}]};stepCombat(state,now+50);}
 assert.equal(Object.keys(PVP_SKILLS).length,6);assert(!validSkills(['fury','fury']));assert(!validSkills(['fury','__proto__']));
 {
@@ -26,7 +26,7 @@ assert.equal(Object.keys(PVP_SKILLS).length,6);assert(!validSkills(['fury','fury
  a.last_missile=0;const next=attack(s,a,{targetId:b.id,weapon:'missile',shots:[shot]},t+3100);assert.equal(next[0].target,null);assert(skillActive(b,'interference',t+6000));assert(!skillActive(b,'interference',t+6001));b.hp=1000;hit(a,b,t+3200);assert.equal(b.hp,900,'Interference is not invulnerability');
 }
 {
- const {s,a,b}=setup('centella');setSkills(s,b,['paralyze','luck']);duel(s,a,b);a.pos=[3000,120,0];assert.equal(usePvpSkill(s,b,'paralyze',t+3000,a.id),'too_far');assert(!b.skillReadyAt?.paralyze);a.pos=[800,120,0];assert.equal(usePvpSkill(s,b,'paralyze',t+3001,a.id),null);assert.equal(a.paralyzedUntil,t+6001);assert(useAbility(s,a,t+3100));assert.equal(a.paralyzedUntil,0,'Centella cleanses paralysis with its native ability');
+ const {s,a,b}=setup('centella');setSkills(s,b,['paralyze','luck']);duel(s,a,b);a.pos=[4000,120,0];assert.equal(usePvpSkill(s,b,'paralyze',t+3000,a.id),'too_far');assert(!b.skillReadyAt?.paralyze);a.pos=[2100,120,0];assert.equal(usePvpSkill(s,b,'paralyze',t+3001,a.id),null);assert.equal(a.paralyzedUntil,t+6001);assert(useAbility(s,a,t+3100));assert.equal(a.paralyzedUntil,0,'Centella cleanses paralysis with its native ability');
  const shot={offset:[0,0,0],direction:[-1,0,0],speed:650};assert(attack(s,b,{targetId:a.id,weapon:'missile',shots:[shot,shot,shot]},t+3100));assert.equal(attack(s,b,{targetId:a.id,weapon:'missile',shots:[shot]},t+3200),null);assert.equal(usePvpSkill(s,b,'luck',t+3200),null);assert.equal(attack(s,b,{targetId:a.id,weapon:'missile',shots:[shot,shot,shot]},t+3201).length,3);assert.equal(attack(s,b,{targetId:a.id,weapon:'missile',shots:[shot]},t+3202),null,'Luck grants one volley, not unlimited missiles');assert.equal(usePvpSkill(s,b,'luck',t+3202),'skill_cooldown');
 }
 console.log('Six PvP skills: durations, cooldowns, equipment, shields, damage, actual-damage healing, no overkill, jamming, paralysis/cleanse and one bonus missile volley passed.');

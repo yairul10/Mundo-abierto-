@@ -1,3 +1,5 @@
+> **Actualizado en contenido 335:** los enemigos ahora están en ambos servidores con zonas. Consulta [las reglas vigentes](pvp-zonas-duelos-y-clasificaciones.md). La descripción siguiente documenta el prototipo 329 anterior.
+
 # Enemigos compartidos de PvP · prueba 329
 
 Disponible únicamente en `realm=test`. La partida normal conserva su Titán del Nexo y su recompensa actual.

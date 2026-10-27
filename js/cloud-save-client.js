@@ -1,7 +1,7 @@
 // Cosmos Legacy cloud-save client. Does not run until configured by the Android boot path.
 // A server session is held in memory only. Do not persist OAuth codes or session tokens.
 import {playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode} from './play-games-auth.js';
-export const PERSISTENT_FIELDS=Object.freeze(['name','classId','level','xp','gold','loot','ownedShips','shipId','shipSpecializations','shipBaseStats','droneCount','explorerDrone','explorerRangeLevel','repairRobot','repairRobotLevel','upgrades','formations','droneFormation','boosters','quests','pvpBossReceipts','maxHp','maxEnergy','attack','defense','speed']);
+export const PERSISTENT_FIELDS=Object.freeze(['name','classId','level','xp','gold','loot','ownedShips','shipId','shipSpecializations','shipBaseStats','droneCount','explorerDrone','explorerRangeLevel','repairRobot','repairRobotLevel','upgrades','formations','droneFormation','boosters','quests','pvpBossReceipts','pvpRespawnReceipts','pendingPvpDeath','pendingPvpTransfer','maxHp','maxEnergy','attack','defense','speed']);
 const SAVE_KEY='mundoAbierto.player';
 function progressOf(save){const result={};for(const key of PERSISTENT_FIELDS)if(Object.hasOwn(save,key))result[key]=save[key];return result}
 function localSave(){try{const data=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return data&&typeof data==='object'&&!Array.isArray(data)?data:null}catch{return null}}

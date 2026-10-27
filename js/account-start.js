@@ -1,4 +1,4 @@
-import {createCloudSave} from './cloud-save-client.js?v=3';
+import {createCloudSave} from './cloud-save-client.js?v=335';
 import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 
 const CHOICE='cosmosLegacy.accountChoice.v1';

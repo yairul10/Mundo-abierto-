@@ -1,3 +1,4 @@
+import {constrainEnemy} from './zones.mjs';
 import {defenseDamage} from './combat.mjs';
 export const BOSS_RULES=Object.freeze({id:'pvp-super-boss',name:'Titán del Nexo',maxHp:1000000,damage:11500,reward:1000000,attackInterval:3000,targets:3,patrolSpeed:80,teleportInterval:20000,range:1200,respawnDelay:300000,pos:[0,120,-1800],hitRadius:180});
 export function ensureBoss(s,now,rules=BOSS_RULES){
@@ -20,14 +21,14 @@ export function advanceBossMotion(s,now,eligible,random=Math.random){
  const b=s.boss;if(!b)return;const rules=b.rules||BOSS_RULES;
  const dt=Math.max(0,Math.min(3,(now-(b.motionAt??now))/1000));b.motionAt=now;
  if(b.hp<=0||!s.players.some(p=>p.connected))return;
- b.patrolPhase=((b.patrolPhase||0)+dt*rules.patrolSpeed/550)%(Math.PI*2);b.pos=bossPatrolPosition(b.patrolPhase,rules);
+ b.patrolPhase=((b.patrolPhase||0)+dt*rules.patrolSpeed/550)%(Math.PI*2);b.pos=bossPatrolPosition(b.patrolPhase,rules);constrainEnemy(b);
  if(!b.active||rules.teleportInterval===0)return;
  b.nextTeleportAt??=now+rules.teleportInterval;
  if(now<b.nextTeleportAt)return;
  // At most one jump after a delayed alarm; don't teleport for absent/protected pilots.
  b.nextTeleportAt=now+rules.teleportInterval;
  if(!s.players.some(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=rules.range))return;
- const from=[...b.pos];b.patrolPhase=(b.patrolPhase+Math.PI+(random()-.5)*.8)%(Math.PI*2);b.pos=bossPatrolPosition(b.patrolPhase,rules);
+ const from=[...b.pos];b.patrolPhase=(b.patrolPhase+Math.PI+(random()-.5)*.8)%(Math.PI*2);b.pos=bossPatrolPosition(b.patrolPhase,rules);constrainEnemy(b);
  b.teleportSeq=(b.teleportSeq||0)+1;b.lastTeleport={seq:b.teleportSeq,time:now,from,to:[...b.pos]};
 }
 // Largest remainders keep the integer credit pool exact, including fractional damage.
@@ -74,7 +75,7 @@ export function tickBoss(s,now,eligible){
  b.nextAttackAt=now+rules.attackInterval;if(!targets.length)return;
  const sharedDamage=rules.damage*rules.targets/targets.length;
  const hits=targets.map(target=>{
-  if(rules.projectile){const delta=target.pos.map((v,i)=>v-b.pos[i]),length=Math.hypot(...delta)||1,missile=rules.projectile==='missile',speed=missile?650:1150;s.bullets||=[];s.bullets.push({id:crypto.randomUUID(),owner:b.id,pos:[...b.pos],vel:delta.map(v=>v/length*speed),life:missile?5:1.05,range:1200,damage:sharedDamage,missile,speed,delay:.55,age:0,travelled:0,target:missile?target.id:null});return {targetId:target.id,targetPos:[...target.pos],damage:0}}
+  if(rules.projectile){const delta=target.pos.map((v,i)=>v-b.pos[i]),length=Math.hypot(...delta)||1,missile=rules.projectile==='missile',speed=missile?650:1150;s.bullets||=[];s.bullets.push({id:crypto.randomUUID(),owner:b.id,combatZone:rules.zone,pos:[...b.pos],vel:delta.map(v=>v/length*speed),life:missile?5:1.05,range:1200,damage:sharedDamage,missile,speed,delay:.55,age:0,travelled:0,target:missile?target.id:null});return {targetId:target.id,targetPos:[...target.pos],damage:0}}
   const damage=Math.min(target.hp,defenseDamage(target,sharedDamage,now));target.hp=Math.max(0,target.hp-damage);target.lastHit=target.lastIncoming=now;target.lastDamagedBy=b.id;return {targetId:target.id,targetPos:[...target.pos],damage}});
  b.attackSeq++;b.lastAttack={seq:b.attackSeq,time:now,origin:[...b.pos],projectile:rules.projectile||null,targets:hits,...hits[0]};
 }

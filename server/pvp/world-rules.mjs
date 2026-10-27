@@ -1,10 +1,12 @@
+import {ZONES,zoneOf,sameCombatZone,radial} from './zones.mjs';
+import {inviteDuel,replyDuel,tickDuels,duelFor,finishDuel} from './duels.mjs';
+import {awardKill} from './pvp-results.mjs';
 import {ensureArenaEnemies,advanceArenaEnemies,recordArenaDamage} from './arena-enemies.mjs';
-import {ensureBoss,recordBossDamage,tickBoss,advanceBossMotion} from './cooperative-boss.mjs';
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
-export const WORLD={formationSwitch:true,radius:3000,safeRadius:650,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
+export const WORLD={formationSwitch:true,radius:ZONES.edge,safeRadius:ZONES.base,pveRadius:ZONES.pve,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
 export const SHIPS={azote:[1.2,1.95,1.05,1.15],egida:[2.6,1.1,2.1,.95],vertigo:[1.05,1.2,.95,1.95],obsidian:[1.9,1.75,1.6,1.2],aurora:[1,1,1,1],titan:[1.8,.85,1.5,.75],espectro:[.7,1.35,.65,1.4],segadora:[1.1,1.85,.95,1.05],bastion:[2.5,1,2,.85],centella:[.95,1.1,.85,1.85]};
-export const safe=p=>Math.hypot(...p.pos)<=WORLD.safeRadius;
+export const safe=p=>zoneOf(p)==='base';
 export const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
 export function importRoster(raw){
  const roster={};for(const id of Object.keys(SHIPS)){const q=raw?.[id];if(q&&typeof q==='object'&&!Array.isArray(q))roster[id]={...q,shipId:id}}
@@ -30,30 +32,46 @@ export function updateProtection(p,now){
  else if(!inside)p.baseEnteredAt=null;
  p.baseInside=inside;return protectedAt(p,now);
 }
-export const protectedAt=(p,now)=>!!p&&safe(p)&&(p.baseEnteredAt===undefined||p.baseEnteredAt===null||now>=p.baseEnteredAt+WORLD.protectionDelay);
-export const combatEligible=(p,now)=>!!p&&p.connected&&p.hp>0&&!p.hangar&&!protectedAt(p,now);
-export const canDamage=(owner,target,now)=>owner?.npc?!!owner.connected&&owner.hp>0&&(!target||!target.npc&&!target.boss&&combatEligible(target,now)):combatEligible(owner,now)&&(!target||target.id!==owner.id&&(target.boss?target.hp>0:combatEligible(target,now)));
+export const protectedAt=(p,now)=>!!p&&!p.duelId&&safe(p)&&(p.baseEnteredAt===undefined||p.baseEnteredAt===null||now>=p.baseEnteredAt+WORLD.protectionDelay);
+export const combatEligible=(p,now)=>!!p&&p.connected&&p.hp>0&&!p.hangar&&!p.death&&!p.exiting&&(!p.duelId||now>=p.duelStartsAt)&&(!!p.duelId||!protectedAt(p,now));
+export const canDamage=(owner,target,now)=>{
+ if(!owner?.connected||owner.hp<=0||owner.death||owner.hangar)return false;
+ if(owner.exiting)return false;
+ if(!owner.npc&&!owner.boss&&!combatEligible(owner,now))return false;
+ if(!target)return owner.npc||owner.boss?true:combatEligible(owner,now);
+ if(target.id===owner.id||!target.connected||target.hp<=0||target.death||target.hangar)return false;
+ const a=!!(owner.npc||owner.boss),b=!!(target.npc||target.boss);
+ if(a&&b)return false;
+ if(owner.duelId||target.duelId)return !a&&!b&&owner.duelId===target.duelId&&now>=owner.duelStartsAt&&now>=target.duelStartsAt;
+ if(!sameCombatZone(owner,target))return false;
+ if(a||b)return combatEligible(a?target:owner,now);
+ return zoneOf(owner)==='hostile';
+};
 export function advance(s,now){
- s.invites=[];s.duels=[];s.events||=[];s.bullets||=[];
- for(const p of s.players){p.duelId=null;updateProtection(p,now)}
- const boss=ensureBoss(s,now),targets=s.realm==='test'?ensureArenaEnemies(s,now):[boss];if(s.realm!=='test')advanceBossMotion(s,now,combatEligible);
- const combat={status:'active',players:[...s.players,...targets],bullets:s.bullets,simTime:s.simTime??now,canDamage,onDamage:(owner,target,damage,time)=>{if(targets.includes(target)){if(s.realm==='test')recordArenaDamage(s,target,owner,damage,time);else recordBossDamage(boss,owner,damage,time)}}};
+ s.invites||=[];s.duels||=[];s.events||=[];s.bullets||=[];s.recoveries||={};tickDuels(s,reset,now);
+ for(const p of s.players){if(p.duelId&&!s.duels.some(d=>d.id===p.duelId))p.duelId=null;updateProtection(p,now)}
+ const targets=ensureArenaEnemies(s,now);
+ const combat={status:'active',players:[...s.players,...targets],bullets:s.bullets,simTime:s.simTime??now,canDamage,onDamage:(owner,target,damage,time)=>{if(targets.includes(target)){recordArenaDamage(s,target,owner,damage,time)}}};
+ combat.allowBullet=(b,owner)=>b.duelId?owner.duelId===b.duelId:zoneOf({pos:b.pos})===b.combatZone&&zoneOf(owner)===b.combatZone;
  stepCombat(combat,now);s.bullets=combat.bullets;s.simTime=combat.simTime;
- if(s.realm==='test')advanceArenaEnemies(s,now,combatEligible);else tickBoss(s,now,combatEligible);
- for(const p of s.players)if(p.connected&&p.hp<=0){
-  const winner=p.lastDamagedBy||null;s.bullets=s.bullets.filter(b=>b.owner!==p.id&&b.target!==p.id);
-  reset(p,true);s.events.push({type:'destroyed',id:crypto.randomUUID(),victim:p.id,winner,time:now});
+ advanceArenaEnemies(s,now,combatEligible);tickDuels(s,reset,now);
+ for(const p of s.players)if(p.connected&&p.hp<=0&&!p.death){
+  const winner=s.players.find(q=>q.id===p.lastDamagedBy),id=crypto.randomUUID();
+  s.bullets=s.bullets.filter(b=>b.owner!==p.id&&b.target!==p.id);
+  if(winner&&!winner.duelId&&zoneOf(p)==='hostile'&&zoneOf(winner)==='hostile')awardKill(s,winner,p,now,id);
+  s.critical=true;p.death={id,time:now};s.recoveries[p.id]=p.death;p.firing=false;p.hangar=false;
+  s.events.push({type:'destroyed',id,victim:p.id,winner:winner?.id||null,time:now});
  }
 }
 // Old invitation clients cannot re-enable duels in the open arena.
-export const invite=()=> 'open_pvp';
-export const reply=()=> 'open_pvp';
+export const invite=inviteDuel;
+export const reply=replyDuel;
 export function attack(s,p,m,now){
  updateProtection(p,now);if(!combatEligible(p,now))return null;
  const clean={...m,shots:Array.isArray(m.shots)?m.shots.map(x=>({...x,crit:Math.random()<.15+(p.profile.special.crit||0)*.01})):null};
- const targets=[...s.players,...(s.realm==='test'?ensureArenaEnemies(s,now):[ensureBoss(s,now)])],target=targets.find(x=>x.id===m.targetId&&canDamage(p,x,now));
+ const targets=[...s.players,...ensureArenaEnemies(s,now)],target=targets.find(x=>x.id===m.targetId&&canDamage(p,x,now));
  if(m.weapon==='explorer'&&(!target||(target.skillUntil?.interference||0)>now))return null;
- const combat={players:targets,bullets:s.bullets||[],canDamage};const bullets=volley(combat,p,clean,now);s.bullets=combat.bullets;return bullets;
+ const combat={players:targets,bullets:s.bullets||[],canDamage};const bullets=volley(combat,p,clean,now);for(const b of bullets||[]){b.combatZone=zoneOf(p);b.duelId=p.duelId||null}s.bullets=combat.bullets;return bullets;
 }
 export function useAbility(s,p,now){updateProtection(p,now);if(!combatEligible(p,now)||!ability(p,now))return false;if(['centella','vertigo'].includes(p.profile.shipId))p.paralyzedUntil=0;return true}
 
@@ -99,3 +117,5 @@ export function changeFormation(p,id){
  q.droneRange=id==='hunter'?1380:1200;q.repairBonus=id==='recovery'?1.25:1;
  return null;
 }
+
+export {zoneOf,duelFor,finishDuel};

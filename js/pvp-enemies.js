@@ -1,3 +1,4 @@
+import {createGranTitan} from './gran-titan.js?v=326';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {createColosoRig} from './coloso-rig.js?v=187';
 const MODELS={raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
@@ -11,6 +12,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   if(data.kind==='nexo'){
    replace();r.rig=createNexoRig(T,r.mesh,scene);
    model(NEXO_VISUAL.body).then(m=>r.rig.mountBody(m)).catch(()=>{});model(NEXO_VISUAL.arm).then(m=>r.rig.mountArm(m)).catch(()=>{});
+  }else if(data.kind==='granTitanPro'){replace();r.rig=createGranTitan(T,r.mesh,{position:new T.Vector3()});r.rig.root.scale.setScalar(.5);model('./assets/models/gran_titan.glb?v=327').then(m=>{if(entities.has(data.id))r.rig.mount(m)}).catch(()=>{});
   }else if(data.kind==='colossusPro'){
    Promise.all([model('./assets/models/coloso.glb?v=187'),model('./assets/models/scifipanelcrate_optimizado.glb?v=159')]).then(([hull,door])=>{if(!entities.has(data.id))return;replace();r.rig=createColosoRig(T,hull,door);r.mesh.add(r.rig.root)}).catch(()=>{});
    const glow=new T.MeshBasicMaterial({color:0xffa52b,transparent:true,opacity:.7,blending:T.AdditiveBlending,depthWrite:false});r.flames=[];
@@ -22,7 +24,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   const present=new Set(list.map(b=>b.id));for(const [id,r]of entities)if(!present.has(id)){scene.remove(r.mesh);r.label.remove();const i=enemies.indexOf(r);if(i>=0)enemies.splice(i,1);entities.delete(id)}
   for(const b of list){let r=entities.get(b.id);if(!r){
    const mesh=new T.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.append(label);scene.add(mesh);mesh.position.set(...b.pos);
-   r={pvpRemote:true,playerId:b.id,type:'pilot',mesh,label,goal:new T.Vector3(...b.pos),hp:b.hp,maxHp:b.maxHp,dead:b.hp>0?0:1,pilotName:b.name,pilotLevel:b.level||105,kind:b.kind,pro:b.kind==='colossusPro',instance:'',attackSeq:0,teleportSeq:0};entities.set(b.id,r);enemies.push(r);mount(r,b);
+   r={pvpRemote:true,playerId:b.id,type:'pilot',mesh,label,goal:new T.Vector3(...b.pos),hp:b.hp,maxHp:b.maxHp,dead:b.hp>0?0:1,pilotName:b.name,pilotLevel:b.level||105,kind:b.kind,pro:['colossusPro','granTitanPro'].includes(b.kind),instance:'',attackSeq:0,teleportSeq:0};entities.set(b.id,r);enemies.push(r);mount(r,b);
    label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>onSelect(b.id);label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();label.click()}};label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();label.click()},{passive:false});
   }
   const fresh=r.instance!==b.instanceId,jump=(b.lastTeleport?.seq||0)>r.teleportSeq;
@@ -35,6 +37,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
  }
  function update(dt){for(const r of entities.values()){
   const delta=r.goal.clone().sub(r.mesh.position);if(delta.lengthSq()>.01)r.mesh.rotation.y+=Math.atan2(Math.sin(Math.atan2(-delta.x,-delta.z)-r.mesh.rotation.y),Math.cos(Math.atan2(-delta.x,-delta.z)-r.mesh.rotation.y))*(1-Math.exp(-dt*4));r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));
+  if(r.kind==='granTitanPro'){r.rig.pose(r.active?.8:0,Math.floor(performance.now()/4000)%2?'bomb':'spear');r.rig.updateEngines(performance.now()/1000,true)}
   if(r.kind==='nexo')r.rig.update(dt,performance.now()/1000);
   if(r.kind==='colossusPro'){for(const p of r.rig?.panels||[])p.hinge.rotation.x+=((r.active?p.openAngle:0)-p.hinge.rotation.x)*(1-Math.exp(-dt*6));for(const flame of r.flames||[])flame.scale.y=.9+Math.sin(performance.now()*.015)*.12}
   const point=r.mesh.position.clone().add(new T.Vector3(0,r.kind==='nexo'?235:r.kind==='colossusPro'?180:75,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new T.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=hidden()||!!r.dead||view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';

@@ -25,7 +25,7 @@ export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Ma
    b.age+=dt;const locked=s.players.find(p=>p.id===b.target);
    if(b.target&&(!locked||!locked.connected||locked.hp<=0||skillActive(locked,'interference',now)||s.canDamage&&!s.canDamage(owner,locked,now)))b.target=null;
    if(b.missile&&b.target&&locked){const delta=locked.pos.map((v,i)=>v-b.pos[i]),length=Math.hypot(...delta)||1,alpha=Math.min(1,dt*(b.age<b.delay?.12:3.7));b.vel=b.vel.map((v,i)=>v+(delta[i]/length*b.speed-v)*alpha)}
-   const prev=[...b.pos];b.pos=b.pos.map((v,i)=>v+b.vel[i]*dt);b.life-=dt;b.travelled=(b.travelled||0)+Math.hypot(...b.vel)*dt;
+   const prev=[...b.pos];b.pos=b.pos.map((v,i)=>v+b.vel[i]*dt);b.life-=dt;if(s.allowBullet&&!s.allowBullet(b,owner)){b.life=0;continue}b.travelled=(b.travelled||0)+Math.hypot(...b.vel)*dt;
    if(!b.missile&&b.travelled>(b.range||1200)){b.life=0;continue}
    const segment=b.pos.map((v,i)=>v-prev[i]),length2=segment.reduce((sum,v)=>sum+v*v,0);let victim=null,best=Infinity;
    for(const target of s.players){

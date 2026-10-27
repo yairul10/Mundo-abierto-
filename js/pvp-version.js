@@ -1,4 +1,4 @@
-export const PVP_CLIENT_VERSION=1;
+export const PVP_CLIENT_VERSION=2;
 export const PVP_UPDATE_URL='https://play.google.com/store/apps/details?id=com.cosmoslegacy.game';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
 export async function checkPvpVersion(){
