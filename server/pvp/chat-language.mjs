@@ -1,11 +1,11 @@
-export const CHAT_LANGUAGES=Object.freeze(['es','en','pt','fr','de','it']);
+export const CHAT_LANGUAGES=Object.freeze(['es','en','pt','fr','de','it','tr']);
 export const chatLanguage=value=>CHAT_LANGUAGES.includes(value)?value:'es';
 // Whole-token matching avoids censoring innocent words containing short substrings.
 // Regional slang and common obfuscation are covered; context still requires reports.
-const words=new Set(('puta putas puto putos mierda mierdas mierda ctm ctmre conchetumadre conchesumadre conchadetumadre culiao culiado culiada weon weona huevon huevona aweonao aweonado maricon maricones pendejo pendeja cabron cabrona bastardo bastarda fuck fucking fucker motherfucker shit bullshit asshole bitch bitches bastard cunt dickhead porra caralho merda foda fodase putain merde connard salope scheisse arschloch cazzo stronzo vaffanculo').split(' '));
+const words=new Set(('puta putas puto putos mierda mierdas mierda ctm ctmre conchetumadre conchesumadre conchadetumadre culiao culiado culiada weon weona huevon huevona aweonao aweonado maricon maricones pendejo pendeja cabron cabrona bastardo bastarda fuck fucking fucker motherfucker shit bullshit asshole bitch bitches bastard cunt dickhead porra caralho merda foda fodase putain merde connard salope scheisse arschloch cazzo stronzo vaffanculo siktir sikik orospu pic yarrak amk').split(' '));
 export function censorChat(text){
  return String(text).replace(/[\p{L}\p{N}@$]+(?:[._*\-!]*[\p{L}\p{N}@$]+)*/gu,token=>{
-  const normalized=token.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[013457@$!]/g,c=>({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','@':'a','$':'s','!':'i'}[c])).replace(/[._*\-]/g,'');
+  const normalized=token.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/ı/g,'i').replace(/[013457@$!]/g,c=>({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','@':'a','$':'s','!':'i'}[c])).replace(/[._*\-]/g,'');
   return words.has(normalized)?'***':token;
  });
 }

@@ -1,5 +1,5 @@
 export function mountMapChat({send,storage=localStorage,realm='normal'}){
- const LANGUAGES={es:'Español',en:'English',pt:'Português',fr:'Français',de:'Deutsch',it:'Italiano'};
+ const LANGUAGES={es:'Español',en:'English',pt:'Português',fr:'Français',de:'Deutsch',it:'Italiano',tr:'Türkçe'};
  const preferred=(navigator.language||'es').split('-')[0];let language=Object.hasOwn(LANGUAGES,preferred)?preferred:'es',auto=true,translationAvailable=false,queue=[],requested=new Set(),translations=new Map(),originals=new Set();
  try{language=storage.getItem('cosmos.chatLanguage')||language;auto=storage.getItem('cosmos.chatTranslate')!=='off'}catch{}if(!Object.hasOwn(LANGUAGES,language))language='es';
  const key='cosmos.chatRules.'+realm;let messages=[],blocks=new Set(),myId='',admin=false;
