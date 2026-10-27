@@ -45,7 +45,7 @@ function spawnWave(s,parent,threshold,now){
   if(children.length>=6||children.filter(b=>b.hp>0).length>=6)break;
   const types=['raider','sentinel','destroyer'],model=types[parent.waves.length-1],base=PVE_REINFORCEMENTS[model],hp={raider:14000,sentinel:28000,destroyer:56000}[model],index=children.length;
   const rules={...BOSS_RULES,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:{raider:2400,sentinel:3600,destroyer:4800}[model],xpReward:{raider:3600,sentinel:4800,destroyer:6000}[model],materialCount:{raider:10,sentinel:9,destroyer:10}[model],damage:600,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
-  const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,motionAt:now,spawnIndex:index});s.arenaEnemies.push(b);
+  const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:false,motionAt:now,spawnIndex:index});s.arenaEnemies.push(b);
  }
 }
 function materialRewards(s,b,from,random){
