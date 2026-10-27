@@ -1,3 +1,4 @@
+import {mountMapChat} from './map-chat.js?v=1';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=238';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=256';
@@ -15,12 +16,13 @@ export function startSharedSession(bridge){
  const seenEvents=new Set(),$=id=>document.getElementById(id);
  const style=document.createElement('link');style.rel='stylesheet';style.href='./css/shared-world.css?v=256';document.head.appendChild(style);document.body.classList.add('pvp-hud');
  const panel=document.createElement('section');panel.id='worldPanel';panel.setAttribute('aria-label','PvP abierto');panel.innerHTML='<div class="world-top"><strong id="worldStatus">Conectando al mapa…</strong><button id="worldExit">Salir del PvP</button></div><small id="worldDetails">Invitado · Jefe cooperativo · Recompensas por daño</small><button id="worldHangar">Aterrizar y abrir hangar</button><div id="worldTools" hidden><label>Apodo <input id="worldName" maxlength="20" value="Invitado"></label><button id="worldSaveName">Guardar apodo</button><small>Usas tus naves y equipo. Casco ×20 en PvP.</small></div><div id="worldMessage" role="status"></div><button id="worldRetry" hidden>Reconectar</button>';
- document.body.append(panel);const zoom=$('zoomControls');if(zoom){const actions=document.createElement('div');actions.id='pvpMapActions';actions.append($('worldExit'),zoom);const net=document.createElement('small');net.id='pvpNetStatus';net.style.cssText='position:absolute;top:calc(100% + 3px);left:0;color:#c9edff;font:10px system-ui;white-space:nowrap;background:#061527aa;padding:2px 5px;border-radius:5px';net.textContent='Web 329 · conectando';actions.append(net);document.body.append(actions)}
+ document.body.append(panel);const zoom=$('zoomControls');if(zoom){const actions=document.createElement('div');actions.id='pvpMapActions';actions.append($('worldExit'),zoom);const net=document.createElement('small');net.id='pvpNetStatus';net.style.cssText='position:absolute;top:calc(100% + 3px);left:0;color:#c9edff;font:10px system-ui;white-space:nowrap;background:#061527aa;padding:2px 5px;border-radius:5px';net.textContent='Web 330 · conectando';actions.append(net);document.body.append(actions)}
  const home=$('hangarHomeView');if(home){const section=document.createElement('section');section.id='pvpHangarLoadout';section.innerHTML='<h3>Equipamiento PvP</h3><p>Equipa tus naves y habilidades al aterrizar.</p>';section.append($('worldTools'));home.append(section)}
  const targetCard=document.createElement('section');targetCard.id='worldTarget';targetCard.hidden=true;targetCard.setAttribute('role','dialog');targetCard.setAttribute('aria-label','Objetivo seleccionado');targetCard.innerHTML='<strong id="worldTargetName"></strong><small id="worldTargetDetail"></small><button id="worldTargetClose">Cerrar</button>';document.body.append(targetCard);
  const status=$('worldStatus'),details=$('worldDetails'),tools=$('worldTools'),message=$('worldMessage');
  function note(text){message.textContent=text;messageUntil=performance.now()+6500}
  function send(m){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(m))}
+ const chat=mountMapChat({send,realm});const chatStyle=document.createElement('link');chatStyle.rel='stylesheet';chatStyle.href='./css/map-chat.css?v=1';document.head.append(chatStyle);
  const active=()=>!!me&&ws?.readyState===WebSocket.OPEN&&performance.now()-lastReceived<3000;
  const canFight=()=>active()&&me.protected===false&&!me.hangar;
  const canTarget=id=>(state?.enemies?.find(e=>e.id===id)||state?.boss)?.id===id?(state?.enemies?.find(e=>e.id===id)||state.boss).hp>0:!!state?.players.some(p=>p.id===id&&id!==me?.id&&!p.protected&&!p.hangar&&p.hp>0);
@@ -32,7 +34,7 @@ export function startSharedSession(bridge){
  $('worldHangar').onclick=()=>bridge.requestLanding();$('worldExit').onclick=exit;$('worldRetry').onclick=()=>{attempts=0;retryAt=0;connect()};$('worldTargetClose').onclick=clearSelection;
  $('worldSaveName').onclick=()=>{const name=$('worldName').value.trim()||'Invitado';try{localStorage.setItem(NAME_KEY,name);if(identity)identity.name=name}catch{}send({type:'name',name})};
  function updateUI(){
-  skillUI.update();const net=$('pvpNetStatus');if(net)net.textContent='Web 329 · '+(pingMs===null?'midiendo conexión':pingMs+' ms');if(!state||!me)return;
+  skillUI.update();const net=$('pvpNetStatus');if(net)net.textContent='Web 330 · '+(pingMs===null?'midiendo conexión':pingMs+' ms');if(!state||!me)return;
   status.textContent=me.protected?'Base PvP · Protegido':'PvP abierto';
   details.textContent=(realm==='test'?'PRUEBAS · ':'')+me.name+' #'+me.id.slice(-6)+' · '+state.players.length+' pilotos · '+(pingMs===null?'Conectado':pingMs+' ms');
   $('worldHangar').disabled=!me.protected||!!me.hangar||hangarRequested||!bridge.canLand();tools.hidden=!bridge.isHangarOpen();
@@ -41,9 +43,9 @@ export function startSharedSession(bridge){
  async function connect(){if(busy||closed)return;busy=true;$('worldRetry').hidden=true;status.textContent='Conectando al mapa…';try{
   if(bridge.isHangarOpen())loadout=pvpRoster(readOfflinePilot(localStorage));if(!identity)identity={...guestIdentity(),shipId:loadout.selected};$('worldName').value=identity.name;
   const r=await fetch(API+'/world/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...identity,roster:loadout.profiles,realm,skills:skillUI.saved}),signal:AbortSignal.timeout(12000)}),ticket=await r.json();if(!r.ok)throw Error(ERRORS[ticket.error]||'No se pudo entrar al mapa.');
-  if(closed)return;ws=new WebSocket(API.replace('https:','wss:')+'/world/socket?realm='+realm,['mundo-world-v1',ticket.token]);seq=0;pending=[];movementPrediction.reset();firstState=true;lastRevision=-1;lastSend=performance.now();me=null;state=null;lastReceived=performance.now();
+  if(closed)return;chat.reset();chat.identify(ticket.playerId);ws=new WebSocket(API.replace('https:','wss:')+'/world/socket?realm='+realm,['mundo-world-v1',ticket.token]);seq=0;pending=[];movementPrediction.reset();firstState=true;lastRevision=-1;lastSend=performance.now();me=null;state=null;lastReceived=performance.now();
   ws.onopen=()=>{lastReceived=performance.now();lastPing=0;attempts=0};
-  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}lastReceived=performance.now();
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}lastReceived=performance.now();if(chat.receive(m))return;
    if(m.type==='pong'){pingMs=Math.max(0,Math.round(Date.now()-m.echo));return}
    if(m.type==='error'){hangarRequested=false;note(ERRORS[m.error]||'No se pudo completar la acción.');return}
    if(m.type==='bossRewards'){try{const result=bridge.bossRewards?.(m.receipts);if(result?.ids?.length)send({type:'bossRewardAck',ids:result.ids});if(result?.added)note('Jefe derrotado · +'+result.added.toLocaleString()+' créditos por tu daño.')}catch{note('No se pudo guardar el premio. Se reintentará automáticamente.')}return}

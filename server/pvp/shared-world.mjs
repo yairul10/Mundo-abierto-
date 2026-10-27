@@ -1,3 +1,4 @@
+import {handleChat} from './chat.mjs';
 import {arenaEnemySnapshots} from './arena-enemies.mjs';
 import {bossSnapshot} from './cooperative-boss.mjs';
 import {equippedSkills,validSkills} from './skills.mjs';
@@ -77,7 +78,7 @@ export class SharedWorld extends DurableObject {
   const now=Date.now(),a=ws.deserializeAttachment();if(!a?.world)return;
   if(now-a.windowStart>=1000){a.windowStart=now;a.count=0}if(++a.count>40){ws.close(1008,'rate limit');return}ws.serializeAttachment(a);
   let m;try{m=JSON.parse(message)}catch{return}if(!m||typeof m!=='object')return;
-  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;this.startSimulation(s);advance(s,now);
+  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;if(await handleChat(this.ctx,this.env,ws,p,m))return;this.startSimulation(s);advance(s,now);
   let error=null;
   if(m.type==='input'){
    if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;
