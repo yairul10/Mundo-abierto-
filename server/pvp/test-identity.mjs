@@ -9,7 +9,7 @@ export function authenticateFixtureRequests(mf){
  const original=mf.dispatchFetch.bind(mf);
  mf.dispatchFetch=(url,options={})=>{
   if(new URL(url).pathname==='/world/join'&&typeof options.body==='string'){
-   const body=JSON.parse(options.body);options={...options,body:JSON.stringify({...body,clientVersion:3}),headers:{...options.headers,Authorization:'Bearer fixture-'+(body.guestKey||'')}};
+   const body=JSON.parse(options.body);options={...options,body:JSON.stringify({...body,clientVersion:2}),headers:{...options.headers,Authorization:'Bearer fixture-'+(body.guestKey||'')}};
   }
   return original(url,options);
  };return mf;

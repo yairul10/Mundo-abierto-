@@ -1,4 +1,4 @@
-import {PVP_CLIENT_VERSION} from './client-version.mjs';
+import {compatiblePvpClient} from './client-version.mjs';
 import {initResults,persistResults,rankings} from './pvp-results.mjs';
 import {requestRespawn,confirmRespawn} from './respawn.mjs';
 import {migrateGuestRewards} from './account.mjs';
@@ -72,7 +72,7 @@ export class SharedWorld extends DurableObject {
   if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return json({error:'websocket_required'},426);
   const protocols=(request.headers.get('Sec-WebSocket-Protocol')||'').split(',').map(x=>x.trim()),s=this.worldLoad(),now=Date.now();
   const p=s.players.find(x=>x.token===protocols[1]&&now-x.lastSeen<30000);
-  if(p?.accountId&&(!Number.isSafeInteger(p.clientVersion)||p.clientVersion<PVP_CLIENT_VERSION))return json({error:'update_required'},426);
+  if(p?.accountId&&!compatiblePvpClient(p,this.env))return json({error:'update_required'},426);
   if(protocols[0]!=='mundo-world-v1'||!p?.accountId)return json({error:'invalid_ticket'},403);
   if(p.connected)return json({error:'already_connected'},409);
   const [client,server]=Object.values(new WebSocketPair());this.ctx.acceptWebSocket(server);server.serializeAttachment({world:true,id:p.id,windowStart:now,count:0});
@@ -84,7 +84,7 @@ export class SharedWorld extends DurableObject {
   const now=Date.now(),a=ws.deserializeAttachment();if(!a?.world)return;
   if(now-a.windowStart>=1000){a.windowStart=now;a.count=0}if(++a.count>40){ws.close(1008,'rate limit');return}ws.serializeAttachment(a);
   let m;try{m=JSON.parse(message)}catch{return}if(!m||typeof m!=='object')return;
-  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if((!Number.isSafeInteger(p.clientVersion)||p.clientVersion<PVP_CLIENT_VERSION)){ws.close(1008,'update_required');return}if(!p.accountId){ws.close(1008,'google_required');return}if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;if(await handleChat(this.ctx,this.env,ws,p,m))return;this.startSimulation(s);advance(s,now);
+  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if(!compatiblePvpClient(p,this.env)){ws.close(1008,'update_required');return}if(!p.accountId){ws.close(1008,'google_required');return}if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;if(await handleChat(this.ctx,this.env,ws,p,m))return;this.startSimulation(s);advance(s,now);
   if((p.death||p.exiting)&&!['respawn','respawnAck','rankings','bossRewardAck','ping','leave'].includes(m.type))return;
   let error=null;
   if(m.type==='input'){

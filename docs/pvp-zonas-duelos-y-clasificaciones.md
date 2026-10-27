@@ -61,3 +61,7 @@ El Gran Titán Pro conserva ×2 PV y daño respecto al nivel 105, +10 % de créd
 ## Escoltas y XP (servidor 0.7.2)
 Los escoltas del Coloso y del Gran Titán sobreviven a la muerte del jefe. Conservan daño, propietario de recompensa y estado al reiniciar. Se retiran si son destruidos o al comenzar la siguiente instancia del jefe; no se generan oleadas adicionales mientras el jefe está muerto. Atacar una escolta superviviente permite que responda sin reactivar al jefe muerto.
 Coloso Pro: 55.000 créditos y 82.500 XP; Gran Titán Pro: 151.800 créditos y 227.700 XP. Ambos fondos se reparten por daño efectivo. La proporción de recompensas es 2,76 al tomar las bases PvE de nivel 105. No se modifican los recibos ya cobrados.
+
+
+## Publicación y compatibilidad
+El protocolo actual de desarrollo es 3, pero el mínimo publicado sigue en 2 mientras 1.1.10 está pendiente de publicación en Google Play. Las nuevas compilaciones no elevan automáticamente el mínimo. La configuración PVP_MIN_CLIENT_VERSION se elevará solo después de confirmar disponibilidad en la tienda para los jugadores. Se aplica la misma comprobación al ingreso, reconexión y mensajes del mapa. Las apps anteriores mostrarán sus divisiones antiguas hasta actualizarse.
