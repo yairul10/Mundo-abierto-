@@ -10,7 +10,7 @@ Configurar un secreto largo y aleatorio `CHAT_ADMIN_KEY` en el Worker; nunca inc
 
 El panel muestra los últimos 100 reportes con autor, identificador, mensaje, motivo y estado. Permite descartar, borrar el mensaje, silenciar 1 hora/24 horas, banear del chat indefinidamente y quitar el silencio. Las acciones quedan auditadas en SQLite. El ban afecta a la escritura del chat, no expulsa del juego. Cambiar apodo o reconectar no anula la sanción.
 
-Limitación actual: la identidad es la clave local de PvP, todavía no la cuenta Google Play. Borrar esa identidad permite evadir sanciones; no presentar esta versión como un sistema de sanciones de cuenta completo. Antes de lanzamiento público, vincular identidad online autenticada, definir retención/borrado de evidencia y actualizar declaraciones de privacidad, público objetivo y contenido interactivo de Play Console. La aceptación de reglas no sustituye atender los reportes.
+PvP requiere una sesión Google Play verificada en el servidor. El identificador interno es estable por cuenta; los reportes, bloqueos y sanciones se conservan al cambiar de apodo o dispositivo. Otra cuenta Google continúa siendo otra identidad. Antes del lanzamiento público, definir retención/borrado de evidencia y actualizar declaraciones de privacidad, público objetivo y contenido interactivo de Play Console. La aceptación de reglas no sustituye atender los reportes.
 
 ## Despliegue y validación
 

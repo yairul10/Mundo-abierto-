@@ -1,9 +1,10 @@
+import {fixtureIdentity,authenticateFixtureRequests} from './test-identity.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
-const files=['worker.mjs','chat.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'];
-const options={modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:'2026-10-11',compatibilityFlags:['nodejs_compat'],durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
-const mf=new Miniflare(convertV4MiniflareOptions(options)),connections=[];
+const files=['worker.mjs','account.mjs','chat.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'];
+const options={modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:'2026-10-11',compatibilityFlags:['nodejs_compat'],serviceBindings:{PLAY_IDENTITY:request=>fixtureIdentity.fetch(request)},durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
+const mf=authenticateFixtureRequests(new Miniflare(convertV4MiniflareOptions(options))),connections=[];
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const post=async(path,data)=>{const r=await mf.dispatchFetch('https://arena.test'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});return {status:r.status,body:await r.json()}};
 async function connect(token,realm='normal'){const r=await mf.dispatchFetch('https://arena.test/world/socket?realm='+realm,{headers:{Upgrade:'websocket','Sec-WebSocket-Protocol':'mundo-world-v1,'+token}});if(r.status!==101)return {status:r.status};const ws=r.webSocket;ws.accept();const c={ws,messages:[],seq:0,status:r.status};ws.addEventListener('message',e=>c.messages.push(JSON.parse(e.data)));connections.push(ws);return c}
@@ -14,7 +15,7 @@ async function moveTo(c,id,goal){for(let i=0;i<20;i++){const state=await waitFor
 try{
  assert.equal((await (await mf.dispatchFetch('https://arena.test/health')).json()).version,'0.6.0');
  assert.equal((await mf.dispatchFetch('https://arena.test/health',{headers:{Origin:'https://evil.example'}})).status,403);
- assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/world/join',{guestKey:'bad'})).status,409);
+ assert.equal((await post('/rooms',{})).status,410);assert.equal((await post('/world/join',{guestKey:'bad'})).status,401);
  const roster={aurora:{maxHp:1000,maxEnergy:500,attack:100,defense:0,speed:5000,level:40}};
  const a=(await post('/world/join',{guestKey:'a'.repeat(64),name:'A',roster})).body,b=(await post('/world/join',{guestKey:'b'.repeat(64),name:'B',roster})).body,c=(await post('/world/join',{guestKey:'c'.repeat(64),name:'C',roster})).body;
  const ca=await connect(a.token),cb=await connect(b.token),cc=await connect(c.token);assert.equal(ca.status,101);assert.equal((await connect('invalid')).status,403);

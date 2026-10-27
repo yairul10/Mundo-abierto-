@@ -28,6 +28,11 @@
       "type": "plain_text",
       "name": "TEST_SERVER_ENABLED",
       "text": "true"
+    },
+    {
+      "type": "service",
+      "name": "PLAY_IDENTITY",
+      "service": "cosmos-legacy-lite-test"
     }
   ],
   "exports": {

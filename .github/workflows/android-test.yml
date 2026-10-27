@@ -16,6 +16,8 @@ on:
       - 'server/pvp/world-rules*.mjs'
       - 'server/pvp/skills*.mjs'
       - 'server/pvp/chat*.mjs'
+      - 'server/pvp/account*.mjs'
+      - 'server/cloud-save/**'
       - 'server/pvp/shared-world*.mjs'
       - '.github/workflows/android-test.yml'
 permissions:
@@ -34,7 +36,7 @@ jobs:
           node-version: '22'
       - name: Comprobar combate, escalado y hangar
         working-directory: .
-        run: node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs server/pvp/skills.test.mjs server/pvp/chat.test.mjs
+        run: node --test tests/*.test.mjs server/pvp/combat.test.mjs server/pvp/world-rules.test.mjs server/pvp/skills.test.mjs server/pvp/chat.test.mjs server/pvp/account.test.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
