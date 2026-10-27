@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+const storage=new Map();globalThis.localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};
+globalThis.window={MUNDO_PLAY_MODE:{mode:'normal'}};
+globalThis.Capacitor={Plugins:{CosmosPlayGames:{status:async()=>({authenticated:true,displayName:'Nombre anterior'}),serverAuthCode:async()=>({code:'one-use-test-code'})}}};
+let calls=0;globalThis.fetch=async()=>{calls++;return Response.json({authenticated:true,displayName:'yairulbosss',playerId:'verified-id',sessionToken:'fixture-session-token',expiresIn:86400,grants:[]})};
+const {pvpAccountToken,pvpAccountProfile,clearPvpAccountToken}=await import('../js/pvp-account.js');
+assert.equal(await pvpAccountToken(),'fixture-session-token');assert.equal(pvpAccountProfile().displayName,'yairulbosss');
+await pvpAccountToken();assert.equal(calls,1,'Reuse the verified session and its matching profile');
+clearPvpAccountToken();assert.equal(pvpAccountProfile(),null);await pvpAccountToken();assert.equal(calls,2);
+assert.equal(storage.has('mundoAbierto.player'),false,'A nickname change must not create or replace a save');
+console.log('PvP uses the verified Google nickname, caches its session and clears both together.');

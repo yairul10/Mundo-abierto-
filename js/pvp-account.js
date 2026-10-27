@@ -2,7 +2,8 @@ import {applyAccountGrants} from './account-grants.js?v=1';
 import {isNativePlayGames,playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode} from './play-games-auth.js';
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev';
 const CLIENT='430904114567-2s03dmhrv4o4lfp73qal65kseu837035.apps.googleusercontent.com';
-let cached=null,expires=0;
+let cached=null,expires=0,profile=null;
+export const pvpAccountProfile=()=>profile;
 export async function pvpAccountToken(){
  if(!isNativePlayGames())throw Error('Para entrar a PvP necesitas Google Play Games en la aplicación Android. Puedes seguir jugando PvE como invitado.');
  if(cached&&Date.now()<expires)return cached;
@@ -13,6 +14,7 @@ export async function pvpAccountToken(){
  const data=await response.json();
  if(!response.ok||!data.authenticated||typeof data.sessionToken!=='string')throw Error('No se pudo verificar tu cuenta de Google Play. Reintenta antes de entrar a PvP.');
  const test=window.MUNDO_PLAY_MODE?.mode==='test';applyAccountGrants(localStorage,data.grants,test?'mundoAbierto.qaPlayer':'mundoAbierto.player');
+ profile={displayName:String(data.displayName||state.displayName||'Piloto').trim().slice(0,20),playerId:data.playerId};
  cached=data.sessionToken;expires=Date.now()+Math.min(Number(data.expiresIn)||0,3600)*1000-60000;return cached;
 }
-export function clearPvpAccountToken(){cached=null;expires=0}
+export function clearPvpAccountToken(){cached=null;expires=0;profile=null}

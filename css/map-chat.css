@@ -1,1 +1,25 @@
-#mapChat{position:fixed;left:12px;top:70px;z-index:1500;font:13px system-ui;color:#e8f7ff;pointer-events:auto}#mapChat button{border:1px solid #51718f;background:#183650;color:#fff;border-radius:8px;padding:8px;cursor:pointer;min-height:36px}#mapChat .map-chat-box{width:min(390px,calc(100vw - 24px));max-height:calc(100dvh - 95px);overflow:auto;background:#081a2ff5;border:1px solid #51718f;border-radius:12px;padding:10px;box-shadow:0 8px 28px #0008}#mapChat [hidden]{display:none!important}#mapChat label{display:block;font-size:12px;margin:10px 0;line-height:1.5}#mapChat .map-chat-messages{height:150px;overflow:auto;overflow-wrap:anywhere}#mapChat .map-chat-messages>div{padding:7px 0;border-bottom:1px solid #ffffff20}#mapChat .map-chat-messages button{padding:3px 6px;margin-left:5px;font-size:11px}#mapChat input:not([type=checkbox]){min-width:0;flex:1;padding:9px;background:#061324;color:white;border:1px solid #62829e;border-radius:7px}#mapChat form{display:flex;gap:5px}#mapChat details{margin-top:10px}#mapChat details p{overflow-wrap:anywhere}#mapChat summary{cursor:pointer;padding:5px}#mapChat p[role=status]{font-size:12px;color:#ffdb91}#mapChat strong{margin-right:14px}
+#mapChat{position:fixed;z-index:1500;color:#f1faff;font:var(--chat-font,13px)/1.4 system-ui;pointer-events:none;max-width:calc(100vw - 16px)}
+#mapChat [hidden]{display:none!important}
+#mapChat button,#mapChat summary,#mapChat input,#mapChat select{pointer-events:auto;font:inherit}
+#mapChat button{border:1px solid #7cbbd666;background:#102b40b8;color:#ecfaff;border-radius:9px;padding:6px 9px;min-height:32px;cursor:pointer}
+#mapChat button:disabled{opacity:.45}
+#mapChat .map-chat-box{box-sizing:border-box;position:relative;display:flex;flex-direction:column;padding:5px;background:transparent;border:0;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);pointer-events:none;text-shadow:0 1px 3px #000,0 0 4px #000}
+#mapChat .map-chat-header{display:flex;align-items:center;gap:5px;flex:0 0 auto;pointer-events:none}
+#mapChat .map-chat-header strong{flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mapChat .map-chat-move{touch-action:none;cursor:move}
+#mapChat .map-chat-messages{flex:1;min-height:20px;overflow:auto;overflow-wrap:anywhere;scrollbar-width:thin;pointer-events:auto;touch-action:pan-y}
+#mapChat .map-chat-messages>div{padding:4px 0;background:transparent;border:0}
+#mapChat .map-chat-messages details{display:inline-block;position:relative;margin-left:4px;text-shadow:none;background:#0a1d31b8;border-radius:6px}
+#mapChat .map-chat-messages summary{display:inline-block;cursor:pointer;padding:0 5px;list-style:none}
+#mapChat .map-chat-messages button{font-size:11px;padding:3px 5px;min-height:28px}
+#mapChat form{display:flex;flex:0 0 auto;gap:5px;margin-top:5px;padding-right:20px}
+#mapChat input:not([type=checkbox]):not([type=range]){box-sizing:border-box;min-width:0;width:100%;padding:7px;background:#071a2bc9;color:white;border:1px solid #62829e88;border-radius:8px}
+#mapChat form input{flex:1}
+#mapChat .map-chat-settings{position:absolute;inset:42px 3px 3px;overflow:auto;pointer-events:auto;background:#071a2ff5;border:1px solid #56829d;border-radius:12px;padding:12px;text-shadow:none;box-shadow:0 5px 20px #0006}
+#mapChat label{display:block;font-size:12px;margin:8px 0;line-height:1.4;pointer-events:auto}
+#mapChat .map-chat-box>label{background:#071a2ff2;border-radius:10px;padding:10px;max-height:45%;overflow:auto}
+#mapChat select{max-width:100%;background:#183650;color:white;border:1px solid #62829e;border-radius:6px;padding:4px}
+#mapChat small{display:block;font-size:11px;color:#bddeef}
+#mapChat details{margin-top:7px}#mapChat details p{overflow-wrap:anywhere}#mapChat summary{cursor:pointer;padding:5px}
+#mapChat p[role=status]{font-size:12px;color:#ffdc9b;pointer-events:none;margin:3px 0}#mapChat p[role=status]:empty{display:none}
+#mapChat .map-chat-resize{position:absolute;right:0;bottom:0;min-height:24px;padding:0 3px;border:0;background:#102b4077;cursor:nwse-resize;touch-action:none}
