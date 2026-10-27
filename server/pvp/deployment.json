@@ -1,0 +1,48 @@
+{
+  "main_module": "worker.mjs",
+  "compatibility_date": "2026-10-11",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "bindings": [
+    {
+      "type": "durable_object_namespace",
+      "name": "ROOMS",
+      "class_name": "ArenaRoom"
+    },
+    {
+      "type": "durable_object_namespace",
+      "name": "LOBBIES",
+      "class_name": "ArenaLobby"
+    },
+    {
+      "type": "ratelimit",
+      "name": "API_LIMIT",
+      "namespace_id": "310026",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "type": "plain_text",
+      "name": "TEST_SERVER_ENABLED",
+      "text": "true"
+    }
+  ],
+  "exports": {
+    "ArenaRoom": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "ArenaLobby": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1,
+    "redact_query_string": true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "appId": "com.cosmoslegacy.game",
+  "appName": "Cosmos Legacy",
+  "webDir": "www",
+  "backgroundColor": "#020611",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": true
+  }
+}

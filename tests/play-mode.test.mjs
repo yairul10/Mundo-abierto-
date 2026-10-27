@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {saveKey,setMode,savedMode} from '../js/play-mode.js';
+import {readOfflinePilot} from '../js/pvp-loadout.js';
+import {testServerEnabled,realmName} from '../server/pvp/test-config.mjs';
+const entries=new Map([['mundoAbierto.player',JSON.stringify({gold:50,name:'Normal'})],['mundoAbierto.qaPlayer',JSON.stringify({gold:999999,name:'Pruebas'})]]);
+const storage={getItem:k=>entries.get(k)||null,setItem:(k,v)=>entries.set(k,v),removeItem:k=>entries.delete(k)};
+const normal=storage.getItem(saveKey('normal')),test=storage.getItem(saveKey('test'));
+setMode(storage,'test');assert.equal(savedMode(storage),'test');assert.equal(readOfflinePilot(storage).name,'Pruebas');
+setMode(storage,'normal');assert.equal(savedMode(storage),'normal');assert.equal(readOfflinePilot(storage).name,'Normal');
+assert.equal(storage.getItem(saveKey('normal')),normal);assert.equal(storage.getItem(saveKey('test')),test);
+globalThis.window={MUNDO_PLAY_MODE:{mode:'normal'}};setMode(storage,'test');assert.equal(readOfflinePilot(storage).name,'Normal','Other tab cannot change this page save');window.MUNDO_PLAY_MODE.mode='test';setMode(storage,'normal');assert.equal(readOfflinePilot(storage).name,'Pruebas');delete globalThis.window;
+assert.equal(testServerEnabled({}),true);assert.equal(testServerEnabled({TEST_SERVER_ENABLED:'false'}),false);assert.equal(testServerEnabled({TEST_SERVER_ENABLED:'true'}),true);assert.notEqual(realmName('normal'),realmName('test'));assert.equal(realmName(undefined),'shared-cemetery-v1');
+console.log('Mode switch preserves both saves; page-bound reads; remotely disabled tests; isolated PvP realms passed.');

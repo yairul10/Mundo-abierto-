@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+const {createMissionBoard,CEMETERY_MISSIONS}=await import('data:text/javascript;base64,'+Buffer.from(readFileSync(new URL('../js/mission-board.js',import.meta.url))).toString('base64'));
+const catalog=[{id:'a0',level:1,legacySector:'aurora',legacyIndex:0,reward:500,objectives:[{event:'scout',sector:'aurora',goal:5}]},{id:'a1',level:1,legacySector:'aurora',legacyIndex:1,objectives:[{event:'loot',sector:'aurora',goal:3}]},{id:'old-contract',level:40,legacyContract:'graveyard-1',objectives:[{event:'catapult',sector:'graveyard',goal:10}]},...CEMETERY_MISSIONS];
+const q={aurora:{index:1,progress:2},contracts:{active:'graveyard-1',progress:[7],completed:[]}};let board=createMissionBoard(catalog,q);
+assert(board.state.completed.includes('a0'));assert.deepEqual(board.state.progress.a1,[2]);assert.deepEqual(board.state.progress['old-contract'],[7]);assert(!board.remaining(1).some(m=>m.level>1));
+assert.deepEqual(board.event('loot','belt',40),[]);assert.equal(board.state.progress.a1[0],2);
+assert.equal(board.event('loot','aurora',40)[0].id,'a1');assert(!board.remaining(40).some(m=>m.id==='a1'));assert.equal(board.event('loot','aurora',40).length,0);
+board=createMissionBoard(catalog,JSON.parse(JSON.stringify(q)));assert.equal(board.event('loot','aurora',40).length,0,'reload does not award twice');
+board.event('harpooner','graveyard',40);assert.equal(board.state.progress['cemetery-harpoon'][0],0,'locked mission does not progress');board.event('harpooner','graveyard',45);assert.equal(board.state.progress['cemetery-harpoon'][0],1);
+for(let i=0;i<80;i++)board.event('catapult','graveyard',40);assert(board.state.completed.includes('cemetery-catapult'));assert(board.state.completed.includes('old-contract'),'parallel goals progress together');
+assert.equal(CEMETERY_MISSIONS.filter(m=>m.reward>=200000).reduce((n,m)=>n+m.reward,0),1500000);
+const special=createMissionBoard([{id:'edge',level:1,objectives:[{event:'edgeReturn',sector:'graveyard',goal:2}]},{id:'base',level:1,objectives:[{event:'baseUpgrade',sector:'aurora',goal:2}]}],{});
+assert.equal(special.event('baseReturn','graveyard',1).length,0);special.event('edgeNear','graveyard',1);assert.equal(special.event('baseReturn','graveyard',1)[0].id,'edge');special.event('upgrade','aurora',1);assert.equal(special.state.progress.base[0],0);special.event('dock','aurora',1);assert.equal(special.event('upgrade','aurora',1)[0].id,'base');
+console.log('Mission board: migration, level locks, parallel progress, sector restrictions, hidden completions, reload idempotence and 1.5M hunt rewards.');

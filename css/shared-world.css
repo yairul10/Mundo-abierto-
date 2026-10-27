@@ -1,0 +1,99 @@
+#worldPanel{position:fixed;top:12px;left:50%;transform:translateX(-50%);width:min(360px,42vw);max-height:72vh;overflow-y:auto;z-index:70;padding:10px 12px;color:#eafaff;background:#071627ed;border:1px solid #6acbe8;border-radius:14px;font:13px system-ui;touch-action:pan-y;box-shadow:0 6px 24px #0006}#worldPanel [hidden]{display:none!important}.world-top{display:flex;gap:8px;align-items:center;justify-content:space-between}#worldPanel button{border:1px solid #5289a8;background:#133654;color:#fff;border-radius:8px;padding:8px;margin:4px 3px;cursor:pointer;font:inherit}#worldPanel button:disabled{opacity:.45}#worldDetails{display:block;color:#a0d7e4;margin-top:4px}#worldTools{padding-top:8px}#worldTools label{display:block;margin-top:7px;color:#bfebf5}#worldPanel input,#worldPanel select{box-sizing:border-box;width:100%;padding:8px;border-radius:8px;border:1px solid #5289a8;background:#10253b;color:white;font:inherit}#worldTools small{display:block;color:#a0bacb}#worldInvite{border-top:1px solid #a486f6;margin-top:8px;padding-top:8px}#worldInvite strong{display:block}#worldMessage{color:#ffe8a3;line-height:1.4;margin-top:5px}.world-nameplate{position:fixed;pointer-events:none;transform:translate(-50%,-100%);z-index:8;font:600 12px system-ui;color:#8bf2ff;text-shadow:0 1px 4px #000,0 0 5px #000;white-space:nowrap;text-align:center}.world-nameplate.dueling{color:#ff7979}.world-nameplate small{display:block;font-size:10px;color:#ddd}.world-nameplate .name-health{height:3px;width:70px;background:#182c3b;margin:3px auto}.world-nameplate .name-health i{display:block;height:100%;background:currentColor}@media(max-height:450px){#worldPanel{top:8px;padding:7px 10px;font-size:11px;max-height:68vh}#worldPanel button{padding:6px}.world-nameplate{font-size:10px}}
+
+#targetLock.pvp-neutral{border-color:#73e8ff;background:none;box-shadow:0 0 11px #3cc9dd88,inset 0 0 10px #3cc9dd33}
+
+#worldPanel{width:min(320px,38vw)}
+#worldTarget,#worldInvite{position:fixed;left:50%;top:48%;transform:translate(-50%,-50%);box-sizing:border-box;width:min(320px,76vw);z-index:90;padding:16px;background:#08192af5;border:1px solid #78d9f2;border-radius:16px;box-shadow:0 12px 50px #000a;color:#eefaff;font:14px system-ui;text-align:center;touch-action:manipulation}
+#worldTarget[hidden],#worldInvite[hidden],#worldCountdown[hidden]{display:none!important}
+#worldTarget strong,#worldTarget small,#worldInvite strong{display:block}#worldTarget small{margin:6px 0 12px;color:#a4d4e5}#worldInvite p{font-size:12px;line-height:1.5;color:#bfd8e7}
+:is(#worldTarget,#worldInvite) button{border:1px solid #5289a8;background:#164669;color:white;border-radius:10px;padding:12px 16px;margin:4px;font:600 14px system-ui;touch-action:none;cursor:pointer}
+:is(#worldTarget,#worldInvite) button:disabled{opacity:.45}#worldAccept,#worldChallenge{background:#165e56!important;border-color:#70e3b0!important}
+#worldCountdown{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:85;pointer-events:none;color:#fff5b3;text-shadow:0 2px 14px #000;font:800 clamp(26px,5vw,52px) system-ui;text-align:center}
+.world-nameplate{pointer-events:auto;touch-action:none;cursor:pointer}.world-nameplate:focus-visible{outline:2px solid #8bf2ff;border-radius:5px}
+@media(max-height:450px){#worldTarget,#worldInvite{padding:12px;font-size:13px}:is(#worldTarget,#worldInvite) button{padding:10px 14px}}
+body.docked #worldPanel,body.docked #worldTarget,body.docked #worldInvite,body.docked #worldCountdown,body.docked .world-nameplate{display:none!important}
+#worldHangar{background:#155847!important;border-color:#6dcdaa!important}#worldHangar:disabled{opacity:.4}
+
+#pvpSkillEquipment{border:1px solid #42708d;border-radius:10px;margin:10px 0;padding:8px}#pvpSkillEquipment legend{font-weight:600}#pvpSkillEquipment small{line-height:1.35}
+#pvpSkills{position:fixed;right:max(110px,env(safe-area-inset-right));bottom:124px;display:flex;gap:10px;z-index:65;touch-action:none}#pvpSkills[hidden]{display:none}#pvpSkills button{width:90px;min-height:74px;border:1px solid #70b3d0;border-radius:14px;background:#10283eeb;color:#eafaff;padding:6px;touch-action:none;font:11px system-ui;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}#pvpSkills button>span:first-child{font-size:22px}#pvpSkills button:disabled{opacity:.6}#pvpSkills button.active{opacity:1;border-color:#93ffd1;background:#174f4ded;box-shadow:0 0 14px #59ffc855}#pvpSkills button small{color:#a9e8ff}.world-nameplate.jammed{color:#dba9ff}
+@media(max-height:450px){#pvpSkills{bottom:100px;gap:6px;right:100px}#pvpSkills button{width:76px;min-height:60px;font-size:10px}#pvpSkills button>span:first-child{font-size:19px}}
+
+#pvpCondition{position:absolute;bottom:100%;left:0;right:0;margin:0 0 5px;text-align:center;color:#ffe8a3;background:#302050e8;border-radius:8px;padding:5px;font:600 12px system-ui}#pvpCondition[hidden]{display:none}
+
+/* PvP equipment is edited only in the landed hangar. */
+#pvpHangarLoadout{margin:12px 0;padding:12px;border:1px solid #5289a8;border-radius:12px;background:#0b2235;color:#eafaff}
+#pvpHangarLoadout label{display:block;margin:8px 0}
+#pvpHangarLoadout input,#pvpHangarLoadout select{box-sizing:border-box;width:100%;max-width:360px;padding:8px;background:#10253b;color:white;border:1px solid #5289a8;border-radius:8px}
+#pvpHangarLoadout #worldTools[hidden]{display:none!important}
+#pvpHangarLoadout #worldTools small{display:block;color:#a0bacb}
+
+/* Compact PvP combat cluster, without changing PvE controls. */
+body.pvp-hud #combatControls{position:fixed!important;right:clamp(16px,3vw,48px)!important;bottom:clamp(16px,3vh,32px)!important;left:auto!important;top:auto!important;width:clamp(210px,28vw,310px)!important;height:clamp(170px,32vh,245px)!important;display:block!important;pointer-events:none;z-index:62}
+body.pvp-hud #combatControls>button{position:absolute!important;pointer-events:auto;display:flex;align-items:center;justify-content:center;border-radius:50%!important;touch-action:none}
+body.pvp-hud #fireBtn{right:0!important;bottom:0!important;left:auto!important;top:auto!important;width:clamp(86px,12vh,116px)!important;height:clamp(86px,12vh,116px)!important;font-size:32px!important;box-shadow:0 0 18px #ff673e88}
+body.pvp-hud #skillBtn{right:clamp(110px,13vw,145px)!important;bottom:12px!important;left:auto!important;top:auto!important;width:64px!important;height:64px!important}
+body.pvp-hud #classAbilityBtn{right:clamp(15px,3vw,45px)!important;bottom:clamp(118px,16vh,150px)!important;left:auto!important;top:auto!important;width:62px!important;height:62px!important}
+body.pvp-hud #pvpSkills{position:fixed!important;right:clamp(165px,23vw,290px)!important;bottom:clamp(110px,19vh,170px)!important;display:flex;gap:7px;z-index:63}
+body.pvp-hud #pvpSkills button{width:clamp(58px,7vw,80px);min-height:clamp(55px,10vh,76px);border-radius:15px}
+body.pvp-hud #worldPanel{width:min(300px,34vw)}
+
+/* PvP HUD v233: minimize the top panel and group navigation by the radar. */
+body.pvp-hud #worldPanel{position:fixed!important;left:50%!important;top:8px!important;transform:translateX(-50%)!important;width:auto!important;min-width:0!important;max-width:36vw!important;padding:4px 8px!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important;pointer-events:none!important}
+body.pvp-hud #worldPanel .world-top{display:none!important}
+body.pvp-hud #worldDetails{display:none!important}
+body.pvp-hud #worldHangar{pointer-events:auto!important;padding:5px 9px!important;margin:2px!important;font-size:11px!important}
+body.pvp-hud #worldHangar:disabled{display:none!important}
+body.pvp-hud #worldMessage{font-size:11px!important;text-align:center!important}
+body.pvp-hud #worldRetry,body.pvp-hud #worldSurrender{pointer-events:auto!important}
+body.pvp-hud #pvpMapActions{position:fixed;top:12px;right:12px;z-index:85;display:flex;flex-direction:row;gap:6px;align-items:flex-start}
+body.pvp-hud #pvpMapActions #worldExit{position:static!important;padding:7px 9px;border:1px solid #79bbd8;border-radius:9px;background:#0c2b45e8;color:white;font:12px system-ui;white-space:nowrap;touch-action:manipulation}
+body.pvp-hud #pvpMapActions #zoomControls{position:static!important;display:flex!important;flex-direction:row!important;gap:5px!important}
+body.pvp-hud #pvpMapActions #zoomControls button{width:35px!important;height:35px!important;font-size:18px!important}
+body.pvp-hud #pvpMapActions{right:clamp(125px,13vw,205px)}
+body.pvp-hud #combatControls{display:block!important}
+body.pvp-hud #combatControls #fireBtn{width:clamp(88px,16vh,128px)!important;height:clamp(88px,16vh,128px)!important}
+@media(max-width:900px){body.pvp-hud #pvpMapActions{right:clamp(110px,16vw,165px)}body.pvp-hud #worldPanel{max-width:30vw!important}}
+
+/* PvP v235: tight thumb-friendly skill cluster next to the main fire button. */
+body.pvp-hud #combatControls{right:14px!important;bottom:12px!important;width:260px!important;height:220px!important}
+body.pvp-hud #combatControls #fireBtn{right:0!important;bottom:0!important;width:clamp(88px,17vh,122px)!important;height:clamp(88px,17vh,122px)!important}
+body.pvp-hud #combatControls #skillBtn{right:clamp(116px,19vh,146px)!important;bottom:5px!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important;font-size:20px!important}
+body.pvp-hud #combatControls #classAbilityBtn{right:6px!important;bottom:clamp(106px,19vh,132px)!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important;font-size:19px!important}
+body.pvp-hud #pvpSkills{right:clamp(118px,19vw,230px)!important;bottom:clamp(112px,20vh,155px)!important;gap:6px!important}
+body.pvp-hud #pvpSkills button{width:clamp(48px,8vh,62px)!important;min-height:clamp(50px,9vh,62px)!important;padding:3px!important;font-size:9px!important;line-height:1.1!important}
+body.pvp-hud #pvpSkills button>span:first-child{font-size:18px!important}
+body.pvp-hud #pvpSkills button small{font-size:9px!important}
+@media(max-height:440px){body.pvp-hud #combatControls{width:225px!important;height:175px!important}body.pvp-hud #pvpSkills{right:clamp(110px,18vw,190px)!important;bottom:100px!important}}
+
+/* v236: round duel abilities in an arc above and to the left of primary fire. */
+body.pvp-hud #combatControls{right:12px!important;bottom:12px!important;width:224px!important;height:188px!important}
+body.pvp-hud #combatControls #fireBtn{right:0!important;bottom:0!important;width:clamp(88px,17vh,120px)!important;height:clamp(88px,17vh,120px)!important}
+body.pvp-hud #combatControls #skillBtn{right:clamp(104px,19vh,140px)!important;bottom:4px!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important}
+body.pvp-hud #combatControls #classAbilityBtn{right:5px!important;bottom:clamp(102px,19vh,136px)!important;width:clamp(46px,9vh,56px)!important;height:clamp(46px,9vh,56px)!important}
+body.pvp-hud #pvpSkills{position:fixed!important;right:clamp(105px,18vh,140px)!important;bottom:clamp(102px,19vh,136px)!important;display:flex!important;flex-direction:row!important;gap:7px!important;z-index:63}
+body.pvp-hud #pvpSkills[hidden]{display:none!important}
+body.pvp-hud #pvpSkills button{flex:0 0 auto!important;box-sizing:border-box!important;width:clamp(48px,9vh,58px)!important;height:clamp(48px,9vh,58px)!important;min-height:0!important;aspect-ratio:1!important;border-radius:50%!important;padding:3px!important;overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;font-size:0!important;line-height:1!important;box-shadow:0 0 8px #31bfff33}
+body.pvp-hud #pvpSkills button>span:first-child{font-size:clamp(20px,4vh,25px)!important;line-height:1!important}
+body.pvp-hud #pvpSkills button>span:nth-child(2){display:none!important}
+body.pvp-hud #pvpSkills button small{font-size:9px!important;line-height:1.1!important}
+@media(max-height:440px){body.pvp-hud #pvpSkills{right:clamp(100px,18vh,125px)!important;bottom:clamp(96px,19vh,115px)!important}}
+
+/* v237: drag-to-position editor, available only from landed PvP hangar. */
+#pvpControlEditorEntry{margin:12px 0;padding:12px;border:1px solid #5289a8;border-radius:12px;background:#0b2235;color:#eafaff}
+#pvpControlEditorEntry button{padding:10px 15px;border-radius:10px;background:#165f84;color:white;border:1px solid #79d6f7}
+#pvpControlEditor{position:fixed;inset:0;z-index:9999;background:#051425f0;color:white;display:flex;flex-direction:column;touch-action:none}
+#pvpControlEditor[hidden]{display:none!important}
+#pvpControlEditor .pvp-editor-toolbar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:10px;background:#071d31;border-bottom:1px solid #73c8ed}
+#pvpControlEditor .pvp-editor-toolbar span{font-size:12px;color:#a8c8e1}
+#pvpControlEditor .pvp-editor-toolbar button{padding:8px 12px;background:#174360;color:white;border:1px solid #80c5ed;border-radius:9px}
+#pvpControlEditor .pvp-editor-canvas{position:relative;flex:1;min-height:0;overflow:hidden;background:radial-gradient(ellipse at 50% 50%,#233a6577,#050d1b)}
+#pvpControlEditor .pvp-editor-control{position:absolute;transform:translate(-50%,-50%);border-radius:50%;width:56px;height:56px;display:grid;place-items:center;font-size:25px;background:#17466ad9;color:white;border:2px solid #8bd4ff;touch-action:none;user-select:none}
+#pvpControlEditor .pvp-editor-control.primary{width:100px;height:100px;background:#a6403ddd;border-color:#ffac84;font-size:38px}
+
+/* v238: keep PvP controls editor visible above the loadout, and align drag preview to viewport. */
+#pvpControlEditorEntry{display:block!important;position:relative;z-index:2;margin:0 0 12px!important}
+#pvpControlEditorEntry button{font-size:16px;font-weight:700;min-height:48px}
+#pvpControlEditor{display:block!important}
+#pvpControlEditor[hidden]{display:none!important}
+#pvpControlEditor .pvp-editor-canvas{position:absolute;inset:0;width:100%;height:100%;min-height:0}
+#pvpControlEditor .pvp-editor-toolbar{position:absolute;top:0;left:0;right:0;z-index:2;pointer-events:auto}
