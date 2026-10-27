@@ -2,7 +2,7 @@ import {fixtureIdentity,authenticateFixtureRequests} from './test-identity.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
-const files=['worker.mjs','account.mjs','chat.mjs','chat-language.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'];
+const files=['worker.mjs','client-version.mjs','account.mjs','chat.mjs','chat-language.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'];
 const options={modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:'2026-10-11',compatibilityFlags:['nodejs_compat'],serviceBindings:{PLAY_IDENTITY:request=>fixtureIdentity.fetch(request)},durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
 const mf=authenticateFixtureRequests(new Miniflare(convertV4MiniflareOptions(options))),connections=[];
 const pause=ms=>new Promise(r=>setTimeout(r,ms));

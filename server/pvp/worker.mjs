@@ -1,3 +1,4 @@
+import {pvpVersionConfig,compatiblePvpClient} from './client-version.mjs';
 import {verifiedPvpAccount} from './account.mjs';
 import {DurableObject} from 'cloudflare:workers';
 import {SharedWorld} from './shared-world.mjs';
@@ -17,11 +18,11 @@ export default {
   const url=new URL(request.url),origin=request.headers.get('Origin')||'';
   if(origin&&!ORIGINS.has(origin))return json({error:'origin_denied'},403);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,Authorization','Access-Control-Max-Age':'600'}});
-  if(url.pathname==='/game-config'&&request.method==='GET')return json({testServerEnabled:testServerEnabled(env)},200,origin);
+  if(url.pathname==='/game-config'&&request.method==='GET')return json({testServerEnabled:testServerEnabled(env),...pvpVersionConfig(env)},200,origin);
   if(url.pathname==='/health'&&request.method==='GET')return json({ok:true,game:'mundo-abierto',version:VERSION,stage:'shared-world-test',modes:['shared-world','open-pvp'],persistentSoloGame:false},200,origin);
   if(!(await env.API_LIMIT.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'})).success)return json({error:'rate_limit'},429,origin);
   try{
-   if(url.pathname==='/world/join'&&request.method==='POST'){const body=await readBody(request);if(body.realm&& !['normal','test'].includes(body.realm))return json({error:'invalid_realm'},400,origin);if(body.realm==='test'&&!testServerEnabled(env))return json({error:'test_closed'},403,origin);const account=await verifiedPvpAccount(request,env);if(account.error)return json({error:account.error},account.status,origin);const result=await env.ROOMS.getByName(realmName(body.realm)).enter({...body,accountId:account.playerId});return json(result,result.error?409:200,origin)}
+   if(url.pathname==='/world/join'&&request.method==='POST'){const body=await readBody(request);if(!compatiblePvpClient(body,env))return json({error:'update_required',...pvpVersionConfig(env)},426,origin);if(body.realm&& !['normal','test'].includes(body.realm))return json({error:'invalid_realm'},400,origin);if(body.realm==='test'&&!testServerEnabled(env))return json({error:'test_closed'},403,origin);const account=await verifiedPvpAccount(request,env);if(account.error)return json({error:account.error},account.status,origin);const result=await env.ROOMS.getByName(realmName(body.realm)).enter({...body,accountId:account.playerId});return json(result,result.error?409:200,origin)}
    if(url.pathname==='/world/socket'&&request.method==='GET'){const realm=url.searchParams.get('realm');if(realm==='test'&&!testServerEnabled(env))return json({error:'test_closed'},403,origin);return env.ROOMS.getByName(realmName(realm)).fetch(request);}
    if(url.pathname==='/rooms'||url.pathname.startsWith('/rooms/')||url.pathname==='/matchmake')return json({error:'prototype_retired'},410,origin);
    return json({error:'not_found'},404,origin);

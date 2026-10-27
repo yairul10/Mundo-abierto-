@@ -88,9 +88,10 @@ export async function startAccount({mode=window.MUNDO_PLAY_MODE?.mode}={}){
 function mountAccountSettings(){
  const panel=document.getElementById('characterPanel'),anchor=document.getElementById('saveBtn');
  if(!panel||!anchor||document.getElementById('accountSettingsBtn'))return;
+ const cloudStatus=document.createElement('p');cloudStatus.id='cloudSaveStatus';cloudStatus.setAttribute('role','status');cloudStatus.textContent=readChoice()==='google'?'Comprobando respaldo en nube…':'Guardado solo en este dispositivo · nube desactivada';panel.insertBefore(cloudStatus,anchor);
  const button=document.createElement('button');button.id='accountSettingsBtn';button.type='button';button.textContent='Cuenta y guardado en la nube';
  button.onclick=async()=>{
-  const choice=await ask({title:'Cuenta y guardado',text:readChoice()==='google'?'Google Play seleccionado. Puedes volver a elegir cómo entrar al juego.':'Estás jugando como invitado. Puedes conectar Google Play para guardar o recuperar tu progreso.',options:[['change','Elegir cómo entrar'],['cancel','Cerrar']]});
+  const choice=await ask({title:'Cuenta y guardado',text:readChoice()==='google'?(document.getElementById('cloudSaveStatus')?.textContent||'Nube pendiente de comprobar.'):'Estás jugando como invitado. Puedes conectar Google Play para guardar o recuperar tu progreso.',options:[['change','Elegir cómo entrar'],['cancel','Cerrar']]});
   if(choice!=='change')return;
   window.dispatchEvent(new Event('mundo:save-before-switch'));
   try{localStorage.removeItem(CHOICE);location.reload()}catch(error){alert(error.message)}
@@ -100,13 +101,15 @@ function mountAccountSettings(){
 
 export async function startCloudSync(client){
  if(!client?.active)return;
- let pausedNotice=false;
+ let pausedNotice=false,lastConfirmed='';
+ const show=text=>{const status=document.getElementById('cloudSaveStatus');if(status)status.textContent=text};
  const sync=async()=>{
-  try{await client.sync()}catch(error){console.warn('[Cosmos Legacy] Nube no disponible; partida local conservada:',error?.message||error)}
-  if(!client.active&&!pausedNotice){pausedNotice=true;const note=document.createElement('p');note.className='cloud-paused-note';note.textContent='Guardado nube pausado. Tu progreso sigue guardado en este dispositivo. Reinicia el juego para reconectar.';document.getElementById('characterPanel')?.appendChild(note)}
+  try{const result=await client.sync();if(result.status==='stored'){lastConfirmed=new Date().toLocaleTimeString();show('Respaldo en nube confirmado · '+lastConfirmed)}else if(result.status==='unchanged')show(lastConfirmed?'Respaldo en nube confirmado · '+lastConfirmed:'Nube conectada · sin cambios pendientes');else if(result.status==='no_save')show('Nube conectada · esperando el primer guardado local');}catch(error){show('No se pudo respaldar en nube. Progreso conservado en este dispositivo.'+(lastConfirmed?' Último respaldo: '+lastConfirmed:''));console.warn('[Cosmos Legacy] Nube no disponible; partida local conservada:',error?.message||error)}
+  if(!client.active&&!pausedNotice){show('Respaldo en nube pausado: reconecta desde Cuenta y guardado. Tu partida local se conserva.');pausedNotice=true;const note=document.createElement('p');note.className='cloud-paused-note';note.textContent='Guardado nube pausado. Tu progreso sigue guardado en este dispositivo. Reinicia el juego para reconectar.';document.getElementById('characterPanel')?.appendChild(note)}
  };
  await sync();
  const timer=setInterval(()=>{if(client.active)void sync()},15000);
+ addEventListener('online',()=>{if(client.active)void sync()});
  addEventListener('pagehide',()=>clearInterval(timer),{once:true});
  addEventListener('visibilitychange',()=>{if(document.hidden&&client.active)void sync()});
 }

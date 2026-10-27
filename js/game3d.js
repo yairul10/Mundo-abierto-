@@ -1,3 +1,4 @@
+import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=1';
 import {createArenaEnemyView} from './pvp-enemies.js?v=329';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
@@ -21,7 +22,7 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=328';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=332';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=333';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=314';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
@@ -2897,10 +2898,13 @@ function portalChargePulse(seconds){
  const phase=2*Math.PI*(.6*t+(4.4/6)*t*t);
  return Math.pow(.5-.5*Math.cos(phase),1.6);
 }
-function switchSector(route){
+let checkingPvpVersion=false;
+async function switchSector(route){
  if(!route||player.level<route.level)return;
  combatAudio.play('portalTravel');
  if(route.to==='pvp'){
+  if(checkingPvpVersion)return;checkingPvpVersion=true;
+  try{await checkPvpVersion()}catch(error){portalCountdown=0;if(error.updateRequired)showPvpUpdate();else window.alert(error.message);return}finally{checkingPvpVersion=false}
   const portal=route.pos||graveyardPvpPortal,towardBase=currentStation().position.clone().sub(portal).normalize();
   playerMesh.position.copy(portal).addScaledVector(towardBase,350);
   if(save())location.href='./index.html?pvp=1';return;
