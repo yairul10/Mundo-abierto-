@@ -4,6 +4,7 @@ export function mountMapChat({send,storage=localStorage,realm='normal'}){
  const toggle=document.createElement('button');toggle.textContent='💬 Chat';toggle.setAttribute('aria-expanded','false');
  const box=document.createElement('div');box.hidden=true;box.className='map-chat-box';
  const title=document.createElement('strong');title.textContent='Chat del mapa · '+(realm==='test'?'Pruebas':'Normal');
+ const identityText=document.createElement('small');identityText.style.cssText='display:block;user-select:text;margin:8px 0';
  const close=document.createElement('button');close.textContent='Cerrar';
  const rules=document.createElement('label'),accept=document.createElement('input');accept.type='checkbox';try{accept.checked=storage.getItem(key)==='1'}catch{}
  rules.append(accept,document.createTextNode(' Acepto: respeto a otros; sin acoso, amenazas, contenido sexual, odio, spam ni datos personales. Los mensajes reportados pueden ser revisados y sancionados.'));
@@ -15,7 +16,7 @@ export function mountMapChat({send,storage=localStorage,realm='normal'}){
  const password=document.createElement('input');password.type='password';password.autocomplete='off';password.placeholder='Clave de moderación';password.setAttribute('aria-label','Clave de moderación');
  const login=document.createElement('button');login.textContent='Acceder';const refresh=document.createElement('button');refresh.textContent='Ver reportes';refresh.hidden=true;const reports=document.createElement('div');
  login.onclick=()=>{send({type:'chatAdminAuth',key:password.value});password.value=''};refresh.onclick=()=>send({type:'chatAdminList'});mod.append(summary,password,login,refresh,reports);
- box.append(title,close,rules,list,notice,form,blocked,mod);root.append(toggle,box);document.body.append(root);
+ box.append(title,close,identityText,rules,list,notice,form,blocked,mod);root.append(toggle,box);document.body.append(root);
  const open=value=>{box.hidden=!value;toggle.setAttribute('aria-expanded',String(value));if(value)send({type:'chatHistory'})};toggle.onclick=()=>open(box.hidden);close.onclick=()=>open(false);
  // Avoid game gestures/keys while typing, without suppressing normal form controls.
  for(const type of ['pointerdown','touchstart','keydown','keyup'])root.addEventListener(type,e=>e.stopPropagation());
@@ -26,7 +27,7 @@ export function mountMapChat({send,storage=localStorage,realm='normal'}){
    if(m.author!==myId){const report=document.createElement('button');report.textContent='Reportar';report.onclick=()=>{const reason=window.prompt('Motivo del reporte (acoso, spam, amenazas u otro):');if(reason?.trim())send({type:'chatReport',id:m.id,reason})};const block=document.createElement('button');block.textContent='Bloquear';block.onclick=()=>send({type:'chatBlock',target:m.author,block:true});row.append(report,block)}list.append(row)}list.scrollTop=list.scrollHeight;
   blockedList.replaceChildren();for(const id of blocks){const button=document.createElement('button');button.textContent='Desbloquear #'+id.slice(-6);button.onclick=()=>send({type:'chatBlock',target:id,block:false});blockedList.append(button)}
  }
- return {identify(id){myId=id},reset(){admin=false;refresh.hidden=true;password.hidden=login.hidden=false;reports.replaceChildren();messages=[];render()},receive(m){
+ return {identify(id){myId=id;identityText.textContent='Tu ID: '+id},reset(){admin=false;refresh.hidden=true;password.hidden=login.hidden=false;reports.replaceChildren();messages=[];render()},receive(m){
   if(!m.type?.startsWith('chat'))return false;
   if(m.type==='chatHistory'){messages=m.messages;blocks=new Set(m.blocks);render()}
   if(m.type==='chatMessage'){messages=[...messages,m.message].slice(-100);render();if(box.hidden)toggle.textContent='💬 Chat · nuevo'}

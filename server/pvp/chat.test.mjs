@@ -8,7 +8,7 @@ function fixture(db=new DatabaseSync(':memory:')){
  initChat(ctx);return {db,ctx,socket};
 }
 test('chat validates messages, persists reports/blocks, authorizes moderation and replays deletions safely',async()=>{
- const {db,ctx,socket}=fixture(),alice=socket('alice'),bob=socket('bob'),admin=socket('admin'),env={CHAT_ADMIN_KEY:'test-secret-only'};
+ const {db,ctx,socket}=fixture(),alice=socket('alice'),bob=socket('bob'),admin=socket('admin'),env={CHAT_ADMIN_KEY:'test-secret-only',CHAT_ADMIN_IDS:'admin'};
  const call=(ws,m)=>handleChat(ctx,env,ws,{id:ws.deserializeAttachment().id,name:'<b>Piloto</b>'},m);
  try{
   await call(alice,{type:'chatSend',text:'Hola'});assert.equal(alice.out.at(-1).type,'chatError');
@@ -16,6 +16,7 @@ test('chat validates messages, persists reports/blocks, authorizes moderation an
   await call(alice,{type:'chatSend',text:'Spam',rulesVersion:1});assert.equal(alice.out.at(-1).type,'chatError');
   await call(bob,{type:'chatBlock',target:'alice'});await call(bob,{type:'chatHistory'});assert.deepEqual(bob.out.at(-1).messages,[]);assert.deepEqual(bob.out.at(-1).blocks,['alice']);
   await call(bob,{type:'chatReport',id:msg.id,reason:'Acoso'});assert.equal(bob.out.at(-1).type,'chatNotice');
+  await call(bob,{type:'chatAdminAuth',key:env.CHAT_ADMIN_KEY});assert.equal(bob.out.at(-1).type,'chatError');
   await call(bob,{type:'chatAdminList'});assert.equal(bob.out.at(-1).type,'chatError');
   await call(admin,{type:'chatAdminAuth',key:env.CHAT_ADMIN_KEY});assert.equal(admin.out.at(-1).type,'chatAdminReady');
   await call(admin,{type:'chatAdminList'});const report=admin.out.at(-1).reports[0];assert.equal(report.text,'Hola equipo');

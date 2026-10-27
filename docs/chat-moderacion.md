@@ -6,7 +6,7 @@ Cada mensaje de otro piloto ofrece Reportar y Bloquear. Los bloqueos se guardan 
 
 ## Administración
 
-Configurar un secreto largo y aleatorio `CHAT_ADMIN_KEY` en el Worker; nunca incluirlo en código, capturas, URL ni guardado local. Sin ese secreto el servidor rechaza el acceso de moderador y el envío de mensajes, evitando activar un chat sin herramientas de moderación. En Chat → Administración se introduce la clave, que se borra del campo al enviar y no se persiste en el cliente. El permiso dura esa conexión; hay que autenticarse de nuevo al reconectar. No se concede acceso por nombre ni por ID enviado por el cliente.
+Configurar `CHAT_ADMIN_IDS` con el ID PvP autorizado (visible en Chat → Tu ID; varios IDs separados por coma), y un secreto largo y aleatorio `CHAT_ADMIN_KEY` en el Worker; nunca incluirlo en código, capturas, URL ni guardado local. Sin ese secreto o sin IDs autorizados el servidor rechaza el acceso de moderador y el envío de mensajes, evitando activar un chat sin herramientas de moderación. En Chat → Administración se introduce la clave, que se borra del campo al enviar y no se persiste en el cliente. El servidor exige además que la cuenta esté en CHAT_ADMIN_IDS, incluso si alguien conoce la clave. El permiso dura esa conexión; hay que autenticarse de nuevo al reconectar. No se concede acceso por nombre ni por ID enviado por el cliente.
 
 El panel muestra los últimos 100 reportes con autor, identificador, mensaje, motivo y estado. Permite descartar, borrar el mensaje, silenciar 1 hora/24 horas, banear del chat indefinidamente y quitar el silencio. Las acciones quedan auditadas en SQLite. El ban afecta a la escritura del chat, no expulsa del juego. Cambiar apodo o reconectar no anula la sanción.
 

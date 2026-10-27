@@ -16,16 +16,18 @@ function broadcast(ctx,data,author){for(const peer of ctx.getWebSockets()){const
 export async function handleChat(ctx,env,ws,p,m){
  if(typeof m.type!=='string'||!m.type.startsWith('chat'))return false;
  initChat(ctx);const now=Date.now(),a=ws.deserializeAttachment();
+ const adminAllowed=String(env.CHAT_ADMIN_IDS||'').split(',').map(id=>id.trim()).includes(p.id);
  const error=error=>{reply(ws,{type:'chatError',error});return true};
  if(m.type==='chatAdminAuth'){
   if(now-(a.chatAuthAt||0)<5000)return error('Espera antes de volver a intentar.');a.chatAuthAt=now;ws.serializeAttachment(a);
+  if(!adminAllowed)return error('Esta cuenta no tiene permisos de administrador.');
   if(!env.CHAT_ADMIN_KEY||typeof m.key!=='string'||m.key.length>256)return error('Administración no disponible.');
   const digest=async v=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
   const x=await digest(m.key),y=await digest(env.CHAT_ADMIN_KEY);let diff=0;for(let i=0;i<x.length;i++)diff|=x[i]^y[i];
   if(diff)return error('Clave incorrecta.');a.chatAdmin=true;ws.serializeAttachment(a);reply(ws,{type:'chatAdminReady'});return true;
  }
  if(m.type==='chatAdminList'||m.type==='chatModerate'){
-  if(!a.chatAdmin||!env.CHAT_ADMIN_KEY)return error('Sin permisos.');
+  if(!a.chatAdmin||!adminAllowed||!env.CHAT_ADMIN_KEY)return error('Sin permisos.');
   if(m.type==='chatModerate'){
    const r=rows(ctx,'SELECT r.*,m.author,m.name,m.text FROM chat_reports r JOIN chat_messages m ON m.id=r.message_id WHERE r.id=?',String(m.reportId||''))[0];
    if(!r)return error('Reporte no encontrado.');
@@ -59,7 +61,7 @@ export async function handleChat(ctx,env,ws,p,m){
   ctx.storage.sql.exec('INSERT OR IGNORE INTO chat_reports(id,reporter,message_id,reason) VALUES(?,?,?,?)',crypto.randomUUID(),p.id,id,reason);reply(ws,{type:'chatNotice',text:'Reporte guardado para revisión.'});return true;
  }
  if(m.type==='chatSend'){
-  if(!env.CHAT_ADMIN_KEY)return error('Chat pendiente de activar por el administrador.');
+  if(!env.CHAT_ADMIN_KEY||!String(env.CHAT_ADMIN_IDS||'').trim())return error('Chat pendiente de activar por el administrador.');
   if(m.rulesVersion!==CHAT_RULES_VERSION)return error('Acepta las reglas del chat.');
   const sanction=rows(ctx,'SELECT until FROM chat_sanctions WHERE target=?',p.id)[0];if(sanction?.until>now)return error('Tu cuenta está silenciada en este chat.');
   if(now-(a.chatSentAt||0)<2000)return error('Espera 2 segundos entre mensajes.');
