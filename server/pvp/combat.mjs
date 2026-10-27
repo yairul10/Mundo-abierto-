@@ -1,5 +1,5 @@
 import {clearSkills,skillActive} from './skills.mjs';
-const ASSEMBLED_SHIPS={azote:'espectro',egida:'titan',vertigo:'aurora',obsidian:'aurora',segadora:'espectro',bastion:'titan',centella:'aurora'};
+const ASSEMBLED_SHIPS={adminpod:'aurora',azote:'espectro',egida:'titan',vertigo:'aurora',obsidian:'aurora',segadora:'espectro',bastion:'titan',centella:'aurora'};
 const shipRole=id=>ASSEMBLED_SHIPS[id]||id;
 // Prueba con equipamiento local. No concede premios ni acredita propiedad de compras.
 const clamp=(n,a,b,f=a)=>Number.isFinite(Number(n))?Math.max(a,Math.min(b,Number(n))):f;
@@ -34,7 +34,7 @@ export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Ma
     const along=Math.max(0,Math.min(1,target.pos.reduce((sum,v,i)=>sum+(v-prev[i])*segment[i],0)/(length2||1))),distance=Math.hypot(...target.pos.map((v,i)=>v-prev[i]-segment[i]*along));
     if(distance<(target.hitRadius||(b.missile?44:30))&&along<best){victim=target;best=along}
    }
-   if(victim){const damage=Math.min(victim.hp,defenseDamage(victim,b.damage*(skillActive(owner,'fury',now)?2:1),now));victim.hp=Math.max(0,victim.hp-damage);s.onDamage?.(owner,victim,damage,now);if(owner.hp>0&&skillActive(owner,'transfer',now))owner.hp=Math.min(owner.profile.maxHp,owner.hp+damage*.5);victim.lastHit=victim.lastIncoming=now;victim.lastDamagedBy=owner.id;b.life=0}
+   if(victim){const damage=Math.min(victim.hp,defenseDamage(victim,b.damage*(skillActive(owner,'fury',now)?2:1),now));victim.hp=Math.max(0,victim.hp-damage);s.onDamage?.(owner,victim,damage,now,b);if(owner.hp>0&&skillActive(owner,'transfer',now))owner.hp=Math.min(owner.profile.maxHp,owner.hp+damage*.5);victim.lastHit=victim.lastIncoming=now;victim.lastDamagedBy=owner.id;b.life=0}
   }
  }
  s.bullets=(s.bullets||[]).filter(b=>b.life>0);

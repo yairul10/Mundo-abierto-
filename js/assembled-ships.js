@@ -1,5 +1,6 @@
 // A second fleet tier. Each ship is owned permanently and assembled separately.
 export const ASSEMBLED_SHIPS=Object.freeze({
+ adminpod:{adminOnly:true,assemblyZone:'pvp',name:'Hoverpod Admin',level:1,cost:0,hp:15,attack:1.6,defense:1,speed:1.7,role:'aurora',color:0x6dc8f0,yaw:Math.PI,description:'Nave de administrador · eventos y visitas · sin recompensas por bajas',recipe:{}},
  azote:{assemblyZone:'pvp',pvePenalty:.5,equivalent:'segadora',name:'Azote',level:40,cost:500000,hp:1.2,attack:1.95,defense:1.05,speed:1.15,role:'espectro',color:0xff3939,yaw:Math.PI,description:'Ofensiva PvP · versión de Segadora · −0,5 por característica en PvE',recipe:{chatarra:1500,aleacion:450,nucleo:120,reliquia:30,nucleo_demolicion:100,bobina_anclaje:100,cristal_punteria:100,nucleoNexo:50}},
  egida:{assemblyZone:'pvp',pvePenalty:.5,equivalent:'bastion',name:'Égida',level:40,cost:500000,hp:2.6,attack:1.1,defense:2.1,speed:0.95,role:'titan',color:0xa66fe8,yaw:Math.PI,description:'Defensiva PvP · versión de Bastión · −0,5 por característica en PvE',recipe:{chatarra:1500,aleacion:450,nucleo:120,reliquia:30,nucleo_demolicion:100,bobina_anclaje:100,cristal_punteria:100,nucleoNexo:50}},
  vertigo:{assemblyZone:'pvp',pvePenalty:.5,equivalent:'centella',name:'Vértigo',level:40,cost:500000,hp:1.05,attack:1.2,defense:0.95,speed:1.95,role:'aurora',color:0x4b9aff,yaw:Math.PI,description:'Ágil PvP · versión de Centella · −0,5 por característica en PvE',recipe:{chatarra:1500,aleacion:450,nucleo:120,reliquia:30,nucleo_demolicion:100,bobina_anclaje:100,cristal_punteria:100,nucleoNexo:50}},
@@ -10,7 +11,7 @@ export const ASSEMBLED_SHIPS=Object.freeze({
 });
 export function canAssembleShip(player,id,zone='pve'){
  const ship=ASSEMBLED_SHIPS[id];
- return !!ship&&(ship.assemblyZone||'pve')===zone&&!player.ownedShips?.[id]&&Number(player.level)>=ship.level&&Number(player.gold)>=ship.cost&&Object.entries(ship.recipe).every(([key,amount])=>Number(player.loot?.[key]||0)>=amount);
+ return !!ship&&!ship.adminOnly&&(ship.assemblyZone||'pve')===zone&&!player.ownedShips?.[id]&&Number(player.level)>=ship.level&&Number(player.gold)>=ship.cost&&Object.entries(ship.recipe).every(([key,amount])=>Number(player.loot?.[key]||0)>=amount);
 }
 export function assembleShip(player,id,zone='pve'){
  if(!canAssembleShip(player,id,zone))return false;

@@ -7,7 +7,7 @@ import {pvpMultipliers,pveMultipliers} from '../js/pvp-loadout.js';
 const source=readFileSync(new URL('../js/hangar-ui.js',import.meta.url),'utf8');
 const render=source.slice(source.indexOf(' function renderShipAssembly(id){'),source.indexOf('\n function render(force=false)'));
 const materials=[['chatarra','Chatarra','#abc'],['aleacion','Aleación','#abc'],['nucleo','Núcleo','#abc'],['reliquia','Reliquia','#abc']];
-for(const [id,ship] of Object.entries(ASSEMBLED_SHIPS)){
+for(const [id,ship] of Object.entries(ASSEMBLED_SHIPS).filter(([,ship])=>!ship.adminOnly)){
  const player={level:163,gold:2000000,loot:{...ship.recipe},ownedShips:{aurora:true}};
  const nodes=new Map(),node=()=>({innerHTML:'',querySelectorAll:()=>[]});
  const $=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};

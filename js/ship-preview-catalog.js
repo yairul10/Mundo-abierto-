@@ -1,5 +1,6 @@
 // The same GLBs and forward orientations used by the equipped fleet.
 export const SHIP_PREVIEWS=Object.freeze({
+ adminpod:{name:'Hoverpod Admin',model:'admin-hoverpod.glb',yaw:Math.PI,version:337},
  azote:{name:'Azote',model:'pvp-ofensiva.glb',yaw:Math.PI,version:327},
  egida:{name:'Égida',model:'pvp-defensiva.glb',yaw:Math.PI,version:327},
  vertigo:{name:'Vértigo',model:'pvp-agil.glb',yaw:Math.PI,version:327},

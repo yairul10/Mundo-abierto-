@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from '../js/assembled-ships.js';
 import {profile,makeCombatPlayer,ability,defenseDamage} from '../server/pvp/combat.mjs';
-for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS)){
+for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS).filter(([,ship])=>!ship.adminOnly)){
  assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],id==='obsidian'?[200,200,200]:[100,100,100]);
  const player={level:40,gold:ship.cost,loot:{...ship.recipe},ownedShips:{aurora:true},shipId:'aurora'};
  const missing=structuredClone(player);missing.loot.cristal_punteria--;

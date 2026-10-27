@@ -1,7 +1,7 @@
-import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=314';
-import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=327';
-import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=327';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=314';
+import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=337';
+import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=337';
+import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=337';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=337';
 import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
 const MATERIALS=[['chatarra','Chatarra espacial','#bac9d7'],['aleacion','Aleación reforzada','#55c6ff'],['nucleo','Núcleo de energía','#c783ff'],['reliquia','Componente ancestral','#ffca58']];
@@ -20,7 +20,7 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
  document.querySelectorAll('[data-shop-category]').forEach(b=>b.onclick=()=>{category=b.dataset.shopCategory;stopAssemblyPreview();render(true);if(view==='shop'&&category==='ships')previewShip()});
  document.querySelectorAll('[data-assembly-zone]').forEach(b=>b.onclick=()=>{if(b.dataset.assemblyZone!==baseZone())return;assemblyZone=baseZone();selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear();stopAssemblyPreview();note('');render(true)});
  const baseZone=()=>isPvpBase()?'pvp':'pve';
- const allowedShip=id=>(ASSEMBLED_SHIPS[id]?.assemblyZone||'pve')===assemblyZone;
+ const allowedShip=id=>!ASSEMBLED_SHIPS[id]?.adminOnly&&(ASSEMBLED_SHIPS[id]?.assemblyZone||'pve')===assemblyZone;
  function renderEquipment(){
   const host=$('hangarEquipmentCatalog');host.classList.remove('commerce-grid');
   if(!player.ownedShips?.[equipmentShip])equipmentShip=player.shipId;

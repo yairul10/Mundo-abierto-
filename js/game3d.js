@@ -1,16 +1,17 @@
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=1';
 import {pvpAccountToken} from './pvp-account.js?v=3';
 import {mountPvpZones} from './pvp-zones.js?v=2';
-import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=3';
+import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=4';
 import {createArenaEnemyView} from './pvp-enemies.js?v=336';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
+import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=337';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=335';
 import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
-import {shipThumbnail} from './ship-preview-catalog.js?v=327';
+import {shipThumbnail} from './ship-preview-catalog.js?v=337';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -20,14 +21,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=314';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=337';
 import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=334';
+import {mountHangarUI} from './hangar-ui.js?v=337';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=336';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=314';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=337';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=337';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=337';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -380,7 +381,7 @@ function fitPlayerModel(model,yaw=0){
  return model;
 }
 function syncPlayerShipVisuals(){
- const keys={titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'};
+ const keys={adminpod:'adminpodModel',titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'};
  const selected=keys[player.shipId],loaded=!!(selected&&playerMesh.userData[selected]);
  for(const key of Object.values(keys)){const model=playerMesh.userData[key];if(model)model.visible=loaded&&key===selected}
  let hasOriginal=false;
@@ -391,10 +392,11 @@ function syncPlayerShipVisuals(){
  proceduralShip.visible=!loaded&&!waiting&&!hasOriginal;
 }
 function mountPlayerModel(model,key){playerMesh.add(model);playerMesh.userData[key]=model;syncPlayerShipVisuals()}
-const assembledModelPaths={azote:'./assets/models/pvp-ofensiva.glb?v=327',egida:'./assets/models/pvp-defensiva.glb?v=327',vertigo:'./assets/models/pvp-agil.glb?v=327',segadora:'./assets/models/segadora.glb?v=327',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=327'};
+const assembledModelPaths={adminpod:'./assets/models/admin-hoverpod.glb?v=337',azote:'./assets/models/pvp-ofensiva.glb?v=327',egida:'./assets/models/pvp-defensiva.glb?v=327',vertigo:'./assets/models/pvp-agil.glb?v=327',segadora:'./assets/models/segadora.glb?v=327',bastion:'./assets/models/bastion.glb?v=208',centella:'./assets/models/centella.glb?v=327'};
 function loadAssembledVisual(id){
  if(!ASSEMBLED_SHIPS[id]||playerMesh.userData[id+'Model']||playerMesh.userData[id+'Loading'])return;
  playerMesh.userData[id+'Loading']=true;
+ if(id==='adminpod'){loadAdminPod(THREE,modelLoader).then(visual=>{mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false}).catch(error=>{playerMesh.userData[id+'Loading']=false;playerMesh.userData[id+'ModelFailed']=true;syncPlayerShipVisuals();console.warn('Hoverpod Admin',error)});return}
  if(id==='obsidian'){loadObsidian(THREE,modelLoader).then(visual=>{mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false}).catch(error=>{playerMesh.userData[id+'Loading']=false;playerMesh.userData[id+'ModelFailed']=true;syncPlayerShipVisuals();console.warn('Obsidian no disponible',error)});return}
  modelLoader.load(assembledModelPaths[id],gltf=>{
   const source=gltf.scene,box=new THREE.Box3().setFromObject(source),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
@@ -1884,7 +1886,7 @@ player.ownedShips.aurora=true;
 player.shipId=SHIP_TYPES[player.shipId]&&player.ownedShips[player.shipId]?player.shipId:'aurora';
 player.shipSpecializations=player.shipSpecializations&&typeof player.shipSpecializations==='object'?player.shipSpecializations:{};
 // Habilidades de clase: duración y recarga solo durante la sesión de vuelo.
-const SHIP_ABILITIES={
+const SHIP_ABILITIES={adminpod:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:20,energy:40},
  azote:{name:'Furia de Azote',icon:'🔥',duration:5,cooldown:25,energy:65},
  egida:{name:'Fortaleza de Égida',icon:'🛡️',duration:6,cooldown:25,energy:55},
  vertigo:{name:'Sobrecarga de Vértigo · rompe el arpón',icon:'⚡',duration:5,cooldown:20,energy:40},
@@ -2124,7 +2126,7 @@ function renderShips(){
  const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
  if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
- fleet.innerHTML='<h3>🚀 Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail(player.shipId)+'</div><div><strong id="shopShipPreviewName">Nave equipada</strong><small>Nave equipada · Arrastra para girar.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe).map(([id,t])=>{
+ fleet.innerHTML='<h3>🚀 Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail(player.shipId)+'</div><div><strong id="shopShipPreviewName">Nave equipada</strong><small>Nave equipada · Arrastra para girar.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe&&!t.adminOnly).map(([id,t])=>{
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
   const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Escudo ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
   const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
@@ -3151,6 +3153,7 @@ const titanEnginesActive=player.shipId==='titan'&&!!titanVisual?.visible;
 const espectroEnginesActive=player.shipId==='espectro'&&!!espectroVisual?.visible;
 const assembledVisual=ASSEMBLED_SHIPS[player.shipId]?playerMesh.userData[player.shipId+'Model']:null;
 const assembledEnginesActive=!!assembledVisual?.visible;
+if(player.shipId==='adminpod')animateAdminPod(assembledVisual,now/1000,docked||landing?0:Math.hypot(throttle,strafe));
 if(player.shipId==='obsidian')animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe));
 const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive;
 for(const glow of engineGlows)glow.visible=!customEnginesActive;
@@ -3228,7 +3231,7 @@ hud();
 function openPvpHangar(){
  if(pvpHangar)return;
  pvpHangar={flightPlayer:player,board:missionBoard,ui:hangarUI,saved:null};
- player=createHangarEditor(readOfflinePilot(localStorage));normalizeHangar(player);
+ player=createHangarEditor(readOfflinePilot(localStorage));if(pvpSession.adminShipAllowed)player.ownedShips.adminpod=true;normalizeHangar(player);
  missionBoard=createMissionBoard(missionCatalog,player.quests);docked=true;landing=false;resetDockControls();fireHeld=false;clearCombatShots();
  document.body.classList.add('docked');$('saleConfirm').classList.add('hidden');hangar.classList.remove('hidden');
  hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
@@ -3237,9 +3240,9 @@ function openPvpHangar(){
 function closePvpHangar(){
  if(!pvpHangar||!save())return;
  combatAudio.play('takeoff');
- const context=pvpHangar,updated=context.saved;Object.assign(context.flightPlayer,initialPvpPilot(updated));context.flightPlayer.maxHp*=20;context.flightPlayer.hp=context.flightPlayer.maxHp;player=context.flightPlayer;missionBoard=context.board;hangarUI=context.ui;pvpHangar=null;
+ const adminSelection=player.shipId;const context=pvpHangar,updated=context.saved;Object.assign(context.flightPlayer,initialPvpPilot(updated));context.flightPlayer.maxHp*=20;context.flightPlayer.hp=context.flightPlayer.maxHp;player=context.flightPlayer;missionBoard=context.board;hangarUI=context.ui;pvpHangar=null;
  docked=landing=false;$('saleConfirm').classList.add('hidden');hangar.classList.add('hidden');document.body.classList.remove('docked');$('questTracker').classList.add('hidden');resetDockControls();
- loadAssembledVisual(player.shipId);syncPlayerShipVisuals();pvpSession.refreshLoadout(updated);hud();
+ loadAssembledVisual(player.shipId);syncPlayerShipVisuals();pvpSession.refreshLoadout(updated,adminSelection);hud();
 }
 
 if(PVP_MODE){
@@ -3296,7 +3299,7 @@ if(PVP_MODE){
   updateBossVisual(dt);arenaView.update(dt);
   for(const shot of shots){if(!shot.pvpRemote&&pvpSession?.active&&!pvpSession.canFight)shot.life=0;if(shot.target?.playerId&&(pvpSession?.isJammed(shot.target.playerId)||(shot.target.playerId===pvpSession?.myId?!pvpSession?.canFight:!pvpSession?.canTarget(shot.target.playerId))))shot.target=null;}
   for(const r of remotes.values()){
-   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);if(r.shipId==='obsidian')animateObsidian(r.mesh,dt,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));r.pet.visible=!!r.hasPet;if(r.hasPet){if(r.petStamp!==explorerMesh.children.length){r.pet.clear();const clone=cloneClean(explorerMesh);clone.visible=true;clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=explorerMesh.children.length}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
+   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);if(r.shipId==='adminpod')animateAdminPod(r.mesh,performance.now()/1000,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));if(r.shipId==='obsidian')animateObsidian(r.mesh,dt,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));r.pet.visible=!!r.hasPet;if(r.hasPet){if(r.petStamp!==explorerMesh.children.length){r.pet.clear();const clone=cloneClean(explorerMesh);clone.visible=true;clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=explorerMesh.children.length}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
    const point=r.mesh.position.clone().add(new THREE.Vector3(0,68,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;
    r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';r.label.classList.toggle('dueling',!!pvpSession?.canTarget(r.playerId));r.label.classList.toggle('jammed',!!pvpSession?.isJammed(r.playerId));
   }
@@ -3371,7 +3374,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  const started=performance.now();
  let quietSince=0,slowPrompt=false;
  const poll=()=>{
-  const selected=({titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'})[player.shipId];
+  const selected=({adminpod:'adminpodModel',titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'})[player.shipId];
   const playerReady=selected
    ?!!(playerMesh.userData[selected]||playerMesh.userData[selected+'Failed'])
    :!!(playerMesh.userData.xWingModel||playerMesh.userData.auroraModel||playerMesh.userData.auroraModelFailed);

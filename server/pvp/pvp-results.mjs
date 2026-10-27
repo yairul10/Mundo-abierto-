@@ -2,7 +2,7 @@ export const KILL_WINDOW=5*60*60*1000;
 export function xpForLevel(level){const l=Math.max(1,Math.min(10000,Math.floor(Number(level)||1)));return 100+(l-1)*65+15*Math.max(0,l-10)**2}
 export function qualifies(winner,victim){const level=Math.floor(winner.profile.level),other=Math.floor(victim.profile.level);return other>=(level>=200?150:Math.ceil(level*.6))}
 export function awardKill(s,winner,victim,now,deathId){
- if(!winner||winner.id===victim.id||!qualifies(winner,victim))return null;
+ if(!winner||winner.profile.shipId==='adminpod'||victim.profile.shipId==='adminpod'||victim.lastDamageNoRewards||winner.id===victim.id||!qualifies(winner,victim))return null;
  s.killHistory=(s.killHistory||[]).filter(k=>k.time>now-KILL_WINDOW);
  if(s.killHistory.filter(k=>k.winner===winner.id&&k.victim===victim.id).length>=3)return null;
  const xp=Math.max(1,Math.round(xpForLevel(winner.profile.level)*.01));

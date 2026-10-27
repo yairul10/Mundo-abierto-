@@ -65,3 +65,9 @@ Coloso Pro: 55.000 créditos y 82.500 XP; Gran Titán Pro: 151.800 créditos y 2
 
 ## Publicación y compatibilidad
 El protocolo actual de desarrollo es 3, pero el mínimo publicado sigue en 2 mientras 1.1.10 está pendiente de publicación en Google Play. Las nuevas compilaciones no elevan automáticamente el mínimo. La configuración PVP_MIN_CLIENT_VERSION se elevará solo después de confirmar disponibilidad en la tienda para los jugadores. Se aplica la misma comprobación al ingreso, reconexión y mensajes del mapa. Las apps anteriores mostrarán sus divisiones antiguas hasta actualizarse.
+
+
+## Hoverpod Admin (contenido 337)
+Modelo hoverpod.glb proporcionado por el propietario; copia de juego con texturas JPEG 2048, geometría intacta. Solo se equipa en el hangar PvP de una cuenta verificada incluida en CHAT_ADMIN_IDS, sin ensamblaje ni compra. Multiplicadores base: casco 15, ataque 1,6, escudo 1, velocidad 1,7; casco general PvP ×20 adicional. El servidor deriva los valores de Aurora e ignora el perfil admin enviado por el cliente. No requiere introducir la clave de moderación para equipar; la cuenta debe estar autorizada.
+La selección admin es temporal del mapa: no altera la nave ni propiedad del guardado PvE. No entrega XP, créditos, núcleos ni puestos por bajas de jugadores/NPC usando esta nave; tampoco cuenta destruirla para farmear el ranking. Los proyectiles conservan la exclusión de recompensa aunque se cambie de nave antes del impacto. No inicia un evento automáticamente ni cambia las reglas de combate del resto.
+Flama en la salida trasera y siete partículas de vapor reutilizables en el tubo superior; también visibles en pilotos remotos. Protocolo nuevo 4 para representar esta nave. El mínimo sigue en 2 hasta confirmar publicación en Google Play: los clientes anteriores ven una Aurora de respaldo para evitar errores de interfaz. Android 1.1.11 (359).

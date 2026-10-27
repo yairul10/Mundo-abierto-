@@ -1,0 +1,21 @@
+// Real authenticated room integration: production never imports this fixture.
+import {fixtureIdentity} from './test-identity.mjs';
+import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+const MF=await import(process.env.COSMOS_MINIFLARE||'miniflare');
+const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('google-play:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')),adminId=Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('').slice(0,24);
+const files=['worker.mjs','zones.mjs','duels.mjs','pvp-results.mjs','respawn.mjs','client-version.mjs','account.mjs','chat.mjs','chat-language.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'];
+const options={modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:process.env.COSMOS_COMPAT_DATE||'2026-10-11',compatibilityFlags:['nodejs_compat'],bindings:{CHAT_ADMIN_IDS:adminId},serviceBindings:{PLAY_IDENTITY:r=>fixtureIdentity.fetch(r)},durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
+const mf=new MF.Miniflare(options),connections=[],pause=ms=>new Promise(r=>setTimeout(r,ms));
+const raw={aurora:{maxHp:500,maxEnergy:500,attack:50,defense:25,speed:110,level:100},adminpod:{maxHp:99999,attack:99999,speed:4999}};
+const last=c=>c.messages.findLast(m=>m.type==='world'),send=(c,m)=>c.ws.send(JSON.stringify(m));
+async function wait(c,fn){const end=Date.now()+5000;while(Date.now()<end){const s=last(c);if(s&&fn(s))return s;await pause(20)}throw Error(JSON.stringify(c.messages.slice(-3)))}
+async function connect(letter,version){const key=letter.repeat(64),r=await mf.dispatchFetch('https://arena.test/world/join',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer fixture-'+key},body:JSON.stringify({clientVersion:version,adminShipAllowed:true,guestKey:key,roster:raw,shipId:'aurora'})});assert.equal(r.status,200);const ticket=await r.json(),res=await mf.dispatchFetch('https://arena.test/world/socket',{headers:{Upgrade:'websocket','Sec-WebSocket-Protocol':'mundo-world-v1,'+ticket.token}});assert.equal(res.status,101);const ws=res.webSocket;ws.accept();const c={id:ticket.playerId,ws,messages:[]};ws.addEventListener('message',e=>c.messages.push(JSON.parse(e.data)));connections.push(c);await wait(c,s=>s.players.some(p=>p.id===c.id));return c}
+try{
+ const admin=await connect('a',4),other=await connect('b',4),legacy=await connect('c',2);
+ assert.equal(last(admin).players.find(p=>p.id===admin.id).adminShipAllowed,true);assert.equal(last(other).players.find(p=>p.id===other.id).adminShipAllowed,false);
+ send(other,{type:'hangar'});await wait(other,s=>s.players.find(p=>p.id===other.id).hangar);send(other,{type:'loadout',roster:raw,shipId:'adminpod'});await pause(200);assert(other.messages.some(m=>m.error==='invalid_ship'));assert.equal(last(other).players.find(p=>p.id===other.id).profile.shipId,'aurora');
+ send(admin,{type:'hangar'});await wait(admin,s=>s.players.find(p=>p.id===admin.id).hangar);send(admin,{type:'loadout',roster:raw,shipId:'adminpod'});let s=await wait(admin,s=>s.players.find(p=>p.id===admin.id).profile.shipId==='adminpod');const profile=s.players.find(p=>p.id===admin.id).profile;assert.equal(profile.maxHp,300000);assert.equal(profile.attack,160);assert.equal(profile.speed,374);
+ await wait(other,s=>s.players.find(p=>p.id===admin.id).profile.shipId==='adminpod');await wait(legacy,s=>s.players.find(p=>p.id===admin.id).profile.maxHp===300000);assert.equal(last(legacy).players.find(p=>p.id===admin.id).profile.shipId,'aurora','Old app receives a supported fallback skin');
+ send(admin,{type:'ship',shipId:'aurora'});await wait(admin,s=>s.players.find(p=>p.id===admin.id).profile.shipId==='aurora');assert.equal(last(admin).players.find(p=>p.id===admin.id).profile.maxHp,10000);
+ console.log('PASS authenticated WebSocket admin ship: forged privilege rejected, allowlisted admin equips from base, exact authoritative stats, legacy client fallback and ordinary loadout restored');
+}finally{for(const c of connections)try{c.ws.close()}catch{}await mf.dispose()}

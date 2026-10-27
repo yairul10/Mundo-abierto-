@@ -31,8 +31,9 @@ export function ensureArenaEnemies(s,now){
  for(const b of s.arenaEnemies.filter(b=>b.kind==='reinforcement'))if(parents.get(b.parentId)?.instanceId===b.parentInstance){b.rules.zone=parents.get(b.parentId).rules.zone;next.push(b);}
  s.arenaEnemies=next;s.boss=next[0];return next;
 }
-export function recordArenaDamage(s,target,owner,damage,now){
- recordBossDamage(target,owner,damage,now);
+export function recordArenaDamage(s,target,owner,damage,now,noRewards=false){
+ if(noRewards||owner?.profile?.shipId==='adminpod'){target.lastDamageAt=target.regenTickAt=now;if(target.hp>0&&!target.active){target.active=true;target.nextAttackAt=now+target.rules.attackInterval;}}
+ else recordBossDamage(target,owner,damage,now);
  if(target.kind==='reinforcement'){
   const parent=s.arenaEnemies?.find(b=>b.id===target.parentId);if(parent?.instanceId===target.parentInstance){(parent.participants||={})[owner.id]=true;if(parent.hp>0&&!parent.active){parent.active=true;parent.nextAttackAt=now+parent.rules.attackInterval;parent.nextTeleportAt=now+parent.rules.teleportInterval}}
  }
@@ -92,7 +93,8 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
   if(['colossusPro','granTitanPro'].includes(b.kind)&&b.active&&b.hp>0)for(const threshold of (b.kind==='granTitanPro'?[70,40]:[70,40,10]))if(b.hp/b.maxHp*100<=threshold)spawnWave(s,b,threshold,now);
   // Reinforcements only engage pilots participating against their own parent.
   const allowed=b.kind==='reinforcement'?p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone&&!!((s.arenaEnemies.find(x=>x.id===b.parentId)?.contributions?.[p.id]||0)>0||s.arenaEnemies.find(x=>x.id===b.parentId)?.participants?.[p.id]):p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone;
-  constrainEnemy(b);const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);
+  constrainEnemy(b);if(b.hp<=0)for(const p of s.players)if(p.profile?.shipId==='adminpod')delete b.contributions[p.id];const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);
+  for(let i=s.bossRewards.length-1;i>=from;i--)if(s.players.some(p=>p.id===s.bossRewards[i].playerId&&p.profile?.shipId==='adminpod'))s.bossRewards.splice(i,1);
   if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId))if(b.rules.xpReward)receipt.xp=b.kind==='reinforcement'?b.rules.xpReward:Math.max(0,Math.round(b.rules.xpReward*receipt.damage/Math.max(1,receipt.totalDamage)));}
  }
  // Keep surviving escorts until killed or their parent begins a new instance.
