@@ -10,6 +10,8 @@ export function ensureBoss(s,now,rules=BOSS_RULES){
 export function recordBossDamage(boss,owner,damage,now){
  if(!owner||!Number.isFinite(damage)||damage<=0)return;
  boss.contributions[owner.id]=(boss.contributions[owner.id]||0)+damage;
+ boss.lastDamageAt=now;
+ boss.firstAttackerId??=owner.id;
  if(!boss.active){boss.active=true;boss.nextAttackAt=now+(boss.rules||BOSS_RULES).attackInterval;boss.nextTeleportAt=now+(boss.rules||BOSS_RULES).teleportInterval}
 }
 // A bounded patrol stays clear of the 650 m base and the 3,000 m arena edge.
@@ -41,10 +43,30 @@ export function tickBoss(s,now,eligible){
  const b=s.boss;if(!b)return;const rules=b.rules||BOSS_RULES;
  if(b.hp<=0){
   b.aimTargets=[];
-  if(!b.rewarded){b.rewarded=true;b.active=false;b.respawnAt=now+rules.respawnDelay;s.bossRewards||=[];for(const share of splitBossReward(b.contributions,rules.reward))if(share.amount>0)s.bossRewards.push({...share,id:b.instanceId+':'+share.playerId,bossId:b.instanceId});s.events.push({type:'bossDefeated',id:b.instanceId,time:now})}
+  if(!b.rewarded){b.rewarded=true;b.active=false;b.respawnAt=now+rules.respawnDelay;s.bossRewards||=[];const rewards=b.kind==='reinforcement'&&b.firstAttackerId
+ ? [{playerId:b.firstAttackerId,amount:rules.reward}]
+ : splitBossReward(b.contributions,rules.reward);
+ for(const share of rewards)if(share.amount>0)s.bossRewards.push({...share,id:b.instanceId+':'+share.playerId,bossId:b.instanceId});s.events.push({type:'bossDefeated',id:b.instanceId,time:now})}
   return;
  }
  if(!b.active){b.aimTargets=[];return}
+ // Regenerate 3% of maximum HP per second after 3 seconds without damage.
+ // Reverse the recovered damage proportionally for every contributor.
+ const last=b.lastDamageAt??now;
+ const from=Math.max(b.regenTickAt??last,last+3000);
+ if(now>from&&b.hp<b.maxHp){
+  const recovered=Math.min(b.maxHp-b.hp,b.maxHp*.03*(now-from)/1000);
+  if(recovered>0){
+   const before=b.maxHp-b.hp,remaining=Math.max(0,before-recovered),ratio=before>0?remaining/before:0;
+   for(const id of Object.keys(b.contributions||{})){
+    b.contributions[id]*=ratio;
+    if(b.contributions[id]<1e-8)delete b.contributions[id];
+   }
+   b.hp=Math.min(b.maxHp,b.hp+recovered);
+  }
+ }
+ b.regenTickAt=now;
+ if(b.hp>=b.maxHp){b.contributions={};b.active=false;b.aimTargets=[];b.firstAttackerId=null;return;}
  const targets=s.players.filter(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=rules.range).sort((a,b)=>a.hp-b.hp||a.id.localeCompare(b.id)).slice(0,rules.targets);
  b.aimTargets=targets.map(p=>({targetId:p.id,targetPos:[...p.pos]}));
  if(now<b.nextAttackAt)return;
