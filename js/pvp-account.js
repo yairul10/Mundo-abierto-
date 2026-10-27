@@ -1,3 +1,4 @@
+import {applyAccountGrants} from './account-grants.js?v=1';
 import {isNativePlayGames,playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode} from './play-games-auth.js';
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev';
 const CLIENT='430904114567-2s03dmhrv4o4lfp73qal65kseu837035.apps.googleusercontent.com';
@@ -11,6 +12,7 @@ export async function pvpAccountToken(){
  const response=await fetch(API+'/v1/play-games/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code}),signal:AbortSignal.timeout(12000)});
  const data=await response.json();
  if(!response.ok||!data.authenticated||typeof data.sessionToken!=='string')throw Error('No se pudo verificar tu cuenta de Google Play. Reintenta antes de entrar a PvP.');
+ const test=window.MUNDO_PLAY_MODE?.mode==='test';applyAccountGrants(localStorage,data.grants,test?'mundoAbierto.qaPlayer':'mundoAbierto.player');
  cached=data.sessionToken;expires=Date.now()+Math.min(Number(data.expiresIn)||0,3600)*1000-60000;return cached;
 }
 export function clearPvpAccountToken(){cached=null;expires=0}

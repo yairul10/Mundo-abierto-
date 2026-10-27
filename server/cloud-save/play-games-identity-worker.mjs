@@ -69,7 +69,8 @@ export default {
    }
    if(!playerId)return reply({error:'identity_unavailable'},503,origin);
    // A short-lived signed session authorizes save access; never trust client-supplied player IDs.
-   return reply({authenticated:true,displayName:String(profile.displayName||'').slice(0,100),playerId,sessionToken:await createSession(env.SESSION_SIGNING_KEY,playerId),expiresIn:86400},200,origin);
+   const grants=(await env.DB.prepare('SELECT ship_id FROM account_ship_grants WHERE player_id=?').bind(playerId).all()).results.map(r=>r.ship_id);
+   return reply({authenticated:true,grants,displayName:String(profile.displayName||'').slice(0,100),playerId,sessionToken:await createSession(env.SESSION_SIGNING_KEY,playerId),expiresIn:86400},200,origin);
   }catch{return reply({error:'service_unavailable'},503,origin)}
  }
 };
