@@ -1,0 +1,31 @@
+{
+  "commit": "36fc915bad9136b72175b4ed927ba8959b6c145e",
+  "note": "Payload bytes exclude TLS/WebSocket overhead. Driver CPU/RSS exclude workerd child; not Cloudflare billing or device FPS. Local compatibility date 2026-07-01.",
+  "reports": [
+    {
+      "realm": "test",
+      "requested": 10,
+      "connected": 10,
+      "rejected": 0,
+      "capacity": 50,
+      "seconds": 20,
+      "target": "isolated-cloudflare",
+      "rttP50Ms": 30.807882000000973,
+      "rttP95Ms": 58.22958600000129,
+      "snapshotGapP95Ms": 107.68678,
+      "payloadSentBytes": 296207,
+      "payloadReceivedBytes": 22347528,
+      "worldFrames": 1928,
+      "volleyFrames": 659,
+      "damagedEnemyObservations": 9368,
+      "maxEnemies": 8,
+      "maxPlayers": 10,
+      "driverCpuMs": 1415.621,
+      "driverPeakRssMiB": 76.8125,
+      "driverLoopP95Ms": 20.643839,
+      "wallSeconds": 71.051216395,
+      "errors": [],
+      "errorCount": 0
+    }
+  ]
+}
