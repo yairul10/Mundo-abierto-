@@ -1,5 +1,5 @@
-export const PVP_CLIENT_VERSION=2;
-export const PVP_LATEST_BUILD='3d-20261027-335';
+export const PVP_CLIENT_VERSION=3;
+export const PVP_LATEST_BUILD='3d-20261027-336';
 export const PVP_UPDATE_URL='https://play.google.com/store/apps/details?id=com.cosmoslegacy.game';
 export function pvpVersionConfig(env={}){
  const configured=Number(env.PVP_MIN_CLIENT_VERSION);

@@ -1,4 +1,4 @@
-export const ZONES=Object.freeze({base:650,pve:1800,edge:2950});
+export const ZONES=Object.freeze({base:650,pve:3275,edge:5900});
 export const radial=position=>Math.hypot(position?.[0]||0,position?.[2]||0);
 export const zoneOf=p=>radial(p.pos)<=ZONES.base?'base':radial(p.pos)<=ZONES.pve?'pve':'hostile';
 export function sameCombatZone(a,b){return zoneOf(a)===zoneOf(b)&&zoneOf(a)!=='base'}

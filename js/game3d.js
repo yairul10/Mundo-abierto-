@@ -1,8 +1,8 @@
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=1';
 import {pvpAccountToken} from './pvp-account.js?v=3';
-import {mountPvpZones} from './pvp-zones.js?v=1';
-import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=2';
-import {createArenaEnemyView} from './pvp-enemies.js?v=335';
+import {mountPvpZones} from './pvp-zones.js?v=2';
+import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=3';
+import {createArenaEnemyView} from './pvp-enemies.js?v=336';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
@@ -25,7 +25,7 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=334';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=335';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=336';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=314';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=314';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
@@ -2483,7 +2483,7 @@ function drawRadar(dt){
  ctx.strokeStyle='#72bbdd33';ctx.lineWidth=1;
  for(const rad of [22,44,66]){ctx.beginPath();ctx.arc(78,78,rad,0,Math.PI*2);ctx.stroke()}
  ctx.beginPath();ctx.moveTo(78,12);ctx.lineTo(78,144);ctx.moveTo(12,78);ctx.lineTo(144,78);ctx.stroke();
- if(PVP_MODE){const center=radarPoint(0,0);for(const [radius,color]of [[650,'#72dfff'],[1800,'#71f5a4'],[2950,'#ff6c79']]){ctx.strokeStyle=color;ctx.beginPath();ctx.arc(center.x,center.y,radius*RADAR_RADIUS/RADAR_RANGE,0,Math.PI*2);ctx.stroke()}}
+ if(PVP_MODE){const center=radarPoint(0,0);for(const [radius,color]of [[650,'#72dfff'],[3275,'#71f5a4'],[5900,'#ff6c79']]){ctx.strokeStyle=color;ctx.beginPath();ctx.arc(center.x,center.y,radius*RADAR_RADIUS/RADAR_RANGE,0,Math.PI*2);ctx.stroke()}}
  const dot=(x,y,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()};
  for(const e of enemies){if(e.dead||!e.mesh.visible)continue;const p=radarPoint(e.mesh.position.x,e.mesh.position.z);if(p.inside)dot(p.x,p.y,e.pvpRemote&&!pvpSession?.canTarget(e.playerId)?'#68e6ff':e.pro?'#ffce60':'#ff6a6a',3)}
  for(const d of drops){const p=radarPoint(d.mesh.position.x,d.mesh.position.z);if(p.inside)dot(p.x,p.y,'#e8b5ff',2.8)}
@@ -2975,7 +2975,7 @@ function updateZoneMembrane(){
  zoneMembrane.visible=!docked&&!landing&&proximity>0;
 }
 
-function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math.hypot(playerMesh.position.x,playerMesh.position.z);const radius=pvpSession?.radius||2950;if(d>radius){playerMesh.position.x*=radius/d;playerMesh.position.z*=radius/d;}return}
+function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math.hypot(playerMesh.position.x,playerMesh.position.z);const radius=pvpSession?.radius||5900;if(d>radius){playerMesh.position.x*=radius/d;playerMesh.position.z*=radius/d;}return}
  updateZoneMembrane();
  if(docked||landing){sectorNotice.style.display='none';return}
  const sector=currentSector(),d=sectorDistance(),remaining=sector.radius-d;

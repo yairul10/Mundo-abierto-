@@ -4,19 +4,19 @@ Contenido **335**, Android **1.1.9 (357)**, protocolo PvP **2**. Se aplica a la 
 
 ## Mapa
 
-Las distancias son horizontales desde el centro de la base. El límite exterior del mapa queda en 2.950 m.
+Las distancias son horizontales desde el centro de la base. El límite exterior del mapa queda en 5.900 m.
 
 | Radio | Zona | Reglas |
 | --- | --- | --- |
 | 0–650 m | Base | Sin combate, salvo los participantes de un duelo ya aceptado. No se puede abrir el hangar durante el duelo. |
-| Más de 650–1.800 m | PvE | Los NPC y los pilotos se dañan entre sí. Otros jugadores no pueden dañarte salvo duelo aceptado. |
-| Más de 1.800–2.950 m | Hostil | Combate libre entre jugadores y contra el Titán del Nexo. |
+| Más de 650–3.275 m | PvE | Los NPC y los pilotos se dañan entre sí. Otros jugadores no pueden dañarte salvo duelo aceptado. |
+| Más de 3.275–5.900 m | Hostil | Combate libre entre jugadores y contra el Titán del Nexo. |
 
-Dos franjas de combate de 1.150 m de ancho. Los límites aparecen como circunferencias y membranas suaves en el mundo y en el minimapa. La interfaz identifica la zona actual. Los NPC se mantienen en su franja y el servidor cancela proyectiles que crucen sus límites.
+Dos franjas de combate de 2.625 m de ancho. Los límites aparecen como circunferencias y membranas suaves en el mundo y en el minimapa. La interfaz identifica la zona actual. Los NPC se mantienen en su franja y el servidor cancela proyectiles que crucen sus límites.
 
 ## Enemigos
 
-- **Zona PvE:** dos Colosos Pro (200.000 PV) y un **Gran Titán Pro** (368.000 PV). El Gran Titán usa su propio modelo, puertas y motores, con ataques guiados autoritativos contra hasta dos pilotos, 75.900 créditos y un fondo de 113.850 XP por daño efectivo. Se neutraliza al recuperar toda su vida. Los tres mejores contribuidores reciben 3 núcleos; los Colosos conservan 1 y sus oleadas limitadas.
+- **Zona PvE:** dos Colosos Pro (200.000 PV) y un **Gran Titán Pro** (368.000 PV). El Gran Titán usa su propio modelo, puertas y motores, con ataques guiados autoritativos contra hasta dos pilotos, 151.800 créditos y un fondo de 227.700 XP por daño efectivo. Se neutraliza al recuperar toda su vida. Los tres mejores contribuidores reciben 3 núcleos; los Colosos conservan 1 y sus oleadas limitadas.
 - **Zona hostil:** un **Titán del Nexo** de 1.000.000 PV, con su patrulla y teletransporte acotados a esta zona, 1.100.000 créditos repartidos por daño y 3 núcleos para los tres mejores contribuidores.
 - Los jefes reaparecen a los cinco minutos. Los recibos de créditos, XP y materiales mantienen su deduplicación y persistencia SQLite. Los premios pendientes no se borran al cambiar la distribución del mapa.
 
@@ -51,3 +51,8 @@ Solo una baja de jugador en zona hostil, fuera de duelo, puede premiarse.
 ## Validación
 
 Pruebas de fronteras, proyectiles, niveles 199/200, 60 % con redondeo, límite de tres bajas y expiración exacta de cinco horas, duelos en base e inmunidad a terceros/NPC, rechazo de hangar durante duelo, cobros, cuota de almacenamiento, reintentos, subida de nivel por XP y fallo/rollback transaccional. Recorridos reales con WebSockets y SQLite validan muerte, menú de rescate, reconexión, recibos y clasificaciones; otra prueba cubre ambos mundos y sus NPC compartidos.
+
+
+## Ampliación 336
+Radio total de 5.900 m (diámetro 11.800 m), frente a 4.500 m del Cementerio. La base conserva 650 m; ambos anillos tienen 2.625 m de ancho. Divisiones atravesables de aspecto vidrio, sin reflejos duros.
+El Gran Titán Pro conserva ×2 PV y daño respecto al nivel 105, +10 % de créditos/materiales. Libera tres escoltas Pro al 70 % y tres al 40 %: Catapulta, Arponero y Acechador (máximo seis por combate). Sus PV/daño duplican el equivalente PvE de nivel 105; créditos +20 %. No reproduce todavía todas las armas especiales del combate PvE: las escoltas usan proyectiles autoritativos del servidor.

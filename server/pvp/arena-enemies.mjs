@@ -2,8 +2,8 @@ import {BOSS_RULES,ensureBoss,advanceBossMotion,tickBoss,recordBossDamage,bossSn
 
 import {zoneOf,constrainEnemy} from './zones.mjs';
 export const ARENA_ENEMIES=Object.freeze([
- {...BOSS_RULES,id:'pvp-super-boss',name:'Titán del Nexo',kind:'nexo',zone:'hostile',pos:[0,120,-2350],patrolRadius:150,reward:1100000},
- {...BOSS_RULES,id:'pvp-gran-titan',name:'Gran Titán Pro',kind:'granTitanPro',zone:'pve',pos:[0,120,1250],patrolRadius:100,maxHp:368000,damage:1500,targets:2,attackInterval:4000,teleportInterval:0,reward:75900,xpReward:113850,materialCount:60,hitRadius:270,projectile:'missile'},
+ {...BOSS_RULES,id:'pvp-super-boss',name:'Titán del Nexo',kind:'nexo',zone:'hostile',pos:[0,120,-4550],patrolRadius:150,reward:1100000},
+ {...BOSS_RULES,id:'pvp-gran-titan',name:'Gran Titán Pro',kind:'granTitanPro',zone:'pve',pos:[0,120,1250],patrolRadius:100,maxHp:368000,damage:1472,targets:2,attackInterval:4000,teleportInterval:0,reward:151800,xpReward:227700,materialCount:60,hitRadius:270,projectile:'missile'},
  ...[-1,1].map((side,i)=>({...BOSS_RULES,id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),kind:'colossusPro',zone:'pve',projectile:'missile',pos:[side*1200,120,-250],patrolRadius:100,maxHp:200000,damage:750,targets:1,attackInterval:5000,teleportInterval:0,reward:55000,hitRadius:220,materialCount:60}))
 ]);
 // PvE rewards at level 105 use min(2.5, 1 + (level - 1) * .035).
@@ -24,7 +24,7 @@ export function ensureArenaEnemies(s,now){
  for(const rules of ARENA_ENEMIES){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
   const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;b.level=105;
-  if(b.arenaLayout!==2){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=2;b.patrolPhase=0}constrainEnemy(b)
+  if(b.arenaLayout!==3){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=3;b.patrolPhase=0}constrainEnemy(b)
   next.push(b);
  }
  const parents=new Map(next.map(b=>[b.id,b]));
@@ -40,11 +40,12 @@ export function recordArenaDamage(s,target,owner,damage,now){
 function spawnWave(s,parent,threshold,now){
  parent.waves||=[];if(parent.waves.includes(threshold))return;
  parent.waves.push(threshold);
- for(let i=0;i<2;i++){
+ const titan=parent.kind==='granTitanPro';
+ for(let i=0;i<(titan?3:2);i++){
   const children=s.arenaEnemies.filter(b=>b.parentInstance===parent.instanceId);
   if(children.length>=6||children.filter(b=>b.hp>0).length>=6)break;
-  const types=['raider','sentinel','destroyer'],model=types[parent.waves.length-1],base=PVE_REINFORCEMENTS[model],hp={raider:14000,sentinel:28000,destroyer:56000}[model],index=children.length;
-  const rules={...BOSS_RULES,zone:parent.rules.zone,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:{raider:2400,sentinel:3600,destroyer:4800}[model],xpReward:{raider:3600,sentinel:4800,destroyer:6000}[model],materialCount:{raider:10,sentinel:9,destroyer:10}[model],damage:600,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
+  const types=titan?['catapult','harpooner','stalker']:['raider','sentinel','destroyer'],model=titan?types[i]:types[parent.waves.length-1],hp={raider:14000,sentinel:28000,destroyer:56000,catapult:13800,harpooner:23000,stalker:18400}[model],index=children.length;
+  const rules={...BOSS_RULES,zone:parent.rules.zone,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro',catapult:'Catapulta Pro',harpooner:'Arponero Pro',stalker:'Acechador Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:{raider:2400,sentinel:3600,destroyer:4800,catapult:2208,harpooner:3312,stalker:4416}[model],xpReward:{raider:3600,sentinel:4800,destroyer:6000,catapult:2760,harpooner:3680,stalker:4600}[model],materialCount:{raider:10,sentinel:9,destroyer:10,catapult:10,harpooner:9,stalker:10}[model],damage:titan?{catapult:1380,harpooner:230,stalker:1150}[model]:600,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
   const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,nextAttackAt:now+rules.attackInterval,motionAt:now,spawnIndex:index});s.arenaEnemies.push(b);
  }
 }
@@ -88,7 +89,7 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
    const leash=distance(b,parent);if(leash>900)b.pos=b.pos.map((v,i)=>parent.pos[i]+(v-parent.pos[i])*900/leash);
    if(Math.hypot(...b.pos)<800){const length=Math.hypot(...b.pos)||1;b.pos=b.pos.map(v=>v*800/length)}
   }
-  if(b.kind==='colossusPro'&&b.active&&b.hp>0)for(const threshold of [70,40,10])if(b.hp/b.maxHp*100<=threshold)spawnWave(s,b,threshold,now);
+  if(['colossusPro','granTitanPro'].includes(b.kind)&&b.active&&b.hp>0)for(const threshold of (b.kind==='granTitanPro'?[70,40]:[70,40,10]))if(b.hp/b.maxHp*100<=threshold)spawnWave(s,b,threshold,now);
   // Reinforcements only engage pilots participating against their own parent.
   const allowed=b.kind==='reinforcement'?p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone&&!!((s.arenaEnemies.find(x=>x.id===b.parentId)?.contributions?.[p.id]||0)>0||s.arenaEnemies.find(x=>x.id===b.parentId)?.participants?.[p.id]):p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone;
   constrainEnemy(b);const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);

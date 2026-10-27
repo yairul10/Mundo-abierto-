@@ -1,6 +1,6 @@
 import {mountPvpSocialUI} from './pvp-social-ui.js?v=1';
 import {mountPvpRecovery} from './pvp-recovery.js?v=1';
-import {PVP_CLIENT_VERSION,checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=2';
+import {PVP_CLIENT_VERSION,checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=3';
 import {pvpAccountToken,clearPvpAccountToken,pvpAccountProfile} from './pvp-account.js?v=3';
 import {mountMapChat} from './map-chat.js?v=3';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';

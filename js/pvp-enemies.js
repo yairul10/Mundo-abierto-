@@ -1,7 +1,7 @@
 import {createGranTitan} from './gran-titan.js?v=326';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {createColosoRig} from './coloso-rig.js?v=187';
-const MODELS={raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
+const MODELS={catapult:'./assets/models/catapulta_casco.glb?v=327',harpooner:'./assets/models/arponero_lanzador.glb?v=327',stalker:'./assets/models/acechador_optimizado.glb?v=327',raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
 export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,sound=()=>{},targetPosition=()=>null,makeMissile=null}){
  const entities=new Map(),templates=new Map(),effects=[];
  function model(path){if(!templates.has(path))templates.set(path,loader.loadAsync(path).then(g=>g.scene));return templates.get(path).then(s=>s.clone(true))}

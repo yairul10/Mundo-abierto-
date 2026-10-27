@@ -36,7 +36,7 @@ function hitBoss(boss,owner,damage,now){const effective=Math.min(boss.hp,damage)
 }
 
 {
- const a=pilot('a',[0,120,-2600]),s=world(a);advance(s,t);const boss=s.boss;boss.hp=10;
+ const a=pilot('a',[0,120,-4800]),s=world(a);advance(s,t);const boss=s.boss;boss.hp=10;
  const delta=boss.pos.map((v,i)=>v-a.pos[i]),length=Math.hypot(...delta);
  const bullets=attack(s,a,{weapon:'missile',targetId:boss.id,shots:[{offset:[0,0,0],direction:delta.map(v=>v/length),locked:true}]},t);assert.equal(bullets[0].target,boss.id);
  for(let time=t+100;time<=t+1800&&boss.hp>0;time+=100)advance(s,time);
