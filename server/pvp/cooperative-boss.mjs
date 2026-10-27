@@ -44,7 +44,7 @@ export function tickBoss(s,now,eligible){
  if(b.hp<=0){
   b.aimTargets=[];
   if(!b.rewarded){b.rewarded=true;b.active=false;b.respawnAt=now+rules.respawnDelay;s.bossRewards||=[];const rewards=b.kind==='reinforcement'&&b.firstAttackerId
- ? [{playerId:b.firstAttackerId,amount:rules.reward}]
+ ? [{playerId:b.firstAttackerId,amount:rules.reward,damage:b.contributions[b.firstAttackerId]||0,totalDamage:Object.values(b.contributions).reduce((total,damage)=>total+(Number.isFinite(damage)&&damage>0?damage:0),0)}]
  : splitBossReward(b.contributions,rules.reward);
  for(const share of rewards)if(share.amount>0)s.bossRewards.push({...share,id:b.instanceId+':'+share.playerId,bossId:b.instanceId});s.events.push({type:'bossDefeated',id:b.instanceId,time:now})}
   return;
