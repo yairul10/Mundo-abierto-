@@ -1,11 +1,12 @@
+import {fixtureIdentity,authenticateFixtureRequests} from './test-identity.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 const MF=await import(process.env.COSMOS_MINIFLARE||'miniflare');
-const modules=['worker.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'].map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')}));
-const persist=mkdtempSync(join(tmpdir(),'cosmos-parity-')),options={modules,compatibilityDate:process.env.COSMOS_COMPAT_DATE||'2026-10-11',compatibilityFlags:['nodejs_compat'],durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},durableObjectsPersist:persist,ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
-const create=()=>new MF.Miniflare(MF.convertV4MiniflareOptions?MF.convertV4MiniflareOptions(options):options);
+const modules=['worker.mjs','account.mjs','chat.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs'].map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')}));
+const persist=mkdtempSync(join(tmpdir(),'cosmos-parity-')),options={modules,compatibilityDate:process.env.COSMOS_COMPAT_DATE||'2026-10-11',compatibilityFlags:['nodejs_compat'],serviceBindings:{PLAY_IDENTITY:request=>fixtureIdentity.fetch(request)},durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},durableObjectsPersist:persist,ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
+const create=()=>authenticateFixtureRequests(new MF.Miniflare(MF.convertV4MiniflareOptions?MF.convertV4MiniflareOptions(options):options));
 let mf=create();const connections=[],pause=ms=>new Promise(r=>setTimeout(r,ms));
 const roster={aurora:{maxHp:100000,maxEnergy:500,attack:1000,defense:500,speed:5000,level:105}};
 async function connect(realm,key){

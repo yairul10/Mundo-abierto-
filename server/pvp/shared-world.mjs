@@ -1,3 +1,4 @@
+import {handleChat} from './chat.mjs';
 import {arenaEnemySnapshots} from './arena-enemies.mjs';
 import {bossSnapshot} from './cooperative-boss.mjs';
 import {equippedSkills,validSkills} from './skills.mjs';
@@ -51,22 +52,22 @@ export class SharedWorld extends DurableObject {
  worldSnapshot(s){return {type:'world',boss:bossSnapshot(s.boss),enemies:arenaEnemySnapshots(s),serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
  worldBroadcast(s){if(Date.now()-this.lastBroadcast<100)return;this.lastBroadcast=Date.now();const data=JSON.stringify(this.worldSnapshot(s));for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{ws.send(data);this.sendRewards(ws,ws.deserializeAttachment().id)}catch{}}
  async enter(body){
-  if(!/^[a-f0-9]{64}$/.test(body.guestKey||''))return {error:'invalid_guest'};
-  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body.guestKey)),id=Array.from(new Uint8Array(bytes)).map(v=>v.toString(16).padStart(2,'0')).join('').slice(0,24);
+  if(typeof body.accountId!=='string'||!/^[a-f0-9-]{36}$/i.test(body.accountId))return {error:'google_required'};
+  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('google-play:'+body.accountId)),id=Array.from(new Uint8Array(bytes)).map(v=>v.toString(16).padStart(2,'0')).join('').slice(0,24);
   const now=Date.now(),s=this.worldLoad();s.realm=body.realm==='test'?'test':'normal';advance(s,now);
   // Las reservas sin conexión caducan; nunca se persisten claves de invitado.
   s.players=s.players.filter(p=>p.connected||now-p.lastSeen<30000);
   let p=s.players.find(x=>x.id===id);if(p?.connected)return {error:'already_connected'};
   if(!p&&s.players.length>=WORLD.capacity)return {error:'world_full'};
   if(!p){p={id,pos:[...WORLD.spawn],seq:-1,aim:[0,0],connected:false,revision:0};s.players.push(p)}
-  p.realm=body.realm==='test'?'test':'normal';p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];p.roster=importRoster(body.roster);equip(p,body.shipId)||equip(p,Object.keys(p.roster)[0]);reset(p,true);p.equippedSkills=validSkills(body.skills)?[...body.skills]:equippedSkills(p);p.hangar=false;
+  p.accountId=body.accountId;p.realm=body.realm==='test'?'test':'normal';p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];p.roster=importRoster(body.roster);equip(p,body.shipId)||equip(p,Object.keys(p.roster)[0]);reset(p,true);p.equippedSkills=validSkills(body.skills)?[...body.skills]:equippedSkills(p);p.hangar=false;
   this.worldSave(s,true);await this.ctx.storage.setAlarm(now+15000);return {playerId:id,token:p.token,expiresAt:now+30000};
  }
  async fetch(request){
   if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return json({error:'websocket_required'},426);
   const protocols=(request.headers.get('Sec-WebSocket-Protocol')||'').split(',').map(x=>x.trim()),s=this.worldLoad(),now=Date.now();
   const p=s.players.find(x=>x.token===protocols[1]&&now-x.lastSeen<30000);
-  if(protocols[0]!=='mundo-world-v1'||!p)return json({error:'invalid_ticket'},403);
+  if(protocols[0]!=='mundo-world-v1'||!p?.accountId)return json({error:'invalid_ticket'},403);
   if(p.connected)return json({error:'already_connected'},409);
   const [client,server]=Object.values(new WebSocketPair());this.ctx.acceptWebSocket(server);server.serializeAttachment({world:true,id:p.id,windowStart:now,count:0});
   p.connected=true;p.lastSeen=p.lastInput=now;this.worldSave(s,true);this.startSimulation(s);this.worldBroadcast(s);await this.ctx.storage.setAlarm(now+3000);
@@ -77,7 +78,7 @@ export class SharedWorld extends DurableObject {
   const now=Date.now(),a=ws.deserializeAttachment();if(!a?.world)return;
   if(now-a.windowStart>=1000){a.windowStart=now;a.count=0}if(++a.count>40){ws.close(1008,'rate limit');return}ws.serializeAttachment(a);
   let m;try{m=JSON.parse(message)}catch{return}if(!m||typeof m!=='object')return;
-  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;this.startSimulation(s);advance(s,now);
+  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if(!p.accountId){ws.close(1008,'google_required');return}if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;if(await handleChat(this.ctx,this.env,ws,p,m))return;this.startSimulation(s);advance(s,now);
   let error=null;
   if(m.type==='input'){
    if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;

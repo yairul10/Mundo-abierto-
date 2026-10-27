@@ -16,9 +16,14 @@ export default {
   if(request.method==='OPTIONS'&&origins.has(origin))return new Response(null,{status:204,headers:{'access-control-allow-origin':origin,'access-control-allow-methods':'GET,PUT,POST,OPTIONS','access-control-allow-headers':'Content-Type,Authorization','vary':'Origin'}});
   if(origin&&!origins.has(origin))return reply({error:'origin_not_allowed'},403);
   const pathname=new URL(request.url).pathname;
-  if(!['/v1/play-games/session','/v1/play-games/save'].includes(pathname))return reply({error:'not_found'},404,origin);
+  if(!['/v1/play-games/session','/v1/play-games/save','/v1/play-games/me'].includes(pathname))return reply({error:'not_found'},404,origin);
   if(!env.DB||!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.SESSION_SIGNING_KEY)return reply({error:'not_configured'},503,origin);
   if(Number(request.headers.get('content-length')||0)>65536)return reply({error:'too_large'},413,origin);
+  if(pathname==='/v1/play-games/me'){
+   if(request.method!=='GET')return reply({error:'method_not_allowed'},405,origin);
+   const playerId=await sessionPlayer(request,env);
+   return playerId?reply({authenticated:true,playerId},200,origin):reply({error:'unauthorized'},401,origin);
+  }
   if(pathname==='/v1/play-games/save'){
    if(!['GET','PUT'].includes(request.method))return reply({error:'method_not_allowed'},405,origin);
    const playerId=await sessionPlayer(request,env);
