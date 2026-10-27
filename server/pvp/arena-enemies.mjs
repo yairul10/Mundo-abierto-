@@ -5,6 +5,17 @@ export const ARENA_ENEMIES=Object.freeze([
  {...BOSS_RULES,id:'pvp-nexo-2',name:'Titán del Nexo II',kind:'nexo',pos:[1600,120,-1300],patrolRadius:240,reward:1100000},
  ...[-1,1].map((side,i)=>({...BOSS_RULES,id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),kind:'colossusPro',projectile:'missile',pos:[side*1600,120,1050],patrolRadius:230,maxHp:200000,damage:750,targets:1,attackInterval:5000,teleportInterval:0,reward:55000,hitRadius:255,materialCount:60}))
 ]);
+// PvE rewards at level 105 use min(2.5, 1 + (level - 1) * .035).
+// PvP Coloso reinforcements are Pro (2x health and damage), with 20% bonus
+// credits over the equivalent level-105 PvE enemy.
+const PVE_REINFORCEMENTS=Object.freeze({
+ raider:{hp:70,damage:10,gold:20},
+ sentinel:{hp:140,damage:20,gold:40},
+ destroyer:{hp:280,damage:35,gold:80}
+});
+const REINFORCEMENT_LEVEL=105;
+const REINFORCEMENT_REWARD_SCALE=Math.min(2.5,1+(REINFORCEMENT_LEVEL-1)*.035);
+const REINFORCEMENT_PVP_BONUS=1.2;
 const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
 export function ensureArenaEnemies(s,now){
  if(s.realm!=='test')return [ensureBoss(s,now)];
@@ -32,8 +43,8 @@ function spawnWave(s,parent,threshold,now){
  for(let i=0;i<2;i++){
   const children=s.arenaEnemies.filter(b=>b.parentInstance===parent.instanceId);
   if(children.length>=6||children.filter(b=>b.hp>0).length>=6)break;
-  const types=['raider','sentinel','destroyer'],model=types[parent.waves.length-1],hp={raider:7000,sentinel:14000,destroyer:28000}[model],index=children.length;
-  const rules={...BOSS_RULES,id:parent.id+'-add-'+index,name:{raider:'Asaltante',sentinel:'Guardián',destroyer:'Destructor'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:220,damage:300,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
+  const types=['raider','sentinel','destroyer'],model=types[parent.waves.length-1],base=PVE_REINFORCEMENTS[model],hp=base.hp*5*2,index=children.length;
+  const rules={...BOSS_RULES,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:Math.round(base.gold*REINFORCEMENT_REWARD_SCALE*REINFORCEMENT_PVP_BONUS),damage:base.damage*2,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
   const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,motionAt:now,spawnIndex:index});s.arenaEnemies.push(b);
  }
 }
