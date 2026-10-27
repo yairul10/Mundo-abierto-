@@ -1,6 +1,6 @@
 # PvP abierto · Cosmos Legacy
 
-Contenido 313, Worker 0.5.3. Servidor: https://mundo-abierto-pvp.yairul17.workers.dev. Independiente de Gallina Cósmica.
+Worker 0.6.0. Servidor: https://mundo-abierto-pvp.yairul17.workers.dev. Independiente de Gallina Cósmica.
 
 ## Mapa y protección
 
@@ -20,7 +20,7 @@ Láseres, misiles, drones y mascota usan las trayectorias y funciones de combate
 
 La derrota y los recibos de premio se guardan juntos en una transacción SQLite. Los recibos se envían solo a su participante y se reintentan hasta recibir confirmación autenticada. El cliente guarda créditos e identificadores en una sola escritura antes de confirmar; reconectarse no duplica el premio y un fallo de almacenamiento permite reintentar. El hangar conserva sus compras y las estadísticas offline sin escalar. Pruebas y normal mantienen jefes y premios independientes. La identidad y el progreso siguen siendo locales al dispositivo: no se añade una cuenta sincronizada entre dispositivos.
 
-Reaparece con vida completa 5 minutos después de morir, con una nueva ronda de participación. El estado se conserva al hibernar; la simulación usa las entradas y alarmas existentes.
+Reaparece con vida completa 5 minutos después de morir, con una nueva ronda de participación. El estado se conserva mediante checkpoints y las recompensas se escriben inmediatamente en una transacción. Ambos modos usan el mismo ciclo de simulación mientras hay pilotos conectados.
 
 ## Equipo y combate
 
@@ -34,7 +34,7 @@ Hay portales desde Cementerio y desde Aurora (este último aparece a nivel 40). 
 
 Los modos normal y pruebas usan objetos distintos (`shared-cemetery-v1` y `shared-cemetery-test-v1`). `TEST_SERVER_ENABLED=false` permite desactivar solo las pruebas. No se muestran ni se persisten claves de invitado en snapshots; los tokens nunca se publican.
 
-`SharedWorld` sigue usando SQLite y WebSockets con hibernación. La simulación avanza con entradas y alarmas existentes; no se añade un bucle permanente. Se mantienen los bindings y exports `ArenaRoom` y `ArenaLobby`, sin eliminar namespaces ni almacenamiento. Las invitaciones de clientes antiguos se rechazan con `open_pvp`.
+`SharedWorld` usa SQLite y la API de WebSockets con hibernación. Ambos modos mantienen un ciclo de simulación de 100 ms mientras haya pilotos conectados; se detiene cuando sale el último. Ese ciclo activo impide hibernar: usar la API de hibernación no significa que una sala en combate esté dormida. Se mantienen los bindings y exports `ArenaRoom` y `ArenaLobby`, sin eliminar namespaces ni almacenamiento. Las invitaciones de clientes antiguos se rechazan con `open_pvp`.
 
 ## Comprobaciones
 
@@ -58,3 +58,13 @@ Prueba cooperativa: entrar con dos dispositivos al mismo modo, volar hacia el je
 
 ## Cuenta personal y formaciones en vuelo (313)
 Servidor en la cuenta personal yairul17. Los mapas normal y de prueba conservan namespaces separados. El servidor anterior queda intacto; sus salas y premios pendientes no se migran. El inventario local se importa al entrar. `WORLD.formationSwitch` anuncia el cambio en vuelo; el servidor valida las formaciones adquiridas y conserva la proporción de casco, energía y recargas.
+
+## Paridad técnica entre normal y pruebas
+
+Los dos modos usan ahora la misma caché del mundo, el mismo ciclo de 10 actualizaciones por segundo y checkpoints SQLite cada cinco segundos, en lugar de escribir todo el mundo por cada mensaje en normal. El límite de envío de snapshots sigue siendo 10 Hz. La entrada y salida de pilotos, los cambios de equipamiento y las recompensas fuerzan el guardado cuando corresponde; las recompensas y su estado del jefe se confirman en una sola transacción antes de enviarlas. Un fallo de transacción conserva los recibos pendientes para reintentar.
+
+El último piloto que sale fuerza un checkpoint y detiene el ciclo. Al reconstruir el objeto se comprueban los sockets que siguen abiertos para no conservar pilotos fantasma como conectados. Los mensajes reanudan el ciclo si el objeto fue reconstruido. Un reinicio abrupto puede retroceder hasta unos cinco segundos de estado transitorio del combate/posición; las recompensas ya confirmadas y los cambios de equipamiento guardados inmediatamente no dependen de ese intervalo. No se añade guardado en nube del progreso offline.
+
+Se conservan como diferencias intencionales el inventario local de pruebas, las ayudas QA, los nombres separados de salas, el interruptor para cerrar pruebas y los enemigos en evaluación. Normal mantiene un Titán del Nexo; pruebas mantiene dos Titanes del Nexo y dos Colosos Pro con sus refuerzos y recompensas. Este cambio no publica automáticamente ese contenido experimental en la partida normal ni transfiere progreso entre modos.
+
+Validación específica: `npm run test:parity`, más `arena-test.mjs` para recompensas, materiales y reconexión tras reiniciar SQLite. En el entorno de validación se utilizó Miniflare 4.20260730.0 y fecha 2026-07-01 por el fallo de descarga de la dependencia alpha; los scripts admiten `COSMOS_MINIFLARE` y `COSMOS_COMPAT_DATE` sin cambiar la configuración desplegada (2026-10-11). Dos pruebas antiguas de expectativas de contenido siguen fallando en main: `cooperative-boss.test.mjs` y `pvp-arena-enemies.test.mjs`; no se alteran sus expectativas para ocultar esos fallos.

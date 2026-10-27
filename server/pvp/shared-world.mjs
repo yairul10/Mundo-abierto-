@@ -9,13 +9,44 @@ const pForProtection=(s,id)=>s.players.find(p=>p.id===id);
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
 export class SharedWorld extends DurableObject {
  constructor(ctx,env){super(ctx,env);this.env=env;this.memory=null;this.lastCheckpoint=0;this.lastBroadcast=0;this.simulation=null;ctx.blockConcurrencyWhile(async()=>{ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS shared_world (id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)');ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS boss_rewards (id TEXT PRIMARY KEY, player_id TEXT NOT NULL, amount INTEGER NOT NULL, damage REAL NOT NULL, total_damage REAL NOT NULL, boss_id TEXT NOT NULL, claimed INTEGER NOT NULL DEFAULT 0, materials TEXT NOT NULL DEFAULT '{}')");if(!ctx.storage.sql.exec('PRAGMA table_info(boss_rewards)').toArray().some(c=>c.name==='materials'))ctx.storage.sql.exec("ALTER TABLE boss_rewards ADD COLUMN materials TEXT NOT NULL DEFAULT '{}'");if(!ctx.storage.sql.exec('PRAGMA table_info(boss_rewards)').toArray().some(c=>c.name==='xp'))ctx.storage.sql.exec("ALTER TABLE boss_rewards ADD COLUMN xp INTEGER NOT NULL DEFAULT 0");ctx.storage.sql.exec('CREATE INDEX IF NOT EXISTS boss_rewards_pending ON boss_rewards(player_id,claimed)')})}
- worldLoad(){if(this.memory)return this.memory;const row=this.ctx.storage.sql.exec('SELECT data FROM shared_world WHERE id=1').toArray()[0],s=row?JSON.parse(row.data):{players:[],duels:[],invites:[],events:[]};if(s.realm==='test')this.memory=s;return s}
- worldSave(s,force=false){
-  s.events=s.events.slice(-12);const now=Date.now(),critical=!!s.bossRewards?.length;
-  if(s.realm==='test'){this.memory=s;if(!force&&!critical&&now-this.lastCheckpoint<5000)return}
-  this.ctx.storage.transactionSync(()=>{for(const r of s.bossRewards||[])this.ctx.storage.sql.exec('INSERT OR IGNORE INTO boss_rewards(id,player_id,amount,damage,total_damage,boss_id,materials,xp) VALUES(?,?,?,?,?,?,?,?)',r.id,r.playerId,r.amount,r.damage,r.totalDamage,r.bossId,JSON.stringify(r.materials||{}),Math.max(0,Math.min(100000,Math.floor(Number(r.xp)||0))));s.bossRewards=[];this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify(s))});this.lastCheckpoint=now;
+ // SQLite is authoritative at checkpoints; live combat stays in memory in both realms.
+ worldLoad(){
+  if(this.memory)return this.memory;
+  const row=this.ctx.storage.sql.exec('SELECT data FROM shared_world WHERE id=1').toArray()[0];
+  const s=row?JSON.parse(row.data):{players:[],duels:[],invites:[],events:[]};
+  // A restart may discard sockets; never retain disconnected pilots as live slots.
+  const connected=new Set(this.ctx.getWebSockets().filter(ws=>ws.readyState===1).map(ws=>ws.deserializeAttachment()?.id));
+  for(const p of s.players)p.connected=connected.has(p.id);
+  this.memory=s;return s;
  }
- startSimulation(s){if(s.realm!=='test'||this.simulation)return;this.simulation=setInterval(()=>{try{const current=this.worldLoad();advance(current,Date.now());this.worldSave(current);this.worldBroadcast(current);if(!current.players.some(p=>p.connected)){clearInterval(this.simulation);this.simulation=null;this.worldSave(current,true)}}catch(error){console.error('arena_tick_failed',error?.message);clearInterval(this.simulation);this.simulation=null;for(const ws of this.ctx.getWebSockets())try{ws.close(1011,'simulation_restart')}catch{}}},100)}
+ worldSave(s,force=false){
+  s.events=s.events.slice(-12);
+  const now=Date.now(),pending=s.bossRewards||[];
+  this.memory=s;
+  if(!force&&!pending.length&&now-this.lastCheckpoint<5000)return;
+  this.ctx.storage.transactionSync(()=>{
+   for(const r of pending)this.ctx.storage.sql.exec('INSERT OR IGNORE INTO boss_rewards(id,player_id,amount,damage,total_damage,boss_id,materials,xp) VALUES(?,?,?,?,?,?,?,?)',r.id,r.playerId,r.amount,r.damage,r.totalDamage,r.bossId,JSON.stringify(r.materials||{}),Math.max(0,Math.min(100000,Math.floor(Number(r.xp)||0))));
+   this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify({...s,bossRewards:[]}));
+  });
+  // Clear receipts only after commit, so an exception cannot discard pending awards.
+  s.bossRewards=[];this.lastCheckpoint=now;
+ }
+ stopSimulation(){
+  if(this.simulation){clearInterval(this.simulation);this.simulation=null}
+ }
+ startSimulation(s){
+  if(this.simulation||!s.players.some(p=>p.connected))return;
+  this.simulation=setInterval(()=>{
+   try{
+    const current=this.worldLoad();
+    advance(current,Date.now());this.worldSave(current);this.worldBroadcast(current);
+    if(!current.players.some(p=>p.connected)){this.stopSimulation();this.worldSave(current,true)}
+   }catch(error){
+    console.error('arena_tick_failed',error?.message);this.stopSimulation();
+    for(const ws of this.ctx.getWebSockets())try{ws.close(1011,'simulation_restart')}catch{}
+   }
+  },100);
+ }
  sendRewards(ws,id){const attachment=ws.deserializeAttachment(),now=Date.now();if(now-(attachment.lastRewardsAt||0)<3000)return;attachment.lastRewardsAt=now;ws.serializeAttachment(attachment);const receipts=this.ctx.storage.sql.exec('SELECT id,amount,damage,total_damage AS totalDamage,boss_id AS bossId,materials,xp FROM boss_rewards WHERE player_id=? AND claimed=0 LIMIT 50',id).toArray().map(r=>({...r,materials:JSON.parse(r.materials||'{}')}));if(receipts.length)ws.send(JSON.stringify({type:'bossRewards',receipts}))}
  worldSnapshot(s){return {type:'world',boss:bossSnapshot(s.boss),enemies:arenaEnemySnapshots(s),serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({id,name,profile,hp,energy,pos,aim,seq,duelId,abilityUntil,revision,hangar,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
  worldBroadcast(s){if(Date.now()-this.lastBroadcast<100)return;this.lastBroadcast=Date.now();const data=JSON.stringify(this.worldSnapshot(s));for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{ws.send(data);this.sendRewards(ws,ws.deserializeAttachment().id)}catch{}}
@@ -46,7 +77,7 @@ export class SharedWorld extends DurableObject {
   const now=Date.now(),a=ws.deserializeAttachment();if(!a?.world)return;
   if(now-a.windowStart>=1000){a.windowStart=now;a.count=0}if(++a.count>40){ws.close(1008,'rate limit');return}ws.serializeAttachment(a);
   let m;try{m=JSON.parse(message)}catch{return}if(!m||typeof m!=='object')return;
-  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;advance(s,now);
+  const s=this.worldLoad(),p=s.players.find(x=>x.id===a.id&&x.connected);if(!p)return;if(p.realm==='test'&&!testServerEnabled(this.env)){await this.worldDisconnect(ws);ws.close(1000,'test_closed');return}p.lastSeen=now;this.startSimulation(s);advance(s,now);
   let error=null;
   if(m.type==='input'){
    if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;
@@ -72,11 +103,11 @@ export class SharedWorld extends DurableObject {
   else return;
   this.worldSave(s,['loadout','ship','formation','name','skills','hangar'].includes(m.type));if(error)ws.send(JSON.stringify({type:'error',error}));this.worldBroadcast(s);
  }
- async worldDisconnect(ws){const s=this.worldLoad(),p=s.players.find(x=>x.id===ws.deserializeAttachment()?.id);if(!p?.connected)return;p.connected=false;p.lastSeen=Date.now();advance(s,Date.now());this.worldSave(s,true);this.worldBroadcast(s)}
+ async worldDisconnect(ws){const s=this.worldLoad(),p=s.players.find(x=>x.id===ws.deserializeAttachment()?.id);if(!p?.connected)return;p.connected=false;p.lastSeen=Date.now();advance(s,Date.now());this.worldSave(s,true);if(!s.players.some(p=>p.connected))this.stopSimulation();this.worldBroadcast(s)}
  async webSocketClose(ws){await this.worldDisconnect(ws)}
  async webSocketError(ws){await this.worldDisconnect(ws)}
  async alarm(){const s=this.worldLoad(),now=Date.now();for(const p of s.players)if(p.connected&&now-p.lastSeen>15000){p.connected=false;for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.id===p.id)try{ws.close(1001,'timeout')}catch{}}
-  this.startSimulation(s);advance(s,now);s.players=s.players.filter(p=>p.connected||now-p.lastSeen<30000);this.worldSave(s);this.worldBroadcast(s);if(s.players.length)await this.ctx.storage.setAlarm(now+3000);
+  this.startSimulation(s);advance(s,now);s.players=s.players.filter(p=>p.connected||now-p.lastSeen<30000);this.worldSave(s,!s.players.some(p=>p.connected));if(!s.players.some(p=>p.connected))this.stopSimulation();this.worldBroadcast(s);if(s.players.length)await this.ctx.storage.setAlarm(now+3000);
  }
 }
 
