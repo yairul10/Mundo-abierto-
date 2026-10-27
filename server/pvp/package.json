@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test zones-duels.test.mjs client-version.test.mjs account.test.mjs chat-language.test.mjs chat.test.mjs shared-world.test.mjs combat.test.mjs world-rules.test.mjs skills.test.mjs ../../tests/cooperative-boss.test.mjs ../../tests/pvp-boss-rewards.test.mjs ../../tests/pvp-arena-enemies.test.mjs && node admin-ship-test.mjs && node test.mjs && node arena-test.mjs && node realm-parity-test.mjs",
+    "test": "node --test zones-duels.test.mjs client-version.test.mjs account.test.mjs chat-language.test.mjs chat.test.mjs shared-world.test.mjs combat.test.mjs world-rules.test.mjs skills.test.mjs ../../tests/cooperative-boss.test.mjs ../../tests/pvp-boss-rewards.test.mjs ../../tests/pvp-arena-enemies.test.mjs ../../tests/pvp-npc-patterns.test.mjs && node admin-ship-test.mjs && node test.mjs && node arena-test.mjs && node realm-parity-test.mjs",
     "test:parity": "node --test zones-duels.test.mjs client-version.test.mjs account.test.mjs chat-language.test.mjs chat.test.mjs shared-world.test.mjs && node realm-parity-test.mjs"
   },
   "dependencies": {

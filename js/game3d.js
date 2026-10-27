@@ -1,8 +1,8 @@
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=1';
 import {pvpAccountToken} from './pvp-account.js?v=3';
 import {mountPvpZones} from './pvp-zones.js?v=2';
-import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=4';
-import {createArenaEnemyView} from './pvp-enemies.js?v=338';
+import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
+import {createArenaEnemyView} from './pvp-enemies.js?v=339';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
@@ -26,7 +26,7 @@ import {createColosoRig} from './coloso-rig.js?v=187';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=337';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=337';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=339';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=337';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=337';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
@@ -3313,7 +3313,7 @@ if(PVP_MODE){
  respawnReady(bill){combatAudio.play('respawn');if(bill.destination==='aurora')location.href='index.html';},
  snapshot(me,others,force,pending,state){
   pvpSounds.update([me,...others],state.serverTime);
-  syncBoss(state.enemies?.length?null:state.boss,state.serverTime);arenaView.sync(state.enemies||[],state.serverTime);
+  syncBoss(state.enemies?.length?null:state.boss,state.serverTime);arenaView.sync(state.enemies||[],state.serverTime,state.players);
   if(pvpHangar||landing)return;
   const changed=player.shipId!==me.profile.shipId;
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}

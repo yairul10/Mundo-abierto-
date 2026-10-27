@@ -29,12 +29,13 @@ export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Ma
    if(!b.missile&&b.travelled>(b.range||1200)){b.life=0;continue}
    const segment=b.pos.map((v,i)=>v-prev[i]),length2=segment.reduce((sum,v)=>sum+v*v,0);let victim=null,best=Infinity;
    for(const target of s.players){
+    if(b.specialNpc&&(target.clientVersion??5)<5&&!target.npc)continue;
     if(target.id===b.owner||!target.connected||target.hp<=0||s.canDamage&&!s.canDamage(owner,target,now))continue;
     if(!b.missile&&Math.hypot(...target.pos.map((v,i)=>v-owner.pos[i]))>(b.range||1200))continue;
     const along=Math.max(0,Math.min(1,target.pos.reduce((sum,v,i)=>sum+(v-prev[i])*segment[i],0)/(length2||1))),distance=Math.hypot(...target.pos.map((v,i)=>v-prev[i]-segment[i]*along));
     if(distance<(target.hitRadius||(b.missile?44:30))&&along<best){victim=target;best=along}
    }
-   if(victim){const damage=Math.min(victim.hp,defenseDamage(victim,b.damage*(skillActive(owner,'fury',now)?2:1),now));victim.hp=Math.max(0,victim.hp-damage);s.onDamage?.(owner,victim,damage,now,b);if(owner.hp>0&&skillActive(owner,'transfer',now))owner.hp=Math.min(owner.profile.maxHp,owner.hp+damage*.5);victim.lastHit=victim.lastIncoming=now;victim.lastDamagedBy=owner.id;b.life=0}
+   if(victim){if(b.specialNpc)owner.patternImpacts=[...(owner.patternImpacts||[]).filter(x=>now-x.time<1200),{id:b.id,time:now,targetId:victim.id,pos:[...victim.pos]}].slice(-24);const damage=Math.min(victim.hp,defenseDamage(victim,b.damage*(skillActive(owner,'fury',now)?2:1),now));victim.hp=Math.max(0,victim.hp-damage);s.onDamage?.(owner,victim,damage,now,b);if(owner.hp>0&&skillActive(owner,'transfer',now))owner.hp=Math.min(owner.profile.maxHp,owner.hp+damage*.5);if(b.paralyzeMs&&(victim.npcSnagImmuneUntil||0)<=now){victim.paralyzedUntil=now+b.paralyzeMs;victim.npcSnagImmuneUntil=now+b.paralyzeMs+5000;victim.npcTether={owner:owner.id,instance:owner.instanceId,dps:b.tetherDps||0,until:now+b.paralyzeMs,tickAt:now}}victim.lastHit=victim.lastIncoming=now;victim.lastDamagedBy=owner.id;b.life=0}
   }
  }
  s.bullets=(s.bullets||[]).filter(b=>b.life>0);
