@@ -1,3 +1,4 @@
+import {migrateGuestRewards} from './account.mjs';
 import {handleChat} from './chat.mjs';
 import {arenaEnemySnapshots} from './arena-enemies.mjs';
 import {bossSnapshot} from './cooperative-boss.mjs';
@@ -54,6 +55,7 @@ export class SharedWorld extends DurableObject {
  async enter(body){
   if(typeof body.accountId!=='string'||!/^[a-f0-9-]{36}$/i.test(body.accountId))return {error:'google_required'};
   const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('google-play:'+body.accountId)),id=Array.from(new Uint8Array(bytes)).map(v=>v.toString(16).padStart(2,'0')).join('').slice(0,24);
+  await migrateGuestRewards(this.ctx,body.guestKey,id);
   const now=Date.now(),s=this.worldLoad();s.realm=body.realm==='test'?'test':'normal';advance(s,now);
   // Las reservas sin conexión caducan; nunca se persisten claves de invitado.
   s.players=s.players.filter(p=>p.connected||now-p.lastSeen<30000);

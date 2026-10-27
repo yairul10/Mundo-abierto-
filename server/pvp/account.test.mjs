@@ -35,3 +35,15 @@ test('room identity stays stable across local key changes and rejects legacy gue
   const other=await world.enter({accountId:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'});assert.notEqual(other.playerId,a.playerId);
  }finally{db.close()}
 });
+test('pending guest receipts migrate once with secret possession, preserving receipt IDs and claimed rows',async()=>{
+ const {migrateGuestRewards}=await import('./account.mjs');const {DatabaseSync}=await import('node:sqlite');const db=new DatabaseSync(':memory:');
+ db.exec('CREATE TABLE boss_rewards(id TEXT PRIMARY KEY,player_id TEXT,claimed INTEGER)');
+ const ctx={storage:{sql:{exec(q,...args){const rows=db.prepare(q).all(...args);return {toArray:()=>rows}}},transactionSync(fn){db.exec('BEGIN');try{fn();db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}}};
+ try{
+  const key='a'.repeat(64),bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(key)),legacy=Buffer.from(bytes).toString('hex').slice(0,24);
+  db.prepare('INSERT INTO boss_rewards VALUES(?,?,?)').run('pending',legacy,0);db.prepare('INSERT INTO boss_rewards VALUES(?,?,?)').run('claimed',legacy,1);
+  await migrateGuestRewards(ctx,legacy,'attacker');assert.equal(db.prepare("SELECT player_id FROM boss_rewards WHERE id='pending'").get().player_id,legacy);
+  await migrateGuestRewards(ctx,key,'verified');await migrateGuestRewards(ctx,key,'other-account');
+  assert.deepEqual(db.prepare('SELECT * FROM boss_rewards ORDER BY id').all().map(r=>({...r})),[{id:'claimed',player_id:legacy,claimed:1},{id:'pending',player_id:'verified',claimed:0}]);
+ }finally{db.close()}
+});

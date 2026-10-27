@@ -33,8 +33,10 @@ try{
   send(c,{type:'volley',weapon:'laser',targetId:b.id,shots:[{offset:[0,0,0],direction:d.map(v=>v/len)}]});
   s=await wait(c,s=>enemy(s,realm).hp<c.originalHp);c.savedHp=enemy(s,realm).hp;
   send(c,{type:'leave'});await pause(80);c.ws.close();
+  // Restart immediately for this realm, before the intentional 3s boss regeneration.
+  await mf.dispose();mf=create();
+  const re=await connect(c.realm,c.key),restored=await wait(re,s=>s.players.length===1);assert.equal(enemy(restored,c.realm).instanceId,c.instanceId);assert.equal(enemy(restored,c.realm).hp,c.savedHp,'last disconnect flushes boss damage before the five-second checkpoint');
+  send(re,{type:'leave'});await pause(80);re.ws.close();
  }
- await mf.dispose();mf=create();
- for(const c of pilots){const re=await connect(c.realm,c.key),s=await wait(re,s=>s.players.length===1);assert.equal(enemy(s,c.realm).instanceId,c.instanceId);assert.equal(enemy(s,c.realm).hp,c.savedHp,'last disconnect flushes boss damage before the five-second checkpoint');}
  console.log('PASS normal/test: autonomous 10Hz updates, silent-client patrol, real projectile damage, isolated content, disconnect flush and SQLite restart/reconnect');
 }finally{for(const c of connections)try{c.ws.close()}catch{}await mf.dispose();rmSync(persist,{recursive:true,force:true})}

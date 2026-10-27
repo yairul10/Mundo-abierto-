@@ -33,6 +33,20 @@
       "type": "service",
       "name": "PLAY_IDENTITY",
       "service": "cosmos-legacy-lite-test"
+    },
+    {
+      "type": "plain_text",
+      "name": "CHAT_ADMIN_IDS",
+      "text": "c357c00c8b9bbe2d04d2ecd8"
+    },
+    {
+      "type": "plain_text",
+      "name": "CHAT_TRANSLATION_ENABLED",
+      "text": "true"
+    },
+    {
+      "type": "ai",
+      "name": "AI"
     }
   ],
   "exports": {
