@@ -44,20 +44,36 @@ function spawnWave(s,parent,threshold,now){
   const children=s.arenaEnemies.filter(b=>b.parentInstance===parent.instanceId);
   if(children.length>=6||children.filter(b=>b.hp>0).length>=6)break;
   const types=['raider','sentinel','destroyer'],model=types[parent.waves.length-1],base=PVE_REINFORCEMENTS[model],hp={raider:14000,sentinel:28000,destroyer:56000}[model],index=children.length;
-  const rules={...BOSS_RULES,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:Math.round(base.gold*REINFORCEMENT_REWARD_SCALE*REINFORCEMENT_PVP_BONUS),damage:600,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
+  const rules={...BOSS_RULES,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:{raider:2400,sentinel:3600,destroyer:4800}[model],xpReward:{raider:3600,sentinel:4800,destroyer:6000}[model],materialCount:{raider:10,sentinel:9,destroyer:10}[model],damage:600,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
   const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,motionAt:now,spawnIndex:index});s.arenaEnemies.push(b);
  }
 }
 function materialRewards(s,b,from,random){
  if(!b.rules.materialCount)return;
  const receipts=s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId),counts={};
- const exact=b.rules.materialCount*1.1,quantity=Math.floor(exact)+(random()<exact%1?1:0);
+ const exact=b.rules.materialCount*(b.kind==='reinforcement'?1:1.1),quantity=Math.floor(exact)+(random()<exact%1?1:0);
  for(let i=0;i<quantity;i++){const roll=random(),key=roll<.53?'chatarra':roll<.81?'aleacion':roll<.96?'nucleo':'reliquia';counts[key]=(counts[key]||0)+1}
  for(const [key,pool]of Object.entries(counts)){
+  if(b.kind==='reinforcement'){
+   const receipt=receipts.find(r=>r.playerId===b.firstAttackerId);
+   if(receipt)(receipt.materials||={})[key]=pool;
+   continue;
+  }
   for(const share of splitBossReward(b.contributions,pool)){
    const receipt=receipts.find(r=>r.playerId===share.playerId);if(receipt&&share.amount>0)(receipt.materials||={})[key]=share.amount;
   }
  }
+}
+function nexusCoreRewards(s,b,from,random){
+ const receipts=s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId);
+ if(b.kind==='reinforcement'){
+  if(random()<.5){const receipt=receipts.find(r=>r.playerId===b.firstAttackerId);if(receipt)(receipt.materials||={}).nucleoNexo=1;}
+  return;
+ }
+ const amount=b.kind==='colossusPro'?1:b.kind==='nexo'?3:0;
+ if(!amount)return;
+ const top=Object.entries(b.contributions||{}).filter(([,v])=>v>0).sort((a,c)=>c[1]-a[1]||a[0].localeCompare(c[0])).slice(0,3);
+ for(const [playerId] of top){const receipt=receipts.find(r=>r.playerId===playerId);if(receipt)(receipt.materials||={}).nucleoNexo=amount;}
 }
 export function advanceArenaEnemies(s,now,eligible,random=Math.random){
  if(s.realm!=='test')return;
@@ -77,7 +93,7 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
   // Reinforcements only engage pilots participating against their own parent.
   const allowed=b.kind==='reinforcement'?p=>eligible(p,now)&&!!((s.arenaEnemies.find(x=>x.id===b.parentId)?.contributions?.[p.id]||0)>0||s.arenaEnemies.find(x=>x.id===b.parentId)?.participants?.[p.id]):eligible;
   const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);
-  if(b.hp<=0&&s.bossRewards.length>from)materialRewards(s,b,from,random);
+  if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId))if(b.rules.xpReward)receipt.xp=b.rules.xpReward;}
  }
  // Remove leftovers on the next snapshot when their carrier is destroyed.
  for(const b of s.arenaEnemies)if(b.kind==='reinforcement'&&s.arenaEnemies.find(p=>p.id===b.parentId)?.hp<=0){b.hp=0;b.rewarded=true}
