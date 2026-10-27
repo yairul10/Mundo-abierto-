@@ -1,3 +1,4 @@
+import {censorChat,chatLanguage,CHAT_LANGUAGES,translateChat} from './chat-language.mjs';
 export const CHAT_RULES_VERSION=1;
 const initialized=new WeakSet();
 const rows=(ctx,q,...args)=>ctx.storage.sql.exec(q,...args).toArray();
@@ -9,6 +10,10 @@ export function initChat(ctx){
  ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS chat_sanctions(target TEXT PRIMARY KEY,until INTEGER NOT NULL,reason TEXT NOT NULL)');
  ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS chat_audit(id TEXT PRIMARY KEY,actor TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,time INTEGER NOT NULL)');
  ctx.storage.sql.exec('CREATE INDEX IF NOT EXISTS chat_message_time ON chat_messages(time)');
+ if(!rows(ctx,'PRAGMA table_info(chat_messages)').some(c=>c.name==='language'))ctx.storage.sql.exec("ALTER TABLE chat_messages ADD COLUMN language TEXT NOT NULL DEFAULT 'es'");
+ ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS chat_originals(message_id TEXT PRIMARY KEY,text TEXT NOT NULL,name TEXT NOT NULL)');
+ ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS chat_translations(message_id TEXT NOT NULL,language TEXT NOT NULL,text TEXT NOT NULL,PRIMARY KEY(message_id,language))');
+ ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS chat_translation_budget(day TEXT PRIMARY KEY,used INTEGER NOT NULL)');
  initialized.add(ctx);
 }
 const reply=(ws,data)=>ws.send(JSON.stringify(data));
@@ -29,7 +34,7 @@ export async function handleChat(ctx,env,ws,p,m){
  if(m.type==='chatAdminList'||m.type==='chatModerate'){
   if(!a.chatAdmin||!adminAllowed||!env.CHAT_ADMIN_KEY)return error('Sin permisos.');
   if(m.type==='chatModerate'){
-   const r=rows(ctx,'SELECT r.*,m.author,m.name,m.text FROM chat_reports r JOIN chat_messages m ON m.id=r.message_id WHERE r.id=?',String(m.reportId||''))[0];
+   const r=rows(ctx,'SELECT r.*,m.author,m.name,COALESCE(o.text,m.text) AS text FROM chat_reports r JOIN chat_messages m ON m.id=r.message_id LEFT JOIN chat_originals o ON o.message_id=m.id WHERE r.id=?',String(m.reportId||''))[0];
    if(!r)return error('Reporte no encontrado.');
    if(!['dismiss','delete','muteHour','muteDay','banChat','unmute'].includes(m.action))return error('Acción inválida.');
    ctx.storage.transactionSync(()=>{
@@ -41,11 +46,20 @@ export async function handleChat(ctx,env,ws,p,m){
    });
    if(m.action==='delete')broadcast(ctx,{type:'chatDeleted',id:r.message_id});
   }
-  reply(ws,{type:'chatReports',reports:rows(ctx,'SELECT r.*,m.author,m.name,m.text,m.time FROM chat_reports r JOIN chat_messages m ON m.id=r.message_id ORDER BY m.time DESC LIMIT 100')});return true;
+  reply(ws,{type:'chatReports',reports:rows(ctx,'SELECT r.*,m.author,m.name,COALESCE(o.text,m.text) AS text,m.time FROM chat_reports r JOIN chat_messages m ON m.id=r.message_id LEFT JOIN chat_originals o ON o.message_id=m.id ORDER BY m.time DESC LIMIT 100')});return true;
+ }
+ if(m.type==='chatTranslate'){
+  if(!CHAT_LANGUAGES.includes(m.language))return error('Idioma no compatible.');
+  const latest=ws.deserializeAttachment();if(now-(latest.chatTranslationAt||0)<1000)return error('Espera un segundo entre traducciones.');latest.chatTranslationAt=now;ws.serializeAttachment(latest);
+  const message=rows(ctx,'SELECT id,author,text,language FROM chat_messages WHERE id=? AND deleted=0',String(m.id||''))[0];
+  const denied=()=>!message||rows(ctx,'SELECT 1 FROM chat_blocks WHERE owner=? AND target=?',p.id,message.author).length||!rows(ctx,'SELECT id FROM chat_messages WHERE id=? AND deleted=0',message.id).length;
+  if(denied())return true;
+  try{const text=await translateChat(ctx,env,{...message,text:censorChat(message.text)},m.language);if(!denied())reply(ws,{type:'chatTranslation',id:message.id,language:m.language,text})}
+  catch{reply(ws,{type:'chatTranslationUnavailable',id:message.id})}return true;
  }
  if(m.type==='chatHistory'){
-  const messages=rows(ctx,'SELECT id,author,name,text,time FROM chat_messages WHERE deleted=0 AND time>? AND author NOT IN (SELECT target FROM chat_blocks WHERE owner=?) ORDER BY time DESC LIMIT 50',now-86400000,p.id).reverse();
-  reply(ws,{type:'chatHistory',messages,blocks:rows(ctx,'SELECT target FROM chat_blocks WHERE owner=?',p.id).map(r=>r.target)});return true;
+  const messages=rows(ctx,'SELECT id,author,name,text,time,language FROM chat_messages WHERE deleted=0 AND time>? AND author NOT IN (SELECT target FROM chat_blocks WHERE owner=?) ORDER BY time DESC LIMIT 50',now-86400000,p.id).reverse();
+  reply(ws,{type:'chatHistory',messages:messages.map(m=>({...m,name:censorChat(m.name),text:censorChat(m.text)})),translationAvailable:env.CHAT_TRANSLATION_ENABLED==='true'&&!!env.AI,blocks:rows(ctx,'SELECT target FROM chat_blocks WHERE owner=?',p.id).map(r=>r.target)});return true;
  }
  if(m.type==='chatBlock'){
   if(typeof m.target!=='string'||m.target.length>64||m.target===p.id)return error('Jugador inválido.');
@@ -68,10 +82,15 @@ export async function handleChat(ctx,env,ws,p,m){
   if(typeof m.text!=='string'||m.text.length>240)return error('Máximo 240 caracteres.');
   const text=m.text.normalize('NFKC').replace(/[\p{Cc}\p{Cf}]/gu,' ').trim();if(!text)return error('Escribe un mensaje.');
   if(/(?:https?:\/\/|www\.)/i.test(text))return error('No se permiten enlaces.');
-  a.chatSentAt=now;ws.serializeAttachment(a);const message={id:crypto.randomUUID(),author:p.id,name:p.name,text,time:now};
-  ctx.storage.sql.exec('INSERT INTO chat_messages(id,author,name,text,time) VALUES(?,?,?,?,?)',message.id,p.id,p.name,text,now);
+  a.chatSentAt=now;ws.serializeAttachment(a);const message={id:crypto.randomUUID(),author:p.id,name:censorChat(p.name),text:censorChat(text),language:chatLanguage(m.language),time:now};
+  ctx.storage.transactionSync(()=>{
+   ctx.storage.sql.exec('INSERT INTO chat_messages(id,author,name,text,time,language) VALUES(?,?,?,?,?,?)',message.id,p.id,message.name,message.text,now,message.language);
+   ctx.storage.sql.exec('INSERT INTO chat_originals VALUES(?,?,?)',message.id,text,p.name);
+  });
   // Keep reported evidence, but bound unreported history to the last 500 messages.
   ctx.storage.sql.exec('DELETE FROM chat_messages WHERE id NOT IN (SELECT id FROM chat_messages ORDER BY time DESC LIMIT 500) AND id NOT IN (SELECT message_id FROM chat_reports)');
+  ctx.storage.sql.exec('DELETE FROM chat_originals WHERE message_id NOT IN (SELECT id FROM chat_messages)');
+  ctx.storage.sql.exec('DELETE FROM chat_translations WHERE message_id NOT IN (SELECT id FROM chat_messages)');
   broadcast(ctx,{type:'chatMessage',message},p.id);return true;
  }
  return error('Acción de chat inválida.');
