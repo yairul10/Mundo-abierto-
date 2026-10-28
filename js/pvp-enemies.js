@@ -22,8 +22,18 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   }else if(['catapult','harpooner'].includes(data.model)){
    const files=data.model==='catapult'?{hull:'catapulta_casco',stand:'catapulta_soporte',arm:'catapulta_brazo',bomb:'catapulta_bomba'}:{hull:'catapulta_casco',launcher:'arponero_lanzador',spool:'arponero_carrete',spear:'arponero_arpon'};
    Promise.all(Object.entries(files).map(async([k,f])=>[k,await model('./assets/models/'+f+'.glb?v=327')])).then(parts=>{if(!entities.has(data.id))return;replace();r.rig=(data.model==='catapult'?createCatapultRig:createHarpoonRig)(T,Object.fromEntries(parts));r.rig.root.scale.setScalar(2/3);r.mesh.add(r.rig.root)}).catch(()=>{});
-  }else model(MODELS[data.model]||MODELS.raider).then(m=>{if(!entities.has(data.id))return;replace();const visual=fit(m,100);if(data.model==='raider')visual.rotation.y=Math.PI; // Asaltante GLB faces +Z; PvP movement faces -Z.
-   r.mesh.add(visual)}).catch(()=>{});
+  }else model(MODELS[data.model]||MODELS.raider).then(m=>{if(!entities.has(data.id))return;replace();const visual=fit(m,100);if(['raider','destroyer'].includes(data.model))visual.rotation.y=Math.PI; // Asaltante GLB faces +Z; PvP movement faces -Z.
+   r.mesh.add(visual);
+   if(data.model==='destroyer'){
+    // Native red Destructor nose is +Z, exhaust is -Z. After the visual
+    // half-turn the measured central nozzle is aft at +Z in flight space.
+    const nozzle=new T.Group();nozzle.name='Destructor aft nozzle';nozzle.position.set(0,3,50);r.mesh.add(nozzle);r.destroyerFlames=[];
+    for(const [radius,length,color,opacity]of [[8,45,0x168dff,.6],[4.5,32,0xb5efff,.9]]){
+     const geometry=new T.ConeGeometry(radius,length,16,1,true);geometry.translate(0,length/2,0);
+     const material=new T.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,toneMapped:false});
+     const flame=new T.Mesh(geometry,material);flame.rotation.x=Math.PI/2;nozzle.add(flame);r.destroyerFlames.push(flame);
+    }
+   }}).catch(()=>{});
  }
  function beam(attack){if(attack.projectile){sound(attack.projectile==='missile'?'missile':'enemyLaser',{x:attack.origin[0],y:attack.origin[1],z:attack.origin[2]});for(const hit of attack.targets||[]){const missile=attack.projectile==='missile',mesh=missile&&makeMissile?makeMissile():new T.Mesh(missile?new T.ConeGeometry(4,20,8):new T.CylinderGeometry(1.5,1.5,40,6),new T.MeshBasicMaterial({color:0xff964b})),goal=new T.Vector3(...hit.targetPos),velocity=goal.clone().sub(new T.Vector3(...attack.origin)).normalize().multiplyScalar(missile?650:1150);mesh.position.set(...attack.origin);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),velocity.clone().normalize());scene.add(mesh);effects.push({mesh,time:missile?5:1.05,age:0,missile,projectile:true,goal,targetId:hit.targetId,velocity})}return}sound('enemyLaser',{x:attack.origin[0],y:attack.origin[1],z:attack.origin[2]});for(const hit of attack.targets||[]){const start=new T.Vector3(...attack.origin),end=new T.Vector3(...hit.targetPos),delta=end.clone().sub(start);const mesh=new T.Mesh(new T.CylinderGeometry(2,2,delta.length(),6),new T.MeshBasicMaterial({color:0xff853c,transparent:true,opacity:.85,depthWrite:false}));mesh.position.copy(start).add(end).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),delta.normalize());scene.add(mesh);effects.push({mesh,time:.18})}}
  function sync(list,now,players=[]){
@@ -48,6 +58,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   if(r.kind==='granTitanPro'){r.rig.updateEngines(performance.now()/1000,true)}
   if(r.kind==='nexo')r.rig.update(dt,performance.now()/1000);
   if(r.kind==='colossusPro'){for(const p of r.rig?.panels||[])p.hinge.rotation.x+=((r.active?p.openAngle:0)-p.hinge.rotation.x)*(1-Math.exp(-dt*6));for(const flame of r.flames||[])flame.scale.y=.9+Math.sin(performance.now()*.015)*.12}
+  for(const flame of r.destroyerFlames||[])flame.scale.y=.9+.1*Math.sin(performance.now()*.016);
   const point=r.mesh.position.clone().add(new T.Vector3(0,r.kind==='nexo'?235:r.kind==='colossusPro'?180:75,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new T.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=hidden()||!!r.dead||view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';
  }
  npcFx.update(dt,entities);
