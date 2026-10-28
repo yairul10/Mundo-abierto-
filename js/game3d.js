@@ -2,7 +2,7 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=1';
 import {pvpAccountToken} from './pvp-account.js?v=3';
 import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
-import {createArenaEnemyView} from './pvp-enemies.js?v=339';
+import {createArenaEnemyView} from './pvp-enemies.js?v=340';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
@@ -22,7 +22,7 @@ import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=337';
-import {createColosoRig} from './coloso-rig.js?v=187';
+import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=337';
 import {selectCompanionTask} from './companion-priority.js?v=174';
@@ -1268,24 +1268,7 @@ function assembleColosoModels(){
  for(const child of carrierMesh.children)child.visible=false;
  carrierPanels.length=0;carrierPanels.push(...rig.panels);
  carrierMesh.add(rig.root);carrierMesh.userData.colosoVisual=rig.root;
- // Motores medidos en el GLB: popa en -X, dos filas y dos columnas.
- // Convertir los puntos nativos al mismo marco centrado y escalado del rig.
- const exhausts=[];
- const hullBounds=new THREE.Box3().setFromObject(colosoHullTemplate);
- const hs=hullBounds.getSize(new THREE.Vector3()),hc=hullBounds.getCenter(new THREE.Vector3());
- const longitudinal=620/Math.max(.001,hs.x);
- for(const lateral of [-.25,.25])for(const vertical of [-.19,.235]){
-  const exhaust=new THREE.Group();
-  exhaust.position.set(hullBounds.min.x-0.015,vertical,lateral).sub(hc).multiplyScalar(longitudinal);
-  for(const [radius,length,color,opacity]of [[23,115,0x168dff,.55],[12,85,0xa8eeff,.85]]){
-   const material=new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false});
-   const geometry=new THREE.ConeGeometry(radius,length,24,1,true);
-   geometry.translate(0,length/2,0);
-   const flame=new THREE.Mesh(geometry,material);flame.rotation.z=Math.PI/2;
-   exhaust.add(flame);exhausts.push(flame);
-  }
-  rig.root.add(exhaust);
- }
+ const exhausts=attachColosoExhaust(THREE,rig,colosoHullTemplate);
  carrierMesh.userData.colosoFlames=exhausts;
  carrierMesh.userData.hangarExits=rig.exits;carrierMesh.userData.hangarDirections=rig.directions;carrierMesh.userData.hitRadius=255;
 }

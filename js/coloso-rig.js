@@ -29,3 +29,19 @@ export function createColosoRig(THREE,hullSource,doorSource,open=false){
  }
  return {root,panels,exits,directions};
 }
+
+// Both modes use the same four measured aft nozzles in native hull coordinates.
+export function attachColosoExhaust(THREE,rig,hullSource){
+ const bounds=new THREE.Box3().setFromObject(hullSource),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),factor=620/Math.max(.001,size.x),flames=[];
+ for(const lateral of [-.25,.25])for(const vertical of [-.19,.235]){
+  const exhaust=new THREE.Group();exhaust.name='Coloso aft exhaust';
+  exhaust.position.set(bounds.min.x-.015,vertical,lateral).sub(center).multiplyScalar(factor);
+  for(const [radius,length,color,opacity]of [[23,115,0x168dff,.55],[12,85,0xa8eeff,.85]]){
+   const material=new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false,fog:false});
+   const geometry=new THREE.ConeGeometry(radius,length,24,1,true);geometry.translate(0,length/2,0);
+   const flame=new THREE.Mesh(geometry,material);flame.rotation.z=Math.PI/2;exhaust.add(flame);flames.push(flame);
+  }
+  rig.root.add(exhaust);
+ }
+ return flames;
+}

@@ -3,7 +3,7 @@ import {createCatapultRig} from './catapult-rig.js?v=339';
 import {createHarpoonRig} from './harpoon-rig.js?v=339';
 import {createGranTitan} from './gran-titan.js?v=326';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {createColosoRig} from './coloso-rig.js?v=187';
+import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 const MODELS={catapult:'./assets/models/catapulta_casco.glb?v=327',harpooner:'./assets/models/arponero_lanzador.glb?v=327',stalker:'./assets/models/acechador_optimizado.glb?v=327',raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
 export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,sound=()=>{},targetPosition=()=>null,makeMissile=null}){
  const entities=new Map(),templates=new Map(),effects=[];
@@ -18,9 +18,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
    model(NEXO_VISUAL.body).then(m=>r.rig.mountBody(m)).catch(()=>{});model(NEXO_VISUAL.arm).then(m=>r.rig.mountArm(m)).catch(()=>{});
   }else if(data.kind==='granTitanPro'){replace();r.rig=createGranTitan(T,r.mesh,{position:new T.Vector3()});r.rig.root.scale.setScalar(.5);model('./assets/models/gran_titan.glb?v=327').then(m=>{if(entities.has(data.id))r.rig.mount(m)}).catch(()=>{});
   }else if(data.kind==='colossusPro'){
-   Promise.all([model('./assets/models/coloso.glb?v=187'),model('./assets/models/scifipanelcrate_optimizado.glb?v=159')]).then(([hull,door])=>{if(!entities.has(data.id))return;replace();r.rig=createColosoRig(T,hull,door);r.mesh.add(r.rig.root)}).catch(()=>{});
-   const glow=new T.MeshBasicMaterial({color:0xffa52b,transparent:true,opacity:.7,blending:T.AdditiveBlending,depthWrite:false});r.flames=[];
-   for(const x of [-60,60]){const flame=new T.Mesh(new T.ConeGeometry(12,80,12).translate(0,40,0),glow);flame.rotation.x=Math.PI/2;flame.position.set(x,-5,270);r.mesh.add(flame);r.flames.push(flame)}
+   Promise.all([model('./assets/models/coloso.glb?v=187'),model('./assets/models/scifipanelcrate_optimizado.glb?v=159')]).then(([hull,door])=>{if(!entities.has(data.id))return;replace();r.rig=createColosoRig(T,hull,door);r.flames=attachColosoExhaust(T,r.rig,hull);r.mesh.add(r.rig.root)}).catch(()=>{});
   }else if(['catapult','harpooner'].includes(data.model)){
    const files=data.model==='catapult'?{hull:'catapulta_casco',stand:'catapulta_soporte',arm:'catapulta_brazo',bomb:'catapulta_bomba'}:{hull:'catapulta_casco',launcher:'arponero_lanzador',spool:'arponero_carrete',spear:'arponero_arpon'};
    Promise.all(Object.entries(files).map(async([k,f])=>[k,await model('./assets/models/'+f+'.glb?v=327')])).then(parts=>{if(!entities.has(data.id))return;replace();r.rig=(data.model==='catapult'?createCatapultRig:createHarpoonRig)(T,Object.fromEntries(parts));r.rig.root.scale.setScalar(2/3);r.mesh.add(r.rig.root)}).catch(()=>{});
@@ -46,7 +44,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
  npcFx.syncTethers(players,entities,now);
  }
  function update(dt){for(const r of entities.values()){
-  const delta=r.goal.clone().sub(r.mesh.position);if(delta.lengthSq()>.01)r.mesh.rotation.y+=Math.atan2(Math.sin(Math.atan2(-delta.x,-delta.z)-r.mesh.rotation.y),Math.cos(Math.atan2(-delta.x,-delta.z)-r.mesh.rotation.y))*(1-Math.exp(-dt*4));r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));
+  const delta=r.goal.clone().sub(r.mesh.position);if(delta.lengthSq()>.01)r.mesh.rotation.y+=Math.atan2(Math.sin(Math.atan2(r.kind==='colossusPro'?delta.x:-delta.x,r.kind==='colossusPro'?delta.z:-delta.z)-r.mesh.rotation.y),Math.cos(Math.atan2(r.kind==='colossusPro'?delta.x:-delta.x,r.kind==='colossusPro'?delta.z:-delta.z)-r.mesh.rotation.y))*(1-Math.exp(-dt*4));r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));
   if(r.kind==='granTitanPro'){r.rig.updateEngines(performance.now()/1000,true)}
   if(r.kind==='nexo')r.rig.update(dt,performance.now()/1000);
   if(r.kind==='colossusPro'){for(const p of r.rig?.panels||[])p.hinge.rotation.x+=((r.active?p.openAngle:0)-p.hinge.rotation.x)*(1-Math.exp(-dt*6));for(const flame of r.flames||[])flame.scale.y=.9+Math.sin(performance.now()*.015)*.12}
