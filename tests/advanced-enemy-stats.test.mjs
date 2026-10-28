@@ -23,7 +23,7 @@ const killSource=game.slice(game.indexOf('function kill(e,missile=false){'),game
 for(const [level,hp,damage,gold,xp]of [[30,40000,150,10000,15000],[40,48000,180,12000,18000],[104,99200,372,24800,37200],[105,100000,375,25000,37500],[106,100000,375,25000,37500],[1000,100000,375,25000,37500]]){
  const player={level,gold:0},bossState={hp:1,rewarded:false},enemy={type:'carrier',mesh:{visible:true,position:{}}};let boxes=0,awardedXp=0;
  const TYPES={carrier:{gold:10000,xp:15000,loot:30}},none=()=>{};
- const kill=new Function('combatAudio','TYPES','advancedEnemyScale','player','bossState','enemies','activeSector','missionEvent','spawnLoot','gainXp','lootToast','save','enemyRewardScale','logAction',killSource+';return kill;')({play(){}},TYPES,advancedEnemyScale,player,bossState,[],'ember',none,()=>boxes++,amount=>awardedXp+=amount,none,none,()=>{throw Error('Carrier must use its own progression')},none);
+ const kill=new Function('combatAudio','TYPES','advancedEnemyScale','player','bossState','enemies','activeSector','missionEvent','spawnLoot','gainXp','lootToast','save','enemyRewardScale','logAction','proRewardMultiplier',killSource+';return kill;')({play(){}},TYPES,advancedEnemyScale,player,bossState,[],'ember',none,()=>boxes++,amount=>awardedXp+=amount,none,none,()=>{throw Error('Carrier must use its own progression')},none,()=>1);
  assert.equal(40000*advancedEnemyScale(level,30),hp);assert.equal(150*advancedEnemyScale(level,30),damage);
  kill(enemy);assert.equal(player.gold,gold);assert.equal(awardedXp,xp);assert.equal(boxes,30);
  kill(enemy);assert.equal(player.gold,gold);assert.equal(awardedXp,xp);assert.equal(boxes,30);

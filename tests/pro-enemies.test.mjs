@@ -7,8 +7,8 @@ assert.equal(population.length,9);assert.equal(new Set(population.map(e=>e.proSe
 const pos=()=>({x:0,y:0,z:0,copy(){return this},set(){return this}}),mesh=()=>({position:pos(),visible:true,userData:{},children:[],add(o){this.children.push(o)}});
 class Sprite {constructor(){this.position=pos();this.scale={set(){}}}}
 const code=game.slice(game.indexOf('const enemies=[...enemyKinds'),game.indexOf('linkScrapPairs(enemies.filter'));
-const enemies=new Function('enemyKinds','proPopulation','TYPES','graveyard','ship','scene','randomEnemyHome','enemyMaxHp','THREE','proBadgeMaterial',code+';return enemies')(['scout','raider'],proPopulation,Object.fromEntries(['scout','raider','sentinel','destroyer','devastator','catapult','harpooner','stalker'].map(t=>[t,{color:0}])),{enemyVisual:mesh},mesh,{add(){}},pos,()=>100,{Sprite},{});
-assert.equal(enemies.length,11);for(const e of enemies.filter(e=>e.pro)){assert.equal(e.hp,200);assert.equal(e.maxHp,200);assert.equal(e.aggressive,false);assert.ok(e.mesh.userData.proBadge)}
+const enemies=new Function('enemyKinds','proPopulation','TYPES','graveyard','ship','scene','randomEnemyHome','enemyMaxHp','THREE','proBadgeMaterial','proMultiplier',code+';return enemies')(['scout','raider'],proPopulation,Object.fromEntries(['scout','raider','sentinel','destroyer','devastator','catapult','harpooner','stalker'].map(t=>[t,{color:0}])),{enemyVisual:mesh},mesh,{add(){}},pos,()=>100,{Sprite},{},proMultiplier);
+assert.equal(enemies.length,11);for(const e of enemies.filter(e=>e.pro)){assert.equal(e.hp,100*proMultiplier(e));assert.equal(e.maxHp,100*proMultiplier(e));assert.equal(e.aggressive,false);assert.ok(e.mesh.userData.proBadge)}
 const belongs=game.slice(game.indexOf('function enemyBelongsToSector'),game.indexOf('// Activate the assembled model'));
 for(const sector of Object.keys(PRO_TYPES_BY_SECTOR)){const test=new Function('activeSector',belongs+';return enemyBelongsToSector')(sector);assert.equal(enemies.filter(e=>e.pro&&test(e)).length,PRO_TYPES_BY_SECTOR[sector].length)}
 const damageText=game.slice(game.indexOf('function damageEnemy('),game.indexOf('function clearCombatShots()'));

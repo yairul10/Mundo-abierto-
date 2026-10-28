@@ -3,7 +3,7 @@ import {fixtureIdentity} from './test-identity.mjs';
 import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 const MF=await import(process.env.COSMOS_MINIFLARE||'miniflare');
 const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('google-play:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')),adminId=Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('').slice(0,24);
-const files=['worker.mjs','zones.mjs','duels.mjs','pvp-results.mjs','respawn.mjs','client-version.mjs','account.mjs','chat.mjs','chat-language.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs','npc-patterns.mjs'];
+const files=['worker.mjs','zones.mjs','duels.mjs','pvp-results.mjs','respawn.mjs','client-version.mjs','account.mjs','chat.mjs','chat-language.mjs','combat.mjs','shared-world.mjs','world-rules.mjs','test-config.mjs','skills.mjs','cooperative-boss.mjs','arena-enemies.mjs','npc-patterns.mjs','enemy-balance.mjs'];
 const options={modules:files.map(path=>({type:'ESModule',path,contents:readFileSync(new URL('./'+path,import.meta.url),'utf8')})),compatibilityDate:process.env.COSMOS_COMPAT_DATE||'2026-10-11',compatibilityFlags:['nodejs_compat'],bindings:{CHAT_ADMIN_IDS:adminId},serviceBindings:{PLAY_IDENTITY:r=>fixtureIdentity.fetch(r)},durableObjects:{ROOMS:{className:'ArenaRoom',useSQLite:true},LOBBIES:{className:'ArenaLobby',useSQLite:true}},ratelimits:{API_LIMIT:{namespace_id:'310026',simple:{limit:100,period:60}}}};
 const mf=new MF.Miniflare(options),connections=[],pause=ms=>new Promise(r=>setTimeout(r,ms));
 const raw={aurora:{maxHp:500,maxEnergy:500,attack:50,defense:25,speed:110,level:100},adminpod:{maxHp:99999,attack:99999,speed:4999}};

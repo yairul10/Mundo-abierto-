@@ -39,12 +39,12 @@ test('reinforcement awards persist in SQLite and replay after reconstruction wit
   advanceArenaEnemies(s,now+300,()=>false,()=>.1);
   const receipt=structuredClone(s.bossRewards.find(r=>r.bossId===add.instanceId));
   assert.equal(receipt.playerId,'first');assert.equal(receipt.damage,1000);assert.equal(receipt.totalDamage,add.maxHp);
-  assert.equal(receipt.amount,2400);assert.equal(receipt.xp,3600);assert.equal(receipt.materials.nucleoNexo,1);
+  assert.equal(receipt.amount,400);assert.equal(receipt.xp,720);assert.equal(receipt.materials.nucleoNexo,1);
   w.worldSave(s,true);assert.deepEqual(s.bossRewards,[]);
   const restored=new SharedWorld(ctx,{}),sent=[],attachment={};
   const ws={deserializeAttachment:()=>attachment,serializeAttachment:()=>{},send:data=>sent.push(JSON.parse(data))};
   restored.sendRewards(ws,'first');assert.equal(sent.length,1);
-  assert.deepEqual(sent[0].receipts,[{id:receipt.id,amount:receipt.amount,damage:1000,totalDamage:add.maxHp,bossId:add.instanceId,materials:receipt.materials,xp:3600}]);
+  assert.deepEqual(sent[0].receipts,[{id:receipt.id,amount:receipt.amount,damage:1000,totalDamage:add.maxHp,bossId:add.instanceId,materials:receipt.materials,xp:720}]);
   const loaded=restored.worldLoad();advanceArenaEnemies(loaded,now+400,()=>false,()=>.1);restored.worldSave(loaded,true);
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM boss_rewards').get().count,1);
   sent.length=0;restored.sendRewards({...ws,deserializeAttachment:()=>({})},'second');assert.equal(sent.length,0);

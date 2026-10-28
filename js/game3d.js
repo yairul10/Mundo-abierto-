@@ -1,3 +1,4 @@
+import {ENEMY_BASELINES} from './enemy-balance.js?v=343';
 import {updateProAuras} from './pro-aura.js?v=342';
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=1';
 import {pvpAccountToken} from './pvp-account.js?v=3';
@@ -11,7 +12,7 @@ import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=335';
-import {proMultiplier,proPopulation} from './pro-enemies.js?v=255';
+import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
 import {shipThumbnail} from './ship-preview-catalog.js?v=337';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
@@ -859,6 +860,7 @@ const TYPES={
  granTitan:{...TITAN_STATS,speed:0,color:0x555b63},
  carrier:{hp:40000,damage:150,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
 };
+for(const [type,baseline]of Object.entries(ENEMY_BASELINES))Object.assign(TYPES[type],baseline);
 // Escalado limitado por nivel: los enemigos de Aurora siguen siendo accesibles
 // para principiantes y ganan resistencia a medida que progresa el jugador.
 function enemyDifficultyScale(){
@@ -879,7 +881,7 @@ const enemies=[...enemyKinds.map(type=>({type})),...proPopulation()].map(({type,
  const t=TYPES[type],mesh=['catapult','harpooner'].includes(type)?graveyard.enemyVisual(type):ship(t.color,type);scene.add(mesh);
  const home=randomEnemyHome(type);mesh.position.copy(home);mesh.visible=type==='scout'||type==='raider';
  if(pro){const badge=new THREE.Sprite(proBadgeMaterial);badge.position.set(0,100,0);badge.scale.set(85,28,1);mesh.add(badge);mesh.userData.proBadge=badge}
- const maxHp=enemyMaxHp(type)*(pro?2:1);return {type,pro,proSector,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,aggressive:!pro&&type!=='devastator',fireTimer:1+Math.random()*2};
+ const maxHp=enemyMaxHp(type)*proMultiplier({type,pro});return {type,pro,proSector,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,aggressive:!pro&&type!=='devastator',fireTimer:1+Math.random()*2};
 });
 
 linkScrapPairs(enemies.filter(e=>!e.pro));
@@ -2311,7 +2313,7 @@ function updateLoot(dt){
 function kill(e,missile=false){
  if(e.dead)return;
  combatAudio.play('explosion',e.mesh.position);
- const t=TYPES[e.type],enemyName=(({scout:'Explorador',raider:'Asaltante',sentinel:'Guardián',destroyer:'Destructor',devastator:'Devastador',carrier:'Coloso Portanaves',catapult:'Catapulta de Chatarra',stalker:'Acechador de Chatarra',harpooner:'Arponero',granTitan:'Gran Titán'})[e.type]||'Enemigo')+(e.pro?' Pro':''),reward=e.type==='granTitan'?titanScale(player.level):e.type==='carrier'?advancedEnemyScale(player.level,30):enemyRewardScale(),gold=Math.round(t.gold*reward),xp=Math.round(t.xp*reward);
+ const t=TYPES[e.type],enemyName=(({scout:'Explorador',raider:'Asaltante',sentinel:'Guardián',destroyer:'Destructor',devastator:'Devastador',carrier:'Coloso Portanaves',catapult:'Catapulta de Chatarra',stalker:'Acechador de Chatarra',harpooner:'Arponero',granTitan:'Gran Titán'})[e.type]||'Enemigo')+(e.pro?' Pro':''),reward=e.type==='granTitan'?titanScale(player.level):e.type==='carrier'?advancedEnemyScale(player.level,30):enemyRewardScale(),gold=Math.round(t.gold*reward)*proRewardMultiplier(e),xp=Math.round(t.xp*reward)*proRewardMultiplier(e);
  if(e.type==='carrier'){
   bossState.hp=0;
   if(bossState.rewarded)return;

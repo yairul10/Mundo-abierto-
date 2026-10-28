@@ -1,3 +1,4 @@
+import {enemyBalance,PVP_PRO_MULTIPLIER} from './enemy-balance.mjs';
 import {advanceNpcHazards,NPC_PATTERNS} from './npc-patterns.mjs';
 import {BOSS_RULES,ensureBoss,advanceBossMotion,tickBoss,recordBossDamage,bossSnapshot,splitBossReward} from './cooperative-boss.mjs';
 
@@ -7,18 +8,18 @@ export const ARENA_ENEMIES=Object.freeze([
  {...BOSS_RULES,id:'pvp-gran-titan',name:'Gran Titán Pro',kind:'granTitanPro',zone:'pve',pos:[0,120,1250],patrolRadius:100,maxHp:368000,damage:1472,targets:2,attackInterval:4000,teleportInterval:0,reward:151800,xpReward:227700,materialCount:60,hitRadius:270,projectile:null,attackPattern:'titan',attackInterval:8000,tetherDps:230},
  ...[-1,1].map((side,i)=>({...BOSS_RULES,id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),kind:'colossusPro',zone:'pve',projectile:'missile',pos:[side*1200,120,-250],patrolRadius:100,maxHp:200000,damage:750,targets:1,attackInterval:5000,teleportInterval:0,reward:55000,xpReward:82500,hitRadius:220,materialCount:60}))
 ]);
-// PvE rewards at level 105 use min(2.5, 1 + (level - 1) * .035).
-// PvP Coloso reinforcements are Pro (2x health and damage), with 20% bonus
-// credits over the equivalent level-105 PvE enemy.
-const PVE_REINFORCEMENTS=Object.freeze({
- raider:{hp:70,damage:10,gold:20},
- sentinel:{hp:140,damage:20,gold:40},
- destroyer:{hp:280,damage:35,gold:80}
-});
-const REINFORCEMENT_LEVEL=105;
-const REINFORCEMENT_REWARD_SCALE=Math.min(2.5,1+(REINFORCEMENT_LEVEL-1)*.035);
-const REINFORCEMENT_PVP_BONUS=1.2;
+// Six level-105 escorts use the agreed PvE Pro x4, then PvP x2.
 const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
+function applyReinforcementBalance(b){
+ const values=enemyBalance(b.model,105,PVP_PRO_MULTIPLIER);if(!values)return;
+ if(b.balanceVersion!==1){
+  const ratio=values.hp/Math.max(1,b.maxHp);b.hp=Math.max(0,Math.min(values.hp,b.hp*ratio));b.maxHp=values.hp;
+  for(const id of Object.keys(b.contributions||{}))b.contributions[id]*=ratio;
+  b.balanceVersion=1;
+ }
+ Object.assign(b.rules,{maxHp:values.hp,damage:values.damage,reward:values.gold,xpReward:values.xp});
+ if(b.model==='harpooner')b.rules.tetherDps=values.damage;
+}
 export function ensureArenaEnemies(s,now){
  s.arenaEnemies||=[];
  const next=[];
@@ -29,7 +30,7 @@ export function ensureArenaEnemies(s,now){
   next.push(b);
  }
  const parents=new Map(next.map(b=>[b.id,b]));
- for(const b of s.arenaEnemies.filter(b=>b.kind==='reinforcement'))if(parents.get(b.parentId)?.instanceId===b.parentInstance){b.rules.zone=parents.get(b.parentId).rules.zone;const pattern=NPC_PATTERNS[b.model];if(pattern)Object.assign(b.rules,{attackPattern:b.model,attackInterval:pattern.interval,range:pattern.range,tetherDps:b.model==='harpooner'?230:0});next.push(b);}
+ for(const b of s.arenaEnemies.filter(b=>b.kind==='reinforcement'))if(parents.get(b.parentId)?.instanceId===b.parentInstance){b.rules.zone=parents.get(b.parentId).rules.zone;const pattern=NPC_PATTERNS[b.model];if(pattern)Object.assign(b.rules,{attackPattern:b.model,attackInterval:pattern.interval,range:pattern.range,tetherDps:b.model==='harpooner'?230:0});applyReinforcementBalance(b);next.push(b);}
  s.arenaEnemies=next;s.boss=next[0];return next;
 }
 export function recordArenaDamage(s,target,owner,damage,now,noRewards=false){
@@ -46,10 +47,10 @@ function spawnWave(s,parent,threshold,now){
  for(let i=0;i<(titan?3:2);i++){
   const children=s.arenaEnemies.filter(b=>b.parentInstance===parent.instanceId);
   if(children.length>=6||children.filter(b=>b.hp>0).length>=6)break;
-  const types=titan?['catapult','harpooner','stalker']:['raider','sentinel','destroyer'],model=titan?types[i]:types[parent.waves.length-1],hp={raider:14000,sentinel:28000,destroyer:56000,catapult:13800,harpooner:23000,stalker:18400}[model],index=children.length;
-  const rules={...BOSS_RULES,zone:parent.rules.zone,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro',catapult:'Catapulta Pro',harpooner:'Arponero Pro',stalker:'Acechador Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:{raider:2400,sentinel:3600,destroyer:4800,catapult:2208,harpooner:3312,stalker:4416}[model],xpReward:{raider:3600,sentinel:4800,destroyer:6000,catapult:2760,harpooner:3680,stalker:4600}[model],materialCount:{raider:10,sentinel:9,destroyer:10,catapult:10,harpooner:9,stalker:10}[model],damage:titan?{catapult:1380,harpooner:230,stalker:1150}[model]:600,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
+  const types=titan?['catapult','harpooner','stalker']:['raider','sentinel','destroyer'],model=titan?types[i]:types[parent.waves.length-1],balance=enemyBalance(model,105,PVP_PRO_MULTIPLIER),hp=balance.hp,index=children.length;
+  const rules={...BOSS_RULES,zone:parent.rules.zone,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro',catapult:'Catapulta Pro',harpooner:'Arponero Pro',stalker:'Acechador Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:balance.gold,xpReward:balance.xp,materialCount:{raider:10,sentinel:9,destroyer:10,catapult:10,harpooner:9,stalker:10}[model],damage:balance.damage,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
   if(titan)Object.assign(rules,{attackPattern:model,attackInterval:NPC_PATTERNS[model].interval,range:NPC_PATTERNS[model].range,tetherDps:model==='harpooner'?230:0});
-  const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,partnerId:titan&&['catapult','harpooner'].includes(model)?parent.id+'-add-'+(index+(model==='catapult'?1:-1)):null,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,nextAttackAt:now+rules.attackInterval,motionAt:now,spawnIndex:index});s.arenaEnemies.push(b);
+  const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,partnerId:titan&&['catapult','harpooner'].includes(model)?parent.id+'-add-'+(index+(model==='catapult'?1:-1)):null,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,nextAttackAt:now+rules.attackInterval,motionAt:now,spawnIndex:index});applyReinforcementBalance(b);s.arenaEnemies.push(b);
  }
 }
 function materialRewards(s,b,from,random){
