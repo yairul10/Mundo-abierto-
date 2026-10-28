@@ -1,8 +1,9 @@
+import {updateProAuras} from './pro-aura.js?v=342';
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=1';
 import {pvpAccountToken} from './pvp-account.js?v=3';
 import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
-import {createArenaEnemyView} from './pvp-enemies.js?v=341';
+import {createArenaEnemyView} from './pvp-enemies.js?v=342';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
@@ -3121,6 +3122,7 @@ combatAudio.setEngine(enginePower,player.hp>0&&!recoveryPending&&!graphicsLost&&
 if(graphicsLost){requestAnimationFrame(loop);return}
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
 updateGraphicsDetail(now);
+updateProAuras(THREE,enemies,now/1000);
 if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(document.body.classList.contains('journal-open')){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||document.hidden||docked||landing||!panel.classList.contains('hidden')||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
  updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();player.energy=Math.min(player.maxEnergy,player.energy+(docked?8:5)*dt*(shipRole(player.shipId)==='aurora'?1.2+specialLevel('energy')*.04:1));
 const menuOpen=docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);

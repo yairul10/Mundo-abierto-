@@ -40,7 +40,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   const present=new Set(list.map(b=>b.id));for(const [id,r]of entities)if(!present.has(id)){npcFx.clearOwner(id);scene.remove(r.mesh);r.label.remove();const i=enemies.indexOf(r);if(i>=0)enemies.splice(i,1);entities.delete(id)}
   for(const b of list){let r=entities.get(b.id);if(!r){
    const mesh=new T.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.append(label);scene.add(mesh);mesh.position.set(...b.pos);
-   r={pvpRemote:true,playerId:b.id,type:'pilot',mesh,label,goal:new T.Vector3(...b.pos),hp:b.hp,maxHp:b.maxHp,dead:b.hp>0?0:1,pilotName:b.name,pilotLevel:b.level||105,kind:b.kind,model:b.model,pro:['colossusPro','granTitanPro'].includes(b.kind),instance:'',attackSeq:0,teleportSeq:0};entities.set(b.id,r);enemies.push(r);mount(r,b);
+   r={pvpRemote:true,playerId:b.id,type:'pilot',mesh,label,goal:new T.Vector3(...b.pos),hp:b.hp,maxHp:b.maxHp,dead:b.hp>0?0:1,pilotName:b.name,pilotLevel:b.level||105,kind:b.kind,model:b.model,proVisual:b.kind==='reinforcement'||b.kind==='colossusPro'||b.kind==='granTitanPro',pro:['colossusPro','granTitanPro'].includes(b.kind),instance:'',attackSeq:0,teleportSeq:0};entities.set(b.id,r);enemies.push(r);mount(r,b);
    label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>onSelect(b.id);label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();label.click()}};label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();label.click()},{passive:false});
   }
   npcFx.sync(r,b,now);
