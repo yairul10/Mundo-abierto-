@@ -1,3 +1,4 @@
+import {checkpointProfile,activeProfile} from './account-storage.js?v=344';
 import {ENEMY_BASELINES} from './enemy-balance.js?v=343';
 import {updateProAuras} from './pro-aura.js?v=342';
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=1';
@@ -28,7 +29,7 @@ import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=337';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=339';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=344';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=337';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=337';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
@@ -48,7 +49,7 @@ function showStorageWarning(message='El navegador bloqueó el guardado. Esta ses
  notice.textContent='⚠️ '+message;document.body.appendChild(notice);setTimeout(()=>notice.remove(),6500);
 }
 function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStorageWarning();return null}}
-function safeStorageSet(key,value){if(PVP_MODE&&!pvpHangar)return true;try{localStorage.setItem(key,value);return true}catch{showStorageWarning();return false}}
+function safeStorageSet(key,value){if(PVP_MODE&&!pvpHangar)return true;try{if(key==='mundoAbierto.player'&&(window.COSMOS_PROFILE_SWITCHING||window.COSMOS_ACTIVE_PROFILE&&activeProfile(localStorage)!==window.COSMOS_ACTIVE_PROFILE))throw Error('La cuenta cambió');localStorage.setItem(key,value);if(key==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
 const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mode==='test';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};

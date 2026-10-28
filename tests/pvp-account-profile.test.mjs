@@ -1,7 +1,9 @@
+import {ensureProfiles,switchProfile,playProfile} from '../js/account-storage.js';
 import assert from 'node:assert/strict';
-const storage=new Map();globalThis.localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)};
+const storage=new Map();globalThis.localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
 globalThis.window={MUNDO_PLAY_MODE:{mode:'normal'}};
 globalThis.Capacitor={Plugins:{CosmosPlayGames:{status:async()=>({authenticated:true,displayName:'Nombre anterior'}),serverAuthCode:async()=>({code:'one-use-test-code'})}}};
+ensureProfiles(localStorage);switchProfile(localStorage,playProfile('verified-id'));
 let calls=0;globalThis.fetch=async()=>{calls++;return Response.json({authenticated:true,displayName:'yairulbosss',playerId:'verified-id',sessionToken:'fixture-session-token',expiresIn:86400,grants:[]})};
 const {pvpAccountToken,pvpAccountProfile,clearPvpAccountToken}=await import('../js/pvp-account.js');
 assert.equal(await pvpAccountToken(),'fixture-session-token');assert.equal(pvpAccountProfile().displayName,'yairulbosss');
@@ -9,3 +11,5 @@ await pvpAccountToken();assert.equal(calls,1,'Reuse the verified session and its
 clearPvpAccountToken();assert.equal(pvpAccountProfile(),null);await pvpAccountToken();assert.equal(calls,2);
 assert.equal(storage.has('mundoAbierto.player'),false,'A nickname change must not create or replace a save');
 console.log('PvP uses the verified Google nickname, caches its session and clears both together.');
+clearPvpAccountToken();switchProfile(localStorage,playProfile('other-account'));await assert.rejects(pvpAccountToken(),/Reinicia/);assert.equal(storage.has('mundoAbierto.player'),false,'A mismatched Google identity must not copy inventory or grant ownership');
+console.log('PvP rejects an identity that does not own the active local slot.');

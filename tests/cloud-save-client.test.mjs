@@ -7,7 +7,7 @@ globalThis.localStorage=new Storage();
 globalThis.Capacitor={Plugins:{CosmosPlayGames:{status:async()=>({authenticated:true}),serverAuthCode:async()=>({code:'test-one-use-code'})}}};
 let remote=null,calls=[];
 globalThis.fetch=async(url,options={})=>{calls.push({url,options});const result=url.endsWith('/session')?{authenticated:true,sessionToken:'test-session'}:options.method==='PUT'?{revision:8}:{save:remote};return new Response(JSON.stringify(result),{status:200})};
-const create=()=>createCloudSave({apiUrl:'https://example.test',serverClientId:'correct.apps.googleusercontent.com'});
+const create=()=>createCloudSave({apiUrl:'https://example.test',serverClientId:'correct.apps.googleusercontent.com',manageProfiles:false});
 const original=JSON.stringify({...progress,gold:1000,sector:'graveyard',granTitanState:{hp:5},activityJournal:[{text:'local'}]});
 localStorage.setItem(KEY,original);remote={progress,revision:7};
 let client=create(),result=await client.connect();assert.equal(result.status,'conflict');assert.equal(localStorage.getItem(KEY),original);assert.equal((await client.sync()).status,'paused');assert.equal(calls.filter(x=>x.options.method==='PUT').length,0);
