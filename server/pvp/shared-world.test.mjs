@@ -79,3 +79,17 @@ test('valid kill, ranking counters, XP receipt and rolling window commit togethe
  const ctx={getWebSockets:()=>[],blockConcurrencyWhile:fn=>fn(),storage:{setAlarm:async()=>{},sql:{exec(q,...args){if(fail&&q.startsWith('INSERT INTO shared_world'))throw Error('disk failure');const rows=db.prepare(q).all(...args);return {toArray:()=>rows}}},transactionSync(fn){db.exec('BEGIN');try{fn();db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}}};
  try{const w=new SharedWorld(ctx,{}),s=world('normal');s.killHistory=[];awardKill(s,{id:'winner',name:'Verified',profile:{level:100}},{id:'victim',profile:{level:60}},100000,'valid');fail=true;assert.throws(()=>w.worldSave(s,true),/disk failure/);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM pvp_ranking').get().n,0);assert.equal(s.pendingKills.length,1);fail=false;w.worldSave(s,true);w.worldSave(s,true);assert.equal(db.prepare('SELECT kills FROM pvp_ranking').get().kills,1);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM boss_rewards WHERE amount=0 AND xp>0').get().n,1);const fresh=new SharedWorld(ctx,{});assert.equal(fresh.worldLoad().killHistory.length,1);assert.equal(fresh.worldLoad().pendingKills.length,0);}finally{db.close()}
 });
+
+test('live nameplate ranks use committed kills and refresh after checkpoint or restart',()=>{
+ const db=new DatabaseSync(':memory:');let reads=0;
+ const ctx={getWebSockets:()=>[],blockConcurrencyWhile:fn=>fn(),storage:{sql:{exec(q,...args){if(q.startsWith('SELECT player_id,kills'))reads++;const rows=db.prepare(q).all(...args);return {toArray:()=>rows}}},transactionSync(fn){db.exec('BEGIN');try{fn();db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}}};
+ try{
+  const w=new SharedWorld(ctx,{}),s=world('normal');
+  s.players=[{id:'pilot',name:'Pilot',profile:{maxHp:100},connected:true,pos:[0,0,0],pvpRank:{kills:99999,position:1}}];
+  assert.deepEqual(w.worldSnapshot(s).players[0].pvpRank,{kills:0,position:0});const firstReads=reads;
+  w.worldSnapshot(s);assert.equal(reads,firstReads,'No SQLite rank read each broadcast');
+  s.pendingKills=[{id:'rank-kill',winner:'pilot',victim:'rival',name:'Pilot',xp:5,time:123}];w.worldSave(s,true);
+  assert.deepEqual(w.worldSnapshot(s).players[0].pvpRank,{kills:1,position:1});
+  const restarted=new SharedWorld(ctx,{});assert.deepEqual(restarted.worldSnapshot(s).players[0].pvpRank,{kills:1,position:1});
+ }finally{db.close()}
+});

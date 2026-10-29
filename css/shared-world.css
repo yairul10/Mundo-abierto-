@@ -97,3 +97,9 @@ body.pvp-hud #pvpSkills button small{font-size:9px!important;line-height:1.1!imp
 #pvpControlEditor[hidden]{display:none!important}
 #pvpControlEditor .pvp-editor-canvas{position:absolute;inset:0;width:100%;height:100%;min-height:0}
 #pvpControlEditor .pvp-editor-toolbar{position:absolute;top:0;left:0;right:0;z-index:2;pointer-events:auto}
+
+/* Rank images precede the name without changing nameplate targeting. */
+.pvp-rank-badge{display:inline-block!important;width:28px;height:28px;background-size:400% 200%;background-repeat:no-repeat;vertical-align:middle;margin-right:6px;flex-shrink:0;filter:drop-shadow(0 1px 2px #000);pointer-events:none}
+.world-nameplate .pvp-rank-badge{width:25px;height:25px}
+#pvpSocial [data-table] p{display:flex;align-items:center;gap:4px}
+#playerName .pvp-rank-badge{width:25px;height:25px}
