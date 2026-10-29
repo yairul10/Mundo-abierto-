@@ -3112,7 +3112,7 @@ function farmInput(dt,now){
  if(now-farmObstacleAt>500||farmObstacleSector!==activeSector){farmObstacleSector=activeSector;farmObstacleAt=now;farmBase=farmBasePoint();farmObstacles=asteroidField.visible?asteroidField.children.filter(o=>o.position.distanceToSquared(playerMesh.position)<700*700).map(o=>({position:o.position,radius:Math.max(o.scale.x,o.scale.y,o.scale.z)*1.5})):[];}
  const command=farmPilot.tick({pvp:PVP_MODE,active:!document.hidden&&document.hasFocus()&&!graphicsLost,dead:player.hp<=0||recoveryPending,paused,abilityReady:classAbilityTime<=0&&player.energy>=SHIP_ABILITIES[player.shipId].energy,position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,gold:player.gold,repairCost:Math.ceil(Math.max(0,player.maxHp-player.hp)*.3),robot:player.repairRobot,docked,landing,base:farmBase,sector:activeSector,level:player.level,routes:sectorPortalRoutes(),enemies,drops,safe:inSafeZone,center:currentSector(),radius:currentSector().radius,obstacles:farmObstacles,attacks:enemyShots.concat(titanProjectiles)},now/1000);
  if(!farmPilot.running)farmUI.refresh();
- if(command.recover){showRecovery();recoverShip(false)}
+ if(command.recover){showRecovery();recoverShip(command.recoverCurrent)}
  if(command.repair)$('repairBtn').onclick();
  if(command.launch)leaveHangar();
  if(command.land)beginLanding();
