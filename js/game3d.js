@@ -1,3 +1,4 @@
+import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=348';
 import {rankedName} from './pvp-ranks.js?v=347';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=1';
 import {checkpointProfile,activeProfile} from './account-storage.js?v=344';
@@ -9,7 +10,7 @@ import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {createArenaEnemyView} from './pvp-enemies.js?v=342';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=320';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=348';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -31,7 +32,7 @@ import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=337';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=347';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=348';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=337';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=337';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
@@ -2063,8 +2064,8 @@ function updateClassAbility(dt){
  if(shipRole(player.shipId)==='titan'&&specialLevel('repair')>0&&performance.now()/1000-lastHitAt>5&&!docked)
   player.hp=Math.min(player.maxHp,player.hp+player.maxHp*.0015*specialLevel('repair')*dt);
  const btn=$('classAbilityBtn'),label=$('classAbilityCd');
- if(btn){const a=SHIP_ABILITIES[player.shipId];btn.firstChild.textContent=a.icon;btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityTime>0||player.energy<a.energy;
- if(label)label.textContent=classAbilityTime>0?Math.ceil(classAbilityTime)+'s':player.energy<a.energy?a.energy+'⚡':''}
+ if(btn){const a=SHIP_ABILITIES[player.shipId];setCombatArtwork(btn,shipCombatArtwork(shipRole(player.shipId)));btn.setAttribute('aria-label',a.name);btn.title=a.name;btn.disabled=docked||landing||classAbilityTime>0||player.energy<a.energy;
+ if(label)label.textContent=classAbilityTime>0?Math.ceil(classAbilityTime)+'s':player.energy<a.energy?a.energy+' EN':'';presentCombatButton(btn,{remaining:classAbilityTime,duration:abilityDuration(),active:classAbilityTime>0,blocked:btn.disabled&&classAbilityTime<=0})}
 }
 function renderSpecialUpgrades(){
  const fleet=$('hangarShipFleet');if(!fleet)return;
@@ -2668,6 +2669,7 @@ function aimWhileFiring(x,y){
  bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65);
 }
 const fireButton=$('fireBtn');
+for(const [id,art] of [['fireBtn','fire'],['skillBtn','missile'],['classAbilityBtn','overload']]){const button=$(id);for(const child of [...button.childNodes])if(child.nodeType===3)child.remove();setCombatArtwork(button,art)}
 fireButton.style.touchAction='none';
 let fireTouchId=null,lastFireX=0,lastFireY=0;
 fireButton.addEventListener('touchstart',e=>{
@@ -2983,7 +2985,7 @@ function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math
  sectorNotice.textContent='☢️ Fuera del sector · -8 casco/s · Regresa al interior';
 }
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
-function hud(){const compact=$('hudCompactHealthFill');if(compact)compact.style.width=Math.max(0,Math.min(100,100*player.hp/player.maxHp))+'%';if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);else $('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':''}
+function hud(){const compact=$('hudCompactHealthFill');if(compact)compact.style.width=Math.max(0,Math.min(100,100*player.hp/player.maxHp))+'%';if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);else $('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=Math.ceil(player.energy)+'/'+player.maxEnergy;$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=player.energy/player.maxEnergy*100+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':'';presentCombatButton($('skillBtn'),{remaining:skillCd,duration:7,blocked:docked||landing||recoveryPending});presentCombatButton($('fireBtn'),{pressed:fireHeld,blocked:docked||landing||recoveryPending})}
 // Zoom discreto de cámara, sin alterar la dirección de disparo ni el joystick.
 let cameraZoom=285;
 function setCameraZoom(next){cameraZoom=THREE.MathUtils.clamp(next,170,540)}
