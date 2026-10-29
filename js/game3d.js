@@ -1,3 +1,4 @@
+import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=1';
 import {checkpointProfile,activeProfile} from './account-storage.js?v=344';
 import {ENEMY_BASELINES} from './enemy-balance.js?v=343';
 import {updateProAuras} from './pro-aura.js?v=342';
@@ -3056,26 +3057,31 @@ function showRecovery(){
  repairRobot.visible=repairBeam.visible=false;lockFrame.classList.add('hidden');
  sectorNotice.style.display='none';portalMessage.style.display='none';portalCountdown=0;
  $('recoveryBalance').textContent='Créditos disponibles: '+player.gold;
- $('recoverCurrent').disabled=player.gold<5000;$('recoverCurrent').textContent='Revivir en base PvP · 5.000 créditos';
- $('recoverAurora').textContent='Revivir en Aurora · '+Math.min(1000,Math.max(0,player.gold)).toLocaleString('es-CL')+' créditos';
- $('recoveryHelp').textContent=player.gold<1000?'Rescate de emergencia: se cobra solo tu saldo disponible.':'';
+ $('recoverCurrent').disabled=player.gold<1000;$('recoverCurrent').textContent='Revivir en '+currentStationName()+' · 1.000 créditos';
+ $('recoverAurora').textContent='Revivir en Aurora · '+pveRecoveryCost(false,player.gold).toLocaleString('es-CL')+' créditos';
+ $('recoveryHelp').textContent=player.gold<100?'Rescate de emergencia: se cobra solo tu saldo disponible.':'';
  recoveryPanel.style.display='flex';save();
 }
 let recoveryBusy=false;
 async function recoverShip(inCurrentMap){
- if(!recoveryPending||recoveryBusy||inCurrentMap&&player.gold<5000)return;
- recoveryBusy=true;let paid=false;
+ if(!recoveryPending||recoveryBusy||inCurrentMap&&player.gold<1000)return;
+ recoveryBusy=true;
  try{
- if(inCurrentMap){$('recoverCurrent').disabled=$('recoverAurora').disabled=true;await checkPvpVersion();await pvpAccountToken();}
- const cost=inCurrentMap?5000:Math.min(1000,Math.max(0,player.gold));
- const restored=settleRespawn(localStorage,SAVE_KEY,{id:'pve:'+crypto.randomUUID(),destination:inCurrentMap?'pvp':'aurora',cost,transfer:inCurrentMap});player.gold=restored.gold;player.pvpRespawnReceipts=restored.pvpRespawnReceipts;if(restored.pendingPvpTransfer)player.pendingPvpTransfer=restored.pendingPvpTransfer;player.ownedShips={...player.ownedShips,...restored.ownedShips};paid=true;player.hp=player.maxHp;player.energy=player.maxEnergy;
+ $('recoverCurrent').disabled=$('recoverAurora').disabled=true;
+ const cost=pveRecoveryCost(inCurrentMap,player.gold);
+ const station=inCurrentMap?currentStation():auroraStation;
+ const arrival=station.position.clone().add(new THREE.Vector3(0,165,350));
+ // Persist payment, full health and the safe arrival together, without PvP auth.
+ if(!save())throw Error('No se pudo guardar la partida antes del rescate.');
+ const restored=settlePveRecovery(localStorage,SAVE_KEY,{current:inCurrentMap,sector:activeSector,arrival:{x:arrival.x,y:arrival.z,z:arrival.y}});
+ Object.assign(player,restored);checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);
  docked=false;landing=false;landingArmed=false;hangar.classList.add('hidden');
- if(activeSector!=='aurora')await switchSector({to:'aurora',level:0,arrival:auroraStation.position.clone().add(new THREE.Vector3(0,165,350))});
- else playerMesh.position.copy(auroraStation.position).add(new THREE.Vector3(0,165,350));
+ if(!inCurrentMap&&activeSector!=='aurora')await switchSector({to:'aurora',level:0,arrival});
+ else playerMesh.position.copy(arrival);
  combatAudio.play('respawn');recoveryPending=false;recoveryPanel.style.display='none';clearCombatShots();explorerThreat=null;
  camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));save();hud();
- if(inCurrentMap){const url=new URL(location.href);url.searchParams.set('pvp','1');location.href=url.href;}else lootToast('Rescate a Aurora · −'+cost+' créditos');
- }catch(error){if(paid&&!inCurrentMap){location.href='index.html';return}if(inCurrentMap)try{const restored=finishPvpTransfer(localStorage,SAVE_KEY,true);if(restored){player.gold=restored.gold;player.hp=restored.hp;delete player.pendingPvpTransfer}}catch{}if(error.updateRequired)showPvpUpdate();$('recoveryHelp').textContent=error.message;$('recoverCurrent').disabled=player.gold<5000;$('recoverAurora').disabled=false;}finally{recoveryBusy=false}
+ lootToast('Rescate a '+(inCurrentMap?currentStationName():'Aurora')+' · −'+cost+' créditos');
+ }catch(error){$('recoveryHelp').textContent=error.message;$('recoverCurrent').disabled=player.gold<1000;$('recoverAurora').disabled=false;}finally{recoveryBusy=false}
 }
 $('recoverCurrent').onclick=()=>recoverShip(true);
 $('recoverAurora').onclick=()=>recoverShip(false);
