@@ -1,3 +1,4 @@
+import {PVP_MISSIONS} from './pvp-missions.js?v=349';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=348';
 import {rankedName} from './pvp-ranks.js?v=347';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=1';
@@ -15,7 +16,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=335';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=349';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
 import {shipThumbnail} from './ship-preview-catalog.js?v=337';
 import {createFarmPilot} from './farm-pilot.js?v=255';
@@ -24,7 +25,7 @@ import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings}
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=230';
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
-import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=218';
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=349';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=337';
@@ -55,7 +56,7 @@ function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStor
 function safeStorageSet(key,value){if(PVP_MODE&&!pvpHangar)return true;try{if(key==='mundoAbierto.player'&&(window.COSMOS_PROFILE_SWITCHING||window.COSMOS_ACTIVE_PROFILE&&activeProfile(localStorage)!==window.COSMOS_ACTIVE_PROFILE))throw Error('La cuenta cambió');localStorage.setItem(key,value);if(key==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
-const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mode==='test';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=player.quests||{};
+const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mode==='test';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=PVP_MODE?JSON.parse(JSON.stringify(stored.quests||{})):player.quests||{};
 const combatAudio=createCombatAudio({listener:()=>playerMesh.position,storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)}});
 let graphicsUI=null;
 let graphicsMode='auto';try{graphicsMode=localStorage.getItem(GRAPHICS_KEY)||'auto'}catch{}
@@ -2231,7 +2232,7 @@ const LONG_MISSIONS=[
 const legacyMissions=[...MISSIONS.map((m,i)=>({...m,id:'aurora-'+i,level:1,legacySector:'aurora',legacyIndex:i,objectives:[{event:m.event,sector:'aurora',goal:m.goal,label:m.description}]})),
  ...BELT_MISSIONS.map((m,i)=>({...m,id:'belt-'+i,level:10,legacySector:'belt',legacyIndex:i,objectives:[{event:m.event,sector:m.event==='portalNear'?'aurora':'belt',goal:m.goal,label:m.description}]})),
  ...EMBER_MISSIONS.map((m,i)=>({...m,id:'ember-'+i,level:30,legacySector:'ember',legacyIndex:i,objectives:[{event:m.event,sector:'ember',goal:m.goal,label:m.description}]}))];
-const missionCatalog=[...legacyMissions,...LONG_MISSIONS.map(m=>({...m,id:'contract-'+m.id,legacyContract:m.id,level:m.id==='mixed-1'||m.id==='mixed-2'?8:m.id.startsWith('mixed-')?15:40})),...CEMETERY_MISSIONS];
+const missionCatalog=[...legacyMissions,...LONG_MISSIONS.map(m=>({...m,id:'contract-'+m.id,legacyContract:m.id,level:m.id==='mixed-1'||m.id==='mixed-2'?8:m.id.startsWith('mixed-')?15:40})),...CEMETERY_MISSIONS,...PVP_MISSIONS];
 let missionBoard=createMissionBoard(missionCatalog,player.quests);
 function renderMission(){
  const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
@@ -3237,7 +3238,7 @@ function openPvpHangar(){
 function closePvpHangar(){
  if(!pvpHangar||!save())return;
  combatAudio.play('takeoff');
- const adminSelection=player.shipId;const context=pvpHangar,updated=context.saved;Object.assign(context.flightPlayer,initialPvpPilot(updated));context.flightPlayer.maxHp*=20;context.flightPlayer.hp=context.flightPlayer.maxHp;player=context.flightPlayer;missionBoard=context.board;hangarUI=context.ui;pvpHangar=null;
+ const adminSelection=player.shipId;const context=pvpHangar,updated=context.saved;Object.assign(context.flightPlayer,initialPvpPilot(updated));context.flightPlayer.maxHp*=20;context.flightPlayer.hp=context.flightPlayer.maxHp;player=context.flightPlayer;missionBoard=createMissionBoard(missionCatalog,player.quests=JSON.parse(JSON.stringify(updated.quests||{})));hangarUI=context.ui;pvpHangar=null;
  docked=landing=false;$('saleConfirm').classList.add('hidden');hangar.classList.add('hidden');document.body.classList.remove('docked');$('questTracker').classList.add('hidden');resetDockControls();
  loadAssembledVisual(player.shipId);syncPlayerShipVisuals();pvpSession.refreshLoadout(updated,adminSelection);hud();
 }
@@ -3333,7 +3334,7 @@ if(PVP_MODE){
  bossRewards(receipts){
   const latest=readOfflinePilot(localStorage),source=pvpHangar?player:latest;
   const result=saveBossReceipts(localStorage,SAVE_KEY,source,receipts,p=>pvpHangar?serializeHangarEditor(p,latest):p);
-  if(result.ids.length){player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;player.xp=result.pilot.xp;if(pvpHangar)Object.assign(player,result.pilot);if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
+  if(result.ids.length){player.quests=result.pilot.quests||{};missionBoard=createMissionBoard(missionCatalog,player.quests);renderMission();for(const m of result.missions){combatAudio.play('mission');lootToast('🏆 '+m.title+' · +'+m.reward.toLocaleString('es')+' créditos · +'+m.xp+' XP')}player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;player.xp=result.pilot.xp;if(pvpHangar)Object.assign(player,result.pilot);if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
   return result;
  },
  remoteShots(bullets){for(const b of bullets){

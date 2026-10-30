@@ -98,7 +98,7 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
   const allowed=b.kind==='reinforcement'?p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone&&!!((s.arenaEnemies.find(x=>x.id===b.parentId)?.contributions?.[p.id]||0)>0||s.arenaEnemies.find(x=>x.id===b.parentId)?.participants?.[p.id]):p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone;
   constrainEnemy(b);if(b.hp<=0)for(const p of s.players)if(p.profile?.shipId==='adminpod')delete b.contributions[p.id];const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);
   for(let i=s.bossRewards.length-1;i>=from;i--)if(s.players.some(p=>p.id===s.bossRewards[i].playerId&&p.profile?.shipId==='adminpod'))s.bossRewards.splice(i,1);
-  if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId))if(b.rules.xpReward)receipt.xp=b.kind==='reinforcement'?b.rules.xpReward:Math.max(0,Math.round(b.rules.xpReward*receipt.damage/Math.max(1,receipt.totalDamage)));}
+  if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId)){if(['colossusPro','granTitanPro'].includes(b.kind))receipt.enemyKind=b.kind;if(b.rules.xpReward)receipt.xp=b.kind==='reinforcement'?b.rules.xpReward:Math.max(0,Math.round(b.rules.xpReward*receipt.damage/Math.max(1,receipt.totalDamage)));}}
  }
  advanceNpcHazards(s,now,(owner,p,t)=>eligible(p,t)&&!p.duelId&&zoneOf(p)===owner.rules.zone);
  // Keep surviving escorts until killed or their parent begins a new instance.

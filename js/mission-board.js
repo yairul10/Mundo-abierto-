@@ -17,10 +17,10 @@ export function createMissionBoard(catalog,quests={}){
  }
  state.completed=[...new Set(state.completed)];quests.board=state;
  for(const m of catalog)state.progress[m.id]=m.objectives.map((o,i)=>Math.max(0,Math.min(o.goal,Math.floor(Number(state.progress[m.id]?.[i])||0))));
- function remaining(level){return catalog.filter(m=>level>=m.level&&!state.completed.includes(m.id)).sort((a,b)=>a.level-b.level)}
+ function remaining(level){for(const m of catalog.filter(m=>m.realm==='pvp'))if(quests.pvpMissions?.completed?.includes(m.id)){if(!state.completed.includes(m.id))state.completed.push(m.id);state.progress[m.id]=m.objectives.map(o=>o.goal)}return catalog.filter(m=>level>=m.level&&!state.completed.includes(m.id)).sort((a,b)=>a.level-b.level)}
  function event(type,sector,level,inventory={}){
   const awards=[];
-  for(const m of remaining(level)){
+  for(const m of remaining(level).filter(m=>m.realm!=='pvp')){
    const flags=state.flags[m.id]||(state.flags[m.id]={}),progress=state.progress[m.id];
    m.objectives.forEach((o,i)=>{
     if(o.sector&&o.sector!==sector)return;

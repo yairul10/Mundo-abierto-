@@ -93,3 +93,12 @@ test('live nameplate ranks use committed kills and refresh after checkpoint or r
   const restarted=new SharedWorld(ctx,{});assert.deepEqual(restarted.worldSnapshot(s).players[0].pvpRank,{kills:1,position:1});
  }finally{db.close()}
 });
+
+test('boss-kind migration retains pending old receipts and preserves new mission evidence after restart',()=>{
+ const db=new DatabaseSync(':memory:');db.exec("CREATE TABLE boss_rewards(id TEXT PRIMARY KEY,player_id TEXT,amount INTEGER,damage REAL,total_damage REAL,boss_id TEXT,claimed INTEGER DEFAULT 0,materials TEXT DEFAULT '{}',xp INTEGER DEFAULT 0)");db.prepare('INSERT INTO boss_rewards(id,player_id,amount,damage,total_damage,boss_id) VALUES(?,?,?,?,?,?)').run('old','pilot',10,1,10,'old-boss');
+ const ctx={getWebSockets:()=>[],blockConcurrencyWhile:fn=>fn(),storage:{sql:{exec(q,...args){const rows=db.prepare(q).all(...args);return {toArray:()=>rows}}},transactionSync(fn){db.exec('BEGIN');try{fn();db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}}};
+ try{const w=new SharedWorld(ctx,{}),s=world('normal');s.bossRewards=[{id:'new',playerId:'pilot',amount:100,damage:10,totalDamage:100,bossId:'new-boss',enemyKind:'colossusPro',xp:20}];w.worldSave(s,true);
+ const restarted=new SharedWorld(ctx,{}),messages=[];restarted.sendRewards({deserializeAttachment:()=>({}),serializeAttachment(){},send:m=>messages.push(JSON.parse(m))},'pilot');
+ const receipts=messages[0].receipts;assert.equal(receipts.length,2);assert.equal(receipts.find(r=>r.id==='new').enemyKind,'colossusPro');assert.equal(Object.hasOwn(receipts.find(r=>r.id==='old'),'enemyKind'),false);assert.equal(db.prepare('SELECT claimed FROM boss_rewards WHERE id=?').get('old').claimed,0);
+ }finally{db.close()}
+});
