@@ -1,4 +1,4 @@
-import {PVP_MISSIONS} from './pvp-missions.js?v=349';
+import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=348';
 import {rankedName} from './pvp-ranks.js?v=347';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=1';
@@ -16,7 +16,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=349';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=350';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
 import {shipThumbnail} from './ship-preview-catalog.js?v=337';
 import {createFarmPilot} from './farm-pilot.js?v=255';
@@ -25,7 +25,7 @@ import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings}
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=230';
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
-import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=349';
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=337';
@@ -2244,7 +2244,7 @@ function renderMission(){
  const list=$('missionList'),stamp=JSON.stringify([player.level,missions.map(m=>[m.id,missionBoard.state.progress[m.id]])]);if(list.dataset.stamp===stamp)return;list.dataset.stamp=stamp;const scroll=list.scrollTop;
  list.innerHTML=missions.length?missions.map(m=>{
   const progress=missionBoard.state.progress[m.id],total=m.objectives.reduce((n,o)=>n+o.goal,0),done=progress.reduce((n,v)=>n+v,0);
-  return '<article class="mission-card" data-mission="'+m.id+'"><strong>'+m.title+'</strong><small>Nivel '+m.level+'</small>'+m.objectives.map((o,i)=>'<small>'+o.label+' · '+progress[i]+'/'+o.goal+'</small>').join('')+'<div class="quest-progress"><i style="width:'+100*done/total+'%"></i></div><small class="mission-prize">'+m.reward.toLocaleString('es')+' créditos · '+m.xp.toLocaleString('es')+' XP</small></article>';
+  return '<article class="mission-card" data-mission="'+m.id+'"><strong>'+m.title+'</strong><small>Nivel '+m.level+'</small>'+m.objectives.map((o,i)=>'<small>'+o.label+' · '+progress[i]+'/'+o.goal+'</small>').join('')+'<div class="quest-progress"><i style="width:'+100*done/total+'%"></i></div><small class="mission-prize">'+missionPrize(m)+'</small></article>';
  }).join(''):'<p>No quedan misiones disponibles para tu nivel.</p>';list.scrollTop=scroll;
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
@@ -3334,7 +3334,7 @@ if(PVP_MODE){
  bossRewards(receipts){
   const latest=readOfflinePilot(localStorage),source=pvpHangar?player:latest;
   const result=saveBossReceipts(localStorage,SAVE_KEY,source,receipts,p=>pvpHangar?serializeHangarEditor(p,latest):p);
-  if(result.ids.length){player.quests=result.pilot.quests||{};missionBoard=createMissionBoard(missionCatalog,player.quests);renderMission();for(const m of result.missions){combatAudio.play('mission');lootToast('🏆 '+m.title+' · +'+m.reward.toLocaleString('es')+' créditos · +'+m.xp+' XP')}player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;player.xp=result.pilot.xp;if(pvpHangar)Object.assign(player,result.pilot);if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
+  if(result.ids.length){player.quests=result.pilot.quests||{};missionBoard=createMissionBoard(missionCatalog,player.quests);renderMission();for(const m of result.missions){combatAudio.play('mission');lootToast('🏆 '+m.title+' · '+missionPrize(m))}player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;player.xp=result.pilot.xp;if(pvpHangar)Object.assign(player,result.pilot);if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
   return result;
  },
  remoteShots(bullets){for(const b of bullets){
