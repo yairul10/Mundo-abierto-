@@ -1,18 +1,19 @@
+import {applyObsidianSkin} from './obsidian-skins.js?v=351';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=337';
 // Only one independent, demand-loaded WebGL preview is alive across the hangar.
 let active=null;
 export function stopAssemblyPreview(){active?.cleanup();active=null}
-export async function startAssemblyPreview(container,id){
+export async function startAssemblyPreview(container,id,{skin='original'}={}){
  if(!container||!SHIP_PREVIEWS[id]){stopAssemblyPreview();return}
- if(active?.id===id){active.mount(container);return}
+ if(active?.id===id&&active.skin===skin){active.mount(container);return}
  stopAssemblyPreview();
  let host=container,cancelled=false,raf=0,renderer=null,observer=null,model=null,lastTime=0,lastRender=0,dragging=false,lastX=0;
  const fallback=()=>{if(!cancelled&&host.isConnected)host.innerHTML=shipThumbnail(id)};
  const resize=()=>{if(!renderer||!camera)return;const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.position.set(2.6,2.1,-3.3).multiplyScalar(1/Math.min(1,camera.aspect));camera.lookAt(0,0,0);camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
  const cleanup=()=>{if(cancelled)return;cancelled=true;cancelAnimationFrame(raf);observer?.disconnect();disposePreviewModel(model);model=null;if(renderer){renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();renderer=null}};
  let camera=null;
- const session={id,cleanup,mount(next){observer?.disconnect();host=next;if(renderer&&model)host.replaceChildren(renderer.domElement);else host.innerHTML=shipThumbnail(id);observer?.observe(host);resize()}};
+ const session={id,skin,cleanup,mount(next){observer?.disconnect();host=next;if(renderer&&model)host.replaceChildren(renderer.domElement);else host.innerHTML=shipThumbnail(id);observer?.observe(host);resize()}};
  active=session;host.innerHTML=shipThumbnail(id);
  try{
   const THREE=await import('three');
@@ -27,7 +28,7 @@ export async function startAssemblyPreview(container,id){
   const loader=new GLTFLoader();
   const gltf=id==='obsidian'?{scene:await loadObsidian(THREE,loader)}:await loader.loadAsync('./assets/models/'+SHIP_PREVIEWS[id].model+'?v='+(SHIP_PREVIEWS[id].version||252));
   if(cancelled){disposePreviewModel(gltf.scene);return}
-  model=gltf.scene;const turntable=fitPreviewModel(THREE,model,id);scene.add(turntable);host.replaceChildren(renderer.domElement);
+  model=gltf.scene;if(id==='obsidian')applyObsidianSkin(THREE,model,skin);const turntable=fitPreviewModel(THREE,model,id);scene.add(turntable);host.replaceChildren(renderer.domElement);
   renderer.domElement.setAttribute('role','img');renderer.domElement.setAttribute('aria-label','Modelo 3D de '+SHIP_PREVIEWS[id].name+'. Arrastra para girar.');
   renderer.domElement.addEventListener('webglcontextlost',e=>{if(cancelled)return;e.preventDefault();if(active===session)stopAssemblyPreview();if(host.isConnected)host.innerHTML=shipThumbnail(id)});
   renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)});
@@ -37,7 +38,7 @@ export async function startAssemblyPreview(container,id){
   function frame(t){
    if(cancelled)return;
    if(!host.isConnected||host.closest('#hangarPanel')?.classList.contains('hidden')){if(active===session)stopAssemblyPreview();return}
-   if(!document.hidden&&host.getClientRects().length&&t-lastRender>=1000/30){if(!dragging&&lastTime)turntable.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;animateObsidian(model,lastTime?Math.min((t-lastTime)/1000,.05):0);renderer.render(scene,camera);lastTime=t;lastRender=t}else if(document.hidden)lastTime=0;
+   if(!document.hidden&&host.getClientRects().length&&t-lastRender>=1000/30){if(!dragging&&lastTime)turntable.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;animateObsidian(model,lastTime?Math.min((t-lastTime)/1000,.05):0,id==='obsidian'&&skin!=='original'?.65:0);renderer.render(scene,camera);lastTime=t;lastRender=t}else if(document.hidden)lastTime=0;
    raf=requestAnimationFrame(frame);
   }
   raf=requestAnimationFrame(frame);

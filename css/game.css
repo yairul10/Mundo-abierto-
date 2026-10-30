@@ -240,3 +240,10 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 .equipment-formation{display:inline-block;width:min(180px,45%);margin:5px;padding:10px;vertical-align:top}
 #hangarPanel .equipment-formation .formation-preview{height:70px}
 @media(max-height:500px){#hangarPanel{padding:12px 28px}#hangarPanel .hangar-inner{max-height:calc(100dvh - 24px)}#characterPanel{inset:5% 7%;max-height:90%;overflow-y:auto}}
+
+/* Admin-only Obsidian cosmetic trial, mounted only after server authorization. */
+.admin-designs{margin-top:24px;padding:20px;border:1px solid #667e9c;border-radius:18px;background:linear-gradient(145deg,#102337e8,#17172ce8)}
+.admin-designs .commerce-tabs{display:flex;flex-wrap:wrap;gap:10px}
+.admin-designs .commerce-tabs button{flex:1;min-width:110px}
+.admin-designs [aria-pressed="true"]{border-color:#b994f5;box-shadow:0 0 16px #9569dd40;background:#352751}
+.admin-designs .ship-model-preview{margin-top:14px;border-radius:14px;background:radial-gradient(ellipse,#25334b99,#050b17cc);overflow:hidden}

@@ -1,3 +1,5 @@
+import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=351';
+import {startAssemblyPreview} from './assembly-3d-preview.js?v=351';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=348';
 import {rankedName} from './pvp-ranks.js?v=347';
@@ -2113,6 +2115,21 @@ function changeShip(id){
  player.shipId=id;loadAssembledVisual(id);classAbilityCd=0;classAbilityTime=0;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
  lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
 }
+let adminObsidianSkin='original';
+function renderAdminDesigns(){
+ const home=$('hangarHomeView');if(!home)return;
+ let panel=$('adminObsidianDesigns');
+ if(!PVP_MODE||!pvpSession?.adminShipAllowed){panel?.remove();return}
+ if(!panel){panel=document.createElement('section');panel.id='adminObsidianDesigns';panel.className='admin-designs';home.appendChild(panel)}
+ panel.innerHTML='<h3>Obsidian · Diseños de prueba</h3><p class="muted">Solo administrador · Vista local durante esta sesión. Sin cambios de estadísticas. Los demás jugadores ven el diseño original.</p><div class="commerce-tabs" role="group" aria-label="Diseño de Obsidian">'+Object.entries(OBSIDIAN_SKINS).map(([id,skin])=>'<button type="button" data-obsidian-skin="'+id+'" aria-pressed="'+(adminObsidianSkin===id)+'">'+skin.name+'</button>').join('')+'</div><div class="ship-model-preview" id="adminObsidianPreview" style="height:260px"></div><p class="muted">Selecciona un diseño para previsualizarlo. Se aplica al volar con tu Obsidian.</p>';
+ panel.querySelectorAll('[data-obsidian-skin]').forEach(button=>button.onclick=()=>{
+  if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed)return;
+  adminObsidianSkin=allowedObsidianSkin(button.dataset.obsidianSkin,true);
+  panel.querySelectorAll('[data-obsidian-skin]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.obsidianSkin===adminObsidianSkin)));
+  applyObsidianSkin(THREE,playerMesh.userData.obsidianModel,adminObsidianSkin);
+  void startAssemblyPreview($('adminObsidianPreview'),'obsidian',{skin:adminObsidianSkin});
+ });
+}
 function renderShips(){
  const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
@@ -2519,7 +2536,7 @@ function hangarRefresh(){
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
  $('hangarMessage').textContent=missing&&player.gold<cost?'Necesitas '+cost+' créditos para reparar.':'';
- renderDrones();renderUpgrades();renderShips();if(hangarUI)hangarUI.render();
+ renderDrones();renderUpgrades();renderShips();if(hangarUI)hangarUI.render();renderAdminDesigns();
 }
 function resetDockControls(){
  joy.throttle=0;joy.strafe=0;$('stick').style.transform='';
@@ -3152,7 +3169,7 @@ const espectroEnginesActive=player.shipId==='espectro'&&!!espectroVisual?.visibl
 const assembledVisual=ASSEMBLED_SHIPS[player.shipId]?playerMesh.userData[player.shipId+'Model']:null;
 const assembledEnginesActive=!!assembledVisual?.visible;
 if(player.shipId==='adminpod')animateAdminPod(assembledVisual,now/1000,docked||landing?0:Math.hypot(throttle,strafe));
-if(player.shipId==='obsidian')animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe));
+if(player.shipId==='obsidian'){applyObsidianSkin(THREE,assembledVisual,allowedObsidianSkin(adminObsidianSkin,PVP_MODE&&pvpSession?.adminShipAllowed));animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe))}
 const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive;
 for(const glow of engineGlows)glow.visible=!customEnginesActive;
 for(const l of engineLights){l.visible=!customEnginesActive&&graphics.profile.lights;l.intensity=18+Math.abs(throttle)*48}
@@ -3279,7 +3296,7 @@ if(PVP_MODE){
  }
 
  function cloneClean(source){const saved=[];source.traverse(o=>{saved.push([o,o.userData]);o.userData={}});let copy;try{copy=source.clone(true)}finally{for(const [o,data]of saved)o.userData=data}return copy}
- function syncRemoteVisual(r){const id=r.shipId;if(ASSEMBLED_SHIPS[id])loadAssembledVisual(id);const key=ASSEMBLED_SHIPS[id]?id+'Model':id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===r.source)return;r.source=source;r.mesh.clear();const copy=cloneClean(source);copy.visible=true;r.mesh.add(copy);}
+ function syncRemoteVisual(r){const id=r.shipId;if(ASSEMBLED_SHIPS[id])loadAssembledVisual(id);const key=ASSEMBLED_SHIPS[id]?id+'Model':id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===r.source)return;r.source=source;r.mesh.clear();const copy=cloneClean(source);if(id==='obsidian')resetObsidianClone(copy);copy.visible=true;r.mesh.add(copy);}
 
  let returnPortal=null,returnModelReady=false;
  function mountReturnPortal(){
