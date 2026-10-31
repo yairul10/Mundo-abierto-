@@ -1,5 +1,5 @@
 import {rankedName} from './pvp-ranks.js?v=347';
-import {mountPvpSocialUI} from './pvp-social-ui.js?v=347';
+import {mountPvpSocialUI} from './pvp-social-ui.js?v=352';
 import {mountPvpRecovery} from './pvp-recovery.js?v=1';
 import {PVP_CLIENT_VERSION,checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {pvpAccountToken,clearPvpAccountToken,pvpAccountProfile} from './pvp-account.js?v=344';
@@ -28,7 +28,7 @@ export function startSharedSession(bridge){
  function note(text){message.textContent=text;messageUntil=performance.now()+6500}
  function send(m){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(m))}
  const chat=mountMapChat({send,realm});const chatStyle=document.createElement('link');chatStyle.rel='stylesheet';chatStyle.href='./css/map-chat.css?v=2';document.head.append(chatStyle);
- const zoneStyle=document.createElement('link');zoneStyle.rel='stylesheet';zoneStyle.href='./css/pvp-zones.css?v=1';document.head.append(zoneStyle);
+ const zoneStyle=document.createElement('link');zoneStyle.rel='stylesheet';zoneStyle.href='./css/pvp-zones.css?v=352';document.head.append(zoneStyle);
  const social=mountPvpSocialUI({send,getState:()=>({state,me,selected})});
  const recovery=mountPvpRecovery({send,readPilot:()=>readOfflinePilot(localStorage),settle:bill=>bridge.settleRespawn(bill),onReady:bill=>bridge.respawnReady(bill),notice:note});
  const active=()=>!!me&&ws?.readyState===WebSocket.OPEN&&performance.now()-lastReceived<3000;

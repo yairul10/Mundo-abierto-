@@ -1,4 +1,4 @@
-import {createTitanEffects,TITAN_BLAST_DURATION} from './titan-effects.js?v=339';
+import {createTitanEffects,TITAN_BLAST_DURATION,titanBombTangent} from './titan-effects.js?v=352';
 // Presentation only: impact, damage, paralysis and expiry are server decisions.
 export function createNpcEffects(T,scene,camera,{sound,targetPosition,hidden}){
  const fx=createTitanEffects(T,()=>6),shots=[],blasts=[],warnings=new Map(),tethers=new Map();let clock=0;
@@ -46,7 +46,7 @@ export function createNpcEffects(T,scene,camera,{sound,targetPosition,hidden}){
   for(let i=shots.length-1;i>=0;i--){const p=shots[i],age=(clock-p.born)/1000,r=entities.get(p.owner),bomb=p.kind==='bomb';
    if(!r||r.dead||clock>=p.expires){if(bomb&&r&&!r.dead&&clock-p.expires<500){const mesh=fx.blast(p.target);mesh.scale.setScalar(p.radius/150);scene.add(mesh);blasts.push({mesh,age:0});sound('heavyBlast',p.target)}dispose(p);shots.splice(i,1);continue}
    p.mesh.visible=!hidden();
-   if(bomb){const progress=Math.max(0,Math.min(1,(clock-p.born)/(p.expires-p.born)));p.mesh.position.lerpVectors(p.start,p.target,progress);p.mesh.position.y+=Math.sin(progress*Math.PI)*p.arc;p.mesh.lookAt(p.target);fx.animateProjectile(p.mesh,age,true);p.marker.visible=!hidden();fx.animateMarker(p.marker,progress*3.5,camera)}
+   if(bomb){const progress=Math.max(0,Math.min(1,(clock-p.born)/(p.expires-p.born)));p.mesh.position.lerpVectors(p.start,p.target,progress);p.mesh.position.y+=Math.sin(progress*Math.PI)*p.arc;const tangent=titanBombTangent(p.start,p.target,p.arc,progress);p.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(...tangent).normalize());fx.animateProjectile(p.mesh,age,true);p.marker.visible=!hidden();fx.animateMarker(p.marker,progress*3.5,camera)}
    else{p.mesh.position.copy(p.start).addScaledVector(p.velocity,age);p.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),p.velocity.clone().normalize());if(p.kind!=='sniper')fx.animateProjectile(p.mesh,age);if(p.cable){p.cable.visible=!hidden();points(p.cable,r.mesh.position,p.mesh.position)}}
   }
   for(let i=blasts.length-1;i>=0;i--){const b=blasts[i];b.age+=dt;if(b.age>=TITAN_BLAST_DURATION){fx.dispose(b.mesh);blasts.splice(i,1)}else{b.mesh.visible=!hidden();fx.animateBlast(b.mesh,b.age,camera)}}

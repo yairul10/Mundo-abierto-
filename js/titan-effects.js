@@ -1,6 +1,12 @@
 export const TITAN_BOMB_FUSE=3.5;
 export const TITAN_BLAST_DURATION=.95;
 export const titanBombProgress=age=>Math.max(0,Math.min(1,age/TITAN_BOMB_FUSE));
+// Derivative of start + (target-start)*u + Y*sin(PI*u)*arc.
+// The model's nose is +Y, rather than the +Z axis used by Object3D.lookAt.
+export function titanBombTangent(start,target,arc=0,progress=0){
+ const d=[target.x-start.x,target.y-start.y+Math.PI*arc*Math.cos(Math.PI*progress),target.z-start.z];
+ return Math.hypot(...d)>1e-8?d:[0,1,0];
+}
 // Lightweight, self-contained projectile visuals. Local +Y is the flight axis.
 export function disposeTitanVisual(root){
  const geometries=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)materials.add(m)});

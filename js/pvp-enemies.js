@@ -1,4 +1,4 @@
-import {createNpcEffects} from './pvp-npc-effects.js?v=339';
+import {createNpcEffects} from './pvp-npc-effects.js?v=352';
 import {createCatapultRig} from './catapult-rig.js?v=339';
 import {createHarpoonRig} from './harpoon-rig.js?v=339';
 import {createGranTitan} from './gran-titan.js?v=326';
