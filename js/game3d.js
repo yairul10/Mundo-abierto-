@@ -502,7 +502,22 @@ modelLoader.load('./assets/models/spaceplane.glb?v=353',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
  // Spaceplane ya mira hacia −Z, en la dirección de avance.
- mountPlayerModel(fitPlayerModel(model,0),'xWingModel');
+ const visual=fitPlayerModel(model,0);
+ // Spaceplane: measured nozzle centers in the source mesh, before fitting.
+ // fitPlayerModel has already centered the source; use its translation to
+ // convert the original mesh coordinates into the visual's local space.
+ const flames=[];
+ for(const x of [-2.35,2.35]){
+  const nozzle=new THREE.Group();
+  nozzle.position.set(x+model.position.x,-.16+model.position.y,1.56+model.position.z);
+  const geometry=new THREE.ConeGeometry(.29,2.6,12,1,true);
+  geometry.translate(0,1.3,0); // Keep the base on the nozzle when length changes.
+  const flame=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0x38bfff,transparent:true,opacity:.6,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
+  flame.rotation.x=Math.PI/2;flame.visible=false;nozzle.add(flame);
+  visual.add(nozzle);flames.push(flame);
+ }
+ visual.userData.engineFlames=flames;
+ mountPlayerModel(visual,'xWingModel');
 },undefined,err=>{console.warn('Aurora básica no disponible; cargando respaldo.',err);loadAuroraFallback()});
 // El X-Wing tiene dos turbinas visibles: situar los efectos en ellas, no en los
 // cuatro soportes del motor del modelo anterior. Sin discos blancos opacos.
@@ -3180,11 +3195,13 @@ const assembledVisual=ASSEMBLED_SHIPS[player.shipId]?playerMesh.userData[player.
 const assembledEnginesActive=!!assembledVisual?.visible;
 if(player.shipId==='adminpod')animateAdminPod(assembledVisual,now/1000,docked||landing?0:Math.hypot(throttle,strafe));
 if(player.shipId==='obsidian'){applyObsidianSkin(THREE,assembledVisual,allowedObsidianSkin(adminObsidianSkin,PVP_MODE&&pvpSession?.adminShipAllowed));animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe))}
-const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive;
+const auroraVisual=playerMesh.userData.xWingModel;
+const auroraEnginesActive=player.shipId==='aurora'&&!!auroraVisual?.visible;
+const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive||auroraEnginesActive;
 for(const glow of engineGlows)glow.visible=!customEnginesActive;
 for(const l of engineLights){l.visible=!customEnginesActive&&graphics.profile.lights;l.intensity=18+Math.abs(throttle)*48}
 for(const t of engineTrails){t.visible=!customEnginesActive;t.scale.y=.18+Math.abs(throttle)*1.35;t.scale.x=.75+Math.abs(throttle)*.18;t.scale.z=.75+Math.abs(throttle)*.18;t.material.opacity=.12+Math.abs(throttle)*.58}
-for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,espectroEnginesActive],[assembledVisual,assembledEnginesActive]]){
+for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,espectroEnginesActive],[assembledVisual,assembledEnginesActive],[auroraVisual,auroraEnginesActive]]){
  for(const flame of visual?.userData.engineFlames||[]){
   const power=Math.abs(throttle);
   flame.visible=active&&power>.02&&!docked&&!landing;
