@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {makeCombatPlayer,ability,volley,defenseDamage} from '../server/pvp/combat.mjs';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
@@ -8,7 +9,7 @@ for(const [id,mult]of [['espectro',1.6],['segadora',1.7],['azote',1.7]]){
  close(defenseDamage(p,100,10001,()=>1),['segadora','azote'].includes(id)?120:130);
  assert.equal(p.energy,135);assert.equal(p.abilityUntil,15000);
 }
-for(const [id,mult]of [['titan',.3],['bastion',.2],['egida',.2]]){
+for(const [id,mult]of [['titan',.6],['bastion',.5],['egida',.5]]){
  const p=pilot(id);close(defenseDamage(p,100,10001),90*mult);assert.equal(p.energy,145);assert.equal(p.abilityUntil,16000);
 }
 for(const [id,allowsAt500]of [['aurora',false],['centella',true],['vertigo',true]]){
@@ -17,3 +18,9 @@ for(const [id,allowsAt500]of [['aurora',false],['centella',true],['vertigo',true
  assert.equal(p.energy,160);assert.equal(p.abilityUntil,15000);
 }
 console.log('New fleet abilities: enhanced cadence, shield and fury; original effects, durations and energy preserved.');
+
+// Browser and authoritative server must agree on active Fortaleza coefficients.
+const client=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
+const expression=client.match(/if\(classAbilityActive\('titan'\)\)damage\*=([^;]+);/)[1];
+const clientMultiplier=new Function('player','return '+expression);
+for(const [shipId,expected] of [['titan',.6],['bastion',.5],['egida',.5]])assert.equal(clientMultiplier({shipId}),expected);

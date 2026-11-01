@@ -9,12 +9,12 @@ const pilot={shipId:'agilbasica',ownedShips:{aurora:true,agilbasica:true},shipBa
 assert.equal(offlineRoster({}).profiles.agilbasica,undefined,'New ship must be purchased');
 assert.equal(initialPvpPilot(pilot).shipId,'agilbasica');
 const pve=offlineRoster(pilot).profiles.agilbasica;
-assert.deepEqual([pve.maxHp,pve.attack,pve.defense,pve.speed],[85,100,75,175]);
+assert.deepEqual([pve.maxHp,pve.attack,pve.defense,pve.speed],[100,100,100,150]);
 assert.equal(shipRole('agilbasica'),'aurora');
 const arena=pvpRoster(pilot),player={roster:importRoster(arena.profiles)};
 assert.equal(equip(player,'agilbasica'),true);
 assert.equal(player.profile.shipId,'agilbasica');
-assert.deepEqual([player.profile.maxHp,player.profile.attack,player.profile.defense,player.profile.speed],[700,50,25,125]);
+assert.deepEqual([player.profile.maxHp,player.profile.attack,player.profile.defense,player.profile.speed],[1400,70,100,105]);
 assert.deepEqual(pilot.shipBaseStats,base,'Switching into PvP must preserve saved base stats');
 assert.equal(SHIP_PREVIEWS.aurora.model,'spaceplane.glb');
 assert.equal(SHIP_PREVIEWS.agilbasica.model,'x_wing_starfighter.glb');
