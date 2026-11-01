@@ -1903,18 +1903,18 @@ player.ownedShips.aurora=true;
 player.shipId=SHIP_TYPES[player.shipId]&&player.ownedShips[player.shipId]?player.shipId:'aurora';
 player.shipSpecializations=player.shipSpecializations&&typeof player.shipSpecializations==='object'?player.shipSpecializations:{};
 // Habilidades de clase: duración y recarga solo durante la sesión de vuelo.
-const SHIP_ABILITIES={adminpod:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:25,energy:40},
- azote:{name:'Furia de Azote',icon:'🔥',duration:5,cooldown:25,energy:65},
- egida:{name:'Fortaleza de Égida',icon:'🛡️',duration:6,cooldown:25,energy:55},
- vertigo:{name:'Sobrecarga de Vértigo · rompe el arpón',icon:'⚡',duration:5,cooldown:25,energy:40},
- obsidian:{name:'Sobrecarga ancestral',icon:'⚡',duration:5,cooldown:25,energy:40},
- agilbasica:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:25,energy:40},
- aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:25,energy:40},
- titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:25,energy:55},
- espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:25,energy:65},
- segadora:{name:'Furia de la Segadora',icon:'🔥',duration:5,cooldown:25,energy:65},
- bastion:{name:'Fortaleza de Bastión',icon:'🛡️',duration:6,cooldown:25,energy:55},
- centella:{name:'Sobrecarga de Centella · rompe el arpón',icon:'⚡',duration:5,cooldown:25,energy:40}
+const SHIP_ABILITIES={adminpod:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:15,energy:40},
+ azote:{name:'Furia de Azote',icon:'🔥',duration:5,cooldown:15,energy:65},
+ egida:{name:'Fortaleza de Égida',icon:'🛡️',duration:6,cooldown:15,energy:55},
+ vertigo:{name:'Sobrecarga de Vértigo · rompe el arpón',icon:'⚡',duration:5,cooldown:15,energy:40},
+ obsidian:{name:'Sobrecarga ancestral',icon:'⚡',duration:5,cooldown:15,energy:40},
+ agilbasica:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:15,energy:40},
+ aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:15,energy:40},
+ titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:15,energy:55},
+ espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:15,energy:65},
+ segadora:{name:'Furia de la Segadora',icon:'🔥',duration:5,cooldown:15,energy:65},
+ bastion:{name:'Fortaleza de Bastión',icon:'🛡️',duration:6,cooldown:15,energy:55},
+ centella:{name:'Sobrecarga de Centella · rompe el arpón',icon:'⚡',duration:5,cooldown:15,energy:40}
 };
 const SPECIAL_UPGRADES={
  aurora:[['energy','Reactor eficiente','Regeneración de energía +4 % por nivel'],['overload','Sobrecarga avanzada','Duración +0,25 s por nivel'],['shield','Escudos recuperadores','Recupera 0,3 % del casco por segundo durante Sobrecarga']],

@@ -1,6 +1,6 @@
 {
   "assumptions": {
-    "duels": "Reglas reales del servidor para habilidades, disparos, mitigación y energía. Naves quietas, probabilidad independiente de impacto del 70 %, dos láseres principales y un misil por lanzamiento, 30 semillas por caso. Nivel 40. Sin habilidades PvP adicionales, robot, formaciones, potenciadores ni mejoras. Sin vuelo de proyectiles ni maniobras. Las habilidades se activan al estar disponibles con energía suficiente; se respeta la recarga de 25 segundos que aplica el código.",
+    "duels": "Reglas reales del servidor para habilidades, disparos, mitigación y energía. Naves quietas, probabilidad independiente de impacto del 70 %, dos láseres principales y un misil por lanzamiento, 30 semillas por caso. Nivel 40. Sin habilidades PvP adicionales, robot, formaciones, potenciadores ni mejoras. Sin vuelo de proyectiles ni maniobras. Las habilidades se activan al estar disponibles con energía suficiente; se respeta la recarga de 15 segundos que aplica el código.",
     "enemies": "Estadísticas base por nivel, sin mejoras, en niveles 40 y 105; 100 % de impactos salientes y entrantes. Patrones entrantes simplificados: una bomba de Catapulta/6 s, daño de Arponero/1 s, un disparo de Acechador/3 s, un misil de Coloso/5 s y una lanza de Gran Titán/8 s. Sin refuerzos, superposición de áreas, bombas del Titán, regeneración enemiga ni movimiento. El cálculo de daño continúa tras la muerte hipotética del jugador para comparar presupuestos; no representa una victoria completa."
   },
   "duels": [
@@ -31,22 +31,22 @@
       "b": "espectro",
       "abilities": true,
       "drones": 0,
-      "winsA": 18,
-      "winsB": 10,
-      "draws": 2,
+      "winsA": 26,
+      "winsB": 1,
+      "draws": 3,
       "timeouts": 0,
-      "meanSeconds": 108.62000000000002
+      "meanSeconds": 106.07666666666664
     },
     {
       "a": "titan",
       "b": "espectro",
       "abilities": true,
       "drones": 8,
-      "winsA": 0,
-      "winsB": 30,
-      "draws": 0,
+      "winsA": 1,
+      "winsB": 27,
+      "draws": 2,
       "timeouts": 0,
-      "meanSeconds": 74.43666666666667
+      "meanSeconds": 77.42333333333335
     },
     {
       "a": "titan",
@@ -79,7 +79,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 117.18333333333337
+      "meanSeconds": 116.5066666666667
     },
     {
       "a": "titan",
@@ -90,7 +90,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 97.37333333333336
+      "meanSeconds": 97.02333333333333
     },
     {
       "a": "espectro",
@@ -123,7 +123,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 56.283333333333324
+      "meanSeconds": 54.78999999999998
     },
     {
       "a": "espectro",
@@ -134,7 +134,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 36.91666666666666
+      "meanSeconds": 34.699999999999996
     },
     {
       "a": "bastion",
@@ -163,22 +163,22 @@
       "b": "segadora",
       "abilities": true,
       "drones": 0,
-      "winsA": 28,
-      "winsB": 1,
-      "draws": 1,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 100.43
+      "meanSeconds": 98.07333333333334
     },
     {
       "a": "bastion",
       "b": "segadora",
       "abilities": true,
       "drones": 8,
-      "winsA": 26,
-      "winsB": 2,
-      "draws": 2,
+      "winsA": 29,
+      "winsB": 1,
+      "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 61.90666666666665
+      "meanSeconds": 61.136666666666656
     },
     {
       "a": "bastion",
@@ -211,7 +211,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 105.14333333333337
+      "meanSeconds": 104.02333333333335
     },
     {
       "a": "bastion",
@@ -222,7 +222,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 64.54333333333332
+      "meanSeconds": 64.47333333333333
     },
     {
       "a": "segadora",
@@ -255,7 +255,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 59.57333333333333
+      "meanSeconds": 56.53999999999999
     },
     {
       "a": "segadora",
@@ -266,7 +266,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 36.17
+      "meanSeconds": 34.396666666666654
     },
     {
       "a": "egida",
@@ -299,7 +299,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 92.40333333333332
+      "meanSeconds": 90.11666666666665
     },
     {
       "a": "egida",
@@ -310,7 +310,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 49.60999999999999
+      "meanSeconds": 48.49
     },
     {
       "a": "egida",
@@ -343,7 +343,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 96.13666666666668
+      "meanSeconds": 95.62333333333335
     },
     {
       "a": "egida",
@@ -354,7 +354,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 51.26666666666667
+      "meanSeconds": 51.056666666666665
     },
     {
       "a": "azote",
@@ -387,7 +387,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 57.75333333333332
+      "meanSeconds": 54.37
     },
     {
       "a": "azote",
@@ -398,7 +398,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 31.99333333333334
+      "meanSeconds": 31.22333333333334
     },
     {
       "a": "obsidian",
@@ -427,11 +427,11 @@
       "b": "egida",
       "abilities": true,
       "drones": 0,
-      "winsA": 30,
-      "winsB": 0,
+      "winsA": 28,
+      "winsB": 2,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 110.72666666666669
+      "meanSeconds": 119.43166666666669
     },
     {
       "a": "obsidian",
@@ -442,7 +442,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 56.77166666666667
+      "meanSeconds": 59.64833333333332
     },
     {
       "a": "obsidian",
@@ -475,7 +475,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 60.626666666666665
+      "meanSeconds": 59.595000000000006
     },
     {
       "a": "obsidian",
@@ -486,7 +486,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 29.025
+      "meanSeconds": 28.971666666666668
     },
     {
       "a": "obsidian",
@@ -519,7 +519,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 65.09166666666665
+      "meanSeconds": 62.08333333333333
     },
     {
       "a": "obsidian",
@@ -530,7 +530,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 31.496666666666666
+      "meanSeconds": 30.956666666666667
     }
   ],
   "enemies": [
@@ -657,7 +657,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 5000,
       "secondsToDamageBudget": 28.75,
-      "secondsToDeath": 24,
+      "secondsToDeath": 26,
       "canFinishBeforeDeath": false
     },
     {
@@ -685,8 +685,8 @@
       "incomingAccuracy": 1,
       "enemyHp": 5000,
       "secondsToDamageBudget": 35.05,
-      "secondsToDeath": 35,
-      "canFinishBeforeDeath": false
+      "secondsToDeath": null,
+      "canFinishBeforeDeath": true
     },
     {
       "ship": "titan",
@@ -895,7 +895,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 48000,
       "secondsToDamageBudget": 343.05,
-      "secondsToDeath": 35,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -923,7 +923,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 48000,
       "secondsToDamageBudget": 154.05,
-      "secondsToDeath": 35,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -937,7 +937,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 489.35,
-      "secondsToDeath": 24,
+      "secondsToDeath": 32,
       "canFinishBeforeDeath": false
     },
     {
@@ -951,7 +951,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 574.05,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -965,7 +965,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 218.45,
-      "secondsToDeath": 24,
+      "secondsToDeath": 32,
       "canFinishBeforeDeath": false
     },
     {
@@ -979,7 +979,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 256.95,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -1105,7 +1105,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 11500,
       "secondsToDamageBudget": 28.05,
-      "secondsToDeath": 25,
+      "secondsToDeath": 27,
       "canFinishBeforeDeath": false
     },
     {
@@ -1343,7 +1343,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 100000,
       "secondsToDamageBudget": 289.85,
-      "secondsToDeath": 40,
+      "secondsToDeath": 45,
       "canFinishBeforeDeath": false
     },
     {
@@ -1371,7 +1371,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 100000,
       "secondsToDamageBudget": 129.55,
-      "secondsToDeath": 40,
+      "secondsToDeath": 45,
       "canFinishBeforeDeath": false
     },
     {
@@ -1385,7 +1385,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 454.35,
-      "secondsToDeath": 24,
+      "secondsToDeath": 32,
       "canFinishBeforeDeath": false
     },
     {
@@ -1399,7 +1399,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 534.15,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -1413,7 +1413,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 203.05,
-      "secondsToDeath": 24,
+      "secondsToDeath": 32,
       "canFinishBeforeDeath": false
     },
     {
@@ -1427,7 +1427,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 239.45,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -1454,7 +1454,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 40.65,
+      "secondsToDamageBudget": 37.85,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -1482,7 +1482,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 44.85,
+      "secondsToDamageBudget": 42.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -1510,7 +1510,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 19.65,
+      "secondsToDamageBudget": 18.95,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -1538,7 +1538,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 21.75,
+      "secondsToDamageBudget": 21.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -1566,7 +1566,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 68.65,
+      "secondsToDamageBudget": 63.75,
       "secondsToDeath": 2,
       "canFinishBeforeDeath": false
     },
@@ -1580,7 +1580,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 5000,
-      "secondsToDamageBudget": 18.25,
+      "secondsToDamageBudget": 16.85,
       "secondsToDeath": 7,
       "canFinishBeforeDeath": false
     },
@@ -1594,7 +1594,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 77.05,
+      "secondsToDamageBudget": 72.15,
       "secondsToDeath": 2,
       "canFinishBeforeDeath": false
     },
@@ -1622,7 +1622,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 32.95,
+      "secondsToDamageBudget": 32.25,
       "secondsToDeath": 2,
       "canFinishBeforeDeath": false
     },
@@ -1650,7 +1650,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 36.45,
+      "secondsToDamageBudget": 35.05,
       "secondsToDeath": 2,
       "canFinishBeforeDeath": false
     },
@@ -1678,7 +1678,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 53.95,
+      "secondsToDamageBudget": 50.45,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -1706,7 +1706,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 59.55,
+      "secondsToDamageBudget": 56.75,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -1734,7 +1734,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 26.65,
+      "secondsToDamageBudget": 25.95,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -1776,7 +1776,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 168.05,
+      "secondsToDamageBudget": 158.25,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -1790,7 +1790,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 185.55,
+      "secondsToDamageBudget": 175.75,
       "secondsToDeath": 10,
       "canFinishBeforeDeath": false
     },
@@ -1804,7 +1804,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 80.55,
+      "secondsToDamageBudget": 78.45,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -1818,7 +1818,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 89.65,
+      "secondsToDamageBudget": 87.55,
       "secondsToDeath": 10,
       "canFinishBeforeDeath": false
     },
@@ -1832,7 +1832,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 280.05,
+      "secondsToDamageBudget": 266.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -1846,7 +1846,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 310.15,
+      "secondsToDamageBudget": 294.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -1860,7 +1860,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 135.15,
+      "secondsToDamageBudget": 132.35,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -1874,7 +1874,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 151.25,
+      "secondsToDamageBudget": 147.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -1902,7 +1902,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 36.45,
+      "secondsToDamageBudget": 35.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -1930,7 +1930,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 42.05,
+      "secondsToDamageBudget": 39.95,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -1958,7 +1958,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 18.25,
+      "secondsToDamageBudget": 17.55,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -1986,7 +1986,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 20.35,
+      "secondsToDamageBudget": 19.65,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -2014,7 +2014,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 63.05,
+      "secondsToDamageBudget": 60.25,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2028,7 +2028,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 11500,
-      "secondsToDamageBudget": 16.15,
+      "secondsToDamageBudget": 15.45,
       "secondsToDeath": 7,
       "canFinishBeforeDeath": false
     },
@@ -2042,7 +2042,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 70.05,
+      "secondsToDamageBudget": 66.55,
       "secondsToDeath": 2,
       "canFinishBeforeDeath": false
     },
@@ -2098,7 +2098,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 34.35,
+      "secondsToDamageBudget": 33.65,
       "secondsToDeath": 2,
       "canFinishBeforeDeath": false
     },
@@ -2126,7 +2126,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 50.45,
+      "secondsToDamageBudget": 48.35,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2154,7 +2154,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 55.35,
+      "secondsToDamageBudget": 52.55,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2182,7 +2182,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 24.55,
+      "secondsToDamageBudget": 23.15,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2210,7 +2210,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 27.35,
+      "secondsToDamageBudget": 26.65,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2224,7 +2224,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 140.75,
+      "secondsToDamageBudget": 133.75,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -2238,7 +2238,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 154.75,
+      "secondsToDamageBudget": 148.45,
       "secondsToDeath": 10,
       "canFinishBeforeDeath": false
     },
@@ -2252,7 +2252,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 68.65,
+      "secondsToDamageBudget": 65.85,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -2266,7 +2266,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 76.35,
+      "secondsToDamageBudget": 74.25,
       "secondsToDeath": 10,
       "canFinishBeforeDeath": false
     },
@@ -2280,7 +2280,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 259.05,
+      "secondsToDamageBudget": 245.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2294,7 +2294,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 289.15,
+      "secondsToDamageBudget": 273.75,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2308,7 +2308,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 126.05,
+      "secondsToDamageBudget": 122.55,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2322,7 +2322,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 140.05,
+      "secondsToDamageBudget": 136.55,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2336,7 +2336,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 3000,
-      "secondsToDamageBudget": 16.2,
+      "secondsToDamageBudget": 15.9,
       "secondsToDeath": 12,
       "canFinishBeforeDeath": false
     },
@@ -2350,7 +2350,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 70.05,
+      "secondsToDamageBudget": 67.5,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -2364,7 +2364,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 3000,
-      "secondsToDamageBudget": 16.2,
+      "secondsToDamageBudget": 15.9,
       "secondsToDeath": 12,
       "canFinishBeforeDeath": false
     },
@@ -2378,7 +2378,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 70.05,
+      "secondsToDamageBudget": 67.5,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -2462,7 +2462,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 116.45,
+      "secondsToDamageBudget": 112.3,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2490,7 +2490,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 116.45,
+      "secondsToDamageBudget": 112.3,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2518,7 +2518,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 51.5,
+      "secondsToDamageBudget": 49.4,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2546,7 +2546,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 51.5,
+      "secondsToDamageBudget": 49.4,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2560,7 +2560,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 4000,
-      "secondsToDamageBudget": 21.8,
+      "secondsToDamageBudget": 21.05,
       "secondsToDeath": 9,
       "canFinishBeforeDeath": false
     },
@@ -2574,7 +2574,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 91.9,
+      "secondsToDamageBudget": 90.9,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2588,7 +2588,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 4000,
-      "secondsToDamageBudget": 21.8,
+      "secondsToDamageBudget": 21.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -2602,7 +2602,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 91.9,
+      "secondsToDamageBudget": 90.9,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2630,7 +2630,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 41.45,
+      "secondsToDamageBudget": 40.1,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2658,7 +2658,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 41.45,
+      "secondsToDamageBudget": 40.1,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2672,7 +2672,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 280.05,
+      "secondsToDamageBudget": 273.05,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -2686,7 +2686,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 280.05,
+      "secondsToDamageBudget": 273.05,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -2700,7 +2700,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 125.4,
+      "secondsToDamageBudget": 121.1,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -2714,7 +2714,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 125.4,
+      "secondsToDamageBudget": 121.1,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -2728,7 +2728,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 469.05,
+      "secondsToDamageBudget": 455.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2742,7 +2742,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 469.05,
+      "secondsToDamageBudget": 455.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2756,7 +2756,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 208.3,
+      "secondsToDamageBudget": 202.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2770,7 +2770,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 208.3,
+      "secondsToDamageBudget": 202.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -2798,7 +2798,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 63.2,
+      "secondsToDamageBudget": 63.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -2826,7 +2826,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 63.2,
+      "secondsToDamageBudget": 63.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -2896,7 +2896,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 11500,
-      "secondsToDamageBudget": 26.25,
+      "secondsToDamageBudget": 25.35,
       "secondsToDeath": 13,
       "canFinishBeforeDeath": false
     },
@@ -2910,7 +2910,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 107.35,
+      "secondsToDamageBudget": 105.05,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2924,7 +2924,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 11500,
-      "secondsToDamageBudget": 26.25,
+      "secondsToDamageBudget": 25.35,
       "secondsToDeath": 11,
       "canFinishBeforeDeath": false
     },
@@ -2938,7 +2938,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 107.35,
+      "secondsToDamageBudget": 105.05,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2966,7 +2966,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 48.45,
+      "secondsToDamageBudget": 46.65,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -2994,7 +2994,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 48.45,
+      "secondsToDamageBudget": 46.65,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -3008,7 +3008,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 9200,
-      "secondsToDamageBudget": 21.05,
+      "secondsToDamageBudget": 20.45,
       "secondsToDeath": 9,
       "canFinishBeforeDeath": false
     },
@@ -3022,7 +3022,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 84.9,
+      "secondsToDamageBudget": 84.05,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -3036,7 +3036,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 9200,
-      "secondsToDamageBudget": 21.05,
+      "secondsToDamageBudget": 20.45,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -3050,7 +3050,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 84.9,
+      "secondsToDamageBudget": 84.05,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -3078,7 +3078,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 37.95,
+      "secondsToDamageBudget": 36.6,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -3106,7 +3106,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 37.95,
+      "secondsToDamageBudget": 36.6,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -3120,7 +3120,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 235.6,
+      "secondsToDamageBudget": 229.45,
       "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
@@ -3134,7 +3134,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 235.6,
+      "secondsToDamageBudget": 229.45,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -3148,7 +3148,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 104.55,
+      "secondsToDamageBudget": 101.75,
       "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
@@ -3162,7 +3162,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 104.55,
+      "secondsToDamageBudget": 101.75,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -3176,7 +3176,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 434.05,
+      "secondsToDamageBudget": 423.3,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -3190,7 +3190,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 434.05,
+      "secondsToDamageBudget": 423.3,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -3204,7 +3204,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 193.55,
+      "secondsToDamageBudget": 187.3,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -3218,7 +3218,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 193.55,
+      "secondsToDamageBudget": 187.3,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -3485,8 +3485,8 @@
       "incomingAccuracy": 1,
       "enemyHp": 4000,
       "secondsToDamageBudget": 23.15,
-      "secondsToDeath": 21,
-      "canFinishBeforeDeath": false
+      "secondsToDeath": null,
+      "canFinishBeforeDeath": true
     },
     {
       "ship": "bastion",
@@ -3583,7 +3583,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 48000,
       "secondsToDamageBudget": 293.35,
-      "secondsToDeath": 50,
+      "secondsToDeath": 55,
       "canFinishBeforeDeath": false
     },
     {
@@ -3611,7 +3611,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 48000,
       "secondsToDamageBudget": 130.95,
-      "secondsToDeath": 50,
+      "secondsToDeath": 55,
       "canFinishBeforeDeath": false
     },
     {
@@ -3625,7 +3625,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 325.55,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -3639,7 +3639,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 489.35,
-      "secondsToDeath": 40,
+      "secondsToDeath": 56,
       "canFinishBeforeDeath": false
     },
     {
@@ -3653,7 +3653,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 145.65,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -3667,7 +3667,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 80000,
       "secondsToDamageBudget": 218.45,
-      "secondsToDeath": 40,
+      "secondsToDeath": 56,
       "canFinishBeforeDeath": false
     },
     {
@@ -4073,7 +4073,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 301.05,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -4087,7 +4087,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 454.35,
-      "secondsToDeath": 40,
+      "secondsToDeath": 56,
       "canFinishBeforeDeath": false
     },
     {
@@ -4101,7 +4101,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 135.15,
-      "secondsToDeath": 32,
+      "secondsToDeath": 40,
       "canFinishBeforeDeath": false
     },
     {
@@ -4115,7 +4115,7 @@
       "incomingAccuracy": 1,
       "enemyHp": 184000,
       "secondsToDamageBudget": 203.05,
-      "secondsToDeath": 40,
+      "secondsToDeath": 56,
       "canFinishBeforeDeath": false
     },
     {
@@ -4254,7 +4254,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 50.45,
+      "secondsToDamageBudget": 47.65,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -4282,7 +4282,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 53.25,
+      "secondsToDamageBudget": 49.75,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4310,7 +4310,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 24.55,
+      "secondsToDamageBudget": 23.15,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -4338,7 +4338,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 26.65,
+      "secondsToDamageBudget": 25.95,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4366,7 +4366,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 39.95,
+      "secondsToDamageBudget": 36.45,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4394,7 +4394,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 42.05,
+      "secondsToDamageBudget": 41.35,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4422,7 +4422,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 19.65,
+      "secondsToDamageBudget": 18.25,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4450,7 +4450,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 21.05,
+      "secondsToDamageBudget": 19.65,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4464,8 +4464,8 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 125.35,
-      "secondsToDeath": 25,
+      "secondsToDamageBudget": 116.95,
+      "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
     {
@@ -4478,7 +4478,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 133.05,
+      "secondsToDamageBudget": 125.35,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -4492,8 +4492,8 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 59.55,
-      "secondsToDeath": 25,
+      "secondsToDamageBudget": 58.15,
+      "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
     {
@@ -4506,7 +4506,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 64.45,
+      "secondsToDamageBudget": 63.05,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -4520,7 +4520,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 205.15,
+      "secondsToDamageBudget": 195.35,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -4534,7 +4534,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 224.05,
+      "secondsToDamageBudget": 210.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -4548,7 +4548,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 100.85,
+      "secondsToDamageBudget": 97.35,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -4562,7 +4562,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 107.85,
+      "secondsToDamageBudget": 105.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -4590,7 +4590,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 27.35,
+      "secondsToDamageBudget": 25.25,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -4702,7 +4702,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 46.95,
+      "secondsToDamageBudget": 44.15,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -4730,7 +4730,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 50.45,
+      "secondsToDamageBudget": 47.65,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4758,7 +4758,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 22.45,
+      "secondsToDamageBudget": 21.05,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -4786,7 +4786,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 24.55,
+      "secondsToDamageBudget": 23.15,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4814,7 +4814,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 35.75,
+      "secondsToDamageBudget": 34.35,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4842,7 +4842,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 39.95,
+      "secondsToDamageBudget": 36.45,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4870,7 +4870,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 17.55,
+      "secondsToDamageBudget": 16.85,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4898,7 +4898,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 19.65,
+      "secondsToDamageBudget": 18.25,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -4912,7 +4912,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 103.65,
+      "secondsToDamageBudget": 98.05,
       "secondsToDeath": 25,
       "canFinishBeforeDeath": false
     },
@@ -4926,7 +4926,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 112.05,
+      "secondsToDamageBudget": 105.75,
       "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
@@ -4940,7 +4940,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 50.45,
+      "secondsToDamageBudget": 49.05,
       "secondsToDeath": 25,
       "canFinishBeforeDeath": false
     },
@@ -4954,7 +4954,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 54.65,
+      "secondsToDamageBudget": 52.55,
       "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
@@ -4968,7 +4968,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 191.85,
+      "secondsToDamageBudget": 181.35,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -4982,7 +4982,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 206.55,
+      "secondsToDamageBudget": 196.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -4996,7 +4996,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 93.15,
+      "secondsToDamageBudget": 91.05,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -5010,7 +5010,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 100.85,
+      "secondsToDamageBudget": 98.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -5038,7 +5038,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 44.55,
+      "secondsToDamageBudget": 42.95,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5066,7 +5066,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 61.55,
+      "secondsToDamageBudget": 60.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5094,7 +5094,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 19.95,
+      "secondsToDamageBudget": 18.55,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5122,7 +5122,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 12000,
-      "secondsToDamageBudget": 26.85,
+      "secondsToDamageBudget": 25.85,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5136,7 +5136,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 5000,
-      "secondsToDamageBudget": 17.85,
+      "secondsToDamageBudget": 17.05,
       "secondsToDeath": null,
       "canFinishBeforeDeath": true
     },
@@ -5150,7 +5150,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 76.35,
+      "secondsToDamageBudget": 73.65,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -5164,7 +5164,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 5000,
-      "secondsToDamageBudget": 25.35,
+      "secondsToDamageBudget": 23.75,
       "secondsToDeath": 12,
       "canFinishBeforeDeath": false
     },
@@ -5178,7 +5178,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 103.55,
+      "secondsToDamageBudget": 100.15,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5206,7 +5206,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 32.65,
+      "secondsToDamageBudget": 32.05,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -5234,7 +5234,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 20000,
-      "secondsToDamageBudget": 45.95,
+      "secondsToDamageBudget": 44.35,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5262,7 +5262,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 60.15,
+      "secondsToDamageBudget": 58.65,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5276,7 +5276,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 4000,
-      "secondsToDamageBudget": 20.65,
+      "secondsToDamageBudget": 19.05,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5290,7 +5290,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 81.95,
+      "secondsToDamageBudget": 79.05,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5318,7 +5318,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 26.85,
+      "secondsToDamageBudget": 25.85,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5346,7 +5346,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 16000,
-      "secondsToDamageBudget": 35.45,
+      "secondsToDamageBudget": 34.55,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5360,7 +5360,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 182.05,
+      "secondsToDamageBudget": 177.95,
       "secondsToDeath": 25,
       "canFinishBeforeDeath": false
     },
@@ -5374,7 +5374,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 250.55,
+      "secondsToDamageBudget": 242.55,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -5388,7 +5388,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 80.55,
+      "secondsToDamageBudget": 78.05,
       "secondsToDeath": 25,
       "canFinishBeforeDeath": false
     },
@@ -5402,7 +5402,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 48000,
-      "secondsToDamageBudget": 110.15,
+      "secondsToDamageBudget": 106.55,
       "secondsToDeath": 15,
       "canFinishBeforeDeath": false
     },
@@ -5416,7 +5416,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 306.65,
+      "secondsToDamageBudget": 297.95,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -5430,7 +5430,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 417.85,
+      "secondsToDamageBudget": 406.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -5444,7 +5444,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 135.45,
+      "secondsToDamageBudget": 131.55,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -5458,7 +5458,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 80000,
-      "secondsToDamageBudget": 184.75,
+      "secondsToDamageBudget": 179.35,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -5486,7 +5486,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 42.05,
+      "secondsToDamageBudget": 40.85,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5514,7 +5514,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 56.05,
+      "secondsToDamageBudget": 55.85,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5542,7 +5542,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 18.55,
+      "secondsToDamageBudget": 17.55,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5570,7 +5570,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 27600,
-      "secondsToDamageBudget": 25.35,
+      "secondsToDamageBudget": 23.75,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5584,7 +5584,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 11500,
-      "secondsToDamageBudget": 16.45,
+      "secondsToDamageBudget": 16.05,
       "secondsToDeath": null,
       "canFinishBeforeDeath": true
     },
@@ -5598,7 +5598,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 70.05,
+      "secondsToDamageBudget": 68.05,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -5612,7 +5612,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 11500,
-      "secondsToDamageBudget": 22.75,
+      "secondsToDamageBudget": 21.05,
       "secondsToDeath": 12,
       "canFinishBeforeDeath": false
     },
@@ -5626,7 +5626,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 96.65,
+      "secondsToDamageBudget": 92.55,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5654,7 +5654,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 29.85,
+      "secondsToDamageBudget": 30.05,
       "secondsToDeath": 4,
       "canFinishBeforeDeath": false
     },
@@ -5682,7 +5682,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 46000,
-      "secondsToDamageBudget": 42.05,
+      "secondsToDamageBudget": 40.85,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5710,7 +5710,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 55.95,
+      "secondsToDamageBudget": 54.45,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5724,7 +5724,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 9200,
-      "secondsToDamageBudget": 18.55,
+      "secondsToDamageBudget": 17.55,
       "secondsToDeath": 6,
       "canFinishBeforeDeath": false
     },
@@ -5738,7 +5738,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 77.05,
+      "secondsToDamageBudget": 75.05,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5766,7 +5766,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 24.85,
+      "secondsToDamageBudget": 23.05,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5794,7 +5794,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 36800,
-      "secondsToDamageBudget": 33.35,
+      "secondsToDamageBudget": 32.55,
       "secondsToDeath": 3,
       "canFinishBeforeDeath": false
     },
@@ -5808,7 +5808,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 154.05,
+      "secondsToDamageBudget": 149.35,
       "secondsToDeath": 25,
       "canFinishBeforeDeath": false
     },
@@ -5822,7 +5822,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 210.05,
+      "secondsToDamageBudget": 203.05,
       "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
@@ -5836,7 +5836,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 68.55,
+      "secondsToDamageBudget": 65.25,
       "secondsToDeath": 25,
       "canFinishBeforeDeath": false
     },
@@ -5850,7 +5850,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 100000,
-      "secondsToDamageBudget": 93.15,
+      "secondsToDamageBudget": 90.55,
       "secondsToDeath": 20,
       "canFinishBeforeDeath": false
     },
@@ -5864,7 +5864,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 284.05,
+      "secondsToDamageBudget": 275.25,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -5878,7 +5878,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 387.55,
+      "secondsToDamageBudget": 377.05,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     },
@@ -5892,7 +5892,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 126.05,
+      "secondsToDamageBudget": 121.55,
       "secondsToDeath": 24,
       "canFinishBeforeDeath": false
     },
@@ -5906,7 +5906,7 @@
       "accuracy": 1,
       "incomingAccuracy": 1,
       "enemyHp": 184000,
-      "secondsToDamageBudget": 172.75,
+      "secondsToDamageBudget": 166.55,
       "secondsToDeath": 16,
       "canFinishBeforeDeath": false
     }

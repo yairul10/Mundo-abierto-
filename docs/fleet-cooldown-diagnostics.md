@@ -1,6 +1,6 @@
 # Comparación de recargas de habilidades
 
-Comparación diagnóstica: el borrador aplica 25 s reales; el simulador impone las alternativas solo para compararlas. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y Égida. Las recargas 25/25/20 y 30/30/25 y 25/25/25 y 15/15/15 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.
+Comparación diagnóstica: el borrador aplica 15 s reales; el simulador impone las alternativas solo para compararlas. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y Égida. Las recargas 25/25/20 y 30/30/25 y 25/25/25 y 15/15/15 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.
 
 Se ejecutan 4.320 duelos sintéticos: 6 opciones × 12 parejas × 2 equipamientos × 30 semillas.
 
