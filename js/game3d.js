@@ -2074,7 +2074,7 @@ function applyPlayerDamage(amount){
  if(shipRole(player.shipId)==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
  let damage=Math.max(0,amount)*equippedBonus().resistance*activeBooster('resistance');
  if(shipRole(player.shipId)==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
- if(classAbilityActive('titan'))damage*=['bastion','egida'].includes(player.shipId)?.3:.5;
+ if(classAbilityActive('titan'))damage*=['bastion','egida'].includes(player.shipId)?.4:.6;
  if(classAbilityActive('espectro'))damage*=['segadora','azote'].includes(player.shipId)?1.2:1.3;
  if(damage>0)combatAudio.play(damage>=player.hp?'explosion':classAbilityActive('titan')?'shieldHit':'impact');
  player.hp=Math.max(0,player.hp-damage);lastHitAt=performance.now()/1000;

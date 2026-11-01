@@ -1,10 +1,10 @@
 # Diagnóstico de progresión de naves
 
-Escenarios sintéticos; no representan tasas de victoria reales. Fortaleza: Titán reduce 50 %; Bastión y Égida reducen 70 %. Las otras habilidades y los enemigos se conservan.
+Escenarios sintéticos; no representan tasas de victoria reales. Fortaleza: Titán reduce 40 %; Bastión y Égida reducen 60 %. Las otras habilidades y los enemigos se conservan.
 
 ## Resultado
 
-La progresión y las conversiones son consistentes, pero el equilibrio no queda aprobado: las defensivas ganan todos los duelos estáticos con habilidades ensayados y Égida vence a Obsidian. La movilidad no se representa en estos casos. Tras bajar Fortaleza a 50 % en Titán y 70 % en Bastión/Égida, la ventaja defensiva persiste en estos casos; además, las recargas declaradas no se hacen cumplir en la activación actual. No se publican estos cambios en main ni se despliega el servidor.
+La progresión y las conversiones son consistentes, pero el equilibrio no queda aprobado: las defensivas conservan una ventaja grande en los duelos estáticos con habilidades ensayados y Égida vence a Obsidian. Los resultados por pareja, equipamiento y semilla se registran en las tablas siguientes. La movilidad no se representa en estos casos. Tras bajar Fortaleza a 40 % en Titán y 60 % en Bastión/Égida, la ventaja defensiva persiste en estos casos; además, las recargas declaradas no se hacen cumplir en la activación actual. No se publican estos cambios en main ni se despliega el servidor.
 
 Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se mantienen modelos, compras, materiales, mejoras base y porcentaje de casco; no se crean naves duplicadas.
 
@@ -15,7 +15,7 @@ Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se m
 | Titán / Espectro | No | 0 | 6 | 24 | 0 |
 | Titán / Espectro | No | 8 | 0 | 30 | 0 |
 | Titán / Espectro | Sí | 0 | 30 | 0 | 0 |
-| Titán / Espectro | Sí | 8 | 30 | 0 | 0 |
+| Titán / Espectro | Sí | 8 | 27 | 3 | 0 |
 | Titán / Aurora | No | 0 | 30 | 0 | 0 |
 | Titán / Aurora | No | 8 | 30 | 0 | 0 |
 | Titán / Aurora | Sí | 0 | 30 | 0 | 0 |
@@ -78,4 +78,4 @@ Reglas reales del servidor para habilidades, disparos, mitigación y energía. N
 
 Estadísticas base por nivel, sin mejoras, en niveles 40 y 105; 100 % de impactos salientes y entrantes. Patrones entrantes simplificados: una bomba de Catapulta/6 s, daño de Arponero/1 s, un disparo de Acechador/3 s, un misil de Coloso/5 s y una lanza de Gran Titán/8 s. Sin refuerzos, superposición de áreas, bombas del Titán, regeneración enemiga ni movimiento. El cálculo de daño continúa tras la muerte hipotética del jugador para comparar presupuestos; no representa una victoria completa.
 
-Los tiempos contra enemigos son presupuestos de daño con patrones simplificados. No certifican que se pueda derrotar a un jefe ni incluyen el valor de la velocidad. No se modificaron enemigos. Fortaleza se ajustó a 50 % en Titán y 70 % en Bastión/Égida; duración, energía y las demás habilidades permanecen intactas.
+Los tiempos contra enemigos son presupuestos de daño con patrones simplificados. No certifican que se pueda derrotar a un jefe ni incluyen el valor de la velocidad. No se modificaron enemigos. Fortaleza se ajustó a 40 % en Titán y 60 % en Bastión/Égida; duración, energía y las demás habilidades permanecen intactas.
