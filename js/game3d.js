@@ -1,5 +1,5 @@
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=351';
-import {startAssemblyPreview} from './assembly-3d-preview.js?v=351';
+import {startAssemblyPreview} from './assembly-3d-preview.js?v=353';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=348';
 import {rankedName} from './pvp-ranks.js?v=347';
@@ -20,7 +20,7 @@ import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299'
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=350';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
-import {shipThumbnail} from './ship-preview-catalog.js?v=337';
+import {shipThumbnail} from './ship-preview-catalog.js?v=353';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -30,14 +30,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=337';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=353';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=337';
+import {mountHangarUI} from './hangar-ui.js?v=353';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=352';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=337';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=337';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=353';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=353';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=353';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -386,11 +386,12 @@ deferredModelLoad(modelLoader,'./assets/models/moon_optimizada.glb?v=163',gltf=>
 
 function fitPlayerModel(model,yaw=0){
  const box=new THREE.Box3().setFromObject(model),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
- model.position.sub(center);model.scale.multiplyScalar(124/Math.max(size.x,size.z));model.rotation.y=yaw;
- return model;
+ const span=Math.max(size.x,size.z);if(!Number.isFinite(span)||span<.0001)throw Error('Modelo de nave sin dimensiones válidas');
+ model.position.sub(center);const visual=new THREE.Group();visual.add(model);visual.scale.setScalar(124/span);visual.rotation.y=yaw;
+ return visual;
 }
 function syncPlayerShipVisuals(){
- const keys={adminpod:'adminpodModel',titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'};
+ const keys={agilbasica:'agilbasicaModel',adminpod:'adminpodModel',titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'};
  const selected=keys[player.shipId],loaded=!!(selected&&playerMesh.userData[selected]);
  for(const key of Object.values(keys)){const model=playerMesh.userData[key];if(model)model.visible=loaded&&key===selected}
  let hasOriginal=false;
@@ -495,8 +496,14 @@ modelLoader.load('./assets/models/x_wing_starfighter.glb?v=105',gltf=>{
  const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
  model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
  // El modelo mira hacia +Z; el juego avanza hacia -Z.
- mountPlayerModel(fitPlayerModel(model,Math.PI),'xWingModel');
-},undefined,err=>{console.warn('X-Wing no disponible; cargando Aurora-S1.',err);loadAuroraFallback()});
+ mountPlayerModel(fitPlayerModel(model,Math.PI),'agilbasicaModel');
+},undefined,err=>{console.warn('Modelo Ágil básica no disponible; se usa respaldo.',err);playerMesh.userData.agilbasicaModelFailed=true;syncPlayerShipVisuals()});
+modelLoader.load('./assets/models/spaceplane.glb?v=353',gltf=>{
+ const model=gltf.scene,maxAnisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+ model.traverse(o=>{if(!o.isMesh)return;o.castShadow=false;o.receiveShadow=false;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials){for(const mapName of['map','normalMap','metalnessMap','roughnessMap'])if(material?.[mapName])material[mapName].anisotropy=maxAnisotropy}});
+ // Spaceplane ya mira hacia −Z, en la dirección de avance.
+ mountPlayerModel(fitPlayerModel(model,0),'xWingModel');
+},undefined,err=>{console.warn('Aurora básica no disponible; cargando respaldo.',err);loadAuroraFallback()});
 // El X-Wing tiene dos turbinas visibles: situar los efectos en ellas, no en los
 // cuatro soportes del motor del modelo anterior. Sin discos blancos opacos.
 const engineLights=[],engineTrails=[],engineGlows=[];
@@ -1869,7 +1876,8 @@ function renderDrones(){
 }
 // Flota: las mejoras generales permanecen en el perfil; las especializaciones son por nave.
 const SHIP_TYPES={
- aurora:{name:'Aurora',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Equilibrada · tu nave original'},
+ agilbasica:{name:'Ágil básica',level:10,cost:200000,hp:.85,attack:1,defense:.75,speed:1.75,description:'Ágil básica · mayor velocidad, menor resistencia'},
+ aurora:{name:'Aurora',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Básica inicial · equilibrada y gratuita'},
  titan:{name:'Titán',level:15,cost:200000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
  espectro:{name:'Espectro',level:25,cost:200000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'},
  ...ASSEMBLED_SHIPS
@@ -1884,6 +1892,7 @@ const SHIP_ABILITIES={adminpod:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown
  egida:{name:'Fortaleza de Égida',icon:'🛡️',duration:6,cooldown:25,energy:55},
  vertigo:{name:'Sobrecarga de Vértigo · rompe el arpón',icon:'⚡',duration:5,cooldown:20,energy:40},
  obsidian:{name:'Sobrecarga ancestral',icon:'⚡',duration:5,cooldown:20,energy:40},
+ agilbasica:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:20,energy:40},
  aurora:{name:'Sobrecarga',icon:'⚡',duration:5,cooldown:20,energy:40},
  titan:{name:'Fortaleza',icon:'🛡️',duration:6,cooldown:25,energy:55},
  espectro:{name:'Furia',icon:'🔥',duration:5,cooldown:25,energy:65},
@@ -1896,6 +1905,7 @@ const SPECIAL_UPGRADES={
  titan:[['armor','Blindaje pesado','Reducción de daño +1 % por nivel'],['fortress','Fortaleza extendida','Duración +0,3 s por nivel'],['repair','Reparación táctica','Regenera 0,15 % del casco por segundo fuera de combate']],
  espectro:[['crit','Precisión letal','Probabilidad de crítico +1 % por nivel'],['fury','Furia prolongada','Duración +0,25 s por nivel'],['evasion','Maniobras evasivas','Probabilidad de evasión +0,8 % por nivel']]
 };
+SPECIAL_UPGRADES.agilbasica=SPECIAL_UPGRADES.aurora;
 for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS))SPECIAL_UPGRADES[id]=SPECIAL_UPGRADES[ship.role];
 let classAbilityCd=0,classAbilityTime=0,lastHitAt=-100;
 
@@ -3296,7 +3306,7 @@ if(PVP_MODE){
  }
 
  function cloneClean(source){const saved=[];source.traverse(o=>{saved.push([o,o.userData]);o.userData={}});let copy;try{copy=source.clone(true)}finally{for(const [o,data]of saved)o.userData=data}return copy}
- function syncRemoteVisual(r){const id=r.shipId;if(ASSEMBLED_SHIPS[id])loadAssembledVisual(id);const key=ASSEMBLED_SHIPS[id]?id+'Model':id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===r.source)return;r.source=source;r.mesh.clear();const copy=cloneClean(source);if(id==='obsidian')resetObsidianClone(copy);copy.visible=true;r.mesh.add(copy);}
+ function syncRemoteVisual(r){const id=r.shipId;if(ASSEMBLED_SHIPS[id])loadAssembledVisual(id);const key=ASSEMBLED_SHIPS[id]?id+'Model':id==='agilbasica'?'agilbasicaModel':id==='titan'?'titanModel':id==='espectro'?'espectroModel':playerMesh.userData.xWingModel?'xWingModel':'auroraModel';const source=playerMesh.userData[key]||proceduralShip;if(source===r.source)return;r.source=source;r.mesh.clear();const copy=cloneClean(source);if(id==='obsidian')resetObsidianClone(copy);copy.visible=true;r.mesh.add(copy);}
 
  let returnPortal=null,returnModelReady=false;
  function mountReturnPortal(){
@@ -3389,7 +3399,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  const started=performance.now();
  let quietSince=0,slowPrompt=false;
  const poll=()=>{
-  const selected=({adminpod:'adminpodModel',titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'})[player.shipId];
+  const selected=({agilbasica:'agilbasicaModel',adminpod:'adminpodModel',titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'})[player.shipId];
   const playerReady=selected
    ?!!(playerMesh.userData[selected]||playerMesh.userData[selected+'Failed'])
    :!!(playerMesh.userData.xWingModel||playerMesh.userData.auroraModel||playerMesh.userData.auroraModelFailed);

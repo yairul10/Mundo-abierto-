@@ -5,7 +5,7 @@ import {ensureArenaEnemies,advanceArenaEnemies,recordArenaDamage} from './arena-
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
 export const WORLD={formationSwitch:true,radius:ZONES.edge,safeRadius:ZONES.base,pveRadius:ZONES.pve,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
-export const SHIPS={adminpod:[15,1.6,1,1.7],azote:[1.2,1.95,1.05,1.15],egida:[2.6,1.1,2.1,.95],vertigo:[1.05,1.2,.95,1.95],obsidian:[1.9,1.75,1.6,1.2],aurora:[1,1,1,1],titan:[1.8,.85,1.5,.75],espectro:[.7,1.35,.65,1.4],segadora:[1.1,1.85,.95,1.05],bastion:[2.5,1,2,.85],centella:[.95,1.1,.85,1.85]};
+export const SHIPS={agilbasica:[.85,1,.75,1.75],adminpod:[15,1.6,1,1.7],azote:[1.2,1.95,1.05,1.15],egida:[2.6,1.1,2.1,.95],vertigo:[1.05,1.2,.95,1.95],obsidian:[1.9,1.75,1.6,1.2],aurora:[1,1,1,1],titan:[1.8,.85,1.5,.75],espectro:[.7,1.35,.65,1.4],segadora:[1.1,1.85,.95,1.05],bastion:[2.5,1,2,.85],centella:[.95,1.1,.85,1.85]};
 export const safe=p=>zoneOf(p)==='base';
 export const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
 export function importRoster(raw){

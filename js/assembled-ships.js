@@ -19,4 +19,4 @@ export function assembleShip(player,id,zone='pve'){
  for(const [key,amount]of Object.entries(ship.recipe))player.loot[key]-=amount;
  player.ownedShips||={};player.ownedShips[id]=true;return true;
 }
-export const shipRole=id=>ASSEMBLED_SHIPS[id]?.role||id;
+export const shipRole=id=>id==='agilbasica'?'aurora':ASSEMBLED_SHIPS[id]?.role||id;
