@@ -1,10 +1,10 @@
-import {initialPvpPilot,offlineRoster} from './pvp-loadout.js?v=353';
+import {initialPvpPilot,offlineRoster} from './pvp-loadout.js?v=355';
 const WORLD_FIELDS=['x','y','z','yaw','pitch','sector','granTitanState','carrierState'];
 export function createHangarEditor(source={}){
  const original=JSON.parse(JSON.stringify(source)),editor=initialPvpPilot(original);
  for(const key of WORLD_FIELDS)if(Object.hasOwn(original,key))editor[key]=original[key];
  editor.quests=original.quests||{};editor.boosters=original.boosters||{};
- editor.hp=Math.max(0,Math.min(editor.maxHp,Number(original.hp??editor.maxHp)));editor.energy=editor.maxEnergy;
+ editor.hp=Math.max(0,Math.min(editor.maxHp,original.maxHp>0?Number(original.hp??original.maxHp)/original.maxHp*editor.maxHp:editor.maxHp));editor.energy=editor.maxEnergy;
  return editor;
 }
 export function serializeHangarEditor(editor,latest={}){

@@ -5,7 +5,7 @@ import {ensureArenaEnemies,advanceArenaEnemies,recordArenaDamage} from './arena-
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
 export const WORLD={formationSwitch:true,radius:ZONES.edge,safeRadius:ZONES.base,pveRadius:ZONES.pve,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
-export const SHIPS={agilbasica:[.85,1,.75,1.75],adminpod:[15,1.6,1,1.7],azote:[1.2,1.95,1.05,1.15],egida:[2.6,1.1,2.1,.95],vertigo:[1.05,1.2,.95,1.95],obsidian:[1.9,1.75,1.6,1.2],aurora:[1,1,1,1],titan:[1.8,.85,1.5,.75],espectro:[.7,1.35,.65,1.4],segadora:[1.1,1.85,.95,1.05],bastion:[2.5,1,2,.85],centella:[.95,1.1,.85,1.85]};
+export const SHIPS={agilbasica:[1,1,1,1.5],adminpod:[15,1.6,1,1.7],azote:[1.6,2.1,1,1.6],egida:[2.1,1.6,1,1.6],vertigo:[1.6,1.6,1,2.1],obsidian:[2.2,2.2,1,2.2],aurora:[1,1,1,1],titan:[1.5,1,1,1],espectro:[1,1.5,1,1],segadora:[1.5,2,1,1.5],bastion:[2,1.5,1,1.5],centella:[1.5,1.5,1,2]};
 export const safe=p=>zoneOf(p)==='base';
 export const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
 export function importRoster(raw){
@@ -16,8 +16,8 @@ export function equip(p,id){
  if(id==='adminpod'&&(!p.adminShipAllowed||p.clientVersion<4))return false;
  if(!Object.hasOwn(SHIPS,id)||!Object.hasOwn(p.roster||{},id==='adminpod'?'aurora':id))return false;
  const raw=p.roster[id==='adminpod'?'aurora':id];makeCombatPlayer(p,{...raw,shipId:id});const q=p.profile;
- // Derive admin stats from the ordinary Aurora profile (PvP Aurora uses base ×0.5).
- if(id==='adminpod'){q.maxHp*=30;q.attack*=3.2;q.defense*=2;q.speed*=3.4;}
+ // Derive admin stats from the ordinary Aurora profile (PvP Cadete uses base ×0.7).
+ if(id==='adminpod'){const hullFactor=raw.fleetBalanceVersion===2?.7:.5;const defenseFactor=raw.fleetBalanceVersion===2?1:.5;q.maxHp=Math.round(q.maxHp*15/hullFactor);q.attack=Math.round(q.attack*1.6/hullFactor);q.defense=Math.round(q.defense/defenseFactor);q.speed=Math.round(q.speed*1.7/hullFactor);}
  // Multiply the original offline hull once; never multiply a previous PvP snapshot.
  q.offlineMaxHp=q.maxHp;q.maxHp=q.offlineMaxHp*20;q.hp=q.maxHp;
  q.droneFormation=q.droneCount>0&&['fan','shield','spear','fortress','hunter','drive','recovery'].includes(raw.droneFormation)?raw.droneFormation:'fan';

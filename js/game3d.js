@@ -1,5 +1,6 @@
+import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=351';
-import {startAssemblyPreview} from './assembly-3d-preview.js?v=353';
+import {startAssemblyPreview} from './assembly-3d-preview.js?v=355';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=348';
 import {rankedName} from './pvp-ranks.js?v=347';
@@ -20,7 +21,7 @@ import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299'
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=350';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
-import {shipThumbnail} from './ship-preview-catalog.js?v=353';
+import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
@@ -30,14 +31,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=353';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=355';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=353';
+import {mountHangarUI} from './hangar-ui.js?v=355';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=353';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=353';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=353';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=355';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=355';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=355';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -57,7 +58,7 @@ function showStorageWarning(message='El navegador bloqueó el guardado. Esta ses
 function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStorageWarning();return null}}
 function safeStorageSet(key,value){if(PVP_MODE&&!pvpHangar)return true;try{if(key==='mundoAbierto.player'&&(window.COSMOS_PROFILE_SWITCHING||window.COSMOS_ACTIVE_PROFILE&&activeProfile(localStorage)!==window.COSMOS_ACTIVE_PROFILE))throw Error('La cuenta cambió');localStorage.setItem(key,value);if(key==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
-const DEFAULT={name:'Nave Aurora',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
+const DEFAULT={name:'Nave Cadete',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
 const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mode==='test';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=PVP_MODE?JSON.parse(JSON.stringify(stored.quests||{})):player.quests||{};
 const combatAudio=createCombatAudio({listener:()=>playerMesh.position,storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)}});
 let graphicsUI=null;
@@ -1891,10 +1892,10 @@ function renderDrones(){
 }
 // Flota: las mejoras generales permanecen en el perfil; las especializaciones son por nave.
 const SHIP_TYPES={
- agilbasica:{name:'Ágil básica',level:10,cost:200000,hp:.85,attack:1,defense:.75,speed:1.75,description:'Ágil básica · mayor velocidad, menor resistencia'},
- aurora:{name:'Aurora',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Básica inicial · equilibrada y gratuita'},
- titan:{name:'Titán',level:15,cost:200000,hp:1.8,attack:.85,defense:1.5,speed:.75,description:'Tanque · casco y escudos resistentes'},
- espectro:{name:'Espectro',level:25,cost:200000,hp:.7,attack:1.35,defense:.65,speed:1.4,description:'Asalto · alta velocidad y daño'},
+ agilbasica:{name:'Aurora',level:10,cost:200000,hp:1,attack:1,defense:1,speed:1.5,description:'Básica ágil · velocidad superior'},
+ aurora:{name:'Cadete',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Básica inicial · equilibrada y gratuita'},
+ titan:{name:'Titán',level:15,cost:200000,hp:1.5,attack:1,defense:1,speed:1,description:'Básica defensiva · casco superior'},
+ espectro:{name:'Espectro',level:20,cost:200000,hp:1,attack:1.5,defense:1,speed:1,description:'Básica ofensiva · ataque superior'},
  ...ASSEMBLED_SHIPS
 };
 player.ownedShips=player.ownedShips&&typeof player.ownedShips==='object'?player.ownedShips:{};
@@ -2113,8 +2114,7 @@ function renderSpecialUpgrades(){
  });
 }
 function shipBonuses(id){
- const raw=SHIP_TYPES[id]||SHIP_TYPES.aurora;
- const t=Object.fromEntries(['hp','attack','defense','speed'].map(key=>[key,Number((raw[key]-(raw.pvePenalty||0)).toFixed(2))]));
+ const t=fleetMultipliers(id,'pve');
  return {maxHp:Math.round(player.shipBaseStats.maxHp*(t.hp-1)),
   attack:Math.round(player.shipBaseStats.attack*(t.attack-1)),
   defense:Math.round(player.shipBaseStats.defense*(t.defense-1)),
@@ -2122,10 +2122,12 @@ function shipBonuses(id){
 }
 function ensureShipBaseStats(){
  if(player.shipBaseStats)return;
- player.shipBaseStats={maxHp:player.maxHp,attack:player.attack,defense:player.defense,speed:player.speed};
+ const previous=savedPveMultipliers(player,player.shipId);
+ player.shipBaseStats=Object.fromEntries(Object.entries({maxHp:'hp',attack:'attack',defense:'defense',speed:'speed'}).map(([key,stat])=>[key,Math.round((player[key]/(key==='maxHp'?equippedBonus().hp:1))/previous[stat])]));
 }
 function syncShipStats(){
  ensureShipBaseStats();
+ player.fleetBalanceVersion=FLEET_BALANCE_VERSION;
  const bonus=shipBonuses(player.shipId);
  const ratio=player.maxHp>0?player.hp/player.maxHp:1;
  player.maxHp=Math.max(1,Math.round((player.shipBaseStats.maxHp+bonus.maxHp)*equippedBonus().hp));
@@ -2178,18 +2180,7 @@ function renderShips(){
  renderSpecialUpgrades();
 }
 ensureShipBaseStats();
-// El guardado ya contiene las estadísticas de la nave equipada: no aplicar el bono otra vez al cargar.
-// Normalizar partidas antiguas cuyo perfil aún no tiene valores base fiables.
-if(!PVP_MODE&&player.shipId!=='aurora'&&!((player.shipId==='obsidian'||ASSEMBLED_SHIPS[player.shipId]?.pvePenalty)&&stored.shipBaseStats)){
- const bonus=shipBonuses(player.shipId);
- const expected=Math.round((player.shipBaseStats.maxHp+bonus.maxHp)*equippedBonus().hp);
- if(Math.abs(player.maxHp-expected)>2){
-  const t=SHIP_TYPES[player.shipId];
-  for(const [stat,mult] of Object.entries({maxHp:t.hp,attack:t.attack,defense:t.defense,speed:t.speed})){
-   const value=Number(player[stat])/(stat==='maxHp'?equippedBonus().hp:1);if(Number.isFinite(value))player.shipBaseStats[stat]=Math.max(stat==='maxHp'?1:0,Math.round(value/mult));
-  }
- }
-}
+// Preserve saved base stats; recover legacy coefficients only when base stats are absent.
 syncShipStats();loadAssembledVisual(player.shipId);
 function renderUpgrades(){
  const containers=[$('hangarUpgradeShop')].filter(Boolean);if(!containers.length)return;
@@ -3041,7 +3032,7 @@ hudToggle.onclick=()=>{
  hudToggle.setAttribute('aria-expanded',String(!folded));
  hudToggle.setAttribute('aria-label',folded?'Desplegar información de vida':'Plegar información de vida');
 };
-const panel=$('characterPanel');combatAudio.mount(panel);graphicsUI=mountGraphicsSettings(graphics,{parent:panel,storage:{setItem:(key,value)=>localStorage.setItem(key,value)}});const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Energía máxima: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;document.addEventListener('pointerdown',event=>{if(panel.classList.contains('hidden')||panel.contains(event.target)||event.target.closest('#characterBtn'))return;event.preventDefault();event.stopImmediatePropagation();closeCharacterPanel()},true);$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Aurora';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
+const panel=$('characterPanel');combatAudio.mount(panel);graphicsUI=mountGraphicsSettings(graphics,{parent:panel,storage:{setItem:(key,value)=>localStorage.setItem(key,value)}});const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Energía máxima: '+player.maxEnergy+'<br>Potencia: '+player.attack+'<br>Escudo: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;document.addEventListener('pointerdown',event=>{if(panel.classList.contains('hidden')||panel.contains(event.target)||event.target.closest('#characterBtn'))return;event.preventDefault();event.stopImmediatePropagation();closeCharacterPanel()},true);$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Cadete';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
 const activityJournal=mountJournal({getPlayer:()=>PVP_MODE&&!pvpHangar?readOfflinePilot(localStorage):player,onOpen:()=>resetDockControls()});
 $('journalBtn').onclick=()=>activityJournal.open();$('hangarJournal').onclick=()=>activityJournal.open();
 addEventListener('mundo:open-journal',()=>activityJournal.open());

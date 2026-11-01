@@ -16,7 +16,7 @@ const q=fresh();H.normalizeHangar(q);assert(!H.sellMaterial(q,'chatarra',201));a
 assert(H.buyBooster(q,'damage'));assert.equal(q.boosters.damage,900);H.tickBoosters(q,50,true);assert.equal(q.boosters.damage,900);H.tickBoosters(q,50,false);assert.equal(q.boosters.damage,850);assert.equal(H.boosterBonus(q,'damage'),1.15);assert.equal(H.boosterBonus(q,'damage',false),1);assert(H.buyBooster(q,'damage'));assert.equal(q.boosters.damage,1750);assert.equal(H.boosterBonus(q,'damage'),1.15);H.tickBoosters(q,1750,false);assert.equal(H.boosterBonus(q,'damage'),1);
 const source=fs.readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
 const sync=source.slice(source.indexOf('function syncShipStats(){'),source.indexOf('function changeShip('));
-const c={player:{shipBaseStats:{maxHp:100,attack:10,defense:5,speed:220},maxHp:100,hp:50},ensureShipBaseStats(){},shipBonuses(){return {maxHp:0,attack:0,defense:0,speed:0}},equippedBonus(){return {hp:this.factor||1}},factor:1};c.equippedBonus=()=>({hp:c.factor});vm.createContext(c);vm.runInContext(sync,c);
+const c={FLEET_BALANCE_VERSION:2,player:{shipBaseStats:{maxHp:100,attack:10,defense:5,speed:220},maxHp:100,hp:50},ensureShipBaseStats(){},shipBonuses(){return {maxHp:0,attack:0,defense:0,speed:0}},equippedBonus(){return {hp:this.factor||1}},factor:1};c.equippedBonus=()=>({hp:c.factor});vm.createContext(c);vm.runInContext(sync,c);
 for(let i=0;i<10;i++){c.factor=1.15;c.syncShipStats();assert.equal(c.player.maxHp,115);assert.equal(c.player.hp,57.5);c.factor=1;c.syncShipStats();assert.equal(c.player.hp,50)}
 c.player.hp=0;c.syncShipStats();assert.equal(c.player.hp,0);
 console.log('Hangar systems: recipes, ownership, economy, duration, layouts, perks and health ratios passed.');
