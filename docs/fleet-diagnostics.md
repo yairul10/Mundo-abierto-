@@ -1,10 +1,10 @@
 # Diagnóstico de progresión de naves
 
-Escenarios sintéticos; no representan tasas de victoria reales. Fortaleza: Titán reduce 40 %; Bastión y Égida reducen 60 %. Las otras habilidades y los enemigos se conservan.
+Escenarios sintéticos; no representan tasas de victoria reales. Fortaleza: Titán reduce 40 %; Bastión reduce 50 %; Égida reduce 60 %. Las otras habilidades y los enemigos se conservan.
 
 ## Resultado
 
-La progresión y las conversiones son consistentes, pero el equilibrio no queda aprobado: las defensivas conservan una ventaja grande en los duelos estáticos con habilidades ensayados y Égida vence a Obsidian. Los resultados por pareja, equipamiento y semilla se registran en las tablas siguientes. La movilidad no se representa en estos casos. Tras bajar Fortaleza a 40 % en Titán y 60 % en Bastión/Égida, la ventaja defensiva persiste en estos casos; además, las recargas declaradas no se hacen cumplir en la activación actual. No se publican estos cambios en main ni se despliega el servidor.
+La progresión y las conversiones son consistentes, pero el equilibrio no queda aprobado: las defensivas conservan una ventaja grande en los duelos estáticos con habilidades ensayados y Égida vence a Obsidian. Los resultados por pareja, equipamiento y semilla se registran en las tablas siguientes. La movilidad no se representa en estos casos. Tras bajar Fortaleza a 40 % en Titán, 50 % en Bastión y 60 % en Égida, la ventaja defensiva persiste en estos casos; además, las recargas declaradas no se hacen cumplir en la activación actual. No se publican estos cambios en main ni se despliega el servidor.
 
 Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se mantienen modelos, compras, materiales, mejoras base y porcentaje de casco; no se crean naves duplicadas.
 
@@ -78,4 +78,4 @@ Reglas reales del servidor para habilidades, disparos, mitigación y energía. N
 
 Estadísticas base por nivel, sin mejoras, en niveles 40 y 105; 100 % de impactos salientes y entrantes. Patrones entrantes simplificados: una bomba de Catapulta/6 s, daño de Arponero/1 s, un disparo de Acechador/3 s, un misil de Coloso/5 s y una lanza de Gran Titán/8 s. Sin refuerzos, superposición de áreas, bombas del Titán, regeneración enemiga ni movimiento. El cálculo de daño continúa tras la muerte hipotética del jugador para comparar presupuestos; no representa una victoria completa.
 
-Los tiempos contra enemigos son presupuestos de daño con patrones simplificados. No certifican que se pueda derrotar a un jefe ni incluyen el valor de la velocidad. No se modificaron enemigos. Fortaleza se ajustó a 40 % en Titán y 60 % en Bastión/Égida; duración, energía y las demás habilidades permanecen intactas.
+Los tiempos contra enemigos son presupuestos de daño con patrones simplificados. No certifican que se pueda derrotar a un jefe ni incluyen el valor de la velocidad. No se modificaron enemigos. Fortaleza se ajustó a 40 % en Titán, 50 % en Bastión y 60 % en Égida; duración, energía y las demás habilidades permanecen intactas.
