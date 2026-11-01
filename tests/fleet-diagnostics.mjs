@@ -32,6 +32,7 @@ export function duel(a,b,{level=40,abilities=true,drones=0,accuracy=1,seed=1,coo
    if(ability(pilot,now)){
     const agile=!['titan','bastion','egida','espectro','segadora','azote'].includes(pilot.profile.shipId);
     if(cooldownMode==='unlimited')pilot.diagnosticReadyAt=0;
+    else if(cooldownMode==='all15')pilot.diagnosticReadyAt=now+15000;
     else if(cooldownMode==='all25')pilot.diagnosticReadyAt=now+25000;
     else if(cooldownMode==='fiveAfterEnd')pilot.diagnosticReadyAt=pilot.abilityUntil+5000;
     else if(cooldownMode==='declared'||cooldownMode==='declaredPlusFive')pilot.diagnosticReadyAt=now+(agile?20000:25000)+(cooldownMode==='declaredPlusFive'?5000:0);

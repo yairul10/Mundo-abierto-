@@ -1,6 +1,6 @@
 {
-  "assumptions": "Comparación diagnóstica: el borrador aplica 25 s reales; el simulador impone las alternativas solo para compararlas. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y Égida. Las recargas 25/25/20 y 30/30/25 y 25/25/25 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.",
-  "duels": 3600,
+  "assumptions": "Comparación diagnóstica: el borrador aplica 25 s reales; el simulador impone las alternativas solo para compararlas. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y Égida. Las recargas 25/25/20 y 30/30/25 y 25/25/25 y 15/15/15 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.",
+  "duels": 4320,
   "rows": [
     {
       "cooldownMode": "unlimited",
@@ -1321,6 +1321,270 @@
       "draws": 0,
       "timeouts": 0,
       "meanSeconds": 31.496666666666666
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "titan",
+      "b": "espectro",
+      "drones": 0,
+      "winsA": 26,
+      "winsB": 1,
+      "draws": 3,
+      "timeouts": 0,
+      "meanSeconds": 106.07666666666664
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "titan",
+      "b": "agilbasica",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 116.5066666666667
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "espectro",
+      "b": "agilbasica",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 54.78999999999998
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "bastion",
+      "b": "segadora",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 98.07333333333334
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "bastion",
+      "b": "centella",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 104.02333333333335
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "segadora",
+      "b": "centella",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 56.53999999999999
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "egida",
+      "b": "azote",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 90.11666666666665
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "egida",
+      "b": "vertigo",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 95.62333333333335
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "azote",
+      "b": "vertigo",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 54.37
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "obsidian",
+      "b": "egida",
+      "drones": 0,
+      "winsA": 28,
+      "winsB": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 119.43166666666669
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "obsidian",
+      "b": "azote",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 59.595000000000006
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "obsidian",
+      "b": "vertigo",
+      "drones": 0,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 62.08333333333333
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "titan",
+      "b": "espectro",
+      "drones": 8,
+      "winsA": 1,
+      "winsB": 27,
+      "draws": 2,
+      "timeouts": 0,
+      "meanSeconds": 77.42333333333335
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "titan",
+      "b": "agilbasica",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 97.02333333333333
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "espectro",
+      "b": "agilbasica",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 34.699999999999996
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "bastion",
+      "b": "segadora",
+      "drones": 8,
+      "winsA": 29,
+      "winsB": 1,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 61.136666666666656
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "bastion",
+      "b": "centella",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 64.47333333333333
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "segadora",
+      "b": "centella",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 34.396666666666654
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "egida",
+      "b": "azote",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 48.49
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "egida",
+      "b": "vertigo",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 51.056666666666665
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "azote",
+      "b": "vertigo",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 31.22333333333334
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "obsidian",
+      "b": "egida",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 59.64833333333332
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "obsidian",
+      "b": "azote",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 28.971666666666668
+    },
+    {
+      "cooldownMode": "all15",
+      "a": "obsidian",
+      "b": "vertigo",
+      "drones": 8,
+      "winsA": 30,
+      "winsB": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "meanSeconds": 30.956666666666667
     }
   ]
 }
