@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 // Diagnostic scenarios, not a prediction of win rates in moving multiplayer combat.
 import {writeFileSync} from 'node:fs';
 import {fleetMultipliers,LEGACY_STATS} from '../js/fleet-balance.js';
@@ -19,13 +20,20 @@ function salvo(p,target,now,drones,random){
  return [...shots,...missiles];
 }
 function randomGenerator(seed){return ()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}}
-function duel(a,b,{level=40,abilities=true,drones=0,accuracy=1,seed=1}={}){
+export function duel(a,b,{level=40,abilities=true,drones=0,accuracy=1,seed=1,cooldownMode='current'}={}){
  const p=pilot(a,level,'pvp'),q=pilot(b,level,'pvp'),random=randomGenerator(seed);
  q.pos=[0,0,600];p.profile.droneCount=q.profile.droneCount=drones;
  const s={status:'active',players:[p,q],bullets:[],simTime:10000};
  for(let now=10050;now<=610000;now+=50){
   stepCombat(s,now);
-  if(abilities){ability(p,now);ability(q,now)}
+  if(abilities)for(const pilot of [p,q]){
+   if(now<(pilot.diagnosticReadyAt||0))continue;
+   if(ability(pilot,now)){
+    const agile=!['titan','bastion','egida','espectro','segadora','azote'].includes(pilot.profile.shipId);
+    if(cooldownMode==='fiveAfterEnd')pilot.diagnosticReadyAt=pilot.abilityUntil+5000;
+    else if(cooldownMode==='declared'||cooldownMode==='declaredPlusFive')pilot.diagnosticReadyAt=now+(agile?20000:25000)+(cooldownMode==='declaredPlusFive'?5000:0);
+   }
+  }
   // Simultaneous landed damage, before deciding a winner; no movement or flight delay.
   const outgoing=[salvo(p,q,now,drones,random),salvo(q,p,now,drones,random)];
   const damage=outgoing.map((shots,i)=>shots.reduce((sum,b)=>sum+(random()<accuracy?defenseDamage(i?p:q,b.damage,now,random):0),0));
@@ -49,6 +57,7 @@ function enemyScenario(id,type,{level=40,pro=false,drones=0,accuracy=1,incomingA
  }
  return {ship:id,legacy,enemy:type,level,pro,drones,accuracy,incomingAccuracy,enemyHp:e.hp,secondsToDamageBudget:kill,secondsToDeath:dead,canFinishBeforeDeath:kill!==null&&(dead===null||kill<=dead)};
 }
+if(process.argv[1]===fileURLToPath(import.meta.url)){
 const duelRows=[];
 for(const group of [['titan','espectro','agilbasica'],['bastion','segadora','centella'],['egida','azote','vertigo'],['obsidian','egida','azote','vertigo']]){
  for(let i=0;i<group.length;i++)for(let j=i+1;j<group.length;j++){
@@ -77,3 +86,5 @@ for(const id of ['bastion','segadora','centella'])for(const enemy of ['carrier',
 lines.push('','## Límites','',report.assumptions.duels,'',report.assumptions.enemies,'','Los tiempos contra enemigos son presupuestos de daño con patrones simplificados. No certifican que se pueda derrotar a un jefe ni incluyen el valor de la velocidad. No se modificaron enemigos. Fortaleza se ajustó a 40 % en Titán, 50 % en Bastión y 60 % en Égida; duración, energía y las demás habilidades permanecen intactas.','');
 writeFileSync(new URL('../docs/fleet-diagnostics.md',import.meta.url),lines.join('\n'));
 console.log(JSON.stringify({duelScenarios:duelRows.length,duels:duelRows.length*30,enemyScenarios:enemyRows.length,withAbilitiesAnd8Drones:duelRows.filter(r=>r.abilities&&r.drones===8)},null,2));
+
+}
