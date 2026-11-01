@@ -4,10 +4,16 @@ import assert from 'node:assert/strict';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from '../js/assembled-ships.js';
 import {profile,makeCombatPlayer,ability,defenseDamage} from '../server/pvp/combat.mjs';
 for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS).filter(([,ship])=>!ship.adminOnly)){
- assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],id==='obsidian'?[200,200,200]:[100,100,100]);
+ const exclusive={bastion:'bobina_anclaje',segadora:'nucleo_demolicion',centella:'cristal_punteria'}[id];
+ if(exclusive){
+  assert.equal(ship.cost,390000);
+  assert.deepEqual(ship.recipe,{chatarra:975,aleacion:300,nucleo:80,reliquia:20,[exclusive]:50});
+ }else assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],id==='obsidian'?[200,200,200]:[100,100,100]);
  const player={level:40,gold:ship.cost,loot:{...ship.recipe},ownedShips:{aurora:true},shipId:'aurora'};
- const missing=structuredClone(player);missing.loot.cristal_punteria--;
- const before=JSON.stringify(missing);assert.equal(assembleShip(missing,id,ship.assemblyZone||'pve'),false);assert.equal(JSON.stringify(missing),before);
+ for(const key of Object.keys(ship.recipe)){
+  const missing=structuredClone(player);missing.loot[key]--;
+  const before=JSON.stringify(missing);assert.equal(assembleShip(missing,id,ship.assemblyZone||'pve'),false);assert.equal(JSON.stringify(missing),before);
+ }
  assert.equal(canAssembleShip({...player,level:39},id,ship.assemblyZone||'pve'),false);
  assert.equal(assembleShip(player,id,ship.assemblyZone||'pve'),true);assert.equal(player.gold,0);assert.ok(Object.values(player.loot).every(v=>v===0));assert.equal(player.ownedShips.aurora,true);assert.equal(player.ownedShips[id],true);
  assert.equal(assembleShip(player,id,ship.assemblyZone||'pve'),false);assert.equal(JSON.parse(JSON.stringify(player)).ownedShips[id],true);
@@ -21,6 +27,9 @@ assert.ok(ASSEMBLED_SHIPS.centella.speed>1.4);
 console.log('Assembled ships: exact recipes, atomic debit, permanent ownership, all assembled identities and abilities.');
 
 const game=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
+const catalog=new Function('ASSEMBLED_SHIPS',game.slice(game.indexOf('const SHIP_TYPES='),game.indexOf('player.ownedShips='))+';return SHIP_TYPES;')(ASSEMBLED_SHIPS);
+for(const id of ['agilbasica','titan','espectro'])assert.equal(catalog[id].cost,100000);
+assert.equal(catalog.aurora.cost,0);
 const statsSource=game.slice(game.indexOf('function shipBonuses(id){'),game.indexOf('function changeShip(id){'));
 const testPlayer={shipId:'aurora',maxHp:1000,hp:400,attack:100,defense:50,speed:220};
 const sync=new Function('player','SHIP_TYPES','equippedBonus','fleetMultipliers','savedPveMultipliers','FLEET_BALANCE_VERSION',statsSource+';return syncShipStats;')(testPlayer,{aurora:{hp:1,attack:1,defense:1,speed:1},...ASSEMBLED_SHIPS},()=>({hp:1}),fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION);
