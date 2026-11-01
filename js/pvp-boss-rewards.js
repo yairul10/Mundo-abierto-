@@ -1,5 +1,5 @@
 import {awardPvpMission,settlePvpMissionCores} from './pvp-missions.js?v=350';
-import {addPilotXp} from './pilot-xp.js?v=355';
+import {addPilotXp} from './pilot-xp.js?v=356';
 // Persist the credits and receipt IDs together before acknowledging the server.
 export function applyBossReceipts(source,receipts){
  const pilot=JSON.parse(JSON.stringify(source)),seen=new Set(Array.isArray(pilot.pvpBossReceipts)?pilot.pvpBossReceipts:[]),ids=[];let added=0,addedXp=0;const missions=[];

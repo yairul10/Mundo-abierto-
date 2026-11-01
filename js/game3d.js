@@ -19,7 +19,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=355';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=356';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
@@ -31,14 +31,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=355';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=356';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=355';
+import {mountHangarUI} from './hangar-ui.js?v=356';
 import {selectCompanionTask} from './companion-priority.js?v=174';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=355';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=355';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=355';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=356';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=356';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=356';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -1892,10 +1892,10 @@ function renderDrones(){
 }
 // Flota: las mejoras generales permanecen en el perfil; las especializaciones son por nave.
 const SHIP_TYPES={
- agilbasica:{name:'Aurora',level:10,cost:200000,hp:1,attack:1,defense:1,speed:1.5,description:'Básica ágil · velocidad superior'},
+ agilbasica:{name:'Aurora',level:10,cost:100000,hp:1,attack:1,defense:1,speed:1.5,description:'Básica ágil · velocidad superior'},
  aurora:{name:'Cadete',level:1,cost:0,hp:1,attack:1,defense:1,speed:1,description:'Básica inicial · equilibrada y gratuita'},
- titan:{name:'Titán',level:15,cost:200000,hp:1.5,attack:1,defense:1,speed:1,description:'Básica defensiva · casco superior'},
- espectro:{name:'Espectro',level:20,cost:200000,hp:1,attack:1.5,defense:1,speed:1,description:'Básica ofensiva · ataque superior'},
+ titan:{name:'Titán',level:15,cost:100000,hp:1.5,attack:1,defense:1,speed:1,description:'Básica defensiva · casco superior'},
+ espectro:{name:'Espectro',level:20,cost:100000,hp:1,attack:1.5,defense:1,speed:1,description:'Básica ofensiva · ataque superior'},
  ...ASSEMBLED_SHIPS
 };
 player.ownedShips=player.ownedShips&&typeof player.ownedShips==='object'?player.ownedShips:{};

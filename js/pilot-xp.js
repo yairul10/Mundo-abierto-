@@ -1,4 +1,4 @@
-import {pveMultipliers} from './pvp-loadout.js?v=355';
+import {pveMultipliers} from './pvp-loadout.js?v=356';
 export const pilotXpNeed=level=>100+(level-1)*65+15*Math.max(0,level-10)**2;
 export function addPilotXp(pilot,amount){
  pilot.level=Math.max(1,Math.floor(Number(pilot.level)||1));pilot.xp=(Number(pilot.xp)||0)+amount;
