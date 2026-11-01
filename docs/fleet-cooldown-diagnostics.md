@@ -1,8 +1,8 @@
 # Comparación de recargas de habilidades
 
-Solo simulación: no cambia las recargas del cliente ni del servidor. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y 60 % Égida. Las recargas 25/25/20 y 30/30/25 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.
+Solo simulación: no cambia las recargas del cliente ni del servidor. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y 60 % Égida. Las recargas 25/25/20 y 30/30/25 y 25/25/25 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.
 
-Se ejecutan 2.880 duelos sintéticos: 4 opciones × 12 parejas × 2 equipamientos × 30 semillas.
+Se ejecutan 3.600 duelos sintéticos: 5 opciones × 12 parejas × 2 equipamientos × 30 semillas.
 
 | Recarga | Pareja | Drones | Victorias izquierda | Victorias derecha | Empates / límite |
 |---|---|---:|---:|---:|---:|
@@ -102,3 +102,27 @@ Se ejecutan 2.880 duelos sintéticos: 4 opciones × 12 parejas × 2 equipamiento
 | 30/30/25 s desde activación | Obsidian / Égida | 8 | 30 | 0 | 0 |
 | 30/30/25 s desde activación | Obsidian / Azote | 8 | 30 | 0 | 0 |
 | 30/30/25 s desde activación | Obsidian / Vértigo | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Titán / Espectro | 0 | 18 | 10 | 2 |
+| 25 s para todas desde activación | Titán / Aurora | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Espectro / Aurora | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Bastión / Segadora | 0 | 28 | 1 | 1 |
+| 25 s para todas desde activación | Bastión / Centella | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Segadora / Centella | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Égida / Azote | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Égida / Vértigo | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Azote / Vértigo | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Obsidian / Égida | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Obsidian / Azote | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Obsidian / Vértigo | 0 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Titán / Espectro | 8 | 0 | 30 | 0 |
+| 25 s para todas desde activación | Titán / Aurora | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Espectro / Aurora | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Bastión / Segadora | 8 | 26 | 2 | 2 |
+| 25 s para todas desde activación | Bastión / Centella | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Segadora / Centella | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Égida / Azote | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Égida / Vértigo | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Azote / Vértigo | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Obsidian / Égida | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Obsidian / Azote | 8 | 30 | 0 | 0 |
+| 25 s para todas desde activación | Obsidian / Vértigo | 8 | 30 | 0 | 0 |
