@@ -24,9 +24,9 @@ export function equip(p,id){
  q.baseSpeed=q.speed;q.speed*=q.droneFormation==='drive'?1.12:1;
  q.droneDamage=q.droneFormation==='spear'?1.2:1;q.resistance=(q.droneFormation==='shield'?.85:1)*(raw.boosters?.resistance===true?.85:1);q.damageBonus=raw.boosters?.damage===true?1.15:1;
  q.droneRange=q.droneFormation==='hunter'?1380:1200;q.repairBonus=q.droneFormation==='recovery'?1.25:1;q.explorerRange=450+Math.max(1,Math.min(10,Number(raw.explorerRangeLevel)||1))*100;
- p.hp=q.maxHp;p.energy=q.maxEnergy;p.abilityUntil=0;for(const key of ['laser','missile','explorer'])p['last_'+key]=0;return true;
+ p.hp=q.maxHp;p.energy=q.maxEnergy;p.abilityUntil=0;p.abilityReadyAt=0;for(const key of ['laser','missile','explorer'])p['last_'+key]=0;return true;
 }
-export function reset(p,respawn=false){p.npcTether=null;p.npcSnagImmuneUntil=0;clearSkills(p);p.hp=p.profile.maxHp;p.energy=p.profile.maxEnergy;p.abilityUntil=0;p.firing=false;p.duelId=null;p.revision=(p.revision||0)+1;for(const key of ['laser','missile','explorer'])p['last_'+key]=0;if(respawn)p.pos=[...(p.spawn||WORLD.spawn)];p.baseInside=safe(p);p.baseEnteredAt=p.baseInside?-WORLD.protectionDelay:null;p.lastDamagedBy=null;p.lastDamageNoRewards=false;}
+export function reset(p,respawn=false){p.npcTether=null;p.npcSnagImmuneUntil=0;clearSkills(p);p.hp=p.profile.maxHp;p.energy=p.profile.maxEnergy;p.abilityUntil=0;p.abilityReadyAt=0;p.firing=false;p.duelId=null;p.revision=(p.revision||0)+1;for(const key of ['laser','missile','explorer'])p['last_'+key]=0;if(respawn)p.pos=[...(p.spawn||WORLD.spawn)];p.baseInside=safe(p);p.baseEnteredAt=p.baseInside?-WORLD.protectionDelay:null;p.lastDamagedBy=null;p.lastDamageNoRewards=false;}
 // Fixed entry deadline, independent from attacks, damage and skill activation.
 export function updateProtection(p,now){
  const inside=safe(p);

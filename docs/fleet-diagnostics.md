@@ -1,10 +1,10 @@
 # Diagnóstico de progresión de naves
 
-Escenarios sintéticos; no representan tasas de victoria reales. Fortaleza: Titán reduce 40 %; Bastión reduce 50 %; Égida reduce 60 %. Las otras habilidades y los enemigos se conservan.
+Escenarios sintéticos; no representan tasas de victoria reales. Fortaleza: Titán reduce 40 %; Bastión reduce 50 %; Égida reduce 50 %. Las otras habilidades y los enemigos se conservan.
 
 ## Resultado
 
-La progresión y las conversiones son consistentes, pero el equilibrio no queda aprobado: las defensivas conservan una ventaja grande en los duelos estáticos con habilidades ensayados y Égida vence a Obsidian. Los resultados por pareja, equipamiento y semilla se registran en las tablas siguientes. La movilidad no se representa en estos casos. Tras bajar Fortaleza a 40 % en Titán, 50 % en Bastión y 60 % en Égida, la ventaja defensiva persiste en estos casos; además, las recargas declaradas no se hacen cumplir en la activación actual. No se publican estos cambios en main ni se despliega el servidor.
+La progresión y las conversiones son consistentes, pero el equilibrio no queda aprobado: las defensivas conservan una ventaja grande en los duelos estáticos con habilidades ensayados; el detalle actualizado se muestra en las tablas. Los resultados por pareja, equipamiento y semilla se registran en las tablas siguientes. La movilidad no se representa en estos casos. Tras bajar Fortaleza a 40 % en Titán, 50 % en Bastión y Égida, la ventaja defensiva persiste en estos casos; se aplica una recarga real de 25 segundos desde la activación en cliente y servidor. No se publican estos cambios en main ni se despliega el servidor.
 
 Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se mantienen modelos, compras, materiales, mejoras base y porcentaje de casco; no se crean naves duplicadas.
 
@@ -14,8 +14,8 @@ Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se m
 |---|---|---:|---:|---:|---:|
 | Titán / Espectro | No | 0 | 6 | 24 | 0 |
 | Titán / Espectro | No | 8 | 0 | 30 | 0 |
-| Titán / Espectro | Sí | 0 | 30 | 0 | 0 |
-| Titán / Espectro | Sí | 8 | 27 | 3 | 0 |
+| Titán / Espectro | Sí | 0 | 18 | 10 | 2 |
+| Titán / Espectro | Sí | 8 | 0 | 30 | 0 |
 | Titán / Aurora | No | 0 | 30 | 0 | 0 |
 | Titán / Aurora | No | 8 | 30 | 0 | 0 |
 | Titán / Aurora | Sí | 0 | 30 | 0 | 0 |
@@ -26,8 +26,8 @@ Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se m
 | Espectro / Aurora | Sí | 8 | 30 | 0 | 0 |
 | Bastión / Segadora | No | 0 | 12 | 14 | 4 |
 | Bastión / Segadora | No | 8 | 2 | 26 | 2 |
-| Bastión / Segadora | Sí | 0 | 30 | 0 | 0 |
-| Bastión / Segadora | Sí | 8 | 30 | 0 | 0 |
+| Bastión / Segadora | Sí | 0 | 28 | 1 | 1 |
+| Bastión / Segadora | Sí | 8 | 26 | 2 | 2 |
 | Bastión / Centella | No | 0 | 30 | 0 | 0 |
 | Bastión / Centella | No | 8 | 30 | 0 | 0 |
 | Bastión / Centella | Sí | 0 | 30 | 0 | 0 |
@@ -50,8 +50,8 @@ Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se m
 | Azote / Vértigo | Sí | 8 | 30 | 0 | 0 |
 | Obsidian / Égida | No | 0 | 30 | 0 | 0 |
 | Obsidian / Égida | No | 8 | 30 | 0 | 0 |
-| Obsidian / Égida | Sí | 0 | 0 | 30 | 0 |
-| Obsidian / Égida | Sí | 8 | 0 | 30 | 0 |
+| Obsidian / Égida | Sí | 0 | 30 | 0 | 0 |
+| Obsidian / Égida | Sí | 8 | 30 | 0 | 0 |
 | Obsidian / Azote | No | 0 | 30 | 0 | 0 |
 | Obsidian / Azote | No | 8 | 30 | 0 | 0 |
 | Obsidian / Azote | Sí | 0 | 30 | 0 | 0 |
@@ -67,15 +67,15 @@ Cadete conserva el ID histórico aurora y Aurora conserva el ID agilbasica. Se m
 |---|---|---:|---:|---:|
 | Bastión | Coloso | 293.4 | 195.3 | -33.4 % |
 | Bastión | Gran Titán | 489.4 | 325.6 | -33.5 % |
-| Segadora | Coloso | 113.5 | 105.0 | -7.4 % |
-| Segadora | Gran Titán | 196.1 | 180.7 | -7.9 % |
-| Centella | Coloso | 207.9 | 150.3 | -27.7 % |
-| Centella | Gran Titán | 352.4 | 257.5 | -26.9 % |
+| Segadora | Coloso | 133.1 | 125.3 | -5.8 % |
+| Segadora | Gran Titán | 224.1 | 205.2 | -8.4 % |
+| Centella | Coloso | 250.6 | 182.1 | -27.3 % |
+| Centella | Gran Titán | 417.9 | 306.6 | -26.6 % |
 
 ## Límites
 
-Reglas reales del servidor para habilidades, disparos, mitigación y energía. Naves quietas, probabilidad independiente de impacto del 70 %, dos láseres principales y un misil por lanzamiento, 30 semillas por caso. Nivel 40. Sin habilidades PvP adicionales, robot, formaciones, potenciadores ni mejoras. Sin vuelo de proyectiles ni maniobras. Las habilidades se activan al estar disponibles con energía suficiente; no se inventa una recarga que el código no aplica.
+Reglas reales del servidor para habilidades, disparos, mitigación y energía. Naves quietas, probabilidad independiente de impacto del 70 %, dos láseres principales y un misil por lanzamiento, 30 semillas por caso. Nivel 40. Sin habilidades PvP adicionales, robot, formaciones, potenciadores ni mejoras. Sin vuelo de proyectiles ni maniobras. Las habilidades se activan al estar disponibles con energía suficiente; se respeta la recarga de 25 segundos que aplica el código.
 
 Estadísticas base por nivel, sin mejoras, en niveles 40 y 105; 100 % de impactos salientes y entrantes. Patrones entrantes simplificados: una bomba de Catapulta/6 s, daño de Arponero/1 s, un disparo de Acechador/3 s, un misil de Coloso/5 s y una lanza de Gran Titán/8 s. Sin refuerzos, superposición de áreas, bombas del Titán, regeneración enemiga ni movimiento. El cálculo de daño continúa tras la muerte hipotética del jugador para comparar presupuestos; no representa una victoria completa.
 
-Los tiempos contra enemigos son presupuestos de daño con patrones simplificados. No certifican que se pueda derrotar a un jefe ni incluyen el valor de la velocidad. No se modificaron enemigos. Fortaleza se ajustó a 40 % en Titán, 50 % en Bastión y 60 % en Égida; duración, energía y las demás habilidades permanecen intactas.
+Los tiempos contra enemigos son presupuestos de daño con patrones simplificados. No certifican que se pueda derrotar a un jefe ni incluyen el valor de la velocidad. No se modificaron enemigos. Fortaleza se ajustó a 40 % en Titán, 50 % en Bastión y Égida; duración y energía permanecen intactas; todas las habilidades usan 25 s de recarga desde activación.

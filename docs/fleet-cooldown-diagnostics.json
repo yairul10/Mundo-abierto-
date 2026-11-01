@@ -1,9 +1,9 @@
 {
-  "assumptions": "Solo simulación: no cambia las recargas del cliente ni del servidor. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y 60 % Égida. Las recargas 25/25/20 y 30/30/25 y 25/25/25 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.",
+  "assumptions": "Comparación diagnóstica: el borrador aplica 25 s reales; el simulador impone las alternativas solo para compararlas. Naves quietas, nivel 40 sin mejoras, precisión independiente del 70 %, 30 semillas emparejadas por caso, 0 u 8 drones, un misil por lanzamiento. Habilidades actuales: Fortaleza 40 % Titán, 50 % Bastión y Égida. Las recargas 25/25/20 y 30/30/25 y 25/25/25 se cuentan desde la activación. La alternativa literal de 5 s se cuenta desde el fin del efecto. No se representan movimiento, alcance táctico, habilidades PvP adicionales, robot ni formaciones. Los resultados no son tasas de victoria de jugadores reales.",
   "duels": 3600,
   "rows": [
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "titan",
       "b": "espectro",
       "drones": 0,
@@ -14,7 +14,7 @@
       "meanSeconds": 99.63666666666664
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "titan",
       "b": "agilbasica",
       "drones": 0,
@@ -25,7 +25,7 @@
       "meanSeconds": 115.38666666666671
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "espectro",
       "b": "agilbasica",
       "drones": 0,
@@ -36,7 +36,7 @@
       "meanSeconds": 44.38333333333333
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "bastion",
       "b": "segadora",
       "drones": 0,
@@ -47,7 +47,7 @@
       "meanSeconds": 94.03666666666668
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "bastion",
       "b": "centella",
       "drones": 0,
@@ -58,7 +58,7 @@
       "meanSeconds": 104.77000000000001
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "segadora",
       "b": "centella",
       "drones": 0,
@@ -69,7 +69,7 @@
       "meanSeconds": 46.08666666666665
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "egida",
       "b": "azote",
       "drones": 0,
@@ -80,7 +80,7 @@
       "meanSeconds": 86.17333333333336
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "egida",
       "b": "vertigo",
       "drones": 0,
@@ -91,7 +91,7 @@
       "meanSeconds": 95.95
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "azote",
       "b": "vertigo",
       "drones": 0,
@@ -102,18 +102,18 @@
       "meanSeconds": 44.73333333333333
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "obsidian",
       "b": "egida",
       "drones": 0,
-      "winsA": 0,
-      "winsB": 30,
-      "draws": 0,
+      "winsA": 16,
+      "winsB": 13,
+      "draws": 1,
       "timeouts": 0,
-      "meanSeconds": 132.60666666666668
+      "meanSeconds": 129.27333333333334
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "obsidian",
       "b": "azote",
       "drones": 0,
@@ -124,7 +124,7 @@
       "meanSeconds": 48.53166666666666
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "obsidian",
       "b": "vertigo",
       "drones": 0,
@@ -135,7 +135,7 @@
       "meanSeconds": 56.573333333333345
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "titan",
       "b": "espectro",
       "drones": 8,
@@ -146,7 +146,7 @@
       "meanSeconds": 83.11666666666665
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "titan",
       "b": "agilbasica",
       "drones": 8,
@@ -157,7 +157,7 @@
       "meanSeconds": 98.35333333333338
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "espectro",
       "b": "agilbasica",
       "drones": 8,
@@ -168,7 +168,7 @@
       "meanSeconds": 30.476666666666667
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "bastion",
       "b": "segadora",
       "drones": 8,
@@ -179,7 +179,7 @@
       "meanSeconds": 56.936666666666675
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "bastion",
       "b": "centella",
       "drones": 8,
@@ -190,7 +190,7 @@
       "meanSeconds": 65.45333333333333
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "segadora",
       "b": "centella",
       "drones": 8,
@@ -201,7 +201,7 @@
       "meanSeconds": 28.56333333333333
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "egida",
       "b": "azote",
       "drones": 8,
@@ -212,7 +212,7 @@
       "meanSeconds": 44.80333333333333
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "egida",
       "b": "vertigo",
       "drones": 8,
@@ -223,7 +223,7 @@
       "meanSeconds": 51.80333333333333
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "azote",
       "b": "vertigo",
       "drones": 8,
@@ -234,18 +234,18 @@
       "meanSeconds": 26.113333333333333
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "obsidian",
       "b": "egida",
       "drones": 8,
-      "winsA": 0,
-      "winsB": 30,
+      "winsA": 3,
+      "winsB": 27,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 71.82333333333334
+      "meanSeconds": 71.78166666666668
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "obsidian",
       "b": "azote",
       "drones": 8,
@@ -256,7 +256,7 @@
       "meanSeconds": 22.90666666666666
     },
     {
-      "cooldownMode": "current",
+      "cooldownMode": "unlimited",
       "a": "obsidian",
       "b": "vertigo",
       "drones": 8,
@@ -370,11 +370,11 @@
       "a": "obsidian",
       "b": "egida",
       "drones": 0,
-      "winsA": 11,
-      "winsB": 19,
+      "winsA": 25,
+      "winsB": 5,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 130.2666666666667
+      "meanSeconds": 123.32333333333334
     },
     {
       "cooldownMode": "fiveAfterEnd",
@@ -502,11 +502,11 @@
       "a": "obsidian",
       "b": "egida",
       "drones": 8,
-      "winsA": 29,
-      "winsB": 1,
+      "winsA": 30,
+      "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 66.145
+      "meanSeconds": 62.353333333333325
     },
     {
       "cooldownMode": "fiveAfterEnd",
@@ -638,7 +638,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 111.55000000000001
+      "meanSeconds": 107.9883333333333
     },
     {
       "cooldownMode": "declared",
@@ -770,7 +770,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 57.754999999999995
+      "meanSeconds": 55.571666666666665
     },
     {
       "cooldownMode": "declared",
@@ -902,7 +902,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 109.0966666666667
+      "meanSeconds": 106.62166666666668
     },
     {
       "cooldownMode": "declaredPlusFive",
@@ -1034,7 +1034,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 54.905
+      "meanSeconds": 53.66833333333332
     },
     {
       "cooldownMode": "declaredPlusFive",
@@ -1166,7 +1166,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 114.43833333333332
+      "meanSeconds": 110.72666666666669
     },
     {
       "cooldownMode": "all25",
@@ -1298,7 +1298,7 @@
       "winsB": 0,
       "draws": 0,
       "timeouts": 0,
-      "meanSeconds": 59.044999999999995
+      "meanSeconds": 56.77166666666667
     },
     {
       "cooldownMode": "all25",
