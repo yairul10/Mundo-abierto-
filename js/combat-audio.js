@@ -38,7 +38,7 @@ export const EFFECTS=Object.freeze({
  respawn:{duration:.85,volume:.25,cooldown:2,frequency:180,end:1100},
  explosion:{duration:.85,volume:.5,cooldown:.09,noise:1,frequency:75,end:24}
 });
-export const MUSIC_TRACKS=Object.freeze(['./assets/audio/trench-run-velocity.mp3','./assets/audio/horizon-of-the-iron-moon.mp3']);
+export const MUSIC_TRACKS=Object.freeze(['./assets/audio/kinetic-payload.mp3','./assets/audio/horizon-of-the-iron-moon.mp3']);
 export function createCombatAudio({host=globalThis,listener=()=>null,storage,document:doc=host.document}={}){
  let settings={volume:.55,musicVolume:.2,muted:false};
  try{const saved=JSON.parse(storage?.getItem(AUDIO_KEY)||'null');if(saved){if(Number.isFinite(saved.volume))settings.volume=Math.max(0,Math.min(1,saved.volume));if(Number.isFinite(saved.musicVolume))settings.musicVolume=Math.max(0,Math.min(1,saved.musicVolume));settings.muted=saved.muted===true}}catch{}
