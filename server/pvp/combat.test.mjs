@@ -9,3 +9,17 @@ assert.equal(volley(s,a,{weapon:'missile',shots:Array(6).fill({...shot,speed:650
 assert(Math.abs(defenseDamage(a,100,12000,()=>1)-(100-22.5)*.87)<1e-10);const energyBefore=a.energy;assert(ability(a,12000));assert.equal(a.energy,energyBefore-55);assert(!ability(a,12100));assert(Math.abs(defenseDamage(a,100,12100,()=>1)-(100-22.5)*.87*.6)<1e-10);
 a.abilityUntil=0;a.hp=300;a.lastHit=a.lastIncoming=a.lastAttack=15000;a.firing=false;s.simTime=15000;stepCombat(s,15050);assert.equal(a.hp,300);s.simTime=17500;stepCombat(s,17600);assert.equal(a.hp,305.4);
 console.log('PASS: importa vida/daño/defensa/mejoras, doble láser, daño validado, cadencia, misiles, Titan y robot.');
+
+for(const shipId of ['aurora','titan','espectro','agilbasica','adminpod','azote','egida','vertigo','obsidian','segadora','bastion','centella']){
+ const pilot={id:shipId,pos:[0,0,0],connected:true};
+ makeCombatPlayer(pilot,{...raw,shipId});
+ const state={players:[pilot],bullets:[]};
+ const bullets=volley(state,pilot,{weapon:'laser',shots:[shot,shot,{...shot,kind:'drone'}]},20000);
+ assert.equal(Math.hypot(...bullets[0].vel),1495,shipId+' laser speed');
+ assert.equal(Math.hypot(...bullets[2].vel),1150,shipId+' drone speed');
+ assert.equal(bullets[0].range,1200);
+ assert.equal(bullets[0].life,1200/1495+.35);
+ const missiles=volley(state,pilot,{weapon:'missile',shots:[{...shot,speed:650,delay:.5,locked:false}]},20000);
+ assert.equal(Math.hypot(...missiles[0].vel),650);
+}
+console.log('PASS: láser +30 % en todas las naves; drones, alcance y misiles conservados.');

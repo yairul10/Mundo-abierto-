@@ -83,3 +83,9 @@ Verificar lanzas metálicas con punta orientada al movimiento y estela, cuatro b
 La versión web usa un documento exterior estable para mantener la pantalla completa y la orientación mientras el juego navega entre Cementerio y PvP. El juego interno se mantiene en un único marco del mismo origen; no se crean marcos anidados al entrar, volver o recargar. El botón horizontal del juego interno delega en el documento exterior. La APK conserva el arranque directo y su orientación nativa.
 
 Probar desde un navegador móvil: activar horizontal, escoger normal o pruebas, atravesar el portal con su cuenta de 3 segundos, conectar a PvP y volver al Cementerio. La pantalla completa debe permanecer, sin repetir el aviso de giro ni modificar el guardado. Al girar realmente el dispositivo a vertical o salir manualmente de pantalla completa, se mantiene el aviso de orientación cuando corresponda. La comprobación de versión permanece en ambos documentos para evitar HTML antiguo en caché.
+
+## v357 · Velocidad del láser de las naves
+
+El láser principal de todas las naves viaja a 1.495 unidades/s (antes 1.150; +30 %), tanto en PvE como en el combate validado por el servidor PvP. Se conservan daño, cadencia, alcance, misiles y velocidad de los drones. El Android empaqueta el código: necesita una nueva compilación instalada; el cambio del servidor PvP también requiere desplegar Cloudflare.
+
+Comprobar con naves básicas, ensambladas y admin: disparos manuales y con blanco fijado, alcance de 1.200 m y misiles sin cambios. En dos clientes PvP, verificar la velocidad del disparo local y remoto tras desplegar el servidor.
