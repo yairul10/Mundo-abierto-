@@ -15,7 +15,7 @@ import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {createArenaEnemyView} from './pvp-enemies.js?v=352';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=348';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=361';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -38,7 +38,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=358';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=359';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=360';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=361';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=358';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=358';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
