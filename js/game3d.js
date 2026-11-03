@@ -1,3 +1,4 @@
+import {mountSystemMap} from './system-map.js?v=365';
 import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield,shieldUpgradeCost,buyShieldUpgrade} from './shield-system.js?v=364';
 import {createTestProgressReset} from './test-progress-reset.js?v=363';
 import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-upgrade.js?v=358';
@@ -2694,7 +2695,7 @@ function updateDock(){
  if(available)dockBtn.textContent='🛬 Aterrizar en '+(PVP_MODE?'Base PvP':currentStationName());
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
-addEventListener('keydown',e=>{if(e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+addEventListener('keydown',e=>{if(document.body.classList.contains('system-map-open')||e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');joy.strafe=0;
 function throttleMove(e){if(!panel.classList.contains('hidden')||docked||landing)return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
 // Entradas táctiles independientes: el joystick no pierde su dedo al disparar.
@@ -3044,6 +3045,7 @@ function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math
  sectorNotice.textContent='☢️ Fuera del sector · -8 protección/s · Regresa al interior';
 }
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
+const systemMap=mountSystemMap({trigger:$('radarWidget'),getState:()=>({level:player.level,current:PVP_MODE?'pvp':activeSector}),onOpen:()=>{resetDockControls();fireHeld=false;for(const key of Object.keys(keys))delete keys[key]}});
 const companionControls=mountCompanionControls({parent:$('zoomControls'),getPlayer:()=>player,onChange:mode=>{
  const previous=player.explorerMode;player.explorerMode=mode;
  let saved;
@@ -3053,7 +3055,7 @@ const companionControls=mountCompanionControls({parent:$('zoomControls'),getPlay
  explorerManualTarget=null;explorerManualUntil=0;explorerThreat=null;explorerThreats.clear();explorerCompanion.targetDrop=null;explorerCompanion.nextChange=0;
  lootToast('🛰 Mascota: '+({both:'atacar y recoger',attack:'solo atacar',collect:'solo recoger'}[mode]));
 }});
-function hud(){companionControls.render();const compact=$('hudCompactHealthFill');if(compact)compact.style.width=Math.max(0,Math.min(100,100*player.hp/player.maxHp))+'%';if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);else $('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=player.maxShield>0?'Escudo '+Math.ceil(player.shield)+'/'+player.maxShield:'Escudo bloqueado · Nivel 0/5';$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=(player.maxShield>0?player.shield/player.maxShield*100:0)+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':'';presentCombatButton($('skillBtn'),{remaining:skillCd,duration:7,blocked:docked||landing||recoveryPending});presentCombatButton($('fireBtn'),{pressed:fireHeld,blocked:docked||landing||recoveryPending})}
+function hud(){systemMap.refresh();companionControls.render();const compact=$('hudCompactHealthFill');if(compact)compact.style.width=Math.max(0,Math.min(100,100*player.hp/player.maxHp))+'%';if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);else $('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=player.maxShield>0?'Escudo '+Math.ceil(player.shield)+'/'+player.maxShield:'Escudo bloqueado · Nivel 0/5';$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=(player.maxShield>0?player.shield/player.maxShield*100:0)+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':'';presentCombatButton($('skillBtn'),{remaining:skillCd,duration:7,blocked:docked||landing||recoveryPending});presentCombatButton($('fireBtn'),{pressed:fireHeld,blocked:docked||landing||recoveryPending})}
 // Zoom discreto de cámara, sin alterar la dirección de disparo ni el joystick.
 let cameraZoom=285;
 function setCameraZoom(next){cameraZoom=THREE.MathUtils.clamp(next,170,540)}
@@ -3185,7 +3187,7 @@ function farmBasePoint(){
 let farmObstacles=[],farmObstacleAt=-Infinity,farmBase=null,farmObstacleSector=null;
 function farmInput(dt,now){
  if(!farmPilot?.running)return null;
- const paused=farmUI.open||!panel.classList.contains('hidden')||document.body.classList.contains('journal-open')||document.body.classList.contains('portrait-blocked');
+ const paused=systemMap.open||farmUI.open||!panel.classList.contains('hidden')||document.body.classList.contains('journal-open')||document.body.classList.contains('portrait-blocked');
  if(now-farmObstacleAt>500||farmObstacleSector!==activeSector){farmObstacleSector=activeSector;farmObstacleAt=now;farmBase=farmBasePoint();farmObstacles=asteroidField.visible?asteroidField.children.filter(o=>o.position.distanceToSquared(playerMesh.position)<700*700).map(o=>({position:o.position,radius:Math.max(o.scale.x,o.scale.y,o.scale.z)*1.5})):[];}
  const command=farmPilot.tick({pvp:PVP_MODE,active:!document.hidden&&document.hasFocus()&&!graphicsLost,dead:player.hp<=0||recoveryPending,paused,abilityReady:classAbilityTime<=0&&classAbilityCd<=0,position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,gold:player.gold,repairCost:Math.ceil(Math.max(0,player.maxHp-player.hp)*.3),robot:player.repairRobot,docked,landing,base:farmBase,sector:activeSector,level:player.level,routes:sectorPortalRoutes(),enemies,drops,safe:inSafeZone,center:currentSector(),radius:currentSector().radius,obstacles:farmObstacles,attacks:enemyShots.concat(titanProjectiles)},now/1000);
  if(!farmPilot.running)farmUI.refresh();
@@ -3204,14 +3206,14 @@ function loop(now){if(document.getElementById('worldLoading')){last=now;requestA
 const autoInput=farmInput(dt,now);
 if(player.hp>0&&player.hp/player.maxHp<=.25&&!docked&&!landing&&!recoveryPending&&panel.classList.contains('hidden')&&!document.body.classList.contains('journal-open'))combatAudio.play('lowLife');
 const enginePower=Math.min(1,Math.hypot((autoInput?.throttle??joy.throttle)+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),(autoInput?.strafe??joy.strafe??0)+(keys.d?1:0)-(keys.a?1:0)));
-combatAudio.setEngine(enginePower,player.hp>0&&!recoveryPending&&!graphicsLost&&!docked&&!landing&&panel.classList.contains('hidden')&&!farmUI?.open&&!document.body.classList.contains('journal-open')&&!document.body.classList.contains('portrait-blocked')&&(!pvpSession||pvpSession.active&&!pvpHangar));
+combatAudio.setEngine(enginePower,player.hp>0&&!recoveryPending&&!graphicsLost&&!docked&&!landing&&panel.classList.contains('hidden')&&!systemMap.open&&!farmUI?.open&&!document.body.classList.contains('journal-open')&&!document.body.classList.contains('portrait-blocked')&&(!pvpSession||pvpSession.active&&!pvpHangar));
 if(graphicsLost){requestAnimationFrame(loop);return}
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
 updateGraphicsDetail(now);
 updateProAuras(THREE,enemies,now/1000);
 if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(document.body.classList.contains('journal-open')){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(player.hp<=0||recoveryPending){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||document.hidden||docked||landing||!panel.classList.contains('hidden')||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
- updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!docked&&!landing&&panel.classList.contains('hidden'))fire();if(!PVP_MODE)regenerateShield(player,dt,Date.now(),shipRole(player.shipId)==='aurora'?1+specialLevel('energy')*.04:1);
-const menuOpen=docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);
+ updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!systemMap.open&&!docked&&!landing&&panel.classList.contains('hidden'))fire();if(!PVP_MODE)regenerateShield(player,dt,Date.now(),shipRole(player.shipId)==='aurora'?1+specialLevel('energy')*.04:1);
+const menuOpen=systemMap.open||docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
 const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp((autoInput?.strafe??joy.strafe)+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()||pvpSession?.paralyzed?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(menuOpen?[0,0,0]:forward.clone().multiplyScalar(throttle*scrapMovement/movementScale).addScaledVector(right,strafe*scrapMovement/movementScale).toArray(),[yaw,pitch],!menuOpen&&fireHeld,dt,now,player.speed);
@@ -3421,7 +3423,7 @@ if(PVP_MODE){
  });
  // Se puede tocar una nave en ambos lados de la pantalla, sin capturar el joystick.
  const taps=new Map(),picker=new THREE.Raycaster();
- const ui='button,input,select,textarea,a,#worldPanel,#worldTarget,#worldInvite,#pvpSkills,.world-nameplate,#joystick,#hud,#radarWidget,#zoomControls,#combatControls,#hangarPanel';
+ const ui='#systemMapOverlay,button,input,select,textarea,a,#worldPanel,#worldTarget,#worldInvite,#pvpSkills,.world-nameplate,#joystick,#hud,#radarWidget,#zoomControls,#combatControls,#hangarPanel';
  document.addEventListener('pointerdown',e=>{if(e.target.closest?.(ui))return;taps.set(e.pointerId,{x:e.clientX,y:e.clientY,moved:false})},true);
  document.addEventListener('pointermove',e=>{const t=taps.get(e.pointerId);if(t&&Math.hypot(e.clientX-t.x,e.clientY-t.y)>15)t.moved=true},true);
  document.addEventListener('pointercancel',e=>taps.delete(e.pointerId),true);
