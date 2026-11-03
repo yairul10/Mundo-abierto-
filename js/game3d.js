@@ -1,3 +1,4 @@
+import {createTestProgressReset} from './test-progress-reset.js?v=363';
 import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-upgrade.js?v=358';
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=351';
@@ -50,6 +51,7 @@ let pvpSession=null,pvpHangar=null,pvpCorrection=[0,0,0];
 const {GLTFLoader}=await import((window.THREE_CDN||'https://cdn.jsdelivr.net/npm/three@0.180.0')+'/examples/jsm/loaders/GLTFLoader.js');
 const THREE=window.THREE;if(!THREE)throw new Error('Three.js no disponible');
 const $=id=>document.getElementById(id), canvas=$('world');
+const testProgressReset=createTestProgressReset({storage:localStorage,isTest:()=>qaActive,isPvp:()=>PVP_MODE,reload:()=>location.reload()});
 let storageWarningShown=false;
 function showStorageWarning(message='El navegador bloqueó el guardado. Esta sesión continuará, pero algunos cambios podrían no conservarse.'){
  if(storageWarningShown)return;storageWarningShown=true;
@@ -58,7 +60,7 @@ function showStorageWarning(message='El navegador bloqueó el guardado. Esta ses
  notice.textContent='⚠️ '+message;document.body.appendChild(notice);setTimeout(()=>notice.remove(),6500);
 }
 function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStorageWarning();return null}}
-function safeStorageSet(key,value){if(PVP_MODE&&!pvpHangar)return true;try{if(key==='mundoAbierto.player'&&(window.COSMOS_PROFILE_SWITCHING||window.COSMOS_ACTIVE_PROFILE&&activeProfile(localStorage)!==window.COSMOS_ACTIVE_PROFILE))throw Error('La cuenta cambió');localStorage.setItem(key,value);if(key==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);return true}catch{showStorageWarning();return false}}
+function safeStorageSet(key,value){if(testProgressReset.pending)return false;if(PVP_MODE&&!pvpHangar)return true;try{if(key==='mundoAbierto.player'&&(window.COSMOS_PROFILE_SWITCHING||window.COSMOS_ACTIVE_PROFILE&&activeProfile(localStorage)!==window.COSMOS_ACTIVE_PROFILE))throw Error('La cuenta cambió');localStorage.setItem(key,value);if(key==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const DEFAULT={name:'Nave Cadete',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
 const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mode==='test';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=PVP_MODE?JSON.parse(JSON.stringify(stored.quests||{})):player.quests||{};
@@ -2746,7 +2748,7 @@ fireButton.onpointercancel=releaseFire;
 fireButton.onlostpointercapture=()=>{if(fireTouchId===null){fireHeld=false;firePointerId=null;bankInput=0}};
 $('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&&!landing)skill()};
 $('classAbilityBtn').onpointerdown=()=>{if(panel.classList.contains('hidden'))activateClassAbility()};
-function save(){if(PVP_MODE){
+function save(){if(testProgressReset.pending)return false;if(PVP_MODE){
  if(!pvpHangar)return true;
  const saved=serializeHangarEditor(player,readOfflinePilot(localStorage));
  if(!safeStorageSet(SAVE_KEY,JSON.stringify(saved)))return false;pvpHangar.saved=saved;return true;
@@ -3072,7 +3074,13 @@ $('qaDrones').onclick=()=>qaApply(()=>{player.droneCount=8;syncShipStats()});
 $('qaHeal').onclick=()=>qaApply(()=>{player.hp=player.maxHp;player.energy=player.maxEnergy});
 $('qaLevels').onclick=()=>qaApply(()=>{for(let i=0;i<5;i++){player.level++;combatAudio.play('levelUp');player.maxEnergy+=5;player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++}syncShipStats();player.hp=player.maxHp;player.energy=player.maxEnergy});
 $('qaMaterials').onclick=()=>qaApply(()=>{for(const t of LOOT_TYPES)player.loot[t.id]=(Number(player.loot[t.id])||0)+100});
-$('resetBtn').onclick=()=>{if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload()};
+$('resetBtn').onclick=()=>{
+ if(qaActive){
+  if(!confirm('¿Reiniciar desde cero solo la partida del servidor de prueba? Tu partida normal se conserva.'))return;
+  try{testProgressReset.reset()}catch(error){showStorageWarning(error.message)}return;
+ }
+ if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload();
+};
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
 hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!PVP_MODE||!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
 let boosterStatusSecond=-1;
@@ -3446,6 +3454,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 
