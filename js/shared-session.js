@@ -7,7 +7,7 @@ import {mountMapChat} from './map-chat.js?v=3';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=361';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=362';
-import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=356';
+import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=364';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
 const GUEST_KEY='mundoAbierto.guestKey',NAME_KEY='mundoAbierto.guestName',SHIP_KEY='mundoAbierto.guestShip';
 const NAMES={agilbasica:'Ágil básica',adminpod:'Hoverpod Admin',obsidian:'Obsidian',azote:'Azote',egida:'Égida',vertigo:'Vértigo',aurora:'Aurora',titan:'Titán',espectro:'Espectro',segadora:'Segadora',bastion:'Bastión',centella:'Centella'};
@@ -80,4 +80,5 @@ export function startSharedSession(bridge){
  input(move,aim,firing,dt,now,speed){if(!this.active)return;if(this.paralyzed)move=[0,0,0];movementPrediction.frame(move,Math.max(0,speed)*dt);if(now-lastSend<50)return;const m={type:'input',seq:++seq,move,aim,firing:this.canFight&&firing};movementPrediction.sent(m.seq);send(m);lastSend=now},
  shots(weapon,shots,position,attack,factor,aimId){if(!this.canFight)return;send({type:'volley',weapon,origin:position.toArray(),targetId:aimId||targetId(),shots:shots.map((p,i)=>({kind:weapon==='laser'&&i>=2?'drone':weapon,offset:p.mesh.position.clone().sub(position).toArray(),direction:p.vel.clone().normalize().toArray(),aimPoint:p.pvpAimPoint?.toArray(),speed:p.missileSpeed,delay:p.missileGuideDelay,locked:!!p.target}))})},ability(){if(this.canFight)send({type:'ability'})}};
 }
+
 

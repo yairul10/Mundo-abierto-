@@ -1,3 +1,4 @@
+import {syncShield} from './shield-system.js?v=364';
 import {activeProfile,playProfile,checkpointProfile,profileMeta,setProfileMeta} from './account-storage.js?v=344';
 // Cosmos Legacy cloud-save client. Does not run until configured by the Android boot path.
 // A server session is held in memory only. Do not persist OAuth codes or session tokens.
@@ -68,7 +69,7 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
    }
    const progress=progressOf(pending.cloud);
    // Temporary world/boss state belongs to the device. Restore at the safe Aurora spawn.
-   const restored={...progress,x:0,y:0,z:0,yaw:0,pitch:0,sector:'aurora',hp:progress.maxHp,energy:progress.maxEnergy};
+   const restored={...progress,x:0,y:0,z:0,yaw:0,pitch:0,sector:'aurora',hp:progress.maxHp,energy:progress.maxEnergy};syncShield(restored,{fill:true});
    const serialized=JSON.stringify(restored);
    try{localStorage.setItem(SAVE_KEY,serialized);if(localStorage.getItem(SAVE_KEY)!==serialized)throw Error('No se pudo verificar la restauración')}
    catch(error){try{if(raw===null)localStorage.removeItem(SAVE_KEY);else localStorage.setItem(SAVE_KEY,raw)}catch{}throw error}
@@ -112,4 +113,5 @@ export function validateProgress(progress){
  if(!progress.quests||typeof progress.quests!=='object'||Array.isArray(progress.quests))throw Error('Misiones de nube inválidas');
  return progress;
 }
+
 

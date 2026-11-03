@@ -22,8 +22,9 @@ test('browser rejects an early activation after the effect finishes',()=>{
  const context={player:{shipId:'bastion',energy:1000},PVP_MODE:false,classAbilityTime:0,classAbilityCd:0,docked:false,landing:false,inSafeZone:()=>false,playerMesh:{position:{}},combatAudio:{play(){}},abilityDuration:()=>6,pvpSession:null,hud(){},lootToast(){}};
  vm.createContext(context);vm.runInContext(table+activation,context);
  vm.runInContext('for(const skill of Object.values(SHIP_ABILITIES))if(skill.cooldown!==15)throw Error("Wrong cooldown");activateClassAbility();',context);
- assert.equal(context.classAbilityCd,15);assert.equal(context.player.energy,945);
+ assert.equal(context.classAbilityCd,15);assert.equal(context.player.energy,1000);
  context.classAbilityTime=0;context.classAbilityCd=9;context.activateClassAbility();
- assert.equal(context.player.energy,945);
- context.classAbilityCd=0;context.activateClassAbility();assert.equal(context.player.energy,890);
+ assert.equal(context.player.energy,1000);
+ context.classAbilityCd=0;context.activateClassAbility();assert.equal(context.player.energy,1000);
 });
+

@@ -1,3 +1,4 @@
+import {applyShieldDamage} from './shield-system.mjs';
 import {tickNpcPattern} from './npc-patterns.mjs';
 import {constrainEnemy} from './zones.mjs';
 import {defenseDamage} from './combat.mjs';
@@ -84,7 +85,8 @@ export function tickBoss(s,now,eligible){
  const hits=targets.map(target=>{
   const projectile=rules.attackPattern?(b.kind==='granTitanPro'?'missile':'laser'):rules.projectile;
   if(projectile){const delta=target.pos.map((v,i)=>v-b.pos[i]),length=Math.hypot(...delta)||1,missile=projectile==='missile',speed=missile?650:1150;s.bullets||=[];s.bullets.push({id:crypto.randomUUID(),owner:b.id,combatZone:rules.zone,pos:[...b.pos],vel:delta.map(v=>v/length*speed),life:missile?5:1.05,range:1200,damage:sharedDamage,missile,speed,delay:.55,age:0,travelled:0,target:missile?target.id:null});return {targetId:target.id,targetPos:[...target.pos],damage:0}}
-  const damage=Math.min(target.hp,defenseDamage(target,sharedDamage,now));target.hp=Math.max(0,target.hp-damage);target.lastHit=target.lastIncoming=now;target.lastDamagedBy=b.id;return {targetId:target.id,targetPos:[...target.pos],damage}});
+  const damage=applyShieldDamage(target,defenseDamage(target,sharedDamage,now),now).total;target.lastHit=target.lastIncoming=now;target.lastDamagedBy=b.id;return {targetId:target.id,targetPos:[...target.pos],damage}});
  b.attackSeq++;b.lastAttack={seq:b.attackSeq,time:now,origin:[...b.pos],projectile:rules.attackPattern?(b.kind==='granTitanPro'?'missile':'laser'):rules.projectile||null,targets:hits,...hits[0]};
 }
 export function bossSnapshot(b){if(!b)return null;const rules=b.rules||BOSS_RULES;return {id:b.id,instanceId:b.instanceId,name:rules.name,pos:b.pos,hp:b.hp,maxHp:b.maxHp,active:b.active,respawnAt:b.respawnAt||0,reward:rules.reward,range:rules.range,lastAttack:b.lastAttack||null,lastTeleport:b.lastTeleport||null,aimTargets:b.aimTargets||[],nextAttackAt:b.nextAttackAt||0}}
+

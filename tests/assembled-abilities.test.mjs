@@ -7,20 +7,21 @@ for(const [id,mult]of [['espectro',1.6],['segadora',1.7],['azote',1.7]]){
  const p=pilot(id),s={players:[p,{id:'target',pos:[0,0,500]}]},shot={offset:[0,0,0],direction:[0,0,1]};
  close(volley(s,p,{weapon:'laser',shots:[shot]},10000)[0].damage,50*mult);
  close(defenseDamage(p,100,10001,()=>1),['segadora','azote'].includes(id)?120:130);
- assert.equal(p.energy,135);assert.equal(p.abilityUntil,15000);
+ assert.equal(p.energy,200);assert.equal(p.abilityUntil,15000);
 }
 for(const [id,mult]of [['titan',.6],['bastion',.5],['egida',.5]]){
- const p=pilot(id);close(defenseDamage(p,100,10001),90*mult);assert.equal(p.energy,145);assert.equal(p.abilityUntil,16000);
+ const p=pilot(id);close(defenseDamage(p,100,10001),90*mult);assert.equal(p.energy,200);assert.equal(p.abilityUntil,16000);
 }
 for(const [id,allowsAt500]of [['aurora',false],['centella',true],['vertigo',true]]){
  const p=pilot(id),s={players:[p,{id:'target',pos:[0,0,500]}]},m={weapon:'laser',shots:[{offset:[0,0,0],direction:[0,0,1]}]};
  assert.ok(volley(s,p,m,10000));assert.equal(!!volley(s,p,m,10500),allowsAt500);
- assert.equal(p.energy,160);assert.equal(p.abilityUntil,15000);
+ assert.equal(p.energy,200);assert.equal(p.abilityUntil,15000);
 }
-console.log('New fleet abilities: enhanced cadence, shield and fury; original effects, durations and energy preserved.');
+console.log('New fleet abilities: enhanced cadence, shield and fury; original effects, durations preserved; abilities no longer consume energy.');
 
 // Browser and authoritative server must agree on active Fortaleza coefficients.
 const client=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
 const expression=client.match(/if\(classAbilityActive\('titan'\)\)damage\*=([^;]+);/)[1];
 const clientMultiplier=new Function('player','return '+expression);
 for(const [shipId,expected] of [['titan',.6],['bastion',.5],['egida',.5]])assert.equal(clientMultiplier({shipId}),expected);
+

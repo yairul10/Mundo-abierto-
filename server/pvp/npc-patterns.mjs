@@ -1,3 +1,4 @@
+import {applyShieldDamage} from './shield-system.mjs';
 import {defenseDamage} from './combat.mjs';
 export const NPC_PATTERNS=Object.freeze({titan:{interval:8000,charge:2500,range:1200},catapult:{interval:6000,charge:1400,range:1200},harpooner:{interval:5000,charge:0,range:1200},stalker:{interval:3000,charge:500,range:1400}});
 const dist=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
@@ -36,7 +37,7 @@ export function advanceNpcHazards(s,now,eligible){
    if(b.hp<=0||bomb.instance!==b.instanceId)return false;
    if(now<bomb.detonateAt)return true;
    // No stale blast after a hibernation gap; every explosion is consumed once.
-   if(now-bomb.detonateAt<=500)for(const p of s.players)if((p.clientVersion??5)>=5&&eligible(b,p,now)&&dist(p.pos,bomb.targetPos)<bomb.radius){const damage=Math.min(p.hp,defenseDamage(p,bomb.damage,now));p.hp-=damage;p.lastHit=p.lastIncoming=now;p.lastDamagedBy=b.id}
+   if(now-bomb.detonateAt<=500)for(const p of s.players)if((p.clientVersion??5)>=5&&eligible(b,p,now)&&dist(p.pos,bomb.targetPos)<bomb.radius){applyShieldDamage(p,defenseDamage(p,bomb.damage,now),now);p.lastHit=p.lastIncoming=now;p.lastDamagedBy=b.id}
    return false;
   });
  }
@@ -44,6 +45,7 @@ export function advanceNpcHazards(s,now,eligible){
   if(!owner||owner.hp<=0||p.hp<=0||p.paralyzedUntil<=now||!eligible(owner,p,now)){if(p.paralyzedUntil===t.until)p.paralyzedUntil=0;p.npcTether=null;continue}
   if(!t.partnerTriggered){t.partnerTriggered=true;const partner=s.arenaEnemies.find(b=>b.id===owner.partnerId);if(partner&&partner.hp>0&&!partner.charge&&!partner.bombs?.length){partner.active=true;partner.patternDue=null}}
   const dt=Math.max(0,Math.min(.3,(now-t.tickAt)/1000));t.tickAt=now;
-  const damage=Math.min(p.hp,defenseDamage(p,t.dps,now)*dt);p.hp-=damage;p.lastHit=p.lastIncoming=now;p.lastDamagedBy=owner.id;
+  applyShieldDamage(p,defenseDamage(p,t.dps,now)*dt,now);p.lastHit=p.lastIncoming=now;p.lastDamagedBy=owner.id;
  }
 }
+

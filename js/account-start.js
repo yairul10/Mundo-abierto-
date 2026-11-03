@@ -1,4 +1,4 @@
-import {createCloudSave} from './cloud-save-client.js?v=344';
+import {createCloudSave} from './cloud-save-client.js?v=364';
 import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 import {WORKING_SAVE,activeProfile,ensureProfiles,checkpointProfile,playProfile,profileKey,profileMeta,setProfileMeta,switchProfile,bindGuestProfile,guestProfile,newGuestProfile,storedProgress} from './account-storage.js?v=344';
 const CHOICE='cosmosLegacy.accountChoice.v1',FORCE='cosmosLegacy.forceAccountChoice.v2';
@@ -122,3 +122,4 @@ export async function startCloudSync(client){
  addEventListener('storage',event=>{if(event.key==='cosmosLegacy.activeProfile.v2'){blocked=true;window.dispatchEvent(new Event('cosmos:account-changed'));showStatus('Se abrió otra cuenta en otra ventana. Reinicia para continuar.')}});
  return {sync,stop};
 }
+
