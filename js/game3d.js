@@ -200,7 +200,7 @@ new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=105
  auroraBackground=texture;syncSectorEnvironment();
 },undefined,()=>console.info('Fondo espacial personalizado pendiente; usando fondo original.'));
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
-scene.add(new THREE.HemisphereLight(0x7bbcff,0x050713,1.8));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
+scene.add(new THREE.HemisphereLight(0x7bbcff,0x101827,2.2));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);
  // Luna alta de Ascuas: brillo visible y luz real para los objetos del sector.
 
 const beltSectorLights=[
