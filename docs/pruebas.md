@@ -97,3 +97,9 @@ Láser principal de todas las naves: 4.000 unidades/s de base; cinco mejoras de 
 Recetas: Azote requiere 100 núcleos de demolición; Égida, 100 bobinas de anclaje; Vértigo, 100 cristales de puntería. Cada una conserva 500.000 créditos, 1.500 chatarra, 450 aleación, 120 núcleos de energía, 30 componentes ancestrales y 50 núcleos del Nexo. Obsidian conserva su receta.
 
 Pruebas: node --test tests/laser-upgrade.test.mjs tests/assembled-ships.test.mjs tests/pvp-hangar.test.mjs tests/pvp-loadout.test.mjs tests/pvp-fleet.test.mjs tests/fleet-progression.test.mjs server/pvp/combat.test.mjs. Manual: comprar en PvP, salir y reconectar, alternar nave y mapa, comprobar 4.000–6.200 unidades/s y disparos a objetivos pequeños con FPS bajos. Android requiere nueva compilación y el servidor PvP requiere desplegar el módulo combat.mjs actualizado.
+
+## v359 · Modos de la mascota
+
+Botón 🛰 junto al zoom, visible al comprar el Dron Explorador: Ambos → Atacar → Recoger. Cambia durante el vuelo y se guarda por partida en explorerMode. Ambos conserva la prioridad de disparo manual, defensa y después recogida. Recoger ignora blancos manuales y amenazas, no dispara; Atacar asiste al jugador y se defiende, pero no recoge cajas ni cuando no hay enemigos. Las zonas seguras no permiten ataques de la mascota. Los drones de combate normales conservan su comportamiento.
+
+El modo persiste al abrir/cerrar el hangar PvP, cambiar de nave, volver al PvE y recargar. Probar botón táctil una vez por toque, ausencia sin mascota, recogida mientras el jugador dispara y modo Atacar con cajas al lado. Prueba automática: node --test tests/companion-mode.test.mjs tests/pvp-hangar.test.mjs tests/pvp-loadout.test.mjs.
