@@ -8,11 +8,25 @@ export function makeCombatPlayer(p,raw){p.profile=profile(raw);clearSkills(p);if
 export function ability(p,now){const cost={aurora:40,titan:55,espectro:65}[shipRole(p.profile?.shipId)];if(!cost||p.energy<cost||p.abilityUntil>now||(p.abilityReadyAt||0)>now)return false;p.energy-=cost;p.abilityReadyAt=now+15000;const id=shipRole(p.profile.shipId),sp=p.profile.special;p.abilityUntil=now+1000*((id==='titan'?6:5)+(sp[id==='aurora'?'overload':id==='titan'?'fortress':'fury']||0)*(id==='titan'?.3:.25));return true}
 export function defenseDamage(p,amount,now,random=Math.random){const q=p.profile;if(!q)return amount;let damage=Math.max(1,amount-q.defense*.25);if(shipRole(q.shipId)==='espectro'&&random()<(q.special.evasion||0)*.008)return 0;if(shipRole(q.shipId)==='titan')damage*=1-(.1+(q.special.armor||0)*.01);if(p.abilityUntil>now)damage*=shipRole(q.shipId)==='titan'?((['bastion','egida'].includes(q.shipId)?.5:.6)):shipRole(q.shipId)==='espectro'?(['segadora','azote'].includes(q.shipId)?1.2:1.3):1;return damage*(q.resistance||1)*(skillActive(p,'instantShield',now)?.5:1)}
 const vector=v=>Array.isArray(v)&&v.length===3&&v.every(Number.isFinite);
+// Reconcile the intended aim point, not the client-predicted shooter position.
+// The muzzle and damage remain authoritative; old clients keep their original ray.
+function shotDirection(p,message,shot){
+ if(shot.aimPoint===undefined)return shot.direction;
+ if(!vector(message.origin)||!vector(shot.aimPoint))return null;
+ const allowance=Math.min(400,80+p.profile.speed*.5);
+ if(Math.hypot(...message.origin.map((v,i)=>v-p.pos[i]))>allowance)return null;
+ const clientStart=message.origin.map((v,i)=>v+shot.offset[i]),delta=shot.aimPoint.map((v,i)=>v-clientStart[i]),length=Math.hypot(...delta);
+ if(length<1||length>2400)return null;
+ if(Math.hypot(...delta.map((v,i)=>v/length-shot.direction[i]))>.001)return null;
+ const serverStart=p.pos.map((v,i)=>v+shot.offset[i]),aim=shot.aimPoint.map((v,i)=>v-serverStart[i]),distance=Math.hypot(...aim);
+ return distance>1?aim.map(v=>v/distance):null;
+}
 export function volley(s,p,m,now){const q=p.profile;if(!q||!Array.isArray(m.shots)||!m.shots.length||m.shots.length>12)return null;const kind=m.weapon;if(!['laser','missile','explorer'].includes(kind))return null;const cooldown=kind==='missile'?7000:kind==='explorer'?680:p.abilityUntil>now&&shipRole(q.shipId)==='aurora'?680/(['centella','vertigo'].includes(q.shipId)?1.4:1.3):680;const key='last_'+kind;if(now-(p[key]||0)<cooldown-20)return null;
  const chosen=s.players.find(x=>x.id===m.targetId&&(!s.canDamage||s.canDamage(p,x,now)))||(!s.canDamage?s.players.find(x=>x.id!==p.id):null);
  const maximum=kind==='laser'?2+q.droneCount:kind==='missile'?q.missiles:q.explorerDrone?1:0;if(m.shots.length>maximum)return null;let lasers=0,drones=0;const bullets=[];
  for(const shot of m.shots){if(!vector(shot.offset)||Math.hypot(...shot.offset)>(kind==='explorer'?(q.explorerRange||1450)+60:500)||!vector(shot.direction)||Math.abs(Math.hypot(...shot.direction)-1)>.01)return null;const missile=kind==='missile',drone=kind==='explorer'||shot.kind==='drone';if(kind==='laser'){if(drone)drones++;else lasers++;if(lasers>2||drones>q.droneCount)return null}const speed=missile?clamp(shot.speed,440,850,650):(drone?1150:4000+440*(q.laserSpeedLevel||0)),damage=q.attack*(missile?3:drone?.2:.5)*(kind==='laser'&&!drone&&p.abilityUntil>now&&shipRole(q.shipId)==='espectro'?(['segadora','azote'].includes(q.shipId)?1.7:1.6):1)*(kind==='laser'&&!drone&&shipRole(q.shipId)==='espectro'&&shot.crit?1.5:1)*(q.damageBonus||1)*(drone&&kind==='laser'?(q.droneDamage||1):1);
- bullets.push({id:crypto.randomUUID(),owner:p.id,pos:p.pos.map((v,i)=>v+shot.offset[i]),vel:shot.direction.map(v=>v*speed),life:missile?5:((kind==='laser'&&drone?q.droneRange||1200:1200)/speed+.35),range:kind==='laser'&&drone?q.droneRange||1200:1200,damage,missile,speed,delay:missile?clamp(shot.delay,.42,1.22,.55):0,age:0,travelled:0,target:missile&&shot.locked&&chosen&&!skillActive(chosen,'interference',now)?chosen.id:null});}
+ const direction=missile?shot.direction:shotDirection(p,m,shot);if(!direction)return null;
+ bullets.push({id:crypto.randomUUID(),owner:p.id,pos:p.pos.map((v,i)=>v+shot.offset[i]),vel:direction.map(v=>v*speed),life:missile?5:((kind==='laser'&&drone?q.droneRange||1200:1200)/speed+.35),range:kind==='laser'&&drone?q.droneRange||1200:1200,damage,missile,speed,delay:missile?clamp(shot.delay,.42,1.22,.55):0,age:0,travelled:0,target:missile&&shot.locked&&chosen&&!skillActive(chosen,'interference',now)?chosen.id:null});}
  p[key]=now;p.lastAttack=now;const other=chosen;if(other&&Math.hypot(...other.pos.map((v,i)=>v-p.pos[i]))<=Math.max(1200,...bullets.map(b=>b.range)))other.lastIncoming=now;s.bullets||=[];s.bullets.push(...bullets);return bullets;
 }
 export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Math.max(0,Math.min(.3,(now-(s.simTime||now))/1000));s.simTime=now;
@@ -40,4 +54,5 @@ export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Ma
  }
  s.bullets=(s.bullets||[]).filter(b=>b.life>0);
 }
+
 

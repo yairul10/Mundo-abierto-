@@ -38,7 +38,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=358';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=359';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=356';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=360';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=358';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=358';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
@@ -1544,11 +1544,12 @@ function updateExplorerCombat(dt){
  explorerFireCd=Math.max(0,explorerFireCd-dt);
  const target=explorerTask().target;if(!target)return;
  if(!player.explorerDrone||!explorerMesh.visible||docked||landing||explorerFireCd>0)return;
- const delta=target.mesh.position.clone().sub(explorerMesh.position);
+ const explorerAim=PVP_MODE&&target.goal?target.goal.clone():target.mesh.position.clone();
+ const delta=explorerAim.clone().sub(explorerMesh.position);
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
- shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.2*activeBooster('damage')});
+ shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.2*activeBooster('damage')});
  if(pvpSession)pvpSession.shots('explorer',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1,target.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  explorerMesh.lookAt(target.mesh.position);explorerFireCd=.68;
 }
@@ -1679,12 +1680,12 @@ function fireSupportDrones(aimPoint,locked,noseDir){
    destination.y+=(Math.random()-.5)*spread*2;
    destination.z+=(Math.random()-.5)*spread*2;
   }
-  const direction=destination.sub(start).normalize();
+  const direction=destination.clone().sub(start).normalize();
   const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
   const range=supportRange();
-  shots.push({mesh:bolt,vel:direction.multiplyScalar(1150),life:range/1150+.35,range,damage:player.attack*.2*equippedBonus().damage*activeBooster('damage')});
+  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150),life:range/1150+.35,range,damage:player.attack*.2*equippedBonus().damage*activeBooster('damage')});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
@@ -1818,7 +1819,7 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
  updateTargetLock();markExplorerAttack(lockedEnemy);
  combatAudio.play('laser',playerMesh.position);
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
- const aimPoint=lockedEnemy?lockedEnemy.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1600);
+ const aimPoint=lockedEnemy?(PVP_MODE&&lockedEnemy.goal?lockedEnemy.goal.clone():lockedEnemy.mesh.position.clone()):camera.position.clone().addScaledVector(cameraDir,1600);
  const noseDir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  // Un par de láseres por pulsación, saliendo de lados opuestos de la nave.
@@ -1832,11 +1833,11 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
    destination.y+=(Math.random()-.5)*spread*2;
    destination.z+=(Math.random()-.5)*spread*2;
   }
-  const dir=destination.sub(start).normalize();
+  const dir=destination.clone().sub(start).normalize();
   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false}));
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
+  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -3445,5 +3446,6 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
