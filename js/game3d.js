@@ -3,7 +3,7 @@ import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './flee
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=351';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=355';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
-import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=348';
+import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=362';
 import {rankedName} from './pvp-ranks.js?v=347';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=1';
 import {checkpointProfile,activeProfile} from './account-storage.js?v=344';
@@ -38,7 +38,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=358';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=359';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=361';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=362';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=358';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=358';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';

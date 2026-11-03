@@ -17,5 +17,6 @@ test('Ready flash happens once after cooldown and active/blocked states remain v
 });
 test('All six PvP powers and three ship roles have distinct appropriate art',()=>{
  for(const id of ['interference','shield','fury','paralyze','luck','transfer','fire','missile','overload'])assert.ok(COMBAT_ART[id]);
- assert.equal(shipCombatArtwork('titan'),'shield');assert.equal(shipCombatArtwork('espectro'),'fury');assert.equal(shipCombatArtwork('aurora'),'overload');
+ assert.equal(shipCombatArtwork('titan'),'shipShield');assert.equal(shipCombatArtwork('espectro'),'shipFury');assert.equal(shipCombatArtwork('aurora'),'overload');
 });
+

@@ -113,3 +113,7 @@ Prueba tests/pvp-moving-fire.test.mjs: reproduce fallo del protocolo anterior co
 ## v361 · Joystick configurable también en PvP
 
 Acomodar botones del hangar PvP incluye ahora el joystick, con una vista previa del mismo tamaño que el control real. Se mantienen las posiciones de los cinco botones de guardados anteriores y se agrega el joystick en su ubicación original. Guardar, cancelar y restablecer siguen disponibles. El centro del joystick se limita según su tamaño para no quedar recortado por el borde; al redimensionar se vuelven a aplicar esos límites. PvE mantiene su lista y guardados actuales. Prueba: node --test tests/control-editor-joystick.test.mjs. Prueba manual en teléfono: aterrizar, mover el joystick, guardar, despegar, comprobar movimiento y reabrir la app.
+
+## v362 · Iconos de habilidades y botones listos
+
+Las habilidades de nave ofensiva y defensiva tienen ahora iconos propios: potencia ascendente (shipFury.svg) y fortaleza (shipShield.svg). Furia y Escudo instantáneo de PvP conservan sus imágenes anteriores, sin repetirlas en el botón de habilidad de nave. Los seis poderes PvP y tres tipos de habilidad de nave tienen asignaciones diferentes. El estado listo no muestra «Lista · 1/2»; conserva el nombre accesible y muestra temporizador únicamente durante recarga o activación. Pruebas: node --test tests/combat-buttons.test.mjs tests/pvp-skill-labels.test.mjs. Iconos SVG renderizados para inspección visual. Verificar en teléfono con Segadora + Furia y Bastión + Escudo instantáneo, también en el editor de controles.
