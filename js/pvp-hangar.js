@@ -1,4 +1,4 @@
-import {initialPvpPilot,offlineRoster} from './pvp-loadout.js?v=356';
+import {initialPvpPilot,offlineRoster} from './pvp-loadout.js?v=358';
 const WORLD_FIELDS=['x','y','z','yaw','pitch','sector','granTitanState','carrierState'];
 export function createHangarEditor(source={}){
  const original=JSON.parse(JSON.stringify(source)),editor=initialPvpPilot(original);
@@ -17,3 +17,4 @@ export function serializeHangarEditor(editor,latest={}){
  for(const key of WORLD_FIELDS){if(Object.hasOwn(latest,key))copy[key]=JSON.parse(JSON.stringify(latest[key]));else delete copy[key]}
  return copy;
 }
+

@@ -15,11 +15,12 @@ for(const shipId of ['aurora','titan','espectro','agilbasica','adminpod','azote'
  makeCombatPlayer(pilot,{...raw,shipId});
  const state={players:[pilot],bullets:[]};
  const bullets=volley(state,pilot,{weapon:'laser',shots:[shot,shot,{...shot,kind:'drone'}]},20000);
- assert.equal(Math.hypot(...bullets[0].vel),1495,shipId+' laser speed');
+ assert.equal(Math.hypot(...bullets[0].vel),4000,shipId+' laser speed');
  assert.equal(Math.hypot(...bullets[2].vel),1150,shipId+' drone speed');
  assert.equal(bullets[0].range,1200);
- assert.equal(bullets[0].life,1200/1495+.35);
+ assert.equal(bullets[0].life,1200/4000+.35);
  const missiles=volley(state,pilot,{weapon:'missile',shots:[{...shot,speed:650,delay:.5,locked:false}]},20000);
  assert.equal(Math.hypot(...missiles[0].vel),650);
 }
-console.log('PASS: láser +30 % en todas las naves; drones, alcance y misiles conservados.');
+console.log('PASS: láser base 4000 en todas las naves; drones, alcance y misiles conservados.');
+

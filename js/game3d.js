@@ -1,3 +1,4 @@
+import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-upgrade.js?v=358';
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=351';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=355';
@@ -31,14 +32,14 @@ import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=356';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=358';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=356';
+import {mountHangarUI} from './hangar-ui.js?v=358';
 import {selectCompanionTask} from './companion-priority.js?v=174';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=356';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=356';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=356';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=358';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=358';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -1169,6 +1170,7 @@ if(Array.isArray(titanSaved.position)&&titanSaved.position.length===3&&titanSave
 deferredModelLoad(new GLTFLoader(),'./assets/models/gran_titan.glb?v=327',gltf=>titanRig.mount(gltf.scene),undefined,error=>console.warn('Gran Titán: modelo no disponible',error));
 function clearTitanShots(){for(const p of titanProjectiles){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker)}titanProjectiles.length=0;for(const b of titanBlasts)titanEffects.dispose(b.mesh);titanBlasts.length=0}
 function titanHit(point){const p=titanEnemy.mesh.worldToLocal(point.clone());return (p.x/145)**2+(p.y/170)**2+(p.z/600)**2<1}
+function titanSegmentHit(start,end){const a=titanEnemy.mesh.worldToLocal(start.clone()),b=titanEnemy.mesh.worldToLocal(end.clone());for(const p of [a,b]){p.x/=145;p.y/=170;p.z/=600}return segmentDistance(a,b,new THREE.Vector3())<1}
 function fireTitan(){
  const scale=titanScale(player.level),kind=titanCycle.kind;
  combatAudio.play(kind==='spear'?'harpoon':'bombLaunch',titanEnemy.mesh.position);
@@ -1831,7 +1833,7 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false}));
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,vel:dir.multiplyScalar(1495),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
+  shots.push({mesh,vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -2193,7 +2195,16 @@ function renderUpgrades(){
  const missileLv=upgradeLevel('missiles'),missileCost=missileUpgradeCost();
  const missileAvailable=player.gold>=missileCost.credits&&(Number(player.loot.aleacion)||0)>=missileCost.material;
  const missileHtml='<div class="upgrade-card"><div><strong>🚀 Lanzamisiles múltiples</strong><small>Nivel '+missileLv+'/9 · '+(missileLv+1)+' misil(es) por lanzamiento, desde ambos lados de la nave.</small><small>'+(missileLv>=9?'Mejora máxima':'Costo: '+missileCost.material+' aleación + '+missileCost.credits.toLocaleString('es')+' créditos')+'</small></div><button class="buyMissileUpgrade" '+(missileLv>=9||!missileAvailable?'disabled':'')+'>'+(missileLv>=9?'Máximo':'Mejorar')+'</button></div>';
- for(const el of containers){el.innerHTML=html+missileHtml;el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));
+ const laserLv=laserLevel(player),laserCost=laserUpgradeCost(player),pvpBase=PVP_MODE&&!!pvpHangar;
+ const canBuyLaser=pvpBase&&docked&&laserCost&&player.gold>=laserCost.credits&&(Number(player.loot.nucleoNexo)||0)>=laserCost.nuclei;
+ const laserHtml='<div class="upgrade-card"><div><strong>⚡ Acelerador del láser</strong><small>Nivel '+laserLv+'/5 · '+laserSpeed(player).toLocaleString('es')+' unidades/s · +440 por nivel · Máximo 6.200</small><small>'+(laserCost?(pvpBase?'':'Comprar en la base PvP · ')+laserCost.credits.toLocaleString('es')+' créditos + '+laserCost.nuclei+' núcleos del Nexo':'Mejora máxima')+'</small></div><button class="buyLaserUpgrade" '+(!canBuyLaser?'disabled':'')+'>'+(laserCost?'Mejorar':'Máximo')+'</button></div>';
+ for(const el of containers){el.innerHTML=html+missileHtml+laserHtml;
+ el.querySelector('.buyLaserUpgrade').onclick=()=>{
+  const cost=laserUpgradeCost(player);if(!buyLaserUpgrade(player,{isPvpBase:PVP_MODE&&!!pvpHangar,isDocked:docked}))return;
+  logAction('commerce','Acelerador del láser · Nivel '+laserLevel(player)+' · −'+cost.credits.toLocaleString('es')+' créditos · '+cost.nuclei+' núcleos del Nexo');
+  missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();lootToast('⚡ Velocidad del láser: '+laserSpeed(player).toLocaleString('es'));
+ };
+el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));
  el.querySelector('.buyMissileUpgrade').onclick=()=>{
   const lv=upgradeLevel('missiles'),cost=missileUpgradeCost();
   if(lv>=9||player.gold<cost.credits||(Number(player.loot.aleacion)||0)<cost.material)return;
@@ -3248,14 +3259,14 @@ for(const e of enemies){
 }
 updateEnemyShots(dt);scrapCombat.update(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);updateCarrier(dt);updateGranTitan(dt);
- for(const p of shots){if(p.missile){
+ for(const p of shots){const previousShotPosition=p.mesh.position.clone();if(p.missile){
   p.missileAge=(p.missileAge||0)+dt;
   const aim=p.target&&!p.target.dead&&p.target.mesh.visible?p.target.mesh.position:p.missileAim;
   if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(p.missileSpeed||650);
    const delay=p.missileGuideDelay||.55;
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
- }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>(p.range||COMBAT_RANGE))p.life=0}p.life-=dt;for(const e of enemies){if((!PVP_MODE||pvpSession?.canTarget(e.playerId))&&!p.pvpRemote&&!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=(p.range||COMBAT_RANGE))&&(e.type==='granTitan'?titanHit(p.mesh.position):p.mesh.position.distanceTo(e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):e.playerId==='pvp-super-boss'?180:(p.missile?44:30)))){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
+ }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>(p.range||COMBAT_RANGE))p.life=0}p.life-=dt;for(const e of enemies){if((!PVP_MODE||pvpSession?.canTarget(e.playerId))&&!p.pvpRemote&&!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=(p.range||COMBAT_RANGE))&&(e.type==='granTitan'?(p.missile?titanHit(p.mesh.position):titanSegmentHit(previousShotPosition,p.mesh.position)):segmentDistance(previousShotPosition,p.mesh.position,e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):e.playerId==='pvp-super-boss'?180:(p.missile?44:30)))){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
 if(player.hp<=0){showRecovery();hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}
 const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();resizeGraphics()});
@@ -3351,7 +3362,7 @@ if(PVP_MODE){
   const changed=player.shipId!==me.profile.shipId;
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
   const wasHit=me.hp<player.hp;if(wasHit){combatAudio.play(me.hp<=0?'explosion':(me.skillUntil?.instantShield||0)>state.serverTime?'shieldHit':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;const npcThreat=arenaView.entities.get(me.lastDamagedBy)||(me.lastDamagedBy===bossRemote.playerId?bossRemote:null);if(npcThreat)registerExplorerThreat(npcThreat);}
-  player.livePvpRank=me.pvpRank;player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;refreshFormationButton();for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);classAbilityCd=Math.max(0,((me.abilityReadyAt||0)-state.serverTime)/1000);
+  player.upgrades.laserSpeed=me.profile.laserSpeedLevel||0;player.livePvpRank=me.pvpRank;player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;refreshFormationButton();for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);classAbilityCd=Math.max(0,((me.abilityReadyAt||0)-state.serverTime)/1000);
   const predicted=new THREE.Vector3(...me.pos).add(new THREE.Vector3(...pending.offset));
   if(force){pvpCorrection=[0,0,0];playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);classAbilityCd=Math.max(0,((me.abilityReadyAt||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
   else if(pending.fresh)pvpCorrection=predicted.sub(playerMesh.position).toArray();
@@ -3422,4 +3433,5 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 

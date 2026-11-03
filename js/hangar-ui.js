@@ -1,7 +1,7 @@
-import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=356';
+import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=358';
 import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=355';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=356';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=358';
 import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
 const MATERIALS=[['chatarra','Chatarra espacial','#bac9d7'],['aleacion','Aleación reforzada','#55c6ff'],['nucleo','Núcleo de energía','#c783ff'],['reliquia','Componente ancestral','#ffca58']];
@@ -84,3 +84,4 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
  function previewShip(){const id=player.shipId;if(!SHIP_PREVIEWS[id]||view!=='shop'||category!=='ships')return;const host=$('shopShipPreview');if(host){const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_PREVIEWS[id].name;void startAssemblyPreview(host,id)}}
  return {render(force=false){render(force);if(view==='shop'&&category==='ships')previewShip();},show,previewShip,stopPreview:stopAssemblyPreview};
 }
+

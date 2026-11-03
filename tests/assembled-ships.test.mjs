@@ -8,7 +8,8 @@ for(const [id,ship]of Object.entries(ASSEMBLED_SHIPS).filter(([,ship])=>!ship.ad
  if(exclusive){
   assert.equal(ship.cost,390000);
   assert.deepEqual(ship.recipe,{chatarra:975,aleacion:300,nucleo:80,reliquia:20,[exclusive]:50});
- }else assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],id==='obsidian'?[200,200,200]:[100,100,100]);
+ }else if(id==='obsidian')assert.deepEqual([ship.recipe.nucleo_demolicion,ship.recipe.bobina_anclaje,ship.recipe.cristal_punteria],[200,200,200]);
+ else {const resource={azote:'nucleo_demolicion',egida:'bobina_anclaje',vertigo:'cristal_punteria'}[id];assert.deepEqual(ship.recipe,{chatarra:1500,aleacion:450,nucleo:120,reliquia:30,[resource]:100,nucleoNexo:50});}
  const player={level:40,gold:ship.cost,loot:{...ship.recipe},ownedShips:{aurora:true},shipId:'aurora'};
  for(const key of Object.keys(ship.recipe)){
   const missing=structuredClone(player);missing.loot[key]--;
@@ -39,3 +40,4 @@ for(const id of ['obsidian','segadora','bastion','centella','bastion','aurora'])
 }
 assert.deepEqual([testPlayer.maxHp,testPlayer.hp,testPlayer.attack,testPlayer.defense,testPlayer.speed],[1000,400,100,50,220]);
 console.log('Ship swaps preserve hull percentage and restore base stats without stacking.');
+

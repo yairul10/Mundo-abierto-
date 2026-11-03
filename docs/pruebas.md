@@ -89,3 +89,11 @@ Probar desde un navegador móvil: activar horizontal, escoger normal o pruebas, 
 El láser principal de todas las naves viaja a 1.495 unidades/s (antes 1.150; +30 %), tanto en PvE como en el combate validado por el servidor PvP. Se conservan daño, cadencia, alcance, misiles y velocidad de los drones. El Android empaqueta el código: necesita una nueva compilación instalada; el cambio del servidor PvP también requiere desplegar Cloudflare.
 
 Comprobar con naves básicas, ensambladas y admin: disparos manuales y con blanco fijado, alcance de 1.200 m y misiles sin cambios. En dos clientes PvP, verificar la velocidad del disparo local y remoto tras desplegar el servidor.
+
+## v358 · Acelerador del láser y recetas PvP
+
+Láser principal de todas las naves: 4.000 unidades/s de base; cinco mejoras de +440 hasta 6.200. Se compra únicamente atracado en la base PvP, en Tienda → Mejoras. Costes por nivel: 100.000/200.000/400.000/800.000/1.500.000 créditos y 5/10/20/40/80 núcleos del Nexo. El nivel se guarda en upgrades.laserSpeed y se aplica en PvE y PvP al cambiar de nave. Servidor valida el nivel entre 0 y 5. Drones, misiles, daño, cadencia y alcance no cambian. La detección de impactos recorre el segmento del láser entre fotogramas, también contra el volumen del Gran Titán.
+
+Recetas: Azote requiere 100 núcleos de demolición; Égida, 100 bobinas de anclaje; Vértigo, 100 cristales de puntería. Cada una conserva 500.000 créditos, 1.500 chatarra, 450 aleación, 120 núcleos de energía, 30 componentes ancestrales y 50 núcleos del Nexo. Obsidian conserva su receta.
+
+Pruebas: node --test tests/laser-upgrade.test.mjs tests/assembled-ships.test.mjs tests/pvp-hangar.test.mjs tests/pvp-loadout.test.mjs tests/pvp-fleet.test.mjs tests/fleet-progression.test.mjs server/pvp/combat.test.mjs. Manual: comprar en PvP, salir y reconectar, alternar nave y mapa, comprobar 4.000–6.200 unidades/s y disparos a objetivos pequeños con FPS bajos. Android requiere nueva compilación y el servidor PvP requiere desplegar el módulo combat.mjs actualizado.
