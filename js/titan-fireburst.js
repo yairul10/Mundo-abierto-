@@ -41,7 +41,7 @@ export function createTitanFireburst(T,scene,fragments){
    mesh.visible=false;root.add(mesh);
    return {mesh,velocity,delay:flames[i%flames.length].delay};
   });
-  bursts.push({root,flames,debris,age:0,duration:hull?1.65:.78});
+  bursts.push({root,flames,debris,age:0,duration:hull?1.65:count>0?1.22:.78});
  }
  function update(dt){
   for(let i=bursts.length-1;i>=0;i--){

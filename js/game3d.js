@@ -1,4 +1,4 @@
-import {createTitanFireburst} from './titan-fireburst.js?v=373';
+import {createTitanFireburst} from './titan-fireburst.js?v=374';
 import {mountSystemMap} from './system-map.js?v=369';
 import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield,shieldUpgradeCost,buyShieldUpgrade} from './shield-system.js?v=364';
 import {createTestProgressReset} from './test-progress-reset.js?v=363';
@@ -2391,6 +2391,7 @@ function kill(e,missile=false){
   for(const add of enemies.filter(add=>add.bossAdd&&!add.dead)){add.guard=false;add.nextPatrol=0}
  }
  if(e.type==='granTitan'){e.respawnAt=Date.now()+180000;clearTitanShots();titanRig.pose(0,'spear');titanFireburst.spawn(e.mesh.position,200,{hull:e.mesh,count:graphics.profile.sparks>8?6:4})}
+ else if(activeSector==='graveyard'&&(e.titanAdd||['catapult','harpooner','stalker'].includes(e.type)))titanFireburst.spawn(e.mesh.position,60,{count:graphics.profile.sparks>8?4:3});
  e.dead=e.titanAdd||e.type==='granTitan'||e.bossAdd||e.type==='carrier'?Infinity:performance.now()/1000+8;e.mesh.visible=false;
  logAction('combat','Enemigo destruido: '+enemyName+' · +'+gold.toLocaleString('es')+' créditos · +'+xp+' XP · '+t.loot+' recursos',{enemy:e.type,sector:activeSector,credits:gold,xp,resources:t.loot});
  missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});
