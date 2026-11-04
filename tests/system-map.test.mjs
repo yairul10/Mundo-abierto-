@@ -15,6 +15,7 @@ class Element{
 const body=new Element(),head=new Element(),trigger=new Element();globalThis.document={body,head,activeElement:trigger,createElement:t=>new Element(t),createElementNS:(_,t)=>new Element(t),addEventListener:(key,handler)=>listeners[key]=handler};
 let state={level:10,current:'aurora'},opens=0;
 const api=mountSystemMap({trigger,getState:()=>state,onOpen:()=>opens++});
+assert.equal(trigger.style.pointerEvents,'auto','minimap accepts pointer input despite the passive radar CSS');
 assert.equal(api.open,false);trigger.events.click();assert.equal(api.open,true);assert.equal(opens,1);assert(body.classes.has('system-map-open'));assert.equal(trigger.attributes['aria-expanded'],'true');
 const overlay=body.children[0],nodes=overlay.querySelector('.system-map-nodes'),detail=overlay.querySelector('.system-map-detail');assert.equal(nodes.children.length,5);
 const graveyard=nodes.children.find(c=>c.dataset.sector==='graveyard');assert(graveyard.classes.has('locked'));assert.equal(graveyard.children[0].textContent,'🔒');graveyard.onclick();assert(detail.textContent.includes('Bloqueado · Nivel 40'));assert(detail.textContent.includes('Acechadores'));assert.equal(state.current,'aurora','inspecting a sector never travels or changes player state');
