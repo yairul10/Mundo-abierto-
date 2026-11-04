@@ -18,7 +18,7 @@ import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {createArenaEnemyView} from './pvp-enemies.js?v=352';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=367';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=371';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -38,7 +38,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=358';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=364';
+import {mountHangarUI} from './hangar-ui.js?v=371';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=367';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=370';
@@ -2673,6 +2673,7 @@ function leaveHangar(){
  playerMesh.position.copy(currentStation().position).add(new THREE.Vector3(0,165,320));yaw=0;pitch=0;
  resetDockControls();save();
 }
+$('hangarClose').onclick=leaveHangar;
 hangar.addEventListener('pointerdown',event=>{if(event.target!==hangar)return;event.preventDefault();event.stopPropagation();leaveHangar()});
 $('repairBtn').onclick=()=>{
  if(!docked)return;

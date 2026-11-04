@@ -25,17 +25,17 @@
 /* Individual cockpit controls, shared by the live HUD and the editor. */
 #pvpControlEditor .cockpit-control,
 :is(#farmAutoBtn,#companionModeBtn,#zoomIn,#zoomOut,#formationBtn,#questToggle,#characterBtn).cockpit-control {
- border:1px solid #718796;
- border-radius:8px;
- background:linear-gradient(135deg,transparent 64%,#5ee4fa 66% 77%,transparent 79%) top right/12px 12px no-repeat,
-            linear-gradient(155deg,#344755,#101e2a 48%,#08121d 76%,#364955);
- color:#e4f8ff;
- box-shadow:inset 0 0 0 2px #071018,inset 0 0 0 3px #8399a63d,0 3px 6px #0009;
+ border:1px solid var(--cockpit-edge);
+ border-radius:var(--cockpit-radius);
+ background:var(--cockpit-surface);
+ color:var(--cockpit-text);
+ box-shadow:inset 0 1px 0 #ffffff1a,0 2px 4px #0007;
+ transition:background-color 120ms ease-out,scale 120ms ease-out;
  text-shadow:0 1px 2px #000;
  cursor:pointer;
 }
 #pvpControlEditor .cockpit-control{cursor:grab;font-size:18px}
-.cockpit-control svg{width:22px;height:22px;display:block;margin:auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.cockpit-control svg{width:24px;height:24px;display:block;margin:auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 #farmAutoBtn.cockpit-control{padding-left:20px}
 #farmAutoBtn.cockpit-control::before{
  content:"";position:absolute;left:8px;top:50%;transform:translateY(-50%);
@@ -43,3 +43,26 @@
 }
 #farmAutoBtn.cockpit-control[data-running="true"]::before{background:#66eeff;box-shadow:0 0 7px #46e8ff}
 body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-control){visibility:hidden}
+
+:is(#zoomIn,#zoomOut,#questToggle,#characterBtn).cockpit-tertiary,
+#pvpControlEditor .cockpit-tertiary {
+ background:transparent;
+ border-color:transparent;
+ box-shadow:none;
+ filter:drop-shadow(0 1px 2px #000);
+}
+:is(#farmAutoBtn,#formationBtn,#questToggle).cockpit-control:is([data-running="true"],[aria-pressed="true"],[aria-expanded="true"]){
+ color:var(--cockpit-accent);
+ border-color:var(--cockpit-accent);
+ box-shadow:0 0 6px #66eeff3d;
+}
+@media(hover:hover){
+ .cockpit-control:not(:disabled):hover{background-color:var(--cockpit-hover)!important;scale:1.02}
+}
+.cockpit-control:not(:disabled):active{translate:0 1px;background-color:#101722!important}
+.cockpit-control:focus-visible{outline:2px solid var(--cockpit-accent);outline-offset:2px}
+.cockpit-control:disabled{opacity:.55;cursor:default}
+@media(prefers-reduced-motion:reduce){
+ .cockpit-control{transition:none}
+ .cockpit-control:hover{scale:1}
+}

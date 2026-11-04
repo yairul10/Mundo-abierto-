@@ -1,6 +1,9 @@
 // Player-adjustable flight controls. The editor uses inert previews.
 const cockpitIds=['formationBtn','questToggle','characterBtn','zoomIn','zoomOut','farmAutoBtn','companionModeBtn'];
+const tertiaryIds=['zoomIn','zoomOut','questToggle','characterBtn'];
 const cockpitIcons={
+ zoomIn:'<path d="M5 12h14M12 5v14"/>',
+ zoomOut:'<path d="M5 12h14"/>',
  questToggle:'<path d="M9 5H6a1 1 0 0 0-1 1v14h14V6a1 1 0 0 0-1-1h-3M9 3h6v4H9zM8 11l1 1 2-2m2 2h3m-8 4 1 1 2-2m2 2h3"/>',
  characterBtn:'<path d="M4 6h16M4 12h16M4 18h16"/>'
 };
@@ -17,6 +20,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  if(pve)cockpitIds.forEach(id=>{
   const button=document.getElementById(id);if(!button)return;
   button.classList.add('cockpit-control');
+  if(tertiaryIds.includes(id))button.classList.add('cockpit-tertiary');
   if(cockpitIcons[id])button.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24">'+cockpitIcons[id]+'</svg>';
   if(id==='characterBtn')button.setAttribute('aria-label','Abrir menú de la nave');
  });
@@ -39,7 +43,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  function apply(){
   buttons().forEach((button,i)=>{if(!button)return;positions[i]=bounded(i,positions[i]);button.style.setProperty('position','fixed','important');button.style.setProperty('left',positions[i][0]+'vw','important');button.style.setProperty('top',positions[i][1]+'vh','important');button.style.setProperty('right','auto','important');button.style.setProperty('bottom','auto','important');button.style.setProperty('transform','translate(-50%,-50%)','important');button.style.setProperty('z-index',pve&&cockpitIds.includes(ids[i])?'24':'66','important')});
  }
- if(pve){const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=367';document.head.append(style)}
+ if(pve){const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=371';document.head.append(style)}
  const home=document.getElementById('hangarHomeView');
  if(!home)return {apply};
  const section=document.createElement('section');section.id='pvpControlEditorEntry';
@@ -52,6 +56,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  let draft=[],drag=null;
  function draw(){canvas.replaceChildren();ids.forEach((id,i)=>{const original=document.getElementById(id);if(!original)return;const b=document.createElement('button');b.type='button';b.className='pvp-editor-control'+(i===0?' primary':'');b.textContent=id==='joystick'?'🕹️':pve?({fireBtn:'🔥',skillBtn:'🚀',classAbilityBtn:'✨',joystick:'🕹️',formationBtn:'🔄',questToggle:'📋',characterBtn:'☰',zoomIn:'+',zoomOut:'−',farmAutoBtn:'AUTO'}[id]):i===0?'🔥':i===1?'🚀':i===2?'🛡️':(original?.querySelector('span')?.textContent||'✨');if(pve&&cockpitIds.includes(id)){
   b.classList.add('cockpit-control');
+  if(tertiaryIds.includes(id))b.classList.add('cockpit-tertiary');
   b.innerHTML=original.innerHTML;
   if(id==='companionModeBtn')b.style.minWidth='64px';
  }

@@ -161,9 +161,6 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 /* Hangar: destinos independientes, planos y mercado. */
 #hangarPanel .hangar-inner{width:min(570px,100%);padding:22px;background:radial-gradient(ellipse at top right,#18436366,transparent 60%),linear-gradient(145deg,#101f32,#070f1b);border-color:#78cde666;box-shadow:0 24px 80px #0009;scrollbar-color:#375b73 #081320}
 #hangarPanel.expanded .hangar-inner{width:min(1080px,100%)}
-.hangar-destinations{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0}
-#hangarPanel .hangar-destinations button{min-height:125px;text-align:left;background:linear-gradient(135deg,#173851,#102134);border:1px solid #78cde64d;color:#edfaff;padding:18px;margin:0}
-.hangar-destinations span{display:block;font-size:29px;margin-bottom:8px}.hangar-destinations strong{font-size:19px}.hangar-destinations small{display:block;font-weight:400;color:#adc8dd;margin-top:6px}
 #hangarPanel .subtle{background:#12283a;color:#c5e2f4;border:1px solid #68b8df42}
 .commerce-header{display:flex;align-items:center;gap:16px;margin:18px 0}.commerce-header h3{margin:3px 0;font-size:23px}
 #hangarPanel .commerce-header button{width:auto;margin:0;flex:none;padding:10px 14px}.hangar-eyebrow{font-size:10px;font-weight:800;color:#6dcbec;letter-spacing:1.8px}
@@ -198,7 +195,7 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 #boosterStatus{position:absolute;left:50%;bottom:59px;transform:translateX(-50%);z-index:12;border:1px solid #8cc9da55;background:#081a2ad9;padding:6px 12px;border-radius:18px;color:#c8f3ff;font-size:11px;pointer-events:none;white-space:nowrap}body.docked #boosterStatus,body.inventory-open #boosterStatus{visibility:hidden}
 #hangarPanel button:focus-visible{outline:2px solid #ffe19c;outline-offset:3px}
 @media(max-width:850px){#hangarPanel{padding:9px}#hangarPanel .hangar-inner{padding:15px;max-height:calc(100dvh - 18px)}.assembly-layout{grid-template-columns:170px minmax(0,1fr);gap:12px}#assemblyDetail{padding:13px}.assembly-hero{gap:9px}.assembly-hero .formation-preview{height:150px}.assembly-hero h3{font-size:19px}.recipe-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.recipe-slot strong{min-height:0}#hangarPanel .recipe-slot{min-height:115px}.formation-preview{height:67px}.commerce-card{padding:15px}.commerce-header h3{font-size:19px}}
-@media(max-width:550px){.assembly-layout{grid-template-columns:1fr}#formationCatalog{grid-template-columns:repeat(4,minmax(0,1fr))}.commerce-grid{grid-template-columns:1fr}.hangar-destinations{gap:9px}#hangarPanel .hangar-destinations button{padding:13px}.assembly-actions{flex-direction:column}.assembly-hero{display:block}.assembly-hero .formation-preview{max-width:none}}
+@media(max-width:550px){.assembly-layout{grid-template-columns:1fr}#formationCatalog{grid-template-columns:repeat(4,minmax(0,1fr))}.commerce-grid{grid-template-columns:1fr}.assembly-actions{flex-direction:column}.assembly-hero{display:block}.assembly-hero .formation-preview{max-width:none}}
 
 #hangarPanel .ship-preview{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain;border-radius:9px;background:#0c1b2b}
 
@@ -223,7 +220,6 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 
 #hangarPanel .ship-model-preview{position:relative;min-height:160px;height:230px;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:radial-gradient(ellipse at center,#203851,#091625);isolation:isolate}#hangarPanel .ship-model-preview>img{width:100%;height:100%;object-fit:contain}#hangarPanel .shop-model-hero{display:flex;align-items:center;gap:16px;margin:12px 0 18px}#hangarPanel .shop-model-hero .ship-model-preview{width:min(60%,360px);flex-shrink:0}#hangarPanel .shop-model-hero small{display:block;line-height:1.5;margin-top:10px}#hangarPanel .ship-preview-button{padding:0;width:110px;min-width:80px;flex-shrink:0;border:1px solid #456583;border-radius:10px;background:#0c1b2b}#hangarPanel .ship-preview-button .ship-preview{width:100%;height:auto;margin:0}@media(max-width:600px){#hangarPanel .ship-preview-button{width:80px}#hangarPanel .shop-model-hero{gap:10px}#hangarPanel .ship-model-preview{height:180px}}
 
-@media(max-width:550px){.hangar-destinations{grid-template-columns:1fr}}
 
 /* Compact fleet selection, with one live preview for the selected ship. */
 #hangarPanel{padding:16px;align-items:center;overflow:hidden}
@@ -247,3 +243,136 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 .admin-designs .commerce-tabs button{flex:1;min-width:110px}
 .admin-designs [aria-pressed="true"]{border-color:#b994f5;box-shadow:0 0 16px #9569dd40;background:#352751}
 .admin-designs .ship-model-preview{margin-top:14px;border-radius:14px;background:radial-gradient(ellipse,#25334b99,#050b17cc);overflow:hidden}
+
+/* Cockpit navigation palette. Combat keeps its own status colors. */
+:root{
+ --cockpit-panel:#101720;
+ --cockpit-surface:#192330;
+ --cockpit-hover:#273544;
+ --cockpit-edge:#657480;
+ --cockpit-text:#eff5fb;
+ --cockpit-accent:#78e9f5;
+ --cockpit-radius:10px;
+}
+#dockBtn{
+ background:var(--cockpit-surface);
+ color:var(--cockpit-text);
+ border-color:var(--cockpit-accent);
+ border-radius:var(--cockpit-radius);
+ box-shadow:inset 0 1px 0 #ffffff24,0 3px 5px #0008;
+}
+#dockBtn:focus-visible{outline:2px solid var(--cockpit-accent);outline-offset:3px}
+#dockBtn:not(:disabled):active{translate:0 1px}
+
+#hangarPanel .hangar-inner{
+ position:relative;
+ background:var(--cockpit-panel);
+ border:1px solid var(--cockpit-edge);
+ border-radius:var(--cockpit-radius);
+ box-shadow:inset 0 1px 0 #ffffff20,0 6px 14px #0008;
+}
+#hangarPanel .hangar-inner h2,
+#hangarPanel .commerce-header h3{
+ padding-right:32px;
+ font-size:24px;
+ font-weight:850;
+ letter-spacing:.04em;
+}
+#hangarPanel .hangar-inner h2{text-transform:uppercase}
+#hangarPanel #hangarClose{
+ position:absolute;
+ top:8px;
+ right:8px;
+ width:44px;
+ height:44px;
+ margin:0;
+ padding:10px;
+ background:transparent;
+ color:var(--cockpit-text);
+}
+#hangarClose svg{
+ width:24px;
+ height:24px;
+ fill:none;
+ stroke:currentColor;
+ stroke-width:2;
+ stroke-linecap:round;
+}
+#hangarSections{
+ display:flex;
+ gap:8px;
+ margin:16px 0;
+ border-bottom:1px solid #ffffff20;
+}
+#hangarPanel #hangarSections button,
+#hangarPanel .commerce-tabs button{
+ width:auto;
+ min-height:44px;
+ margin:0;
+ padding:8px 12px;
+ background:transparent;
+ color:var(--cockpit-text);
+ border:0;
+ border-bottom:2px solid transparent;
+ border-radius:0;
+}
+#hangarPanel :is(#hangarSections,.commerce-tabs) button[aria-pressed="true"]{
+ color:var(--cockpit-accent);
+ border-bottom-color:var(--cockpit-accent);
+}
+#hangarPanel button:focus-visible{outline-color:var(--cockpit-accent)}
+#hangarPanel button:not(:disabled):active{translate:0 1px}
+#hangarPanel #hangarClose:active{background:var(--cockpit-hover)}
+.equipment-layout{
+ display:grid;
+ grid-template-columns:minmax(140px,1fr) minmax(0,2fr);
+ align-items:start;
+ gap:16px;
+}
+.equipment-roster{
+ grid-template-columns:minmax(0,1fr);
+ max-height:240px;
+ overflow:auto;
+ padding:3px;
+}
+#hangarPanel .equipment-ship-tile{
+ display:flex;
+ align-items:center;
+ gap:8px;
+ min-height:48px;
+ text-align:left;
+ background:var(--cockpit-surface);
+ border-color:var(--cockpit-edge);
+ color:var(--cockpit-text);
+}
+#hangarPanel .equipment-ship-tile .ship-preview{
+ width:clamp(44px,7vw,84px);
+ height:48px;
+ flex:none;
+}
+#hangarPanel .equipment-ship-tile[aria-pressed="true"]{
+ background:var(--cockpit-surface);
+ border-color:var(--cockpit-accent);
+}
+.equipment-detail{
+ margin:0;
+ background:var(--cockpit-surface);
+}
+.equipment-detail h4{font-size:18px;margin:0 0 8px}
+.equipment-equipped,.equipment-ship-tile[data-equipped="true"] small{color:var(--cockpit-accent)}
+#hangarPanel :is([data-equip-owned],#assembleShip,#assembleFormation):not(:disabled){
+ background:var(--cockpit-accent);
+ color:var(--cockpit-panel);
+}
+@media(max-width:740px){
+ #hangarPanel .equipment-detail .ship-model-preview{width:clamp(80px,20vw,145px);min-width:0}
+ .equipment-detail{gap:8px}
+}
+@media(max-width:530px){
+ .equipment-layout{grid-template-columns:minmax(0,1fr)}
+ .equipment-roster{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));max-height:132px}
+ #hangarPanel #hangarSections button{padding-inline:8px}
+}
+@media(hover:hover){
+ #hangarPanel :is(#hangarClose,#hangarSections button,.equipment-ship-tile):hover{background-color:var(--cockpit-hover)}
+}
