@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {WORLD,equip,importRoster,advance,attack,canDamage,protectedAt,updateProtection,openHangar,applyHangarLoadout} from './world-rules.mjs';
+import {groupAction,groupFor,splitGroupRewards} from './groups.mjs';
 const t=100000,raw={maxHp:490,maxEnergy:500,attack:100,defense:0,speed:220,level:100};
 function player(id,x=4100){const p={id,name:id,pos:[x,120,0],connected:true,roster:importRoster({aurora:raw})};equip(p,'aurora');updateProtection(p,t);return p}
 const world=(...players)=>({players,duels:[],invites:[],events:[],bullets:[],simTime:t});
@@ -23,3 +24,40 @@ assert.equal(WORLD.radius,5900);assert.equal(WORLD.safeRadius,650);assert.equal(
  assert.equal(attack(s,b,{weapon:'laser',shots:[shot]},t+200),null);
 }
 console.log('Zone rules: hostile collisions, protected base/hangar and paid-choice deaths.');
+
+// The opening hit owns the valid kill even when another pilot lands the last hit.
+{
+ const first=player('first'),last=player('last',4200),victim=player('victim',4300),s=world(first,last,victim);
+ last.pos[2]=200;
+ attack(s,first,{weapon:'laser',shots:[shot]},t);
+ advance(s,t+100);
+ assert.equal(victim.firstHostileHit.id,first.id);
+ last.pos[2]=0;victim.hp=1;
+ attack(s,last,{weapon:'laser',shots:[shot]},t+101);
+ advance(s,t+200);
+ assert.equal(victim.lastDamagedBy,last.id);
+ assert.equal(s.pendingKills[0].winner,first.id);
+ assert.equal(s.bossRewards.find(r=>r.id.startsWith('pvp:')).playerId,first.id);
+}
+
+// Invitations are consensual, capacity is server-owned, and shares conserve currency.
+{
+ const pilots=['a','b','c','d','e'].map(id=>player(id));
+ const [a,b,c,d,e]=pilots,s=world(...pilots);
+ for(const pilot of [b,c,d]){
+  assert.equal(groupAction(s,a,{type:'groupInvite',target:pilot.id},t),null);
+  const id=s.groupInvites[0].id;
+  assert.equal(groupAction(s,e,{type:'groupReply',id,accept:true},t),'group_unavailable');
+  assert.equal(groupAction(s,pilot,{type:'groupReply',id,accept:true},t),null);
+ }
+ assert.equal(groupAction(s,a,{type:'groupInvite',target:e.id},t),'group_full');
+ assert.equal(groupFor(s,a.id).members.length,4);
+ d.pos[0]=5800;
+ const receipts=[{playerId:a.id,amount:100,xp:27,materials:{nucleoNexo:3}},{playerId:b.id,amount:1,xp:2},{playerId:d.id,amount:9,xp:4}];
+ s.bossRewards=[...receipts];
+ splitGroupRewards(s,{pos:a.pos,instanceId:'boss',contributions:{a:100,b:1,d:9}},receipts,()=>true);
+ assert.deepEqual(receipts.map(r=>[r.amount,r.xp]),[[51,15],[50,14],[9,4]]);
+ assert.equal(receipts[0].materials.nucleoNexo,3);
+ assert.equal(groupAction(s,a,{type:'groupLeave'},t),null);
+ assert.deepEqual(groupFor(s,b.id).members,['b','c','d']);
+}

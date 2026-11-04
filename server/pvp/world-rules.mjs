@@ -1,3 +1,4 @@
+import {updateGroups} from './groups.mjs';
 import {ZONES,zoneOf,sameCombatZone,radial} from './zones.mjs';
 import {inviteDuel,replyDuel,tickDuels,duelFor,finishDuel} from './duels.mjs';
 import {awardKill} from './pvp-results.mjs';
@@ -51,17 +52,23 @@ export const canDamage=(owner,target,now)=>{
  return zoneOf(owner)==='hostile';
 };
 export function advance(s,now){
+ if(s.groups?.length||s.groupInvites?.length)updateGroups(s,now);
  s.invites||=[];s.duels||=[];s.events||=[];s.bullets||=[];s.recoveries||={};tickDuels(s,reset,now);
- for(const p of s.players){if(p.duelId&&!s.duels.some(d=>d.id===p.duelId))p.duelId=null;updateProtection(p,now)}
+ for(const p of s.players){if(p.duelId&&!s.duels.some(d=>d.id===p.duelId))p.duelId=null;updateProtection(p,now);if(p.firstHostileHit&&(zoneOf(p)!=='hostile'||p.death||now-p.firstHostileHit.lastHit>30000))delete p.firstHostileHit}
  const targets=ensureArenaEnemies(s,now);
- const combat={status:'active',players:[...s.players,...targets],bullets:s.bullets,simTime:s.simTime??now,canDamage,onDamage:(owner,target,damage,time,bullet)=>{target.lastDamageNoRewards=!!bullet?.noRewards;if(targets.includes(target))recordArenaDamage(s,target,owner,damage,time,!!bullet?.noRewards)}};
+ const combat={status:'active',players:[...s.players,...targets],bullets:s.bullets,simTime:s.simTime??now,canDamage,onDamage:(owner,target,damage,time,bullet)=>{target.lastDamageNoRewards=!!bullet?.noRewards;if(targets.includes(target))recordArenaDamage(s,target,owner,damage,time,!!bullet?.noRewards);
+ else if(damage>0&&!owner.npc&&!owner.boss&&!owner.duelId&&!bullet?.noRewards&&zoneOf(owner)==='hostile'){
+  if(!target.firstHostileHit)target.firstHostileHit={id:owner.id,lastHit:time};
+  target.firstHostileHit.lastHit=time;
+ }}};
  combat.allowBullet=(b,owner)=>b.duelId?owner.duelId===b.duelId:zoneOf({pos:b.pos})===b.combatZone&&zoneOf(owner)===b.combatZone;
  stepCombat(combat,now);s.bullets=combat.bullets;s.simTime=combat.simTime;
  advanceArenaEnemies(s,now,combatEligible);tickDuels(s,reset,now);
  for(const p of s.players)if(p.connected&&p.hp<=0&&!p.death){
-  const winner=s.players.find(q=>q.id===p.lastDamagedBy),id=crypto.randomUUID();
+  const finalAttacker=s.players.find(q=>q.id===p.lastDamagedBy),winner=finalAttacker?s.players.find(q=>q.id===(p.firstHostileHit?.id||finalAttacker.id)):null,id=crypto.randomUUID();
+  delete p.firstHostileHit;
   s.bullets=s.bullets.filter(b=>b.owner!==p.id&&b.target!==p.id);
-  if(winner&&!winner.duelId&&zoneOf(p)==='hostile'&&zoneOf(winner)==='hostile')awardKill(s,winner,p,now,id);
+  if(winner&&!winner.duelId&&zoneOf(p)==='hostile'&&zoneOf(finalAttacker)==='hostile')awardKill(s,winner,p,now,id);
   s.critical=true;p.death={id,time:now};s.recoveries[p.id]=p.death;p.firing=false;p.hangar=false;
   s.events.push({type:'destroyed',id,victim:p.id,winner:winner?.id||null,time:now});
  }

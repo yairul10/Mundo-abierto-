@@ -1,3 +1,4 @@
+import {groupAction,updateGroups} from './groups.mjs';
 import {compatiblePvpClient} from './client-version.mjs';
 import {initResults,persistResults,rankings,pilotRanks} from './pvp-results.mjs';
 import {requestRespawn,confirmRespawn} from './respawn.mjs';
@@ -53,7 +54,7 @@ export class SharedWorld extends DurableObject {
   },100);
  }
  sendRewards(ws,id){const attachment=ws.deserializeAttachment(),now=Date.now();if(now-(attachment.lastRewardsAt||0)<3000)return;attachment.lastRewardsAt=now;ws.serializeAttachment(attachment);if(this.worldLoad().recoveries?.[id]?.bill)ws.send(JSON.stringify({type:'respawnBill',bill:this.worldLoad().recoveries[id].bill}));const receipts=this.ctx.storage.sql.exec('SELECT id,amount,damage,total_damage AS totalDamage,boss_id AS bossId,materials,xp,enemy_kind AS enemyKind FROM boss_rewards WHERE player_id=? AND claimed=0 LIMIT 50',id).toArray().map(r=>({...Object.fromEntries(Object.entries(r).filter(([k,v])=>k!=='enemyKind'||!!v)),materials:JSON.parse(r.materials||'{}')}));if(receipts.length)ws.send(JSON.stringify({type:'bossRewards',receipts}))}
- worldSnapshot(s){const ids=s.players.filter(p=>p.connected).map(p=>p.id),stamp=ids.join(',');if(!this.rankCache||this.rankStamp!==stamp||this.rankCheckpoint!==this.lastCheckpoint){this.rankCache=pilotRanks(this.ctx,ids);this.rankStamp=stamp;this.rankCheckpoint=this.lastCheckpoint;}return {type:'world',boss:bossSnapshot(s.boss),enemies:arenaEnemySnapshots(s),serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,shield,pos,aim,seq,duelId,duelStartsAt,death,exiting,abilityUntil,abilityReadyAt,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({pvpRank:this.rankCache[id],adminShipAllowed:!!p.adminShipAllowed,id,name,profile,hp,energy,shield,pos,aim,seq,duelId,abilityUntil,abilityReadyAt:abilityReadyAt||0,revision,hangar,death:death?{id:death.id,time:death.time}:null,exiting:!!exiting,zone:zoneOf(pForProtection(s,id)),duelStartsAt:duelStartsAt||0,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,npcTether:p.npcTether?{owner:p.npcTether.owner}:null,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,events:s.events}}
+ worldSnapshot(s){const ids=s.players.filter(p=>p.connected).map(p=>p.id),stamp=ids.join(',');if(!this.rankCache||this.rankStamp!==stamp||this.rankCheckpoint!==this.lastCheckpoint){this.rankCache=pilotRanks(this.ctx,ids);this.rankStamp=stamp;this.rankCheckpoint=this.lastCheckpoint;}return {type:'world',boss:bossSnapshot(s.boss),enemies:arenaEnemySnapshots(s),serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,shield,pos,aim,seq,duelId,duelStartsAt,death,exiting,abilityUntil,abilityReadyAt,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({pvpRank:this.rankCache[id],adminShipAllowed:!!p.adminShipAllowed,id,name,profile,hp,energy,shield,pos,aim,seq,duelId,abilityUntil,abilityReadyAt:abilityReadyAt||0,revision,hangar,death:death?{id:death.id,time:death.time}:null,exiting:!!exiting,zone:zoneOf(pForProtection(s,id)),duelStartsAt:duelStartsAt||0,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,npcTether:p.npcTether?{owner:p.npcTether.owner}:null,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,groups:s.groups||[],groupInvites:s.groupInvites||[],events:s.events}}
  worldBroadcast(s){if(Date.now()-this.lastBroadcast<100)return;this.lastBroadcast=Date.now();const snapshot=this.worldSnapshot(s),data=JSON.stringify(snapshot),legacy=JSON.stringify({...snapshot,players:snapshot.players.map(p=>p.profile.shipId==='adminpod'?{...p,profile:{...p.profile,shipId:'aurora'}}:p)});for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{const id=ws.deserializeAttachment().id;ws.send((s.players.find(p=>p.id===id)?.clientVersion||0)>=4?data:legacy);this.sendRewards(ws,id)}catch{}}
  async enter(body){
   if(typeof body.accountId!=='string'||!/^[a-f0-9-]{36}$/i.test(body.accountId))return {error:'google_required'};
@@ -102,6 +103,7 @@ export class SharedWorld extends DurableObject {
   else if(m.type==='formation')error=changeFormation(p,m.formation);
   else if(m.type==='skills')error=setSkills(s,p,m.skills,now);
   else if(m.type==='pvpSkill')error=usePvpSkill(s,p,m.skill,now,m.targetId);
+  else if(['groupInvite','groupReply','groupLeave'].includes(m.type))error=groupAction(s,p,m,now);
   else if(m.type==='invite')error=invite(s,p,m.target,now);
   else if(m.type==='reply')error=reply(s,p,m.id,m.accept===true,now);
   else if(m.type==='ship'){
@@ -114,9 +116,9 @@ export class SharedWorld extends DurableObject {
   else if(m.type==='ping'){ws.send(JSON.stringify({type:'pong',echo:m.time,serverTime:now}));}
   else if(m.type==='leave'){await this.worldDisconnect(ws);try{ws.close(1000,'leave')}catch{}return}
   else return;
-  this.worldSave(s,['loadout','ship','formation','name','skills','hangar','invite','reply','surrender','duelBlock'].includes(m.type));if(error)ws.send(JSON.stringify({type:'error',error}));this.worldBroadcast(s);
+  this.worldSave(s,['loadout','ship','formation','name','skills','hangar','invite','reply','surrender','duelBlock','groupInvite','groupReply','groupLeave'].includes(m.type));if(error)ws.send(JSON.stringify({type:'error',error}));this.worldBroadcast(s);
  }
- async worldDisconnect(ws){const s=this.worldLoad(),p=s.players.find(x=>x.id===ws.deserializeAttachment()?.id);if(!p?.connected)return;p.connected=false;p.lastSeen=Date.now();advance(s,Date.now());this.worldSave(s,true);if(!s.players.some(p=>p.connected))this.stopSimulation();this.worldBroadcast(s)}
+ async worldDisconnect(ws){const s=this.worldLoad(),p=s.players.find(x=>x.id===ws.deserializeAttachment()?.id);if(!p?.connected)return;p.connected=false;p.lastSeen=Date.now();updateGroups(s,p.lastSeen);advance(s,Date.now());this.worldSave(s,true);if(!s.players.some(p=>p.connected))this.stopSimulation();this.worldBroadcast(s)}
  async webSocketClose(ws){await this.worldDisconnect(ws)}
  async webSocketError(ws){await this.worldDisconnect(ws)}
  async alarm(){const s=this.worldLoad(),now=Date.now();for(const p of s.players)if(p.connected&&now-p.lastSeen>15000){p.connected=false;for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.id===p.id)try{ws.close(1001,'timeout')}catch{}}

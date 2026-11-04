@@ -19,7 +19,7 @@ export default {
   const url=new URL(request.url),origin=request.headers.get('Origin')||'';
   if(origin&&!ORIGINS.has(origin))return json({error:'origin_denied'},403);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,Authorization','Access-Control-Max-Age':'600'}});
-  if(url.pathname==='/game-config'&&request.method==='GET')return json({testServerEnabled:testServerEnabled(env),...pvpVersionConfig(env),zones:ZONES,features:{duels:true,respawnChoice:true,rankings:true}},200,origin);
+  if(url.pathname==='/game-config'&&request.method==='GET')return json({testServerEnabled:testServerEnabled(env),...pvpVersionConfig(env),zones:ZONES,features:{duels:true,respawnChoice:true,rankings:true,groups:true}},200,origin);
   if(url.pathname==='/health'&&request.method==='GET')return json({ok:true,game:'mundo-abierto',version:VERSION,stage:'zones-duels-rankings',modes:['shared-world','open-pvp'],persistentSoloGame:false},200,origin);
   if(!(await env.API_LIMIT.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'})).success)return json({error:'rate_limit'},429,origin);
   try{
