@@ -169,7 +169,11 @@ export function createGraveyard(THREE,scene){
   for(let i=0;i<1000;i++){ctx.fillStyle=i%4?'#abc3dc':'#ffffff';ctx.fillRect(rand()*1024,rand()*512,1,1)}
   background=new THREE.CanvasTexture(backgroundCanvas);background.mapping=THREE.EquirectangularReflectionMapping;background.colorSpace=THREE.SRGBColorSpace;
  }
- return {environment,station,pads,background,enemyVisual,mountStation,mountRings,mountWreckShips,mountScrapModels};
+ function cloneScrap(index){
+  const pieces=environment.userData.scrapModels?.children||scrapPlaceholders;
+  return pieces[index%pieces.length].clone(true);
+ }
+ return {environment,station,pads,background,enemyVisual,cloneScrap,mountStation,mountRings,mountWreckShips,mountScrapModels};
 }
 export function createScrapCombat(THREE,scene,{position,canHit,damage,notify,sound=()=>{}}){
  const pending=[],projectiles=[],effects=[];let tether=null,immune=0;const rigs=new Set();

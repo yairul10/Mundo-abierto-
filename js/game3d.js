@@ -1,3 +1,4 @@
+import {createTitanFireburst} from './titan-fireburst.js?v=372';
 import {mountSystemMap} from './system-map.js?v=369';
 import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield,shieldUpgradeCost,buyShieldUpgrade} from './shield-system.js?v=364';
 import {createTestProgressReset} from './test-progress-reset.js?v=363';
@@ -30,7 +31,7 @@ import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
-import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
+import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
@@ -44,7 +45,7 @@ import {mountCompanionControls} from './companion-controls.js?v=367';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=370';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=299';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=372';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_MODE=sharedRequested();
@@ -1166,14 +1167,15 @@ const titanSaved=player.granTitanState||{},titanMaximum=enemyMaxHp('granTitan');
 const titanRespawn=Number(titanSaved.respawnAt)||0;
 const titanEnemy={type:'granTitan',mesh:titanRig.root,home:titanRig.root.position.clone(),maxHp:titanMaximum,hp:titanSaved.hp===0&&Date.now()<titanRespawn?0:scaledHealth(Number.isFinite(titanSaved.hp)?titanSaved.hp:titanMaximum,titanSaved.maxHp||titanMaximum,titanMaximum),dead:0,respawnAt:titanRespawn,fireTimer:0,aggressive:false};
 titanEnemy.dead=titanEnemy.hp<=0?Infinity:0;titanEnemy.mesh.visible=false;enemies.push(titanEnemy);
-const titanCycle=createTitanCycle(),titanProjectiles=[],titanBlasts=[],titanEffects=createTitanEffects(THREE,()=>graphics.profile.sparks);
+const titanCycle=createTitanCycle(),titanProjectiles=[],titanEffects=createTitanEffects(THREE);
+const titanFireburst=createTitanFireburst(THREE,scene,index=>graveyard.cloneScrap(index));
 let titanWaveTimer=12,titanPatrolAngle=Number.isFinite(titanSaved.patrolAngle)?titanSaved.patrolAngle:Math.atan2(-1900,2300);
 if(Array.isArray(titanSaved.position)&&titanSaved.position.length===3&&titanSaved.position.every(Number.isFinite)){
  const v=new THREE.Vector3().fromArray(titanSaved.position),r=Math.hypot(v.x-GRAVEYARD.x,v.z-GRAVEYARD.z);
  if(r>1800&&r<3400&&Math.abs(v.y)<350)titanEnemy.mesh.position.copy(v);
 }
 deferredModelLoad(new GLTFLoader(),'./assets/models/gran_titan.glb?v=327',gltf=>titanRig.mount(gltf.scene),undefined,error=>console.warn('Gran Titán: modelo no disponible',error));
-function clearTitanShots(){for(const p of titanProjectiles){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker)}titanProjectiles.length=0;for(const b of titanBlasts)titanEffects.dispose(b.mesh);titanBlasts.length=0}
+function clearTitanShots(){for(const p of titanProjectiles){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker)}titanProjectiles.length=0;titanFireburst.clear()}
 function titanHit(point){const p=titanEnemy.mesh.worldToLocal(point.clone());return (p.x/145)**2+(p.y/170)**2+(p.z/600)**2<1}
 function titanSegmentHit(start,end){const a=titanEnemy.mesh.worldToLocal(start.clone()),b=titanEnemy.mesh.worldToLocal(end.clone());for(const p of [a,b]){p.x/=145;p.y/=170;p.z/=600}return segmentDistance(a,b,new THREE.Vector3())<1}
 function fireTitan(){
@@ -1226,11 +1228,11 @@ function updateGranTitan(dt){if(PVP_MODE)return;
  if(active){titanWaveTimer-=dt;if(titanWaveTimer<=0){spawnTitanWave();titanWaveTimer=30}}else titanWaveTimer=12;
  for(let i=titanProjectiles.length-1;i>=0;i--){const p=titanProjectiles[i],before=p.mesh.position.clone();p.life-=dt;
   p.age+=dt;titanEffects.animateProjectile(p.mesh,p.age,p.bomb);
-  if(p.bomb){p.mesh.position.lerpVectors(p.start,p.target,titanBombProgress(p.age));titanEffects.animateMarker(p.marker,p.age,camera);if(p.life<=0&&available){combatAudio.play('heavyBlast',p.target);const mesh=titanEffects.blast(p.target);scene.add(mesh);titanBlasts.push({mesh,age:0})}if(p.life<=0&&available&&p.target.distanceTo(playerMesh.position)<150)applyPlayerDamage(Math.max(1,p.damage-player.defense*.25))}
+  if(p.bomb){p.mesh.position.lerpVectors(p.start,p.target,titanBombProgress(p.age));titanEffects.animateMarker(p.marker,p.age,camera);if(p.life<=0&&available){combatAudio.play('heavyBlast',p.target);titanFireburst.spawn(p.target,150)}if(p.life<=0&&available&&p.target.distanceTo(playerMesh.position)<150)applyPlayerDamage(Math.max(1,p.damage-player.defense*.25))}
   else{p.mesh.position.addScaledVector(p.velocity,dt);if(available&&segmentDistance(before,p.mesh.position,playerMesh.position)<40){scrapCombat.snag(titanEnemy,p.start);applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0}}
   if(p.life<=0||!available){titanEffects.dispose(p.mesh);if(p.marker)titanEffects.dispose(p.marker);titanProjectiles.splice(i,1)}
  }
- for(let i=titanBlasts.length-1;i>=0;i--){const b=titanBlasts[i];b.age+=dt;if(b.age>=TITAN_BLAST_DURATION||!available){titanEffects.dispose(b.mesh);titanBlasts.splice(i,1)}else titanEffects.animateBlast(b.mesh,b.age,camera)}
+ titanFireburst.update(dt,camera);
 }
 
 function damageEnemy(e,damage,missile=false){if(e.pvpRemote)return;
@@ -2389,7 +2391,7 @@ function kill(e,missile=false){
   bossState.respawnAt=Date.now()+120000;
   for(const add of enemies.filter(add=>add.bossAdd&&!add.dead)){add.guard=false;add.nextPatrol=0}
  }
- if(e.type==='granTitan'){e.respawnAt=Date.now()+180000;clearTitanShots();titanRig.pose(0,'spear')}
+ if(e.type==='granTitan'){e.respawnAt=Date.now()+180000;clearTitanShots();titanRig.pose(0,'spear');titanFireburst.spawn(e.mesh.position,200,{hull:e.mesh,count:graphics.profile.sparks>8?6:4})}
  e.dead=e.titanAdd||e.type==='granTitan'||e.bossAdd||e.type==='carrier'?Infinity:performance.now()/1000+8;e.mesh.visible=false;
  logAction('combat','Enemigo destruido: '+enemyName+' · +'+gold.toLocaleString('es')+' créditos · +'+xp+' XP · '+t.loot+' recursos',{enemy:e.type,sector:activeSector,credits:gold,xp,resources:t.loot});
  missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});
