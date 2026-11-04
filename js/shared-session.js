@@ -42,7 +42,7 @@ export function startSharedSession(bridge){
  $('worldHangar').onclick=()=>bridge.requestLanding();$('worldExit').onclick=exit;$('worldRetry').onclick=()=>{attempts=0;retryAt=0;connect()};$('worldTargetClose').onclick=clearSelection;
  $('worldSaveName').onclick=()=>{const name=$('worldName').value.trim()||'Invitado';try{localStorage.setItem(NAME_KEY,name);if(identity)identity.name=name}catch{}send({type:'name',name})};
  function updateUI(){
-  skillUI.update();social.update();recovery.update(me);const net=$('pvpNetStatus');if(net)net.textContent='Web 337 · '+(pingMs===null?'midiendo conexión':pingMs+' ms');if(!state||!me)return;$('worldExit').disabled=!!me.death;
+  skillUI.update();social.update();recovery.update(bridge.recoveryVisible?.()===false?null:me);const net=$('pvpNetStatus');if(net)net.textContent='Web 337 · '+(pingMs===null?'midiendo conexión':pingMs+' ms');if(!state||!me)return;$('worldExit').disabled=!!me.death;
   status.textContent=me.death?'Elige dónde revivir':me.duelId?'Duelo activo · Sin protección de base':me.zone==='base'?'Base PvP · Protegido':me.zone==='pve'?'Zona PvE · Sin ataques entre jugadores':'Zona hostil · PvP libre';const hint=$('hint');if(hint)hint.textContent=status.textContent;
   details.textContent=(realm==='test'?'PRUEBAS · ':'')+me.name+' #'+me.id.slice(-6)+' · '+state.players.length+' pilotos · '+(pingMs===null?'Conectado':pingMs+' ms');
   $('worldHangar').disabled=!me.protected||!!me.hangar||hangarRequested||!bridge.canLand();tools.hidden=!bridge.isHangarOpen();
