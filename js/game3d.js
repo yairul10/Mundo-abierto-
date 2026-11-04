@@ -1847,7 +1847,7 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  fireCd=classAbilityActive('aurora')?.68/(['centella','vertigo'].includes(player.shipId)?1.4:1.3):.68; // Sobrecarga aumenta la cadencia.
 }
-function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){n=Math.round(n*activeBooster('xp'));player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;combatAudio.play('levelUp');player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;$('levelToast').innerHTML='⭐ NIVEL '+player.level+'<small>Sistemas de la nave mejorados</small>';$('levelToast').classList.remove('hidden');setTimeout(()=>$('levelToast').classList.add('hidden'),2200)}renderMission();}
+function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){n=Math.round(n*activeBooster('xp'));player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;combatAudio.play('levelUp');player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;lootToast('Nivel '+player.level+' · Sistemas de la nave mejorados','level')}renderMission();}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
 const LOOT_TYPES=[
  {id:'chatarra',name:'Chatarra espacial',color:0x9ca8b5,rarity:'Común',description:'Restos recuperados de naves y drones. Material básico de fabricación.'},
@@ -2356,11 +2356,15 @@ function spawnLoot(e,exclusiveItem=null){
 
  drops.push({mesh,item,sector:activeSector,age:0,baseY:mesh.position.y});
 }
-function lootToast(message){
- const el=$('lootToast');if(!el)return;
- el.style.setProperty('top','10px','important');el.style.setProperty('bottom','auto','important');
- el.textContent=message;el.classList.remove('hidden');
- clearTimeout(lootToast.timer);lootToast.timer=setTimeout(()=>el.classList.add('hidden'),2200);
+function lootToast(message,kind='reward'){
+ const stack=$('flightNotices');if(!stack)return;
+ const notice=document.createElement('div');
+ notice.className='flight-notice';
+ notice.dataset.kind=kind;
+ notice.textContent=message;
+ if(stack.childElementCount>=4)stack.firstElementChild.remove();
+ stack.append(notice);
+ setTimeout(()=>notice.remove(),kind==='zone'?2800:2200);
 }
 function updateLoot(dt){
  for(let i=drops.length-1;i>=0;i--){
@@ -2499,18 +2503,12 @@ function skill(){if(PVP_MODE&&!pvpSession?.canFight)return;
 // Protección alrededor de la estación del sector activo.
 const SAFE_ZONE_RADIUS=760;
 function inSafeZone(position){if(PVP_MODE)return !pvpSession?.canFight;return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
-let lastZoneLabel='',zoneToastTimer=null;
+let lastZoneLabel='';
 function updateZone(){if(PVP_MODE){$('targetInfo').textContent=pvpSession?.inDuel?'DUELO · Sin protección de base':pvpSession?.zone==='pve'?'ZONA PvE · Combate contra enemigos':pvpSession?.zone==='hostile'?'ZONA HOSTIL · PvP libre':'BASE PvP · Protegido';return inSafeZone(playerMesh.position)}
  const safe=inSafeZone(playerMesh.position);
  const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='graveyard'?'CEMENTERIO DE NAVES|Sector de nivel 40+':activeSector==='ember'?'ASCUAS|Sector de nivel 30+':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
-  const [title,subtitle]=label.split('|'),el=$('targetInfo');
-  el.replaceChildren(document.createTextNode(title),document.createElement('br'));
-  const small=document.createElement('small');small.textContent=subtitle;el.appendChild(small);
-  el.classList.toggle('outside-zone',!safe);
-  el.classList.add('zone-visible');
-  clearTimeout(zoneToastTimer);
-  zoneToastTimer=setTimeout(()=>el.classList.remove('zone-visible'),2800);
+  lootToast(label.replace('|',' · '),'zone');
   lastZoneLabel=label;
  }
  return safe;
@@ -2642,7 +2640,7 @@ function beginLanding(){
  if(!selectLandingPlatform(true))return false;
  combatAudio.play('landing');landing=true;landingTime=0;landingStart=playerMesh.position.clone();landingYaw=yaw;landingPitch=pitch;
  resetDockControls();fireHeld=false;clearCombatShots();document.body.classList.add('landing');
- dockBtn.classList.remove('hidden');dockBtn.disabled=true;dockBtn.textContent='🛬 Piloto automático · Aproximación';
+ dockBtn.classList.remove('hidden');dockBtn.disabled=true;dockBtn.textContent='Piloto automático · Aproximación';
  return true;
 }
 dockBtn.onclick=()=>{
@@ -2658,11 +2656,11 @@ function advanceLanding(dt){
   const t=smooth(landingTime/3.4);
   playerMesh.position.lerpVectors(landingStart,LANDING_APPROACH,t);
   yaw=landingYaw+Math.atan2(Math.sin(-landingYaw),Math.cos(-landingYaw))*t;pitch=landingPitch*(1-t);
-  dockBtn.textContent='🛬 Aproximación automática';
+  dockBtn.textContent='Aproximación automática';
  }else if(landingTime<7.6){
   const t=smooth((landingTime-3.4)/4.2);
   playerMesh.position.lerpVectors(LANDING_APPROACH,LANDING_TOUCHDOWN,t);
-  yaw=0;pitch=0;dockBtn.textContent='🛬 Descendiendo · '+Math.round(t*100)+'%';
+  yaw=0;pitch=0;dockBtn.textContent='Descendiendo · '+Math.round(t*100)+'%';
  }else finishLanding();
 }
 function leaveHangar(){
@@ -2692,7 +2690,7 @@ function updateDock(){
  const available=inCorridor&&panel.classList.contains('hidden')&&(!PVP_MODE||pvpSession?.canDock);
  dockBtn.classList.toggle('hidden',!available);
  dockBtn.disabled=!available;
- if(available)dockBtn.textContent='🛬 Aterrizar en '+(PVP_MODE?'Base PvP':currentStationName());
+ if(available)dockBtn.textContent='Aterrizar en '+(PVP_MODE?'Base PvP':currentStationName());
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{if(document.body.classList.contains('system-map-open')||e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
