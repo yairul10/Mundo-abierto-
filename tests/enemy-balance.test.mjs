@@ -16,7 +16,7 @@ test('Actual PvE kill path awards normal/pro credits and XP without multiplying 
  const game=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8'),source=game.slice(game.indexOf('function kill(e,missile=false){'),game.indexOf('// Modelo 3D del misil.'));
  for(const [type,values]of Object.entries(expected))for(const pro of [false,true]){
   let xp=0,boxes=0;const player={level:105,gold:0},loot={raider:2,sentinel:4,destroyer:6,catapult:8,harpooner:7,stalker:8}[type],noop=()=>{};
-  const context={combatAudio:{play:noop},TYPES:{[type]:{...ENEMY_BASELINES[type],loot}},enemyRewardScale:()=>2.5,proRewardMultiplier,player,activeSector:'test',logAction:noop,missionEvent:noop,spawnLoot:()=>boxes++,gainXp:v=>xp+=v,lootToast:noop,save:noop,LOOT_TYPES:[{id:'nucleo_demolicion'},{id:'bobina_anclaje'},{id:'cristal_punteria'}]};
+  const context={combatAudio:{play:noop},titanFireburst:{spawn:noop},graphics:{profile:{sparks:8}},TYPES:{[type]:{...ENEMY_BASELINES[type],loot}},enemyRewardScale:()=>2.5,proRewardMultiplier,player,activeSector:'test',logAction:noop,missionEvent:noop,spawnLoot:()=>boxes++,gainXp:v=>xp+=v,lootToast:noop,save:noop,LOOT_TYPES:[{id:'nucleo_demolicion'},{id:'bobina_anclaje'},{id:'cristal_punteria'}]};
   const kill=new Function('context','with(context){'+source+';return kill}')(context);const random=Math.random;try{Math.random=()=>.99;kill({type,pro,mesh:{visible:true,position:{}}})}finally{Math.random=random}
   const factor=pro?4:1;assert.equal(player.gold,values[2]*factor);assert.equal(xp,values[3]*factor);assert.equal(boxes,loot);
  }

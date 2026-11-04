@@ -5,7 +5,7 @@ import {createGranTitan} from './gran-titan.js?v=326';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 const MODELS={catapult:'./assets/models/catapulta_casco.glb?v=327',harpooner:'./assets/models/arponero_lanzador.glb?v=327',stalker:'./assets/models/acechador_optimizado.glb?v=327',raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
-export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,onTitanDestroyed=()=>{},sound=()=>{},targetPosition=()=>null,makeMissile=null}){
+export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,onDestroyed=()=>{},sound=()=>{},targetPosition=()=>null,makeMissile=null}){
  const entities=new Map(),templates=new Map(),effects=[];
  const npcFx=createNpcEffects(T,scene,camera,{sound,targetPosition,hidden});
  function model(path){if(!templates.has(path))templates.set(path,loader.loadAsync(path).then(g=>g.scene));return templates.get(path).then(s=>s.clone(true))}
@@ -46,7 +46,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   npcFx.sync(r,b,now);
   const fresh=r.instance!==b.instanceId,jump=(b.lastTeleport?.seq||0)>r.teleportSeq;
   if(fresh||jump){r.mesh.position.set(...b.pos);r.instance=b.instanceId;r.attackSeq=b.lastAttack?.seq||0;r.teleportSeq=b.lastTeleport?.seq||0}
-  if(!fresh&&r.kind==='granTitanPro'&&r.hp>0&&b.hp<=0&&!hidden())onTitanDestroyed(r.mesh);
+  if(!fresh&&r.hp>0&&b.hp<=0&&!hidden())onDestroyed(r.mesh,r.kind);
   r.goal.set(...b.pos);r.hp=b.hp;r.maxHp=b.maxHp;r.dead=b.hp>0?0:1;r.mesh.visible=b.hp>0;r.active=b.active;r.label.querySelector('span').textContent=b.name;
   r.label.querySelector('small').textContent=Math.ceil(b.hp).toLocaleString()+' / '+b.maxHp.toLocaleString()+' PV'+(b.kind==='reinforcement'?'':' · '+Number(b.reward).toLocaleString()+' créditos');r.label.querySelector('i').style.width=(100*Math.max(0,b.hp)/b.maxHp)+'%';
   if(r.kind==='nexo'){r.rig.assignTargets(b.aimTargets||[]);r.rig.setCharge((b.nextAttackAt-now)/1000)}

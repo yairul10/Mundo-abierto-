@@ -17,7 +17,7 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=3';
 import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
-import {createArenaEnemyView} from './pvp-enemies.js?v=373';
+import {createArenaEnemyView} from './pvp-enemies.js?v=375';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=371';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
@@ -2391,7 +2391,8 @@ function kill(e,missile=false){
   for(const add of enemies.filter(add=>add.bossAdd&&!add.dead)){add.guard=false;add.nextPatrol=0}
  }
  if(e.type==='granTitan'){e.respawnAt=Date.now()+180000;clearTitanShots();titanRig.pose(0,'spear');titanFireburst.spawn(e.mesh.position,200,{hull:e.mesh,count:graphics.profile.sparks>8?6:4})}
- else if(activeSector==='graveyard'&&(e.titanAdd||['catapult','harpooner','stalker'].includes(e.type)))titanFireburst.spawn(e.mesh.position,60,{count:graphics.profile.sparks>8?4:3});
+ else if(e.type==='carrier')titanFireburst.spawn(e.mesh.position,125,{hull:e.mesh,count:graphics.profile.sparks>8?6:4});
+ else titanFireburst.spawn(e.mesh.position,60,{count:graphics.profile.sparks>8?4:3});
  e.dead=e.titanAdd||e.type==='granTitan'||e.bossAdd||e.type==='carrier'?Infinity:performance.now()/1000+8;e.mesh.visible=false;
  logAction('combat','Enemigo destruido: '+enemyName+' · +'+gold.toLocaleString('es')+' créditos · +'+xp+' XP · '+t.loot+' recursos',{enemy:e.type,sector:activeSector,credits:gold,xp,resources:t.loot});
  missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});
@@ -3325,7 +3326,10 @@ if(PVP_MODE){
  for(const e of enemies)scene.remove(e.mesh);enemies.length=0;
  for(const drop of drops)scene.remove(drop.mesh);drops.length=0;
  const remotes=new Map();
- const arenaView=createArenaEnemyView({THREE,scene,camera,enemies,onTitanDestroyed:mesh=>titanFireburst.spawn(mesh.position,110,{hull:mesh,count:4}),loader:new GLTFLoader(),onSelect:id=>pvpSession?.select(id),hidden:()=>!!pvpHangar||landing,makeMissile:createMissileMesh,targetPosition:id=>id===pvpSession?.myId?playerMesh.position:remotes.get(id)?.mesh.position,sound:(kind,point)=>combatAudio.play(kind,point)});
+ const arenaView=createArenaEnemyView({THREE,scene,camera,enemies,onDestroyed:(mesh,kind)=>{
+  const boss=['granTitanPro','colossusPro','nexo'].includes(kind);
+  titanFireburst.spawn(mesh.position,boss?110:60,{hull:boss?mesh:null,count:boss?4:3});
+ },loader:new GLTFLoader(),onSelect:id=>pvpSession?.select(id),hidden:()=>!!pvpHangar||landing,makeMissile:createMissileMesh,targetPosition:id=>id===pvpSession?.myId?playerMesh.position:remotes.get(id)?.mesh.position,sound:(kind,point)=>combatAudio.play(kind,point)});
  const pvpSounds=createPvpSoundObserver((kind,point)=>combatAudio.play(kind,point));
  let respawnSoundTimer;
  const pvpDefeated=isMe=>{if(isMe){combatAudio.play('defeat');clearTimeout(respawnSoundTimer)}};
@@ -3339,6 +3343,7 @@ if(PVP_MODE){
  function teleportFlash(pos){const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:0x88ddff,transparent:true,opacity:.6,wireframe:true,depthWrite:false}));mesh.position.set(...pos);scene.add(mesh);bossFlashes.push({mesh,life:.7})}
  function syncBoss(b,serverTime){
   if(!b){bossRoot.visible=false;bossLabel.hidden=true;bossRemote.dead=1;return}
+  if(bossInstance===b.instanceId&&bossRemote.hp>0&&b.hp<=0)titanFireburst.spawn(bossRoot.position,150,{hull:bossRoot,count:4});
   bossRemote.hp=b.hp;bossRemote.maxHp=b.maxHp;bossRemote.dead=b.hp>0?0:1;bossRoot.visible=b.hp>0;
   const fresh=bossInstance!==b.instanceId,jump=b.lastTeleport&&b.lastTeleport.seq>bossTeleportSeq;
   if(fresh){bossInstance=b.instanceId;bossAttackSeq=b.lastAttack?.seq||0;bossTeleportSeq=b.lastTeleport?.seq||0;bossRoot.position.set(...b.pos)}
@@ -3402,6 +3407,7 @@ if(PVP_MODE){
   for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),pet=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones,pet);label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>pvpSession.select(other.id);label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();pvpSession.select(other.id)},{passive:false});label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvpSession.select(other.id)}};r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,pet,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:other.profile.level};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
     for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i%2?1:-1)*[78,135,195,250][Math.floor(i/2)],14,125+Math.floor(i/2)*40);d.rotation.set(0,0,0);drones.add(d)}
    }
+   if(!force&&r.hp>0&&other.hp<=0)titanFireburst.spawn(new THREE.Vector3(...other.pos),60,{count:3});
    if(r.drones.children.length!==other.profile.droneCount||r.droneStamp!==supportDrones[0]?.mesh.children.length){r.drones.clear();for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i%2?1:-1)*78,14,125);r.drones.add(d)}r.droneStamp=supportDrones[0]?.mesh.children.length}
    r.inHangar=other.hangar;r.hasPet=other.profile.explorerDrone;r.formation=other.profile.droneFormation;r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shield=Number(other.shield)||0;r.maxShield=other.profile.maxShield||0;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=other.profile.level;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=true;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
 
