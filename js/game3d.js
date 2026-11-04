@@ -18,7 +18,7 @@ import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {createArenaEnemyView} from './pvp-enemies.js?v=352';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=361';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=367';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -27,7 +27,7 @@ import {saveBossReceipts} from './pvp-boss-rewards.js?v=356';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
-import {mountFarmPilotUI} from './farm-pilot-ui.js?v=255';
+import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,TITAN_BLAST_DURATION,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
@@ -40,7 +40,7 @@ import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=364';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
-import {mountCompanionControls} from './companion-controls.js?v=359';
+import {mountCompanionControls} from './companion-controls.js?v=367';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=364';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
@@ -2295,7 +2295,7 @@ const missionCatalog=[...legacyMissions,...LONG_MISSIONS.map(m=>({...m,id:'contr
 let missionBoard=createMissionBoard(missionCatalog,player.quests);
 function renderMission(){
  const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
- el.classList.toggle('hidden',questCollapsed);toggle.textContent='📋';toggle.setAttribute('aria-expanded',String(!questCollapsed));
+ el.classList.toggle('hidden',questCollapsed);toggle.setAttribute('aria-expanded',String(!questCollapsed));
  if(questCollapsed)return;
  const missions=missionBoard.remaining(player.level),next=missionBoard.nextLevel(player.level);
  $('questTitle').textContent='Misiones · '+missions.length+' disponibles';
@@ -3046,7 +3046,7 @@ function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math
 }
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
 const systemMap=mountSystemMap({trigger:$('radarWidget'),getState:()=>({level:player.level,current:PVP_MODE?'pvp':activeSector}),onOpen:()=>{resetDockControls();fireHeld=false;for(const key of Object.keys(keys))delete keys[key]}});
-const companionControls=mountCompanionControls({parent:$('zoomControls'),getPlayer:()=>player,onChange:mode=>{
+const companionControls=mountCompanionControls({cockpit:!PVP_MODE,parent:$('zoomControls'),getPlayer:()=>player,onChange:mode=>{
  const previous=player.explorerMode;player.explorerMode=mode;
  let saved;
  if(PVP_MODE&&!pvpHangar){const pilot=readOfflinePilot(localStorage);pilot.explorerMode=mode;try{localStorage.setItem(SAVE_KEY,JSON.stringify(pilot));if(SAVE_KEY==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);saved=true}catch{showStorageWarning();saved=false}}

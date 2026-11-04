@@ -21,3 +21,25 @@
 #pvpControlEditor .pvp-editor-toolbar{top:auto;bottom:8px;left:24%;right:24%;border:1px solid #73c8ed;border-radius:12px;padding:6px;gap:6px}
 #pvpControlEditor .pvp-editor-toolbar strong{font-size:14px}
 #pvpControlEditor .pvp-editor-toolbar span{display:none}
+
+/* Individual cockpit controls, shared by the live HUD and the editor. */
+#pvpControlEditor .cockpit-control,
+:is(#farmAutoBtn,#companionModeBtn,#zoomIn,#zoomOut,#formationBtn,#questToggle,#characterBtn).cockpit-control {
+ border:1px solid #718796;
+ border-radius:8px;
+ background:linear-gradient(135deg,transparent 64%,#5ee4fa 66% 77%,transparent 79%) top right/12px 12px no-repeat,
+            linear-gradient(155deg,#344755,#101e2a 48%,#08121d 76%,#364955);
+ color:#e4f8ff;
+ box-shadow:inset 0 0 0 2px #071018,inset 0 0 0 3px #8399a63d,0 3px 6px #0009;
+ text-shadow:0 1px 2px #000;
+ cursor:pointer;
+}
+#pvpControlEditor .cockpit-control{cursor:grab;font-size:18px}
+.cockpit-control svg{width:22px;height:22px;display:block;margin:auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+#farmAutoBtn.cockpit-control{padding-left:20px}
+#farmAutoBtn.cockpit-control::before{
+ content:"";position:absolute;left:8px;top:50%;transform:translateY(-50%);
+ width:6px;height:6px;border-radius:50%;background:#517180;
+}
+#farmAutoBtn.cockpit-control[data-running="true"]::before{background:#66eeff;box-shadow:0 0 7px #46e8ff}
+body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-control){visibility:hidden}
