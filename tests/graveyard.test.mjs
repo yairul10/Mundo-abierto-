@@ -8,7 +8,7 @@ class Mesh{constructor(geometry,material){Object.assign(this,{geometry,material,
 class Group extends Mesh{}
 const THREE={Vector3:V,Mesh,Group,Line:Mesh,BufferGeometry:Geo,SphereGeometry:Geo,TorusGeometry:Geo,IcosahedronGeometry:Geo,ConeGeometry:Geo,MeshStandardMaterial:Material,MeshBasicMaterial:Material,LineBasicMaterial:Material};
 const objects=new Set(),scene={add:x=>objects.add(x),remove:x=>objects.delete(x)};
-let hit=true,total=0;const pos=new V(0,0,500),combat=createScrapCombat(THREE,scene,{position:()=>pos,canHit:()=>hit,damage:(x,dt=1)=>total+=x*dt,notify(){}});
+const bombImpacts=[];let hit=true,total=0;const pos=new V(0,0,500),combat=createScrapCombat(THREE,scene,{position:()=>pos,canHit:()=>hit,damage:(x,dt=1)=>total+=x*dt,notify(){},onBombImpact:(point,radius)=>bombImpacts.push({point,radius})});
 const enemy={type:'harpooner',dead:0,mesh:{position:new V(),visible:true,userData:{}}};
 assert.equal(segmentDistance(new V(),new V(0,0,1000),pos),0);
 combat.fire(enemy);combat.update(.8);assert(combat.blocked());assert.equal(total,0,'no instant damage on latch');
@@ -19,7 +19,7 @@ combat.update(5);combat.fire(enemy);combat.update(.8);assert(combat.blocked());e
 const launcher={type:'catapult',dead:0,home:new V(),mesh:{position:new V(),visible:true,userData:{}}};enemy.dead=0;enemy.home=new V();linkScrapPairs([launcher,enemy]);placeScrapPairs([launcher,enemy]);assert.equal(enemy.mesh.position.x,150);assert.equal(enemy.partner,launcher);assert.equal(launcher.partner,enemy);
 launcher.mesh.position.x=100;rejoinScrapPair(enemy);assert.equal(enemy.mesh.position.x,250);
 launcher.mesh.position=new V();enemy.mesh.position=new V();pos.x=0;total=0;combat.fire(enemy);combat.update(.8);assert(combat.blocked());assert.equal(objects.size,2,'latch starts companion warning');
-combat.update(1.4);combat.update(1.5);assert.equal(total,445,'bomb hits while tether active: 300 plus 145 tether damage');assert(combat.blocked());combat.update(.1);assert.equal(total,450);assert(!combat.blocked());combat.clear();assert.equal(objects.size,0);
+combat.update(1.4);assert.equal(bombImpacts.length,0);combat.update(1.5);assert.deepEqual(bombImpacts,[{point:pos.clone(),radius:180}]);assert.equal(total,445,'bomb hits while tether active: 300 plus 145 tether damage');assert(combat.blocked());combat.update(.1);assert.equal(total,450);assert(!combat.blocked());combat.clear();assert.equal(objects.size,0);
 enemy.type='catapult';total=0;combat.fire(enemy);combat.update(1.4);combat.update(1.5);assert.equal(total,300);combat.clear();assert.equal(objects.size,0);
 combat.fire(enemy);combat.update(1.4);pos.x=500;combat.update(1.5);assert.equal(total,300,'moving outside blast avoids damage');combat.clear();
 pos.x=0;combat.fire(enemy);hit=false;combat.update(1.4);assert.equal(objects.size,0,'safe zone cancels charging attack');

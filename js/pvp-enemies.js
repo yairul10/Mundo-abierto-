@@ -1,13 +1,13 @@
-import {createNpcEffects} from './pvp-npc-effects.js?v=352';
+import {createNpcEffects} from './pvp-npc-effects.js?v=385';
 import {createCatapultRig} from './catapult-rig.js?v=339';
 import {createHarpoonRig} from './harpoon-rig.js?v=339';
 import {createGranTitan} from './gran-titan.js?v=326';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 const MODELS={catapult:'./assets/models/catapulta_casco.glb?v=327',harpooner:'./assets/models/arponero_lanzador.glb?v=327',stalker:'./assets/models/acechador_optimizado.glb?v=327',raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
-export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,onDestroyed=()=>{},sound=()=>{},targetPosition=()=>null,makeMissile=null}){
+export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,onDestroyed=()=>{},onBombImpact,sound=()=>{},targetPosition=()=>null,makeMissile=null}){
  const entities=new Map(),templates=new Map(),effects=[];
- const npcFx=createNpcEffects(T,scene,camera,{sound,targetPosition,hidden});
+ const npcFx=createNpcEffects(T,scene,camera,{sound,targetPosition,hidden,onBombImpact});
  function model(path){if(!templates.has(path))templates.set(path,loader.loadAsync(path).then(g=>g.scene));return templates.get(path).then(s=>s.clone(true))}
  function fit(source,size){const box=new T.Box3().setFromObject(source),span=Math.max(...box.getSize(new T.Vector3()).toArray()),group=new T.Group();source.position.sub(box.getCenter(new T.Vector3()));group.add(source);group.scale.setScalar(size/span);return group}
  function mount(r,data){

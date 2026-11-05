@@ -179,8 +179,8 @@ export function createGraveyard(THREE,scene){
  }
  return {environment,station,pads,background,enemyVisual,cloneScrap,mountStation,mountRings,mountWreckShips,registerScrapModel,mountScrapModels};
 }
-export function createScrapCombat(THREE,scene,{position,canHit,damage,notify,sound=()=>{}}){
- const pending=[],projectiles=[],effects=[];let tether=null,immune=0;const rigs=new Set();
+export function createScrapCombat(THREE,scene,{position,canHit,damage,notify,sound=()=>{},onBombImpact=()=>{}}){
+ const pending=[],projectiles=[];let tether=null,immune=0;const rigs=new Set();
  const metal=new THREE.MeshStandardMaterial({color:0x7d6757,roughness:.9});
  const rockGeo=new THREE.IcosahedronGeometry(16,0),harpoonGeo=new THREE.ConeGeometry(7,35,6);
  const cableMaterial=new THREE.LineBasicMaterial({color:0xc8b6a0});
@@ -225,17 +225,16 @@ export function createScrapCombat(THREE,scene,{position,canHit,damage,notify,sou
   for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],previous=p.mesh.position.clone();let done=false;
    if(p.bomb){p.age+=dt;updateImpactMarker(p.marker,p.duration-p.age);const t=Math.min(1,p.age/p.duration);p.mesh.position.lerpVectors(p.start,p.target,t);p.mesh.position.y+=Math.sin(t*Math.PI)*180;p.mesh.rotation.x+=dt*4;
     if(t>=1){sound('heavyBlast',p.target);if(canHit()&&position().distanceTo(p.target)<180)damage(300,1,p.enemy);
-     const burst=new THREE.Mesh(new THREE.SphereGeometry(1,16,8),new THREE.MeshBasicMaterial({color:0xffa13b,transparent:true,opacity:.7,depthWrite:false}));burst.position.copy(p.target);scene.add(burst);effects.push({mesh:burst,time:.55});done=true}
+     onBombImpact(p.target,180);done=true}
    }else{p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;p.line.geometry.setFromPoints([p.enemy.mesh.userData.harpoonRig?.cableOrigin()||p.enemy.mesh.position,p.mesh.position]);
     if(canHit()&&segmentDistance(previous,p.mesh.position,position())<45){if(!tether&&immune<=0&&!p.enemy.dead&&p.enemy.mesh.visible){tether={enemy:p.enemy,line:p.line,time:3};p.line=null;sound('tether',position());notify('⚓ Arpón enganchado · Inmovilizado 3 s · Puedes disparar');const partner=p.enemy.partner;if(partner&&!partner.dead&&partner.mesh.visible){fire(partner);partner.fireTimer=6}}done=true}
     if(p.life<=0||p.enemy.dead||!p.enemy.mesh.visible)done=true;
    }
    if(done){if(!p.bomb&&p.line)p.enemy.mesh.userData.harpoonRig?.retrieve();scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker);projectiles.splice(i,1)}
   }
-  for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.time-=dt;e.mesh.scale.setScalar(180*(1-e.time/.55));e.mesh.material.opacity=Math.max(0,e.time);if(e.time<=0){remove(e.mesh);effects.splice(i,1)}}
  }
  function clear(){release();immune=0;for(const rig of rigs)rig.reset();rigs.clear();for(const p of pending){remove(p.marker);p.enemy.mesh.userData.catapultRig?.reset();const arm=p.enemy.mesh.userData.catapultArm;if(arm)arm.rotation.x=0}pending.length=0;
- for(const p of projectiles){scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker)}projectiles.length=0;for(const e of effects)remove(e.mesh);effects.length=0;
+ for(const p of projectiles){scene.remove(p.mesh);if(p.line)remove(p.line);if(p.marker)remove(p.marker)}projectiles.length=0;
  }
 
  function snag(enemy,start){
