@@ -53,7 +53,7 @@ document.currentScript.after(threeMap);
 </script>
 <script type="module">
 const status=document.getElementById('bootStatus');
-const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261105-386';
+const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261105-387';
 async function loadWithDeadline(promise,label){
  let timer;
  try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('No se pudo cargar '+label+' a tiempo. Comprueba la conexión y recarga la página.')),20000)})])}
@@ -108,7 +108,7 @@ try {
   };
   THREE.DefaultLoadingManager.onLoad=()=>{window.cosmosAssetsLoading=false};
   status.textContent='Motor 3D OK · cargando mundo…';
-  await loadWithDeadline(import('./js/game3d.js?v=386'),'el módulo del mundo 3D');
+  await loadWithDeadline(import('./js/game3d.js?v=387'),'el módulo del mundo 3D');
   status.remove();
   const overlay=document.getElementById('worldLoading');
   if(overlay){
