@@ -1,3 +1,4 @@
+import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=384';
 import {mountSystemMap} from './system-map.js?v=369';
 import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield,shieldUpgradeCost,buyShieldUpgrade} from './shield-system.js?v=364';
@@ -7,7 +8,7 @@ import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './flee
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=387';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=387';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
-import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=362';
+import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=347';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
 import {checkpointProfile,activeProfile} from './account-storage.js?v=344';
@@ -42,7 +43,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=371';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=388';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=389';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=385';
@@ -1546,6 +1547,11 @@ function markExplorerAttack(target){
  explorerManualTarget=target;explorerManualUntil=performance.now()/1000+.85;
  explorerCompanion.targetDrop=null;explorerCompanion.nextChange=0;
 }
+const laserGeometry=new THREE.CylinderGeometry(1.5,1.5,48,7);
+const laserMaterial=new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false});
+const supportLaserMaterial=new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false});
+const remoteLaserMaterial=new THREE.MeshBasicMaterial({color:0xff7777,transparent:true,opacity:.95,depthWrite:false});
+const sniperShotGeometry=new THREE.CylinderGeometry(5,5,65,10);
 function updateExplorerCombat(dt){
  if(PVP_MODE&&!pvpSession?.canFight)return;
  explorerFireCd=Math.max(0,explorerFireCd-dt);
@@ -1554,7 +1560,7 @@ function updateExplorerCombat(dt){
  const explorerAim=PVP_MODE&&target.goal?target.goal.clone():target.mesh.position.clone();
  const delta=explorerAim.clone().sub(explorerMesh.position);
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
- const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
+ const bolt=new THREE.Mesh(laserGeometry,supportLaserMaterial);
  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
  shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.2*activeBooster('damage')});
  if(pvpSession)pvpSession.shots('explorer',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1,target.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -1688,7 +1694,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
    destination.z+=(Math.random()-.5)*spread*2;
   }
   const direction=destination.clone().sub(start).normalize();
-  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false}));
+  const bolt=new THREE.Mesh(laserGeometry,supportLaserMaterial);
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
   const range=supportRange();
@@ -1768,7 +1774,7 @@ function updateEnemyShots(dt){
   if(aim.time>0)continue;
   combatAudio.play('sniperShot',e.mesh.position);
   const start=e.mesh.position.clone(),dir=aim.target.clone().sub(start).normalize();
-  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(5,5,65,10),enemyShotMaterials.stalker);
+  const mesh=new THREE.Mesh(sniperShotGeometry,enemyShotMaterials.stalker);
   mesh.position.copy(start).addScaledVector(dir,55);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);scene.add(mesh);
   mesh.add(new THREE.PointLight(0xff1234,3,160));
   enemyShots.push({owner:e,mesh,velocity:dir.multiplyScalar(6000),life:.5,damage:TYPES.stalker.damage*proMultiplier(e)*advancedEnemyScale(player.level,40),sniper:true});
@@ -1841,7 +1847,7 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
    destination.z+=(Math.random()-.5)*spread*2;
   }
   const dir=destination.clone().sub(start).normalize();
-  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false}));
+  const mesh=new THREE.Mesh(laserGeometry,laserMaterial);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
   shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
@@ -2425,14 +2431,15 @@ deferredModelLoad(new GLTFLoader(),'./assets/models/rocket.glb?v=114',gltf=>{
  model.scale.setScalar(32/longest);
  rocketTemplate=model;
 },undefined,error=>console.warn('Misil 3D no disponible; se conserva respaldo',error));
+const fallbackMissileGeometry=new THREE.ConeGeometry(7,33,8);
+const fallbackMissileMaterial=new THREE.MeshStandardMaterial({color:0xf3f3f3,emissive:0xff7629,emissiveIntensity:.7,metalness:.35,roughness:.4});
 function createMissileMesh(){
  if(rocketTemplate){
   const group=new THREE.Group();
   group.add(rocketTemplate.clone(true));
   return group;
  }
- return new THREE.Mesh(new THREE.ConeGeometry(7,33,8),
-  new THREE.MeshStandardMaterial({color:0xf3f3f3,emissive:0xff7629,emissiveIntensity:.7,metalness:.35,roughness:.4}));
+ return new THREE.Mesh(fallbackMissileGeometry,fallbackMissileMaterial);
 }
 // Efectos ligeros: una llama anclada al misil y una estela de 12 puntos.
 const missileFlameGeometry=new THREE.ConeGeometry(5,23,7);
@@ -3061,12 +3068,38 @@ const companionControls=mountCompanionControls({cockpit:true,parent:$('zoomContr
  explorerManualTarget=null;explorerManualUntil=0;explorerThreat=null;explorerThreats.clear();explorerCompanion.targetDrop=null;explorerCompanion.nextChange=0;
  lootToast('🛰 Mascota: '+({both:'atacar y recoger',attack:'solo atacar',collect:'solo recoger'}[mode]));
 }});
-function hud(){systemMap.refresh();companionControls.render();if($('hud').classList.contains('collapsed'))for(const [key,value,max] of [['Health',player.hp,player.maxHp],['Shield',player.shield,player.maxShield]]){
- const fill=$('hudCompact'+key+'Fill'),label=$('hudCompact'+key+'Value');
- fill.style.width=(max>0?THREE.MathUtils.clamp(100*value/max,0,100):0)+'%';
- label.textContent=max>0?Math.ceil(value)+'/'+max:'—';
- label.title=max>0?'':'Escudo bloqueado';
-}if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);else $('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=player.maxShield>0?'Escudo '+Math.ceil(player.shield)+'/'+player.maxShield:'Escudo bloqueado · Nivel 0/5';$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=(player.maxShield>0?player.shield/player.maxShield*100:0)+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':'';presentCombatButton($('skillBtn'),{remaining:skillCd,duration:7,blocked:docked||landing||recoveryPending});presentCombatButton($('fireBtn'),{pressed:fireHeld,blocked:docked||landing||recoveryPending})}
+function hud(){
+ systemMap.refresh();
+ companionControls.render();
+ if($('hud').classList.contains('collapsed')){
+  for(const [key,value,max] of [['Health',player.hp,player.maxHp],['Shield',player.shield,player.maxShield]]){
+   const fill=$('hudCompact'+key+'Fill'),label=$('hudCompact'+key+'Value');
+   setHudWidth(fill,max>0?THREE.MathUtils.clamp(100*value/max,0,100):0);
+   setHudText(label,max>0?Math.ceil(value)+'/'+max:'—');
+   const title=max>0?'':'Escudo bloqueado';
+   if(label.title!==title)label.title=title;
+  }
+ }
+ if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);
+ else setHudText($('playerName'),player.name);
+ setHudText($('classLabel'),'Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora'));
+ setHudText($('level'),'Nivel '+player.level);
+ setHudText($('hpText'),Math.ceil(player.hp)+'/'+player.maxHp);
+ setHudText($('energyText'),player.maxShield>0?'Escudo '+Math.ceil(player.shield)+'/'+player.maxShield:'Escudo bloqueado · Nivel 0/5');
+ setHudWidth($('hpBar'),player.hp/player.maxHp*100);
+ setHudWidth($('energyBar'),player.maxShield>0?player.shield/player.maxShield*100:0);
+ setHudText($('attack'),player.attack);
+ setHudText($('defense'),player.defense);
+ setHudText($('gold'),player.gold);
+ const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);
+ setHudText($('lootCount'),lootCount);
+ const neededXp=xpNeed();
+ setHudText($('xpText'),'XP '+Math.floor(player.xp)+' / '+neededXp);
+ setHudWidth($('xpBar'),player.xp/neededXp*100);
+ setHudText($('skillCd'),skillCd>0?Math.ceil(skillCd)+'s':'');
+ presentCombatButton($('skillBtn'),{remaining:skillCd,duration:7,blocked:docked||landing||recoveryPending});
+ presentCombatButton($('fireBtn'),{pressed:fireHeld,blocked:docked||landing||recoveryPending});
+}
 // Zoom discreto de cámara, sin alterar la dirección de disparo ni el joystick.
 let cameraZoom=285;
 function setCameraZoom(next){cameraZoom=THREE.MathUtils.clamp(next,170,540)}
@@ -3469,7 +3502,7 @@ if(PVP_MODE){
  },
  remoteShots(bullets){for(const b of bullets){
   combatAudio.play(b.missile?'missile':'enemyLaser',{x:b.pos[0],y:b.pos[1],z:b.pos[2]});
-  const mesh=b.missile?createMissileMesh():new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,48,7),new THREE.MeshBasicMaterial({color:0xff7777,transparent:true,opacity:.95,depthWrite:false}));mesh.position.set(...b.pos);const vel=new THREE.Vector3(...b.vel);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vel.clone().normalize());scene.add(mesh);
+  const mesh=b.missile?createMissileMesh():new THREE.Mesh(laserGeometry,remoteLaserMaterial);mesh.position.set(...b.pos);const vel=new THREE.Vector3(...b.vel);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vel.clone().normalize());scene.add(mesh);
   const target=b.target===pvpSession?.myId?{mesh:playerMesh,dead:false,playerId:pvpSession?.myId}:b.target===bossRemote.playerId&&bossRoot.visible?bossRemote:arenaView.entities.get(b.target)||remotes.get(b.target);
   const shot={pvpRemote:true,pvpSent:true,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
  }},

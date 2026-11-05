@@ -1,4 +1,4 @@
-import {presentCombatButton} from './combat-buttons.js?v=362';
+import {presentCombatButton} from './combat-buttons.js?v=389';
 // Two extra PvP powers. Rules and timestamps come from the server snapshot.
 export function mountPvpSkills({tools,getState,canUse,send,isHangarOpen,storage,key}){
  let saved=['interference','instantShield'];try{const value=JSON.parse(storage.getItem(key));if(Array.isArray(value)&&value.length===2)saved=value}catch{}

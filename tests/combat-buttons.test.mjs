@@ -20,3 +20,16 @@ test('All six PvP powers and three ship roles have distinct appropriate art',()=
  assert.equal(shipCombatArtwork('titan'),'shipShield');assert.equal(shipCombatArtwork('espectro'),'shipFury');assert.equal(shipCombatArtwork('aurora'),'overload');
 });
 
+
+test('Repeated idle frames do not rewrite styles or visual classes',()=>{
+ const b=element();let writes=0;
+ const toggle=b.classList.toggle.bind(b.classList);
+ b.classList.toggle=(...args)=>{writes++;toggle(...args)};
+ b.style.setProperty=function(key,value){writes++;this[key]=value};
+ presentCombatButton(b);
+ const initial=writes;
+ for(let frame=0;frame<120;frame++)presentCombatButton(b);
+ assert.equal(writes,initial);
+ presentCombatButton(b,{pressed:true});assert.equal(writes,initial+1);
+ assert.ok(b.classList.values.has('combat-pressed'));
+});

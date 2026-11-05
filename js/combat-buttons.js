@@ -7,22 +7,25 @@ export function cooldownProgress(remaining,duration){
 }
 export function setCombatArtwork(button,id){
  if(!button)return;const art=Object.hasOwn(COMBAT_ART,id)?id:'overload';
- button.classList.add('combat-button');button.style.setProperty('--combat-accent',COMBAT_ART[art]);
  if(button.dataset.combatArt===art)return;
+ button.classList.add('combat-button');button.style.setProperty('--combat-accent',COMBAT_ART[art]);
  button.style.setProperty('--combat-art-scale',String(ART_SCALE[art]||1));button.dataset.combatArt=art;let image=button.querySelector('.combat-art');
  if(!image){image=document.createElement('img');image.className='combat-art';image.alt='';image.setAttribute('aria-hidden','true');image.draggable=false;button.prepend(image)}
  image.src=new URL('../assets/combat-buttons/'+art+(art==='shipFury'||art==='shipShield'?'.svg':'.webp'),import.meta.url).href;
 }
+const renderedButtons=new WeakMap();
 export function presentCombatButton(button,{art,remaining=0,duration=0,active=false,blocked=false,pressed=false}={}){
  if(!button)return;if(art)setCombatArtwork(button,art);
  const progress=cooldownProgress(remaining,duration);
- button.style.setProperty('--combat-ready',String(progress));
- button.classList.toggle('combat-cooling',remaining>0&&!active);
- button.classList.toggle('combat-active',!!active);button.classList.toggle('combat-blocked',!!blocked);button.classList.toggle('combat-pressed',!!pressed);
+ const previous=renderedButtons.get(button)||{};
+ const states={'combat-cooling':remaining>0&&!active,'combat-active':!!active,'combat-blocked':!!blocked,'combat-pressed':!!pressed};
+ if(previous.progress!==progress)button.style.setProperty('--combat-ready',String(progress));
+ for(const [name,on] of Object.entries(states))if(previous[name]!==on)button.classList.toggle(name,on);
+ renderedButtons.set(button,{progress,...states});
  const ready=remaining<=0&&!blocked;
  if(ready&&button.dataset.combatWasReady==='false'){
   button.classList.remove('combat-ready-flash');void button.offsetWidth;button.classList.add('combat-ready-flash');
  }
- button.dataset.combatWasReady=String(ready);
+ if(button.dataset.combatWasReady!==String(ready))button.dataset.combatWasReady=String(ready);
 }
 export function shipCombatArtwork(role){return role==='titan'?'shipShield':role==='espectro'?'shipFury':'overload'}

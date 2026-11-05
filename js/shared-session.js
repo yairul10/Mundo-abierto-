@@ -6,7 +6,7 @@ import {pvpAccountToken,clearPvpAccountToken,pvpAccountProfile} from './pvp-acco
 import {mountMapChat} from './map-chat.js?v=383';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=383';
-import {mountPvpSkills} from './pvp-skills-ui.js?v=362';
+import {mountPvpSkills} from './pvp-skills-ui.js?v=389';
 import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=364';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
 const GUEST_KEY='mundoAbierto.guestKey',NAME_KEY='mundoAbierto.guestName',SHIP_KEY='mundoAbierto.guestShip';
