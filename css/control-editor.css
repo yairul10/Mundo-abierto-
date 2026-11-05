@@ -24,7 +24,7 @@
 
 /* Individual cockpit controls, shared by the live HUD and the editor. */
 #pvpControlEditor .cockpit-control,
-:is(#farmAutoBtn,#companionModeBtn,#zoomIn,#zoomOut,#formationBtn,#questToggle,#characterBtn).cockpit-control {
+:is(#farmAutoBtn,#companionModeBtn,#zoomIn,#zoomOut,#formationBtn,#questToggle,#characterBtn,#worldExit,#pvpSocialToggle,#mapChatToggle).cockpit-control {
  border:1px solid var(--cockpit-edge);
  border-radius:var(--cockpit-radius);
  background:var(--cockpit-surface);
@@ -43,9 +43,9 @@
  width:6px;height:6px;border-radius:50%;background:#517180;
 }
 #farmAutoBtn.cockpit-control[data-running="true"]::before{background:#66eeff;box-shadow:0 0 7px #46e8ff}
-body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-control){visibility:hidden}
+body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-control,#mapChatToggle,#worldExit){visibility:hidden}
 
-:is(#zoomIn,#zoomOut,#questToggle,#characterBtn,#formationBtn,#companionModeBtn).cockpit-tertiary,
+:is(#zoomIn,#zoomOut,#questToggle,#characterBtn,#formationBtn,#companionModeBtn,#worldExit,#pvpSocialToggle,#mapChatToggle).cockpit-tertiary,
 #pvpControlEditor .cockpit-tertiary {
  background:transparent;
  border-color:transparent;
@@ -57,6 +57,7 @@ body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-
  border-color:var(--cockpit-accent);
  box-shadow:0 0 6px #66eeff3d;
 }
+:is(#pvpSocialToggle,#mapChatToggle).cockpit-tertiary[aria-expanded="true"]{color:var(--cockpit-accent)}
 @media(hover:hover){
  .cockpit-control:not(:disabled):hover{background-color:var(--cockpit-hover)!important;scale:1.02}
 }

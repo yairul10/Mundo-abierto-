@@ -1,7 +1,8 @@
 #mapChat{position:fixed;z-index:1500;color:#f1faff;font:var(--chat-font,13px)/1.4 system-ui;pointer-events:none;max-width:calc(100vw - 16px)}
 #mapChat [hidden]{display:none!important}
 #mapChat button,#mapChat summary,#mapChat input,#mapChat select{pointer-events:auto;font:inherit}
-#mapChat button{border:1px solid #7cbbd666;background:#102b40b8;color:#ecfaff;border-radius:9px;padding:6px 9px;min-height:32px;cursor:pointer}
+#mapChat button:not(#mapChatToggle){border:1px solid #7cbbd666;background:#102b40b8;color:#ecfaff;border-radius:9px;padding:6px 9px;min-height:32px;cursor:pointer}
+#mapChatToggle{width:40px;height:40px;padding:0;touch-action:manipulation}
 #mapChat button:disabled{opacity:.45}
 #mapChat .map-chat-box{box-sizing:border-box;position:relative;display:flex;flex-direction:column;padding:5px;background:transparent;border:0;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);pointer-events:none;text-shadow:0 1px 3px #000,0 0 4px #000}
 #mapChat .map-chat-header{display:flex;align-items:center;gap:5px;flex:0 0 auto;pointer-events:none}

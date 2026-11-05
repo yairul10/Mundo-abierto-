@@ -1,11 +1,11 @@
 import {rankedName} from './pvp-ranks.js?v=347';
-import {mountPvpSocialUI} from './pvp-social-ui.js?v=370';
+import {mountPvpSocialUI} from './pvp-social-ui.js?v=383';
 import {mountPvpRecovery} from './pvp-recovery.js?v=1';
 import {PVP_CLIENT_VERSION,checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {pvpAccountToken,clearPvpAccountToken,pvpAccountProfile} from './pvp-account.js?v=344';
-import {mountMapChat} from './map-chat.js?v=3';
+import {mountMapChat} from './map-chat.js?v=383';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=382';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=383';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=362';
 import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=364';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
@@ -23,16 +23,16 @@ export function startSharedSession(bridge){
  const mountControls=()=>mountPvpControlEditor({realm,isHangarOpen:bridge.isHangarOpen});
  style.addEventListener('load',mountControls,{once:true});
  style.addEventListener('error',mountControls,{once:true});
- style.rel='stylesheet';style.href='./css/shared-world.css?v=382';document.head.appendChild(style);document.body.classList.add('pvp-hud');
- const panel=document.createElement('section');panel.id='worldPanel';panel.setAttribute('aria-label','PvP abierto');panel.innerHTML='<div class="world-top"><strong id="worldStatus">Conectando al mapa…</strong><button id="worldExit">Salir del PvP</button></div><small id="worldDetails">Invitado · Jefe cooperativo · Recompensas por daño</small><button id="worldHangar">Aterrizar y abrir hangar</button><div id="worldTools" hidden><label>Apodo <input id="worldName" maxlength="20" value="Invitado"></label><button id="worldSaveName">Guardar apodo</button><small>Usas tus naves y equipo. Casco ×20 en PvP.</small></div><div id="worldMessage" role="status"></div><button id="worldRetry" hidden>Reconectar</button>';
+ style.rel='stylesheet';style.href='./css/shared-world.css?v=383';document.head.appendChild(style);document.body.classList.add('pvp-hud');
+ const panel=document.createElement('section');panel.id='worldPanel';panel.setAttribute('aria-label','PvP abierto');panel.innerHTML='<div class="world-top"><strong id="worldStatus">Conectando al mapa…</strong><button type="button" id="worldExit" class="cockpit-control cockpit-tertiary" aria-label="Salir del PvP" title="Salir del PvP"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4H5v16h5m-1-8h11m-4-4 4 4-4 4"/></svg></button></div><small id="worldDetails">Invitado · Jefe cooperativo · Recompensas por daño</small><button id="worldHangar">Aterrizar y abrir hangar</button><div id="worldTools" hidden><label>Apodo <input id="worldName" maxlength="20" value="Invitado"></label><button id="worldSaveName">Guardar apodo</button><small>Usas tus naves y equipo. Casco ×20 en PvP.</small></div><div id="worldMessage" role="status"></div><button id="worldRetry" hidden>Reconectar</button>';
  document.body.append(panel);const zoom=$('zoomControls');if(zoom){const actions=document.createElement('div');actions.id='pvpMapActions';actions.append($('worldExit'),zoom);const net=document.createElement('small');net.id='pvpNetStatus';net.style.cssText='position:absolute;top:calc(100% + 3px);left:0;color:#c9edff;font:10px system-ui;white-space:nowrap;background:#061527aa;padding:2px 5px;border-radius:5px';net.textContent='conectando';actions.append(net);document.body.append(actions)}
  const home=$('hangarHomeView');if(home){const section=document.createElement('section');section.id='pvpHangarLoadout';section.innerHTML='<h3>Equipamiento PvP</h3><p>Equipa tus naves y habilidades al aterrizar.</p>';section.append($('worldTools'));home.append(section)}
  const targetCard=document.createElement('section');targetCard.id='worldTarget';targetCard.hidden=true;targetCard.setAttribute('role','dialog');targetCard.setAttribute('aria-label','Objetivo seleccionado');targetCard.innerHTML='<strong id="worldTargetName"></strong><small id="worldTargetDetail"></small><button id="worldTargetClose">Cerrar</button>';document.body.append(targetCard);
  const status=$('worldStatus'),details=$('worldDetails'),tools=$('worldTools'),message=$('worldMessage');
  function note(text){message.textContent=text;messageUntil=performance.now()+6500}
  function send(m){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(m))}
- const chat=mountMapChat({send,realm});const chatStyle=document.createElement('link');chatStyle.rel='stylesheet';chatStyle.href='./css/map-chat.css?v=2';document.head.append(chatStyle);
- const zoneStyle=document.createElement('link');zoneStyle.rel='stylesheet';zoneStyle.href='./css/pvp-zones.css?v=352';document.head.append(zoneStyle);
+ const chat=mountMapChat({send,realm});const chatStyle=document.createElement('link');chatStyle.rel='stylesheet';chatStyle.href='./css/map-chat.css?v=383';document.head.append(chatStyle);
+ const zoneStyle=document.createElement('link');zoneStyle.rel='stylesheet';zoneStyle.href='./css/pvp-zones.css?v=383';document.head.append(zoneStyle);
  const social=mountPvpSocialUI({send,getState:()=>({state,me,selected})});
  const recovery=mountPvpRecovery({send,readPilot:()=>readOfflinePilot(localStorage),settle:bill=>bridge.settleRespawn(bill),onReady:bill=>bridge.respawnReady(bill),notice:note});
  const active=()=>!!me&&ws?.readyState===WebSocket.OPEN&&performance.now()-lastReceived<3000;

@@ -46,7 +46,7 @@ body.pvp-hud #worldHangar:disabled{display:none!important}
 body.pvp-hud #worldMessage{font-size:11px!important;text-align:center!important}
 body.pvp-hud #worldRetry,body.pvp-hud #worldSurrender{pointer-events:auto!important}
 body.pvp-hud #pvpMapActions{position:fixed;top:12px;right:12px;z-index:85;display:flex;flex-direction:row;gap:6px;align-items:flex-start}
-body.pvp-hud #pvpMapActions #worldExit{position:static!important;padding:7px 9px;border:1px solid #79bbd8;border-radius:9px;background:#0c2b45e8;color:white;font:12px system-ui;white-space:nowrap;touch-action:manipulation}
+body.pvp-hud #pvpMapActions #worldExit{position:static!important;width:40px;height:40px;padding:0;touch-action:manipulation}
 body.pvp-hud #pvpMapActions #zoomControls{position:static!important;display:flex!important;flex-direction:row!important;gap:5px!important;min-width:120px}
 body.pvp-hud #pvpMapActions #zoomControls :is(#zoomIn,#zoomOut){width:35px!important;height:35px!important;font-size:18px!important}
 body.pvp-hud #pvpMapActions{right:clamp(125px,13vw,205px)}

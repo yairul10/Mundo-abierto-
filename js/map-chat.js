@@ -5,7 +5,7 @@ export function mountMapChat({send,storage=localStorage,realm='normal'}){
  try{language=storage.getItem('cosmos.chatLanguage')||language;auto=storage.getItem('cosmos.chatTranslate')!=='off'}catch{}if(!Object.hasOwn(LANGUAGES,language))language='es';
  const key='cosmos.chatRules.'+realm;let messages=[],blocks=new Set(),myId='',admin=false;
  const root=document.createElement('section');root.id='mapChat';
- const toggle=document.createElement('button');toggle.textContent='💬 Chat';toggle.setAttribute('aria-expanded','false');
+ const toggle=document.createElement('button');toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat del mapa');toggle.title='Chat del mapa';toggle.setAttribute('aria-expanded','false');
  const box=document.createElement('div');box.hidden=true;box.className='map-chat-box';
  const title=document.createElement('strong');title.textContent='Chat del mapa · '+(realm==='test'?'Pruebas':'Normal');
  const identityText=document.createElement('small');identityText.style.cssText='display:block;user-select:text;margin:8px 0';
@@ -47,7 +47,7 @@ export function mountMapChat({send,storage=localStorage,realm='normal'}){
  select.onchange=()=>{language=select.value;queue=[];requested.clear();try{storage.setItem('cosmos.chatLanguage',language)}catch{}schedule();render()};
  translateCheck.onchange=()=>{auto=translateCheck.checked;queue=[];requested.clear();try{storage.setItem('cosmos.chatTranslate',auto?'on':'off')}catch{}schedule();render()};
  const timer=setInterval(()=>{if(box.hidden||!auto||!translationAvailable)return;const next=queue.shift();if(next&&messages.some(m=>m.id===next.id&&!blocks.has(m.author)))send({type:'chatTranslate',...next})},1100);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
- const open=value=>{box.hidden=!value;toggle.hidden=value;toggle.textContent='💬 Chat';toggle.setAttribute('aria-expanded',String(value));if(value){applyLayout();send({type:'chatHistory'})}};toggle.onclick=()=>open(box.hidden);close.onclick=()=>open(false);
+ const open=value=>{box.hidden=!value;toggle.hidden=value;toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat del mapa');toggle.title='Chat del mapa';toggle.setAttribute('aria-expanded',String(value));if(value){applyLayout();send({type:'chatHistory'})}};toggle.onclick=()=>open(box.hidden);close.onclick=()=>open(false);
  // Avoid game gestures/keys while typing, without suppressing normal form controls.
  for(const type of ['pointerdown','touchstart','keydown','keyup'])root.addEventListener(type,e=>e.stopPropagation());
  accept.onchange=()=>{try{storage.setItem(key,accept.checked?'1':'0')}catch{}submit.disabled=!accept.checked;rules.hidden=accept.checked};submit.disabled=!accept.checked;rules.hidden=accept.checked;

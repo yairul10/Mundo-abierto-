@@ -2,9 +2,10 @@
 
 /* Social actions stay collapsed during flight, beside the existing map controls. */
 #pvpSocial{top:58px;right:clamp(125px,13vw,205px)}
-#pvpSocialMenu{pointer-events:auto;width:218px;padding:8px;border:1px solid #5794af;border-radius:12px;background:#061628f5;box-shadow:0 8px 28px #0008}
-#pvpSocialMenu button{display:block;width:calc(100% - 6px);min-height:42px;text-align:left}
-#pvpMapActions [data-social-toggle],#pvpSocial>[data-social-toggle]{pointer-events:auto;box-sizing:border-box;width:35px;height:35px;padding:0;margin:0;border:1px solid #79bbd8;border-radius:9px;background:#0c2b45e8;color:white;font:17px system-ui;touch-action:manipulation;cursor:pointer}
-#pvpMapActions [data-social-toggle][aria-expanded="true"]{border-color:#ffd573;background:#43361e}
+#pvpSocialMenu{pointer-events:auto;width:218px;padding:8px;border:1px solid var(--cockpit-edge);border-radius:var(--cockpit-radius);background:var(--cockpit-panel);box-shadow:0 8px 28px #0008}
+#pvpSocialMenu button{display:block;width:calc(100% - 6px);min-height:42px;text-align:left;background:transparent;border-color:transparent;color:var(--cockpit-text)}
+#pvpMapActions [data-social-toggle],#pvpSocial>[data-social-toggle]{pointer-events:auto;box-sizing:border-box;width:40px;height:40px;padding:0;margin:0;touch-action:manipulation}
+@media(hover:hover){#pvpSocialMenu button:hover{background:var(--cockpit-hover)}}
+#pvpSocialMenu button:focus-visible{outline:2px solid var(--cockpit-accent)}
 body.docked #pvpMapActions [data-social-toggle]{display:none}
 @media(max-width:900px){#pvpSocial{right:clamp(110px,16vw,165px)}}
