@@ -376,3 +376,36 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 @media(hover:hover){
  #hangarPanel :is(#hangarClose,#hangarSections button,.equipment-ship-tile):hover{background-color:var(--cockpit-hover)}
 }
+
+/* Compact flight instruments. */
+#game::after,#hud.collapsed::before{content:none}
+#hud.collapsed #hudCompactHealth{
+ display:grid;width:clamp(126px,23vw,200px);height:auto;gap:4px;margin:0;
+ overflow:visible;background:none;border:0;
+}
+.compact-vital{
+ display:grid;grid-template-columns:15px minmax(24px,1fr) minmax(47px,max-content);
+ align-items:center;gap:5px;color:#edf7ff;font-size:11px;font-variant-numeric:tabular-nums;
+}
+.compact-vital svg{width:15px;height:15px}
+.compact-track{height:5px;border-radius:4px;background:#283a49;overflow:hidden}
+.compact-track i{display:block;height:100%}
+#hudCompactShieldFill{background:#52d7ef}
+#formationBtn svg{width:24px;height:24px;vertical-align:middle}
+#companionModeBtn.cockpit-control svg{display:inline-block;width:16px;height:16px;margin-right:4px;vertical-align:middle}
+.radar-legend{font-size:12px}
+#game[data-sector="ember"] #stationDistance{color:#ffb082}
+#game[data-sector="graveyard"] #stationDistance{color:#cec0ff}
+#joystick{border-color:#79dff287}
+#joystick:active{box-shadow:0 0 12px #79dff255}
+#sectorBoundaryNotice{
+ position:fixed;top:calc(max(14px,env(safe-area-inset-top)) + 41px);left:50%;
+ transform:translateX(-50%);z-index:35;align-items:center;gap:6px;
+ color:#ffd084;font:700 13px system-ui;text-align:center;pointer-events:none;
+ text-shadow:0 1px 4px #000,0 1px 8px #000;
+}
+#sectorBoundaryNotice svg{width:18px;height:18px;flex:none}
+#sectorBoundaryNotice.urgent svg{animation:boundary-pulse 1.2s ease-in-out infinite alternate}
+@keyframes boundary-pulse{to{opacity:.5}}
+@media(prefers-reduced-motion:reduce){#sectorBoundaryNotice.urgent svg{animation:none}}
+@media(pointer:coarse){#hint{display:none!important}}

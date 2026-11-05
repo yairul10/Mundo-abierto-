@@ -41,7 +41,7 @@ import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
 import {mountHangarUI} from './hangar-ui.js?v=371';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
-import {mountCompanionControls} from './companion-controls.js?v=367';
+import {mountCompanionControls} from './companion-controls.js?v=377';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=376';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
@@ -1637,7 +1637,7 @@ const formationBtn=$('formationBtn');
 function refreshFormationButton(){
  if(!formationBtn)return;
  const f=FORMATIONS.find(f=>f.id===player.droneFormation)||FORMATIONS[0];
- formationBtn.textContent=f.icon;
+ formationBtn.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-3 6 3-1 3 1-3-6ZM5 12l-3 6 3-1 3 1-3-6Zm14 0-3 6 3-1 3 1-3-6Z"/></svg>';
  formationBtn.title=f.name+' · Cambiar entre formaciones disponibles';
  formationBtn.setAttribute('aria-label',formationBtn.title);
  formationBtn.setAttribute('aria-pressed',String(f.id!=='fan'));
@@ -3004,7 +3004,9 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
 }
 
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
-sectorNotice.style.cssText='position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:35;max-width:85vw;padding:10px 15px;border-radius:12px;background:rgba(15,13,31,.82);border:1px solid rgba(255,160,75,.6);color:#ffe4ba;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;';
+sectorNotice.id='sectorBoundaryNotice';sectorNotice.style.display='none';
+sectorNotice.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3h.01"/></svg><span></span>';
+const sectorNoticeText=sectorNotice.lastElementChild;
 document.body.appendChild(sectorNotice);
 function sectorDistance(){if(PVP_MODE)return playerMesh.position.length();const sector=currentSector();return Math.hypot(playerMesh.position.x-sector.x,playerMesh.position.y,playerMesh.position.z-sector.z)}
 // Recuperar partidas anteriores guardadas muy lejos, sin borrar su progreso.
@@ -3035,8 +3037,8 @@ function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math
  if(docked||landing){sectorNotice.style.display='none';return}
  const sector=currentSector(),d=sectorDistance(),remaining=sector.radius-d;
  if(remaining>sector.warning){sectorNotice.style.display='none';return}
- sectorNotice.style.display='block';combatAudio.play('boundary');
- if(remaining>=0){sectorNotice.textContent='⚠️ Límite de '+currentSectorName()+' a '+Math.ceil(remaining)+' m';return}
+ sectorNotice.style.display='flex';sectorNotice.classList.toggle('urgent',remaining<sector.warning*.3);combatAudio.play('boundary');
+ if(remaining>=0){sectorNoticeText.textContent='Límite de '+currentSectorName()+' a '+Math.ceil(remaining)+' m';return}
  // Franja exterior de 200 m: conserva el daño de advertencia y evita volar a otro mapa.
  const maximumDistance=sector.radius+200;
  if(d>maximumDistance){
@@ -3044,7 +3046,7 @@ function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math
   playerMesh.position.sub(center).multiplyScalar(maximumDistance/d).add(center);
  }
  applyShieldDamage(player,sector.damagePerSecond*dt,Date.now());lastHitAt=performance.now()/1000;
- sectorNotice.textContent='☢️ Fuera del sector · -8 protección/s · Regresa al interior';
+ sectorNoticeText.textContent='Fuera del sector · −'+sector.damagePerSecond+' protección/s · Regresa al interior';
 }
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
 const systemMap=mountSystemMap({trigger:$('radarWidget'),getState:()=>({level:player.level,current:PVP_MODE?'pvp':activeSector}),onOpen:()=>{resetDockControls();fireHeld=false;for(const key of Object.keys(keys))delete keys[key]}});
@@ -3057,7 +3059,12 @@ const companionControls=mountCompanionControls({cockpit:!PVP_MODE,parent:$('zoom
  explorerManualTarget=null;explorerManualUntil=0;explorerThreat=null;explorerThreats.clear();explorerCompanion.targetDrop=null;explorerCompanion.nextChange=0;
  lootToast('🛰 Mascota: '+({both:'atacar y recoger',attack:'solo atacar',collect:'solo recoger'}[mode]));
 }});
-function hud(){systemMap.refresh();companionControls.render();const compact=$('hudCompactHealthFill');if(compact)compact.style.width=Math.max(0,Math.min(100,100*player.hp/player.maxHp))+'%';if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);else $('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=player.maxShield>0?'Escudo '+Math.ceil(player.shield)+'/'+player.maxShield:'Escudo bloqueado · Nivel 0/5';$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=(player.maxShield>0?player.shield/player.maxShield*100:0)+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':'';presentCombatButton($('skillBtn'),{remaining:skillCd,duration:7,blocked:docked||landing||recoveryPending});presentCombatButton($('fireBtn'),{pressed:fireHeld,blocked:docked||landing||recoveryPending})}
+function hud(){systemMap.refresh();companionControls.render();if($('hud').classList.contains('collapsed'))for(const [key,value,max] of [['Health',player.hp,player.maxHp],['Shield',player.shield,player.maxShield]]){
+ const fill=$('hudCompact'+key+'Fill'),label=$('hudCompact'+key+'Value');
+ fill.style.width=(max>0?THREE.MathUtils.clamp(100*value/max,0,100):0)+'%';
+ label.textContent=max>0?Math.ceil(value)+'/'+max:'—';
+ label.title=max>0?'':'Escudo bloqueado';
+}if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank);else $('playerName').textContent=player.name;$('classLabel').textContent='Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora');$('level').textContent='Nivel '+player.level;$('hpText').textContent=Math.ceil(player.hp)+'/'+player.maxHp;$('energyText').textContent=player.maxShield>0?'Escudo '+Math.ceil(player.shield)+'/'+player.maxShield:'Escudo bloqueado · Nivel 0/5';$('hpBar').style.width=player.hp/player.maxHp*100+'%';$('energyBar').style.width=(player.maxShield>0?player.shield/player.maxShield*100:0)+'%';$('attack').textContent=player.attack;$('defense').textContent=player.defense;$('gold').textContent=player.gold;const lootCount=Object.values(player.loot||{}).reduce((a,b)=>a+(Number(b)||0),0);$('lootCount').textContent=lootCount;$('xpText').textContent='XP '+Math.floor(player.xp)+' / '+xpNeed();$('xpBar').style.width=player.xp/xpNeed()*100+'%';$('skillCd').textContent=skillCd>0?Math.ceil(skillCd)+'s':'';presentCombatButton($('skillBtn'),{remaining:skillCd,duration:7,blocked:docked||landing||recoveryPending});presentCombatButton($('fireBtn'),{pressed:fireHeld,blocked:docked||landing||recoveryPending})}
 // Zoom discreto de cámara, sin alterar la dirección de disparo ni el joystick.
 let cameraZoom=285;
 function setCameraZoom(next){cameraZoom=THREE.MathUtils.clamp(next,170,540)}
@@ -3245,6 +3252,7 @@ for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,e
 }
 updateLoot(dt);
 drawRadar(dt);
+if($('game').dataset.sector!==activeSector)$('game').dataset.sector=activeSector;
 const playerSafe=updateZone();updateDock();
 for(const e of enemies){
  if(e.pvpRemote)continue;
