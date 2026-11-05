@@ -43,7 +43,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  function apply(){
   buttons().forEach((button,i)=>{if(!button)return;positions[i]=bounded(i,positions[i]);button.style.setProperty('position','fixed','important');button.style.setProperty('left',positions[i][0]+'vw','important');button.style.setProperty('top',positions[i][1]+'vh','important');button.style.setProperty('right','auto','important');button.style.setProperty('bottom','auto','important');button.style.setProperty('transform','translate(-50%,-50%)','important');button.style.setProperty('z-index',pve&&cockpitIds.includes(ids[i])?'24':'66','important')});
  }
- if(pve){const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=378';document.head.append(style)}
+ if(pve){const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=380';document.head.append(style)}
  const home=document.getElementById('hangarHomeView');
  if(!home)return {apply};
  const section=document.createElement('section');section.id='pvpControlEditorEntry';

@@ -36,7 +36,8 @@
 }
 #pvpControlEditor .cockpit-control{cursor:grab;font-size:18px}
 .cockpit-control svg{width:24px;height:24px;display:block;margin:auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
-#farmAutoBtn.cockpit-control{padding-left:20px}
+#farmAutoBtn.cockpit-control{padding-left:20px;border-color:transparent;background:transparent;box-shadow:none}
+#farmAutoBtn.cockpit-control[data-running="true"],#farmAutoBtn.cockpit-control[aria-expanded="true"]{background:var(--cockpit-surface)}
 #farmAutoBtn.cockpit-control::before{
  content:"";position:absolute;left:8px;top:50%;transform:translateY(-50%);
  width:6px;height:6px;border-radius:50%;background:#517180;

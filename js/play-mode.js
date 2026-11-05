@@ -13,7 +13,7 @@ function picker(){return new Promise(resolve=>{
  document.body.appendChild(overlay);buttons[0].focus();
  })}
 export async function startPlayMode(){
- const style=document.createElement('link');style.rel='stylesheet';style.href='./css/play-mode.css?v=224';document.head.appendChild(style);
+ const style=document.createElement('link');style.rel='stylesheet';style.href='./css/play-mode.css?v=380';document.head.appendChild(style);
  const config=await configuration();let enabled=config?.testServerEnabled===true,mode='normal',previous='normal',session=null;
  try{previous=savedMode(localStorage);session=sessionStorage.getItem(SESSION)}catch{}
  const params=new URLSearchParams(location.search);
