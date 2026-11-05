@@ -392,7 +392,7 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 .compact-track i{display:block;height:100%}
 #hudCompactShieldFill{background:#52d7ef}
 #formationBtn svg{width:24px;height:24px;vertical-align:middle}
-#companionModeBtn.cockpit-control svg{display:inline-block;width:16px;height:16px;margin-right:4px;vertical-align:middle}
+#companionModeBtn.cockpit-control svg{width:24px;height:24px;margin:auto}
 .radar-legend{font-size:12px}
 #game[data-sector="ember"] #stationDistance{color:#ffb082}
 #game[data-sector="graveyard"] #stationDistance{color:#cec0ff}
@@ -409,3 +409,16 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 @keyframes boundary-pulse{to{opacity:.5}}
 @media(prefers-reduced-motion:reduce){#sectorBoundaryNotice.urgent svg{animation:none}}
 @media(pointer:coarse){#hint{display:none!important}}
+
+#hud.collapsed{border-color:transparent;box-shadow:none}
+#companionModeChoices{
+ position:fixed;z-index:79;display:grid;min-width:120px;padding:4px;gap:2px;
+ border:1px solid var(--cockpit-edge);border-radius:10px;background:var(--cockpit-panel);
+}
+#companionModeChoices[hidden],
+body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeChoices{display:none}
+#companionModeChoices button{
+ padding:8px 12px;min-height:40px;text-align:left;border:0;border-radius:6px;
+ background:transparent;color:var(--cockpit-text);touch-action:manipulation;
+}
+#companionModeChoices button[aria-pressed="true"]{background:var(--cockpit-surface);color:var(--cockpit-accent)}

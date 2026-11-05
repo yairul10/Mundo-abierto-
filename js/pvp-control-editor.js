@@ -1,6 +1,6 @@
 // Player-adjustable flight controls. The editor uses inert previews.
 const cockpitIds=['formationBtn','questToggle','characterBtn','zoomIn','zoomOut','farmAutoBtn','companionModeBtn'];
-const tertiaryIds=['zoomIn','zoomOut','questToggle','characterBtn'];
+const tertiaryIds=['zoomIn','zoomOut','questToggle','characterBtn','formationBtn','companionModeBtn'];
 const cockpitIcons={
  zoomIn:'<path d="M5 12h14M12 5v14"/>',
  zoomOut:'<path d="M5 12h14"/>',
@@ -43,7 +43,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  function apply(){
   buttons().forEach((button,i)=>{if(!button)return;positions[i]=bounded(i,positions[i]);button.style.setProperty('position','fixed','important');button.style.setProperty('left',positions[i][0]+'vw','important');button.style.setProperty('top',positions[i][1]+'vh','important');button.style.setProperty('right','auto','important');button.style.setProperty('bottom','auto','important');button.style.setProperty('transform','translate(-50%,-50%)','important');button.style.setProperty('z-index',pve&&cockpitIds.includes(ids[i])?'24':'66','important')});
  }
- if(pve){const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=371';document.head.append(style)}
+ if(pve){const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=378';document.head.append(style)}
  const home=document.getElementById('hangarHomeView');
  if(!home)return {apply};
  const section=document.createElement('section');section.id='pvpControlEditorEntry';
@@ -58,7 +58,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
   b.classList.add('cockpit-control');
   if(tertiaryIds.includes(id))b.classList.add('cockpit-tertiary');
   b.innerHTML=original.innerHTML;
-  if(id==='companionModeBtn')b.style.minWidth='64px';
+  if(id==='companionModeBtn')b.style.minWidth='40px';
  }
  const art=original.querySelector('.combat-art');if(art){b.replaceChildren(art.cloneNode());b.classList.add('combat-button');b.style.setProperty('--combat-accent',original.style.getPropertyValue('--combat-accent'));b.style.setProperty('--combat-art-scale',original.style.getPropertyValue('--combat-art-scale'))}b.setAttribute('aria-label',id==='joystick'?'Joystick de movimiento':pve?(original?.getAttribute('aria-label')||id):['Disparar','Misil','Habilidad de nave','Habilidad PvP 1','Habilidad PvP 2'][i]);if(pve||id==='joystick'){const r=original.getBoundingClientRect();if(r.width&&r.height){b.style.width=r.width+'px';b.style.height=r.height+'px'}}b.style.left=draft[i][0]+'%';b.style.top=draft[i][1]+'%';b.dataset.index=i;b.addEventListener('pointerdown',e=>{e.preventDefault();drag={i,pointer:e.pointerId};b.setPointerCapture(e.pointerId)});b.addEventListener('pointermove',e=>{if(!drag||drag.i!==i||drag.pointer!==e.pointerId)return;const r=canvas.getBoundingClientRect();draft[i]=bounded(i,[(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100],r.width,r.height);b.style.left=draft[i][0]+'%';b.style.top=draft[i][1]+'%'});b.addEventListener('pointerup',()=>{drag=null});b.addEventListener('pointercancel',()=>{drag=null});canvas.append(b)})}
  const open=()=>{if(!isHangarOpen())return;draft=positions.map(p=>[...p]);draw();overlay.hidden=false};

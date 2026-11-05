@@ -44,14 +44,14 @@
 #farmAutoBtn.cockpit-control[data-running="true"]::before{background:#66eeff;box-shadow:0 0 7px #46e8ff}
 body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-control){visibility:hidden}
 
-:is(#zoomIn,#zoomOut,#questToggle,#characterBtn).cockpit-tertiary,
+:is(#zoomIn,#zoomOut,#questToggle,#characterBtn,#formationBtn,#companionModeBtn).cockpit-tertiary,
 #pvpControlEditor .cockpit-tertiary {
  background:transparent;
  border-color:transparent;
  box-shadow:none;
  filter:drop-shadow(0 1px 2px #000);
 }
-:is(#farmAutoBtn,#formationBtn,#questToggle).cockpit-control:is([data-running="true"],[aria-pressed="true"],[aria-expanded="true"]){
+:is(#farmAutoBtn,#questToggle).cockpit-control:is([data-running="true"],[aria-pressed="true"],[aria-expanded="true"]){
  color:var(--cockpit-accent);
  border-color:var(--cockpit-accent);
  box-shadow:0 0 6px #66eeff3d;
@@ -66,3 +66,5 @@ body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-
  .cockpit-control{transition:none}
  .cockpit-control:hover{scale:1}
 }
+
+#formationBtn.cockpit-tertiary[aria-pressed="true"]{color:var(--cockpit-accent);border-color:transparent;box-shadow:none}
