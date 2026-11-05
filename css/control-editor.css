@@ -24,7 +24,7 @@
 
 /* Individual cockpit controls, shared by the live HUD and the editor. */
 #pvpControlEditor .cockpit-control,
-:is(#farmAutoBtn,#companionModeBtn,#zoomIn,#zoomOut,#formationBtn,#questToggle,#characterBtn,#worldExit,#pvpSocialToggle,#mapChatToggle).cockpit-control {
+:is(#farmAutoBtn,#companionModeBtn,#zoomIn,#zoomOut,#formationBtn,#questToggle,#characterBtn,#worldExit,#pvpSocialToggle,#mapChatToggle,#pvpFarmBtn).cockpit-control {
  border:1px solid var(--cockpit-edge);
  border-radius:var(--cockpit-radius);
  background:var(--cockpit-surface);
@@ -70,3 +70,7 @@ body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-
 }
 
 #formationBtn.cockpit-tertiary[aria-pressed="true"]{color:var(--cockpit-accent);border-color:transparent;box-shadow:none}
+
+#pvpFarmBtn{min-height:40px;padding:0 8px;white-space:nowrap;font:700 11px system-ui;touch-action:manipulation}
+#pvpFarmBtn[hidden]{display:none!important}
+#pvpFarmBtn[aria-pressed="true"]{color:var(--cockpit-accent);border-color:var(--cockpit-accent)}

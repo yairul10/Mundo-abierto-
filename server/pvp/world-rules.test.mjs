@@ -61,3 +61,17 @@ console.log('Zone rules: hostile collisions, protected base/hangar and paid-choi
  assert.equal(groupAction(s,a,{type:'groupLeave'},t),null);
  assert.deepEqual(groupFor(s,b.id).members,['b','c','d']);
 }
+
+// AUTO Pro uses ordinary PvE-zone volleys and never accepts pilots as targets.
+{
+ const admin=player('farm-admin',1000),other=player('nearby',1100),s=world(admin,other);
+ const farm={autoFarm:true,weapon:'laser',targetId:'pvp-gran-titan',shots:[shot]};
+ assert.equal(attack(s,admin,farm,t),null,'ordinary account cannot use AUTO Pro');
+ admin.adminShipAllowed=true;
+ assert.equal(attack(s,admin,{...farm,targetId:other.id},t),null,'players are invalid targets');
+ assert(attack(s,admin,farm,t),'admin can fire at a PvE-zone NPC');
+ admin.pos=[4100,120,0];
+ assert.equal(attack(s,admin,farm,t+1000),null,'AUTO Pro is blocked in the hostile zone');
+ admin.pos=[1000,120,0];admin.duelId='active-duel';
+ assert.equal(attack(s,admin,farm,t+2000),null,'AUTO Pro is blocked in duels');
+}

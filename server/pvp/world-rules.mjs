@@ -5,7 +5,7 @@ import {awardKill} from './pvp-results.mjs';
 import {ensureArenaEnemies,advanceArenaEnemies,recordArenaDamage} from './arena-enemies.mjs';
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
-export const WORLD={formationSwitch:true,radius:ZONES.edge,safeRadius:ZONES.base,pveRadius:ZONES.pve,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
+export const WORLD={autoFarmPro:true,formationSwitch:true,radius:ZONES.edge,safeRadius:ZONES.base,pveRadius:ZONES.pve,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
 export const SHIPS={agilbasica:[1,1,1,1.5],adminpod:[15,1.6,1,1.7],azote:[1.6,2.1,1,1.6],egida:[2.1,1.6,1,1.6],vertigo:[1.6,1.6,1,2.1],obsidian:[2.2,2.2,1,2.2],aurora:[1,1,1,1],titan:[1.5,1,1,1],espectro:[1,1.5,1,1],segadora:[1.5,2,1,1.5],bastion:[2,1.5,1,1.5],centella:[1.5,1.5,1,2]};
 export const safe=p=>zoneOf(p)==='base';
 export const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
@@ -79,7 +79,9 @@ export const reply=replyDuel;
 export function attack(s,p,m,now){
  updateProtection(p,now);if(!combatEligible(p,now))return null;
  const clean={...m,shots:Array.isArray(m.shots)?m.shots.map(x=>({...x,crit:Math.random()<.15+(p.profile.special.crit||0)*.01})):null};
- const targets=[...s.players,...ensureArenaEnemies(s,now)],target=targets.find(x=>x.id===m.targetId&&canDamage(p,x,now));
+ const npcs=ensureArenaEnemies(s,now);
+ if(m.autoFarm===true&&(!p.adminShipAllowed||p.duelId||zoneOf(p)!=='pve'||!npcs.some(npc=>npc.id===m.targetId&&canDamage(p,npc,now))))return null;
+ const targets=[...s.players,...npcs],target=targets.find(x=>x.id===m.targetId&&canDamage(p,x,now));
  if(m.weapon==='explorer'&&(!target||(target.skillUntil?.interference||0)>now))return null;
  const combat={players:targets,bullets:s.bullets||[],canDamage};const bullets=volley(combat,p,clean,now);for(const b of bullets||[]){b.combatZone=zoneOf(p);b.duelId=p.duelId||null;b.noRewards=p.profile.shipId==='adminpod'}s.bullets=combat.bullets;return bullets;
 }
