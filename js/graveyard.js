@@ -175,7 +175,7 @@ export function createGraveyard(THREE,scene){
  function cloneScrap(index){
   const pieces=[0,1,2,3].map(i=>scrapTemplates.get(i)).filter(Boolean);
   if(pieces.length)return makeScrap(pieces[index%pieces.length],60+index%3*15);
-  return scrapPlaceholders[index%scrapPlaceholders.length].clone(true);
+  return null;
  }
  return {environment,station,pads,background,enemyVisual,cloneScrap,mountStation,mountRings,mountWreckShips,registerScrapModel,mountScrapModels};
 }

@@ -1,4 +1,4 @@
-import {createTitanFireburst} from './titan-fireburst.js?v=374';
+import {createTitanFireburst} from './titan-fireburst.js?v=384';
 import {mountSystemMap} from './system-map.js?v=369';
 import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield,shieldUpgradeCost,buyShieldUpgrade} from './shield-system.js?v=364';
 import {createTestProgressReset} from './test-progress-reset.js?v=363';
@@ -45,7 +45,7 @@ import {mountCompanionControls} from './companion-controls.js?v=378';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=383';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=381';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=384';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_MODE=sharedRequested();
@@ -272,9 +272,10 @@ const auroraPlanetLoader=new GLTFLoader();
 // Cola móvil: descarga y procesa un GLB secundario a la vez. La nave del
 // jugador conserva carga inmediata; el resto aprovecha períodos de reposo.
 let modelSector=PVP_MODE?'aurora':player.sector||'aurora';
-const graveyardModels=['rustedmetalpanel','derelicthullblock','trussgirder','girdersection','metalcrate','estacion_recuperacion','restos_anillo','spaceship%20(3)','spacecruiser%20(1)','catapulta_','arponero_','acechador_','gran_titan'];
+// Explosion fragments are shared by all sectors, including PvP.
+const graveyardModels=['metalcrate','estacion_recuperacion','restos_anillo','spaceship%20(3)','spacecruiser%20(1)','catapulta_','arponero_','acechador_','gran_titan'];
 const modelQueue=createModelLoadQueue({
- priority:path=>/spaceship%20|spacecruiser%20/.test(path)?3:/rustedmetalpanel|derelicthullblock|trussgirder|girdersection|metalcrate|restos_anillo/.test(path)?2:0,
+ priority:path=>/spaceship%20|spacecruiser%20/.test(path)?3:/metalcrate|restos_anillo/.test(path)?2:0,
  schedule:fn=>{if('requestIdleCallback' in window)requestIdleCallback(fn,{timeout:1200});else setTimeout(fn,80)},
  eligible:path=>{
   if(graveyardModels.some(name=>path.includes('/'+name)))return modelSector==='graveyard';

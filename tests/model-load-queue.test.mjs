@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createModelLoadQueue} from '../js/model-load-queue.js';
 let sector='aurora',active=0,maxActive=0;const pending=[],started=[];
 const loader={load(path,done,progress,fail){started.push(path);active++;maxActive=Math.max(maxActive,active);pending.push({done:()=>{active--;done({scene:path})},fail:()=>{active--;fail(Error('offline'))}})}};
@@ -21,3 +22,14 @@ const instant={load(path,done){order.push(path);done({})}};
 const first=prioritized.load(instant,'initial');const decoration=prioritized.load(instant,'decoration');const combat=prioritized.load(instant,'combat');
 while(scheduled.length)scheduled.shift()();await Promise.all([first,decoration,combat]);
 assert.deepEqual(order,['initial','combat','decoration'],'combat assets precede optional scenery');
+
+const gameSource=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
+const sectorModels=gameSource.match(/const graveyardModels=(\[[^\n]+\]);/)[1];
+const eligibility=gameSource.match(/eligible:path=>\{([\s\S]*?)\n \}/)[1];
+const allowsModel=new Function('modelSector','path','const graveyardModels='+sectorModels+';'+eligibility);
+for(const sector of ['aurora','ember','graveyard']){
+ for(const fragment of ['rustedmetalpanel','derelicthullblock','trussgirder','girdersection']){
+  assert(allowsModel(sector,'./assets/models/'+fragment+'.glb?v=198'),fragment+' loads in '+sector);
+ }
+}
+assert(!allowsModel('aurora','./assets/models/metalcrate.glb?v=198'),'decorative crate remains sector-specific');

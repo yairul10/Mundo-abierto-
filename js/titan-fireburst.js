@@ -34,13 +34,16 @@ export function createTitanFireburst(T,scene,fragments){
    mesh.visible=i===0;mesh.scale.setScalar(radius*.85);root.add(mesh);
    return {mesh,delay:i*.12,size:radius*(i===2?2.9:2.25)};
   });
-  const debris=Array.from({length:count},(_,i)=>{
-   const mesh=fragments(i);mesh.scale.multiplyScalar(.44+i%3*.12);
+  const debris=[];
+  for(let i=0;i<count;i++){
+   const mesh=fragments(i);
+   if(!mesh)continue;
+   mesh.scale.multiplyScalar(.44+i%3*.12);
    const angle=i*2.39996,velocity=new T.Vector3(Math.cos(angle),i%2?.28:-.38,Math.sin(angle)).multiplyScalar(105+i*21);
    mesh.position.copy(flames[i%flames.length].mesh.position);
    mesh.visible=false;root.add(mesh);
-   return {mesh,velocity,delay:flames[i%flames.length].delay};
-  });
+   debris.push({mesh,velocity,delay:flames[i%flames.length].delay});
+  }
   bursts.push({root,flames,debris,age:0,duration:hull?1.65:count>0?1.22:.78});
  }
  function update(dt){
