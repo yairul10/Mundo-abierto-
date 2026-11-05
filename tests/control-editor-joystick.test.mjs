@@ -28,11 +28,25 @@ assert.equal(h.registry.get('fireBtn').styles.left,'90vw','legacy PvP weapon pos
 assert(h.preview,'joystick shown in PvP editor');assert.equal(h.preview.style.width,'120px');assert.equal(h.preview.style.height,'120px');
 h.preview.events.pointerdown({preventDefault(){},pointerId:1});h.preview.events.pointermove({pointerId:1,clientX:500,clientY:200});h.preview.events.pointerup();
 h.overlay.querySelector('[data-action="save"]').onclick();
-assert.deepEqual(JSON.parse(h.storage.get(h.key)),[...old,[50,40]]);assert.equal(h.joystick.styles.left,'50vw');assert.equal(h.joystick.styles.top,'40vh');
+assert.deepEqual(JSON.parse(h.storage.get(h.key)).slice(0,6),[...old,[50,40]]);assert.equal(h.joystick.styles.left,'50vw');assert.equal(h.joystick.styles.top,'40vh');
 const saved=JSON.parse(h.storage.get(h.key)),loaded=harness(saved);assert.equal(loaded.joystick.styles.left,'50vw','position survives remount');
 loaded.preview.events.pointerdown({preventDefault(){},pointerId:2});loaded.preview.events.pointermove({pointerId:2,clientX:-100,clientY:1000});loaded.overlay.querySelector('[data-action="cancel"]').onclick();assert.equal(loaded.joystick.styles.left,'50vw','cancel leaves live joystick untouched');
 const edge=harness([...old,[-100,1000]]);assert.equal(edge.joystick.styles.left,'6.800000000000001vw');assert.equal(edge.joystick.styles.top,'86.4vh');
 edge.overlay.querySelector('[data-action="reset"]').onclick();edge.overlay.querySelector('[data-action="save"]').onclick();assert.equal(edge.joystick.styles.left,'8.4vw');assert.equal(edge.joystick.styles.top,'80vh');
+const pvp=harness([...old,[50,40]]);
+const pvpZoom=pvp.canvas.children.find(c=>c.dataset.index===6);
+const pvpCompanion=pvp.canvas.children.find(c=>c.dataset.index===8);
+assert(pvpZoom&&pvpCompanion,'PvP zoom and companion each have a drag target');
+for(const [preview,x] of [[pvpZoom,600],[pvpCompanion,700]]){
+ preview.events.pointerdown({preventDefault(){},pointerId:4});
+ preview.events.pointermove({pointerId:4,clientX:x,clientY:150});
+ preview.events.pointerup();
+}
+pvp.overlay.querySelector('[data-action="save"]').onclick();
+const pvpLoaded=harness(JSON.parse(pvp.storage.get(pvp.key)));
+assert.equal(pvpLoaded.registry.get('zoomIn').styles.left,'60vw');
+assert.equal(pvpLoaded.registry.get('companionModeBtn').styles.left,'70vw');
+assert.equal(pvpLoaded.joystick.styles.left,'50vw');
 const pve=harness(Array.from({length:10},()=>[40,50]),true);assert.equal(pve.joystick.styles.left,'40vw');assert(pve.preview);
 const companionPreview=pve.canvas.children.find(c=>c.dataset.index===10);
 assert(companionPreview,'companion mode has its own drag target');

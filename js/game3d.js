@@ -19,7 +19,7 @@ import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {createArenaEnemyView} from './pvp-enemies.js?v=375';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=380';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=382';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -42,7 +42,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=371';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=376';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=382';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=381';
@@ -2969,7 +2969,7 @@ async function switchSector(route){
   try{await checkPvpVersion()}catch(error){portalCountdown=0;if(error.updateRequired)showPvpUpdate();else window.alert(error.message);return}finally{checkingPvpVersion=false}
   const portal=route.pos||graveyardPvpPortal,towardBase=currentStation().position.clone().sub(portal).normalize();
   playerMesh.position.copy(portal).addScaledVector(towardBase,350);
-  if(save())location.href='./index.html?pvp=1';return;
+  if(save())location.href='./index.html?pvp=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD);return;
  }
  activeSector=route.to;player.sector=activeSector;
  syncStationVisibility();
@@ -3051,7 +3051,7 @@ function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math
 }
 camera.position.copy(playerMesh.position).add(new THREE.Vector3(0,100,210));camera.lookAt(playerMesh.position.clone().add(new THREE.Vector3(0,8,-150)));
 const systemMap=mountSystemMap({trigger:$('radarWidget'),getState:()=>({level:player.level,current:PVP_MODE?'pvp':activeSector}),onOpen:()=>{resetDockControls();fireHeld=false;for(const key of Object.keys(keys))delete keys[key]}});
-const companionControls=mountCompanionControls({cockpit:!PVP_MODE,parent:$('zoomControls'),getPlayer:()=>player,onChange:mode=>{
+const companionControls=mountCompanionControls({cockpit:true,parent:$('zoomControls'),getPlayer:()=>player,onChange:mode=>{
  const previous=player.explorerMode;player.explorerMode=mode;
  let saved;
  if(PVP_MODE&&!pvpHangar){const pilot=readOfflinePilot(localStorage);pilot.explorerMode=mode;try{localStorage.setItem(SAVE_KEY,JSON.stringify(pilot));if(SAVE_KEY==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);saved=true}catch{showStorageWarning();saved=false}}
