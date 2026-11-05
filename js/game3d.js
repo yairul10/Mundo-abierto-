@@ -45,7 +45,7 @@ import {mountCompanionControls} from './companion-controls.js?v=378';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=376';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=372';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=381';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_MODE=sharedRequested();
@@ -547,11 +547,12 @@ let modularStationReady=false;
 const graveyard=createGraveyard(THREE,scene);
 // Load each unique debris mesh once; the graveyard reuses it across 65 placements.
 const graveyardScrapFiles=['rustedmetalpanel','derelicthullblock','trussgirder','girdersection','metalcrate'];
-Promise.all(graveyardScrapFiles.map(name=>new Promise((resolve,reject)=>{
+Promise.allSettled(graveyardScrapFiles.map((name,index)=>new Promise((resolve,reject)=>{
  deferredModelLoad(modelLoader,'./assets/models/'+name+'.glb?v=198',gltf=>resolve(gltf.scene),undefined,reject);
-}))).then(models=>{
- try{graveyard.mountScrapModels(models)}catch(error){console.warn('Restos del cementerio no se pudieron montar; se conserva respaldo.',error)}
-}).catch(error=>console.warn('No se pudieron cargar los restos 3D; se conservan los bloques de respaldo.',error));
+}).then(model=>graveyard.registerScrapModel(index,model)))).then(results=>{
+ graveyard.mountScrapModels();
+ if(results.some(result=>result.status==='rejected'))console.warn('Algunos restos 3D no cargaron; se conserva su respaldo.');
+});
 let recoveryHullSource=null,recoveryPadSource=null;
 function assembleRecoveryStation(){
  if(!recoveryHullSource||!recoveryPadSource)return;
