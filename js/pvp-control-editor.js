@@ -1,5 +1,5 @@
 // Player-adjustable flight controls. The editor uses inert previews.
-const pvpCockpitIds=['zoomIn','zoomOut','companionModeBtn'];
+const pvpCockpitIds=['zoomIn','zoomOut','companionModeBtn','formationBtn'];
 const cockpitIds=['formationBtn','questToggle','characterBtn','zoomIn','zoomOut','farmAutoBtn','companionModeBtn'];
 const tertiaryIds=['zoomIn','zoomOut','questToggle','characterBtn','formationBtn','companionModeBtn'];
 const cockpitIcons={
@@ -41,7 +41,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
   return [clamp(point[0],x,100-x),clamp(point[1],y,100-y)];
  }
  let positions=defaults.map(p=>[...p]);
- try{const data=JSON.parse(localStorage.getItem(key));const valid=Array.isArray(data)&&(data.length===ids.length||data.length===ids.length-1||(!pve&&[5,6].includes(data.length)))&&data.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite));if(valid)positions=defaults.map((fallback,i)=>bounded(i,data[i]||fallback))}catch{}
+ try{const data=JSON.parse(localStorage.getItem(key));const valid=Array.isArray(data)&&(data.length===ids.length||data.length===ids.length-1||(!pve&&[5,6,8,9].includes(data.length)))&&data.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite));if(valid)positions=defaults.map((fallback,i)=>bounded(i,data[i]||fallback))}catch{}
  const buttons=()=>ids.map(id=>document.getElementById(id));
  function apply(){
   buttons().forEach((button,i)=>{if(!button)return;positions[i]=bounded(i,positions[i]);button.style.setProperty('position','fixed','important');button.style.setProperty('left',positions[i][0]+'vw','important');button.style.setProperty('top',positions[i][1]+'vh','important');button.style.setProperty('right','auto','important');button.style.setProperty('bottom','auto','important');button.style.setProperty('transform','translate(-50%,-50%)','important');button.style.setProperty('z-index',upperIds.includes(ids[i])?(pve?'24':'86'):'66','important')});

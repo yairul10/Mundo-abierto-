@@ -1,3 +1,4 @@
+import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=384';
 import {mountSystemMap} from './system-map.js?v=369';
@@ -20,7 +21,7 @@ import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
 import {createArenaEnemyView} from './pvp-enemies.js?v=385';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=386';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=390';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -43,10 +44,10 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,form
 import {mountHangarUI} from './hangar-ui.js?v=371';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=389';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=390';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
-import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=385';
+import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_MODE=sharedRequested();
@@ -546,7 +547,8 @@ function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d
 let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
 
-const graveyard=createGraveyard(THREE,scene);
+const wreckVisibility=createWreckVisibility(THREE);
+const graveyard=createGraveyard(THREE,scene,{onWreckMounted:root=>wreckVisibility.add(root)});
 // Load each unique debris mesh once; the graveyard reuses it across 65 placements.
 const graveyardScrapFiles=['rustedmetalpanel','derelicthullblock','trussgirder','girdersection','metalcrate'];
 Promise.allSettled(graveyardScrapFiles.map((name,index)=>new Promise((resolve,reject)=>{
@@ -3286,6 +3288,7 @@ if(player.hp>0&&player.hp/player.maxHp<=.25&&!docked&&!landing&&!recoveryPending
 const enginePower=Math.min(1,Math.hypot((autoInput?.throttle??joy.throttle)+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),(autoInput?.strafe??joy.strafe??0)+(keys.d?1:0)-(keys.a?1:0)));
 combatAudio.setEngine(enginePower,player.hp>0&&!recoveryPending&&!graphicsLost&&!docked&&!landing&&panel.classList.contains('hidden')&&!systemMap.open&&!farmUI?.open&&!document.body.classList.contains('journal-open')&&!document.body.classList.contains('portrait-blocked')&&(!pvpSession||pvpSession.active&&!pvpHangar));
 if(graphicsLost){requestAnimationFrame(loop);return}
+wreckVisibility.update(playerMesh.position,dt,activeSector==='graveyard'&&!PVP_MODE);
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
 updateGraphicsDetail(now);
 updateProAuras(THREE,enemies,now/1000);
@@ -3450,7 +3453,7 @@ if(PVP_MODE){
  function keepArena(){if(!returnModelReady&&portalMesh.userData.portalModel)mountReturnPortal();graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraStation.visible=true;auroraStation.position.set(0,-180,0);auroraStation.scale.setScalar(.65);auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';asteroidField.visible=false;}
  function clearFight(){resetDockControls();clearCombatShots();lockedEnemy=null;fireCd=skillCd=classAbilityTime=classAbilityCd=0;}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
- for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel','formationBtn'])$(id).classList.add('hidden');
+ for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  mountPvpZones(THREE,scene);$('hint').textContent='Base · Zona PvE hasta 1.800 m · Zona hostil hasta 2.950 m';$('stationDistance').textContent='Mapa PvP';
  pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){

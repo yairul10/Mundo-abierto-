@@ -23,7 +23,7 @@ export function rejoinScrapPair(enemy){
   enemy.home.copy(enemy.partner.mesh.position).addScaledVector({x:1,y:0,z:0},enemy.type==='harpooner'?150:-150);enemy.mesh.position.copy(enemy.home);
  }
 }
-export function createGraveyard(THREE,scene){
+export function createGraveyard(THREE,scene,{onWreckMounted=()=>{}}={}){
  const metal=[0x505b69,0x815942,0x373b49].map(color=>new THREE.MeshStandardMaterial({color,roughness:.88,metalness:.35}));
  const lamp=new THREE.MeshBasicMaterial({color:0x57dbff});
  const box=new THREE.BoxGeometry(1,1,1);
@@ -147,7 +147,7 @@ export function createGraveyard(THREE,scene){
    model.scale.multiplyScalar(factor);model.position.copy(center).multiplyScalar(-factor);
    group.add(model);group.position.set(x,y,z);group.rotation.y=i===0?Math.PI:0;group.rotation.z=angle;return group;
   });
-  groups.forEach(group=>environment.add(group));
+  groups.forEach(group=>{environment.add(group);onWreckMounted(group)});
   wreckFallbacks.forEach(wreck=>wreck.visible=false);
   environment.userData.wreckShips=groups;
  }

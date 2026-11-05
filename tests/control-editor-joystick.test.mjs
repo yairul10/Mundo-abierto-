@@ -60,3 +60,14 @@ assert.deepEqual(pveSaved[9],[40,50],'moving companion does not move AUTO');
 assert.equal(harness(pveSaved,true).registry.get('companionModeBtn').styles.left,'70vw');
 const test=harness(null,false,'test');assert(!test.storage.has('mundoAbierto.pvpControls.normal'));
 console.log('Joystick editor: legacy five-button saves preserved, sized PvP preview, drag/save/reload, cancel/reset, screen bounds and PvE compatibility.');
+
+const previousPvpPositions=[...old,[50,40],[60,15],[65,15],[70,15]];
+const restored=harness(previousPvpPositions);
+assert.equal(restored.registry.get('companionModeBtn').styles.left,'70vw');
+const formationPreview=restored.canvas.children.find(c=>c.dataset.index===9);
+assert(formationPreview,'PvP formation has its own drag target');
+formationPreview.events.pointerdown({preventDefault(){},pointerId:5});
+formationPreview.events.pointermove({pointerId:5,clientX:800,clientY:100});
+formationPreview.events.pointerup();
+restored.overlay.querySelector('[data-action="save"]').onclick();
+assert.equal(harness(JSON.parse(restored.storage.get(restored.key))).registry.get('formationBtn').styles.left,'80vw');
