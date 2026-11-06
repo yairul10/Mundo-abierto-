@@ -1,4 +1,4 @@
-import {applyObsidianSkin} from './obsidian-skins.js?v=387';
+import {applyObsidianSkin} from './obsidian-skins.js?v=391';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=355';
 // Only one independent, demand-loaded WebGL preview is alive across the hangar.

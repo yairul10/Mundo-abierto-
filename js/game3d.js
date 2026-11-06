@@ -6,8 +6,8 @@ import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield
 import {createTestProgressReset} from './test-progress-reset.js?v=363';
 import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-upgrade.js?v=358';
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
-import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=387';
-import {startAssemblyPreview} from './assembly-3d-preview.js?v=387';
+import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=391';
+import {startAssemblyPreview} from './assembly-3d-preview.js?v=391';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=347';

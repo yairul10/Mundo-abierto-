@@ -11,7 +11,7 @@ export const OBSIDIAN_SKINS=Object.freeze({
  mexico:country('México',0x31db81,0xd0ffdf,[0x198458,white,red],
   'skinPoint.x < -9.0 ? paintA : (skinPoint.x > 9.0 ? paintC : paintB)'),
  colombia:country('Colombia',0xffc43d,0xffefb0,[yellow,blue,red],
-  'skinPoint.y > -3.0 ? paintA : (skinPoint.y > -16.0 ? paintB : paintC)'),
+  'colombiaPanels(atlas, normalize(skinNormal), skinPoint)'),
  venezuela:country('Venezuela',0x5186ff,0xdbe6ff,[yellow,blue,red],
   'skinPoint.y > 8.0 ? paintA : (skinPoint.y > -9.0 ? paintB : paintC)'),
  eeuu:country('Estados Unidos',0x588cff,0xe1ecff,[white,blue,red],
@@ -21,7 +21,22 @@ export function allowedObsidianSkin(id,admin){return admin===true&&Object.hasOwn
 const originals=new WeakMap(),wakeGeometry=new WeakMap();
 const baseMaterial=m=>originals.get(m)||m;
 // Smooth color masks preserve the atlas shading, normals and metal/roughness maps.
-function recoloredMaterial(THREE,source,id,paintFrame){
+const colombiaPaint = `
+ varying vec3 skinNormal;
+ uniform bool skinRing;
+ vec3 colombiaPanels(vec3 atlas, vec3 normal, vec3 point) {
+  if (skinRing) {
+   float segment = floor((atan(point.y, point.x) + 3.14159265) * 1.9098593);
+   float accent = mod(segment, 6.0);
+   return accent == 1.0 ? paintB : (accent == 4.0 ? paintC : paintA);
+  }
+  float side = abs(normal.x);
+  float warmTrim = smoothstep(0.035, 0.13, min(atlas.r, atlas.g) - atlas.b);
+  vec3 plate = mix(paintA, paintB, smoothstep(0.46, 0.76, side));
+  return mix(plate, paintC, warmTrim * smoothstep(0.35, 0.65, side));
+ }
+`;
+function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
  const base=baseMaterial(source),skin=OBSIDIAN_SKINS[id],m=base.clone();originals.set(m,base);
  if(base.map){
   const energy=new THREE.Color(skin.energy),trim=skin.trim;
@@ -33,6 +48,14 @@ function recoloredMaterial(THREE,source,id,paintFrame){
     shader.vertexShader='uniform mat4 skinFrame;\nvarying vec3 skinPoint;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nskinPoint = (skinFrame * vec4(position, 1.0)).xyz;');
     shader.fragmentShader='varying vec3 skinPoint;\nuniform vec3 paintA, paintB, paintC;\n'+shader.fragmentShader;
+    if(id==='colombia'){
+     shader.uniforms.skinRing={value:ring};
+     shader.vertexShader='varying vec3 skinNormal;\n'+shader.vertexShader;
+     shader.vertexShader=shader.vertexShader.replace('skinPoint = (skinFrame * vec4(position, 1.0)).xyz;',
+      'skinPoint = (skinFrame * vec4(position, 1.0)).xyz;\nskinNormal = mat3(skinFrame) * normal;');
+     shader.fragmentShader=shader.fragmentShader.replace('uniform vec3 paintA, paintB, paintC;',
+      'uniform vec3 paintA, paintB, paintC;\n'+colombiaPaint);
+    }
    }else shader.uniforms.skinTrim={value:new THREE.Vector3(...trim)};
    shader.fragmentShader='uniform vec3 skinEnergy;\nuniform vec3 skinTrim;\n'+shader.fragmentShader;
    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
@@ -43,13 +66,24 @@ function recoloredMaterial(THREE,source,id,paintFrame){
     vec3 darkHull = atlas * 0.40;
     vec3 finish = ${paintFrame ? '('+skin.pattern+') * clamp(brightness * 1.35 + 0.13, 0.0, 1.0)' : 'mix(darkHull, skinTrim * brightness, trimMask)'};
     diffuseColor.rgb = mix(finish, skinEnergy * brightness, energyMask);
+    ${id==='colombia' ? `
+    // Project a small flag onto the upward-facing nose panels.
+    if (!skinRing && skinNormal.y > 0.35 * length(skinNormal)) {
+     vec2 flag = vec2(skinPoint.x / 13.0 + 0.5, (skinPoint.z + 46.0) / 8.0);
+     if (flag.x >= 0.0 && flag.x <= 1.0 && flag.y >= 0.0 && flag.y <= 1.0) {
+      diffuseColor.rgb = flag.y < 0.5 ? vec3(1.0, 0.63, 0.015) : (flag.y < 0.75 ? paintB : paintC);
+     }
+    }` : ''}
+
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-skin-v2-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-skin-v3-'+id;
+  if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
   // The procedural core and engines use untextured materials.
   if(m.color){const c=base.color;m.color.set(c.g>.85&&c.r>.35?skin.core:skin.energy)}
   if(m.emissive&&base.emissive.getHex())m.emissive.set(skin.energy);
+  if(id==='colombia'&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
  }
  return m;
 }
@@ -82,8 +116,18 @@ export function applyObsidianSkin(THREE,root,id='original'){
    return;
   }
   const previous=Array.isArray(o.material)?o.material:[o.material];
-  const paintFrame=worldToShip&&worldToShip.clone().multiply(o.matrixWorld);
-  const next=previous.map(m=>id==='original'?baseMaterial(m):recoloredMaterial(THREE,m,id,paintFrame));
+  let paintFrame=worldToShip&&worldToShip.clone().multiply(o.matrixWorld),ring=false;
+  if(id==='colombia'){
+   // Keep each color segment attached to its rotating ring.
+   for(let parent=o.parent;parent&&parent!==root;parent=parent.parent){
+    if(!parent.name.startsWith('obsidian-ring-'))continue;
+    paintFrame=parent.matrixWorld.clone().invert().multiply(o.matrixWorld);
+    ring=true;
+    break;
+   }
+  }
+  const reactor=o.parent===root&&o.geometry?.type==='SphereGeometry';
+  const next=previous.map(m=>id==='original'?baseMaterial(m):recoloredMaterial(THREE,m,id,paintFrame,ring,reactor));
   o.material=Array.isArray(o.material)?next:next[0];
   for(const m of previous)if(originals.has(m))m.dispose();
  });
