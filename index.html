@@ -53,7 +53,7 @@ document.currentScript.after(threeMap);
 </script>
 <script type="module">
 const status=document.getElementById('bootStatus');
-const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261106-391';
+const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261106-392';
 async function loadWithDeadline(promise,label){
  let timer;
  try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('No se pudo cargar '+label+' a tiempo. Comprueba la conexión y recarga la página.')),20000)})])}
@@ -63,7 +63,7 @@ const {mountDisplayShell}=await import('./js/display-shell.js?v=228');
 if(!mountDisplayShell()){
 try{
   const {startAccount,startCloudSync}=await import('./js/account-start.js?v=364');
-  const {startPlayMode}=await import('./js/play-mode.js?v=380');
+  const {startPlayMode}=await import('./js/play-mode.js?v=392');
   const realm=await startPlayMode();
   document.getElementById('worldLoadingText').textContent='Preparando pantalla de inicio…';
   await window.cosmosSplashReady;
