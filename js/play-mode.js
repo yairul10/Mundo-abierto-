@@ -6,21 +6,15 @@ export const saveKey=mode=>mode==='test'?'mundoAbierto.qaPlayer':'mundoAbierto.p
 export function setMode(storage,mode){if(mode==='test')storage.setItem(QA_FLAG,'1');else storage.removeItem(QA_FLAG)}
 async function configuration(){try{const r=await fetch(CONFIG_URL,{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)return null;const c=await r.json();return typeof c.testServerEnabled==='boolean'?c:null}catch{return null}}
 function picker(){return new Promise(resolve=>{
- const overlay=document.createElement('section');overlay.id='playModePicker';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','playModeTitle');
+ const overlay=document.createElement('section');overlay.id='playModePicker';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Selecciona un servidor');
  overlay.innerHTML=`
   <div class="mode-card">
-   <span class="mode-eyebrow">COSMOS LEGACY</span>
-   <h1 id="playModeTitle">Selecciona un servidor</h1>
    <ul class="mode-options">
     <li><button type="button" data-mode="normal">
-     <span class="mode-icon" aria-hidden="true">01</span>
-     <span class="mode-details"><strong>Servidor 1</strong></span>
-     <span class="mode-arrow" aria-hidden="true">›</span>
+     Servidor 1
     </button></li>
     <li><button type="button" data-mode="test">
-     <span class="mode-icon" aria-hidden="true">✦</span>
-     <span class="mode-details"><strong>Servidor de prueba</strong></span>
-     <span class="mode-arrow" aria-hidden="true">›</span>
+     Servidor de prueba
     </button></li>
    </ul>
    <small class="mode-error" role="alert"></small>
@@ -30,7 +24,7 @@ function picker(){return new Promise(resolve=>{
  document.body.appendChild(overlay);buttons[0].focus();
  })}
 export async function startPlayMode(){
- const style=document.createElement('link');style.rel='stylesheet';style.href='./css/play-mode.css?v=392';document.head.appendChild(style);
+ const style=document.createElement('link');style.rel='stylesheet';style.href='./css/play-mode.css?v=394';document.head.appendChild(style);
  const config=await configuration();let enabled=config?.testServerEnabled===true,mode='normal',previous='normal',session=null;
  try{previous=savedMode(localStorage);session=sessionStorage.getItem(SESSION)}catch{}
  const params=new URLSearchParams(location.search);

@@ -1,34 +1,59 @@
 #playModePicker {
- position:fixed; inset:0; z-index:20000; display:grid; place-items:safe center;
- padding:16px; box-sizing:border-box; overflow:auto;
- background:radial-gradient(ellipse at top,#25365b,#050b19 75%);
- color:#eaf7ff; font-family:system-ui,sans-serif;
+ position:fixed;
+ inset:0;
+ z-index:20000;
+ display:grid;
+ align-items:safe end;
+ justify-items:center;
+ box-sizing:border-box;
+ padding:12px 16px max(12px,17dvh,env(safe-area-inset-bottom));
+ overflow:auto;
+ background:#050b19 url("../assets/loading-cosmos-legacy.webp") center / cover no-repeat;
+ color:#fff6e5;
+ font-family:system-ui,sans-serif;
 }
-#playModePicker .mode-card {
- width:min(100%,480px); padding:clamp(16px,4vw,28px); box-sizing:border-box;
- background:#091729f5; border:1px solid #426485; border-radius:20px; box-shadow:0 20px 60px #0008;
+#playModePicker .mode-card {width:min(100%,290px)}
+#playModePicker .mode-options {
+ display:grid;
+ gap:10px;
+ list-style:none;
+ padding:0;
+ margin:0;
 }
-#playModePicker h1 {font-size:clamp(21px,4vw,30px); margin:6px 0 16px}
-#playModePicker .mode-eyebrow {font-size:11px; letter-spacing:.22em; color:#8bcdec}
-#playModePicker .mode-options {display:grid; gap:8px; list-style:none; padding:0; margin:0}
 #playModePicker .mode-options button {
- --mode-accent:#8bdbff;
- width:100%; display:grid; grid-template-columns:36px minmax(0,1fr) auto;
- gap:12px; align-items:center; text-align:left; padding:11px 12px; min-height:62px;
- border:1px solid #416583; border-radius:12px; background:#14283c; color:inherit;
- font:inherit; cursor:pointer;
+ --frame:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
+ position:relative;
+ isolation:isolate;
+ width:100%;
+ min-height:48px;
+ padding:10px 16px;
+ border:0;
+ clip-path:var(--frame);
+ background:linear-gradient(120deg,#d39a43,#ffe5a0 45%,#ad772e);
+ color:inherit;
+ font:650 16px system-ui,sans-serif;
+ cursor:pointer;
 }
-#playModePicker .mode-options button[data-mode="test"] {--mode-accent:#d9baff; border-color:#604d83; background:#211e38}
-#playModePicker .mode-options button:hover {border-color:var(--mode-accent)}
-#playModePicker .mode-options button:focus-visible {outline:2px solid var(--mode-accent); outline-offset:2px}
-#playModePicker .mode-icon {
- display:grid; place-items:center; width:36px; height:36px; border-radius:9px;
- background:#050b1980; color:var(--mode-accent); font-size:14px; font-weight:750;
+#playModePicker .mode-options button::before {
+ content:"";
+ position:absolute;
+ inset:2px;
+ z-index:-1;
+ clip-path:var(--frame);
+ background:linear-gradient(#172437,#080d18);
 }
-#playModePicker .mode-details {display:grid; gap:3px}
-#playModePicker .mode-details strong {font-size:16px}
-#playModePicker .mode-details span, #playModePicker p {font-size:13px; line-height:1.4; color:#c3d4e1}
-#playModePicker .mode-arrow {color:var(--mode-accent); font-size:24px; line-height:1}
-#playModePicker p {margin:12px 0 0}
-#playModePicker .mode-error:not(:empty) {display:block; color:#ffb5ad; margin-top:8px}
+#playModePicker .mode-options button:is(:hover,:focus-visible) {
+ background:#ffe6a6;
+}
+#playModePicker .mode-options button:is(:hover,:focus-visible)::before {
+ background:linear-gradient(#283043,#151a25);
+}
+#playModePicker .mode-options li:focus-within {filter:drop-shadow(0 0 5px #ffd67599)}
+#playModePicker .mode-error:not(:empty) {
+ display:block;
+ margin-top:8px;
+ padding:6px 8px;
+ background:#080d18;
+ color:#ffb5ad;
+}
 body.test-realm #radarWidget::after{content:'PRUEBA';display:block;margin-top:4px;color:#d9c4fa;font:750 12px system-ui;letter-spacing:.09em;text-shadow:0 1px 4px #000,0 0 5px #000;pointer-events:none}#modeOfflineNote{position:fixed;bottom:6px;left:50%;transform:translateX(-50%);z-index:10000;background:#0b182bee;color:#e5f2ff;border-radius:8px;padding:8px 14px;font:12px system-ui;pointer-events:none}
