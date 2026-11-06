@@ -6,6 +6,10 @@ export const QUALITY={
  high:{label:'Alta',pixelRatio:1.6,maxPixels:3500000,debrisDistance:4500,detailDistance:6500,lights:true,sparks:10}
 };
 export function normalizeGraphics(value){return ['auto',...Object.keys(QUALITY)].includes(value)?value:'auto'}
+export function isGraphicsRecoveryReload(token,savedToken,now){
+ const age=now-Number(token);
+ return Boolean(token&&token===savedToken&&age>=0&&age<60000);
+}
 export function renderRatio(profile,width,height,dpr=1){return Math.min(dpr,profile.pixelRatio,Math.sqrt(profile.maxPixels/Math.max(1,width*height)))}
 export function createGraphicsController({mode='auto',initial='medium',onChange=()=>{}}={}){
  let choice=normalizeGraphics(mode),level=choice==='auto'?initial:choice;
@@ -36,6 +40,11 @@ export function mountGraphicsSettings(controller,{parent,storage,onSelect=()=>{}
  const section=document.createElement('section');section.className='graphics-settings';
  section.innerHTML='<h3>Gráficos</h3><label for="graphicsQuality">Calidad gráfica</label><select id="graphicsQuality"><option value="auto">Automática (recomendada)</option><option value="low">Baja</option><option value="medium">Media</option><option value="high">Alta</option></select><p id="graphicsStatus" class="inventory-note" role="status"></p><p class="inventory-note">Se aplica al instante y se guarda en este dispositivo. Baja reduce la nitidez, las luces del motor y los restos decorativos lejanos.</p>';
  parent.insertBefore(section,parent.querySelector('h3'));const select=section.querySelector('select'),status=section.querySelector('#graphicsStatus');
- function refresh(){select.value=controller.mode;status.textContent=(controller.mode==='auto'?'Automática · calidad actual: ':'Calidad actual: ')+controller.profile.label}
+ function refresh(){
+  select.value=controller.mode;
+  const recovering=controller.mode!=='auto'&&controller.mode!==controller.level;
+  const label=controller.mode==='auto'?'Automática · calidad actual':recovering?'Recuperación gráfica · calidad temporal':'Calidad actual';
+  status.textContent=`${label}: ${controller.profile.label}`;
+ }
  select.onchange=()=>{controller.select(select.value);try{storage.setItem(GRAPHICS_KEY,controller.mode)}catch{}onSelect();refresh()};refresh();return {refresh};
 }

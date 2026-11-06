@@ -521,12 +521,12 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
  box-sizing:border-box;
  scrollbar-color:#967546 #101721;
 }
-#characterPanel :is(#qaPanel,section:has(> input[aria-label="Volumen de efectos"])) {
+#characterPanel :is(#qaPanel,.graphics-settings,section:has(> input[aria-label="Volumen de efectos"])) {
  background:#0b121e!important;
  border-color:#e8bf7055!important;
  border-radius:8px!important;
 }
-#characterPanel :is(#qaPanel h3,section:has(> input[aria-label="Volumen de efectos"]) h3) {
+#characterPanel :is(#qaPanel h3,.graphics-settings h3,section:has(> input[aria-label="Volumen de efectos"]) h3) {
  color:#fff0c8;
 }
 #characterPanel :is(#qaSwitch,#journalBtn,#accountSettingsBtn,#closePanel,section:has(> input[aria-label="Volumen de efectos"]) > button) {
@@ -552,6 +552,20 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
 #characterPanel section:has(> input[aria-label="Volumen de efectos"]) > button {
  margin:0!important;
 }
+#characterPanel .graphics-settings h3 {margin:0 0 12px}
+#characterPanel .graphics-settings select {
+ min-height:44px;
+ padding:8px 12px;
+ border-color:#e8bf7080;
+ border-radius:7px;
+ background:#151c28;
+ color:#fff0c8;
+}
+#characterPanel .graphics-settings select:focus-visible {
+ outline:2px solid var(--panel-gold);
+ outline-offset:2px;
+}
+#characterPanel .graphics-settings .inventory-note:last-child {margin-bottom:0}
 #characterPanel input[type="range"] {accent-color:var(--panel-gold)}
 #dockBtn {
  --dock-shape:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);

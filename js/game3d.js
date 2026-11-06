@@ -31,7 +31,7 @@ import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
-import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings} from './graphics-settings.js?v=229';
+import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings,isGraphicsRecoveryReload} from './graphics-settings.js?v=397';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
@@ -77,8 +77,17 @@ const graphics=createGraphicsController({mode:graphicsMode,onChange:()=>{resizeG
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 function resizeGraphics(){renderer.setPixelRatio(renderRatio(graphics.profile,innerWidth,innerHeight,devicePixelRatio));renderer.setSize(innerWidth,innerHeight)}
 resizeGraphics();renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
-// Retry at low resolution after context loss, including when manual High was selected.
-try{const recoveredAt=Number(sessionStorage.getItem('mundoAbierto.webglRecoveryAt'));if(recoveredAt&&Date.now()-recoveredAt<60000)graphics.recover()}catch{}
+const GRAPHICS_RECOVERY_KEY='mundoAbierto.webglRecoveryAt';
+// Only the recovery reload starts at low quality. Regular entries use the saved preference.
+try{
+ const url=new URL(location.href);
+ const token=url.searchParams.get('graphics');
+ if(isGraphicsRecoveryReload(token,sessionStorage.getItem(GRAPHICS_RECOVERY_KEY),Date.now())){
+  graphics.recover();
+  url.searchParams.delete('graphics');
+  history.replaceState(history.state,'',url);
+ }
+}catch{}
 
 // Recuperación móvil ante pérdida del contexto WebGL. Guardar antes de
 // recargar evita perder posición, inventario o mejoras.
@@ -88,11 +97,11 @@ graphicsRecovery.style.cssText='position:fixed;inset:0;z-index:1000;display:none
 graphicsRecovery.innerHTML='<div style="max-width:420px;padding:24px;border:1px solid #4fbfff;border-radius:18px;background:#071426"><strong style="display:block;font-size:21px;margin-bottom:10px">Recuperando gráficos…</strong><span id="graphicsRecoveryText">La partida fue guardada. Espera unos segundos.</span><button id="graphicsReloadBtn" type="button" style="display:block;margin:18px auto 0;padding:12px 18px;border:0;border-radius:12px;background:#168cff;color:white;font-weight:700">Recargar gráficos</button></div>';
 document.body.appendChild(graphicsRecovery);
 const graphicsRecoveryText=graphicsRecovery.querySelector('#graphicsRecoveryText');
-const GRAPHICS_RECOVERY_KEY='mundoAbierto.webglRecoveryAt';
 function reloadGraphics(){
  try{save()}catch{}
- try{sessionStorage.setItem(GRAPHICS_RECOVERY_KEY,String(Date.now()))}catch{}
- const url=new URL(location.href);url.searchParams.set('graphics',String(Date.now()));location.replace(url);
+ const token=String(Date.now());
+ try{sessionStorage.setItem(GRAPHICS_RECOVERY_KEY,token)}catch{}
+ const url=new URL(location.href);url.searchParams.set('graphics',token);location.replace(url);
 }
 graphicsRecovery.querySelector('#graphicsReloadBtn').onclick=reloadGraphics;
 canvas.addEventListener('webglcontextlost',event=>{

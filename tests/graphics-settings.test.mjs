@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {QUALITY,renderRatio,normalizeGraphics,createGraphicsController} from '../js/graphics-settings.js';
+import {QUALITY,renderRatio,normalizeGraphics,createGraphicsController,isGraphicsRecoveryReload} from '../js/graphics-settings.js';
 assert.equal(normalizeGraphics('corrupt'),'auto');
 for(const profile of Object.values(QUALITY)){
  const ratio=renderRatio(profile,2712,1220,3);
@@ -14,4 +14,8 @@ c.select('high');simulate(c,40,15);assert.equal(c.level,'high','manual choice is
 c.select('auto');simulate(c,40,15,false);assert.equal(c.level,'medium','loading, background and menus do not lower auto quality');
 c.recover();assert.equal(c.level,'low','context loss retry starts conservatively');assert.equal(c.mode,'auto');
 c.select('high');c.recover();assert.equal(c.level,'low');assert.equal(c.mode,'high','recovery does not overwrite saved preference');
+assert.equal(isGraphicsRecoveryReload('1000','1000',1100),true);
+assert.equal(isGraphicsRecoveryReload(null,'1000',1100),false,'ordinary reentry honors saved quality after a recent recovery');
+assert.equal(isGraphicsRecoveryReload('1001','1000',1100),false,'only the matching recovery reload uses low quality');
+assert.equal(isGraphicsRecoveryReload('1000','1000',61000),false,'expired recovery reloads use saved quality');
 console.log('Graphics: pixel memory budgets, automatic adaptation, hysteresis, suspended sampling, manual quality and safe recovery passed.');
