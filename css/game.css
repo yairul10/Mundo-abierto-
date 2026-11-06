@@ -431,3 +431,83 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
  background:transparent;color:var(--cockpit-text);touch-action:manipulation;
 }
 #companionModeChoices button[aria-pressed="true"]{background:var(--cockpit-surface);color:var(--cockpit-accent)}
+
+/* Hangar overview */
+#hangarPanel .hangar-inner {
+ --hangar-gold:#e8bf70;
+ background:radial-gradient(ellipse at top,#202839,#101721 65%);
+ border-color:#967546;
+ box-sizing:border-box;
+}
+#hangarPanel .hangar-tag {color:var(--hangar-gold)}
+#hangarPanel .hangar-inner > h2 {margin:5px 0 12px}
+#hangarStats {
+ padding:9px 12px;
+ border-color:#e8bf7038;
+ border-radius:8px;
+ background:#0b121e;
+ line-height:1.45;
+ font-variant-numeric:tabular-nums;
+}
+#hangarMessage:empty {display:none}
+#hangarPanel #hangarSections {
+ display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:6px;
+ margin:10px 0 12px;
+ border-bottom:0;
+}
+#hangarPanel #hangarSections button {
+ min-width:0;
+ padding:6px 3px;
+ border:1px solid #e8bf704d;
+ border-radius:7px;
+ background:#ffffff06;
+ font-size:clamp(11px,2.6vw,14px);
+}
+#hangarPanel #hangarSections button[aria-pressed="true"] {
+ color:#fff0c8;
+ border-color:var(--hangar-gold);
+ background:#e8bf7026;
+}
+#hangarPanel :is(#hangarSections button,#pvpEditControls):focus-visible {
+ outline-color:var(--hangar-gold);
+}
+#hangarPanel #pvpControlEditorEntry {
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto;
+ grid-template-rows:auto auto;
+ align-items:center;
+ gap:4px 12px;
+ padding:10px 12px;
+ border:1px solid #e8bf704d;
+ border-radius:8px;
+ background:#0b121e;
+}
+#hangarPanel #pvpControlEditorEntry h3 {
+ grid-column:1;
+ margin:0;
+ font-size:15px;
+}
+#hangarPanel #pvpControlEditorEntry p {
+ grid-column:1;
+ margin:0;
+ font-size:12px;
+ line-height:1.4;
+}
+#hangarPanel #pvpEditControls {
+ grid-area:1 / 2 / 3 / 3;
+ width:auto;
+ min-height:44px;
+ margin:0;
+ padding:6px 12px;
+ border:1px solid var(--hangar-gold);
+ border-radius:7px;
+ background:#29251d;
+ color:#fff0c8;
+ font-size:13px;
+}
+@media (max-width:480px) {
+ #hangarPanel #pvpControlEditorEntry {grid-template-columns:minmax(0,1fr)}
+ #hangarPanel #pvpEditControls {grid-area:auto; width:100%; margin-top:4px}
+}
