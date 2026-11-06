@@ -511,3 +511,53 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
  #hangarPanel #pvpControlEditorEntry {grid-template-columns:minmax(0,1fr)}
  #hangarPanel #pvpEditControls {grid-area:auto; width:100%; margin-top:4px}
 }
+
+/* Match the character controls and approach indicator to the hangar. */
+#characterPanel {
+ --panel-gold:#e8bf70;
+ background:radial-gradient(ellipse at top,#202839,#101721 65%);
+ border-color:#967546;
+ border-radius:12px;
+ box-sizing:border-box;
+ scrollbar-color:#967546 #101721;
+}
+#characterPanel :is(#qaPanel,section:has(> input[aria-label="Volumen de efectos"])) {
+ background:#0b121e!important;
+ border-color:#e8bf7055!important;
+ border-radius:8px!important;
+}
+#characterPanel :is(#qaPanel h3,section:has(> input[aria-label="Volumen de efectos"]) h3) {
+ color:#fff0c8;
+}
+#characterPanel :is(#qaSwitch,#journalBtn,#accountSettingsBtn,#closePanel,section:has(> input[aria-label="Volumen de efectos"]) > button) {
+ min-height:44px;
+ padding:8px 12px;
+ border:1px solid #e8bf7080;
+ border-radius:7px;
+ background:#27231d;
+ color:#fff0c8;
+}
+#characterPanel :is(#qaSwitch,#journalBtn,#accountSettingsBtn,#closePanel,section:has(> input[aria-label="Volumen de efectos"]) > button):is(:hover,:focus-visible,[aria-pressed="true"]) {
+ border-color:var(--panel-gold);
+ background:#3a3021;
+}
+#characterPanel section:has(> input[aria-label="Volumen de efectos"]) {
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:6px 8px;
+}
+#characterPanel section:has(> input[aria-label="Volumen de efectos"]) > :not(button) {
+ grid-column:1 / -1;
+}
+#characterPanel section:has(> input[aria-label="Volumen de efectos"]) > button {
+ margin:0!important;
+}
+#characterPanel input[type="range"] {accent-color:var(--panel-gold)}
+#dockBtn {
+ --dock-shape:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
+ background:linear-gradient(120deg,#d39a43,#ffe5a0 45%,#ad772e);
+ color:#fff6e5;
+}
+#dockBtn::before {filter:grayscale(1) sepia(1)}
+#dockBtn::after {inset:2px;background:linear-gradient(#172437,#080d18)}
+#dockBtn:focus-visible::after {background:#362a1d}
