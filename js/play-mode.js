@@ -14,16 +14,15 @@ function picker(){return new Promise(resolve=>{
    <ul class="mode-options">
     <li><button type="button" data-mode="normal">
      <span class="mode-icon" aria-hidden="true">01</span>
-     <span class="mode-details"><strong>Servidor 1</strong><span>Continúa con tu progreso habitual.</span></span>
+     <span class="mode-details"><strong>Servidor 1</strong></span>
      <span class="mode-arrow" aria-hidden="true">›</span>
     </button></li>
     <li><button type="button" data-mode="test">
      <span class="mode-icon" aria-hidden="true">✦</span>
-     <span class="mode-details"><strong>Servidor de prueba</strong><span>Explora novedades y usa las ayudas de prueba.</span></span>
+     <span class="mode-details"><strong>Servidor de prueba</strong></span>
      <span class="mode-arrow" aria-hidden="true">›</span>
     </button></li>
    </ul>
-   <p>El progreso de pruebas se guarda por separado y puede reiniciarse.</p>
    <small class="mode-error" role="alert"></small>
   </div>`;
  const buttons=[...overlay.querySelectorAll('button')];for(const b of buttons)b.onclick=()=>{try{setMode(localStorage,b.dataset.mode);try{sessionStorage.setItem(SESSION,b.dataset.mode)}catch{}overlay.remove();resolve(b.dataset.mode)}catch{overlay.querySelector('.mode-error').textContent='No se pudo guardar la elección. Habilita el almacenamiento del juego e inténtalo de nuevo.'}};
