@@ -1,4 +1,3 @@
-import {LASERS,normalizeLasers,equippedLaser} from './laser-equipment.js?v=399';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=384';
@@ -42,12 +41,12 @@ import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=358';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=177';
-import {mountHangarUI} from './hangar-ui.js?v=399';
+import {mountHangarUI} from './hangar-ui.js?v=371';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=399';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=399';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=399';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=390';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=364';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=364';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -1441,7 +1440,7 @@ function explorerRange(){return 450+player.explorerRangeLevel*100}
 const EXPLORER_UPGRADE_PRICES=[1000,2500,5000,9000,14000,21000,29000,39000,50000]; // Mejoras del nivel 2 al 10.
 function explorerUpgradePrice(){return EXPLORER_UPGRADE_PRICES[player.explorerRangeLevel-1]||0}
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
-normalizeHangar(player);normalizeLasers(player);
+normalizeHangar(player);
 const equippedBonus=()=>formationBonus(player,!PVP_MODE||!!pvpHangar);
 const activeBooster=id=>boosterBonus(player,id,!PVP_MODE||!!pvpHangar);
 const supportRange=()=>PVP_MODE?(pvpSession?.profile?.droneRange||COMBAT_RANGE):COMBAT_RANGE*equippedBonus().range;
@@ -1560,8 +1559,8 @@ function markExplorerAttack(target){
  explorerCompanion.targetDrop=null;explorerCompanion.nextChange=0;
 }
 const laserGeometry=new THREE.CylinderGeometry(1.5,1.5,48,7);
+const laserMaterial=new THREE.MeshBasicMaterial({color:0x65edff,transparent:true,opacity:.95,depthWrite:false});
 const supportLaserMaterial=new THREE.MeshBasicMaterial({color:0x49d8ff,transparent:true,opacity:.95,depthWrite:false});
-const equippedLaserMaterials=Object.fromEntries(Object.values(LASERS).map(laser=>[laser.color,new THREE.MeshBasicMaterial({color:laser.color,transparent:true,opacity:.95,depthWrite:false})]));
 const remoteLaserMaterial=new THREE.MeshBasicMaterial({color:0xff7777,transparent:true,opacity:.95,depthWrite:false});
 const sniperShotGeometry=new THREE.CylinderGeometry(5,5,65,10);
 function updateExplorerCombat(dt){
@@ -1706,11 +1705,11 @@ function fireSupportDrones(aimPoint,locked,noseDir){
    destination.z+=(Math.random()-.5)*spread*2;
   }
   const direction=destination.clone().sub(start).normalize();
-  const bolt=new THREE.Mesh(laserGeometry,equippedLaserMaterials[equippedLaser(player,'drones',i).color]);
+  const bolt=new THREE.Mesh(laserGeometry,supportLaserMaterial);
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
   const range=supportRange();
-  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150),life:range/1150+.35,range,laserSlot:i,damage:player.attack*.2*equippedLaser(player,'drones',i).multiplier*equippedBonus().damage*activeBooster('damage')});
+  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150),life:range/1150+.35,range,damage:player.attack*.2*equippedBonus().damage*activeBooster('damage')});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
@@ -1859,10 +1858,10 @@ function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
    destination.z+=(Math.random()-.5)*spread*2;
   }
   const dir=destination.clone().sub(start).normalize();
-  const mesh=new THREE.Mesh(laserGeometry,equippedLaserMaterials[equippedLaser(player,'ship',i).color]);
+  const mesh=new THREE.Mesh(laserGeometry,laserMaterial);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,laserSlot:i,damage:player.attack*mult*.5*equippedLaser(player,'ship',i).multiplier*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
+  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeBooster('damage')});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId,pvpFarmRunning);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -3148,7 +3147,7 @@ $('resetBtn').onclick=()=>{
  if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload();
 };
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!PVP_MODE||!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{if(!save())return false;hud();renderInventory();hangarRefresh();return true}});
+hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!PVP_MODE||!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
 let boosterStatusSecond=-1;
 function updateBoosterStatus(){
  const second=Math.floor(performance.now()/1000);if(second===boosterStatusSecond)return;boosterStatusSecond=second;
@@ -3398,10 +3397,10 @@ hud();
 function openPvpHangar(){
  if(pvpHangar)return;
  pvpHangar={flightPlayer:player,board:missionBoard,ui:hangarUI,saved:null};
- player=createHangarEditor(readOfflinePilot(localStorage));if(pvpSession.adminShipAllowed)player.ownedShips.adminpod=true;normalizeHangar(player);normalizeLasers(player);
+ player=createHangarEditor(readOfflinePilot(localStorage));if(pvpSession.adminShipAllowed)player.ownedShips.adminpod=true;normalizeHangar(player);
  missionBoard=createMissionBoard(missionCatalog,player.quests);docked=true;landing=false;resetDockControls();fireHeld=false;clearCombatShots();
  document.body.classList.add('docked');$('saleConfirm').classList.add('hidden');hangar.classList.remove('hidden');
- hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{if(!save())return false;hud();renderInventory();hangarRefresh();return true}});
+ hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{save();hud();renderInventory();hangarRefresh()}});
  hangarUI.show('home');hangarRefresh();
 }
 function closePvpHangar(){
@@ -3491,7 +3490,7 @@ if(PVP_MODE){
   if(changed){player.shipId=me.profile.shipId;loadAssembledVisual(player.shipId);syncPlayerShipVisuals();clearFight()}
   const wasHit=me.hp<player.hp||(Number(me.shield)||0)<(player.shield||0);if(wasHit){combatAudio.play(me.hp<=0?'explosion':(me.skillUntil?.instantShield||0)>state.serverTime?'shieldHit':'impact');lastHitAt=lastIncomingAttackAt=performance.now()/1000;const npcThreat=arenaView.entities.get(me.lastDamagedBy)||(me.lastDamagedBy===bossRemote.playerId?bossRemote:null);if(npcThreat)registerExplorerThreat(npcThreat);}
   if(me.hp>0)playerMesh.visible=true;
-  player.lasers=me.profile.lasers||player.lasers;player.upgrades.laserSpeed=me.profile.laserSpeedLevel||0;player.livePvpRank=me.pvpRank;player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;refreshFormationButton();for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;player.maxShield=me.profile.maxShield||0;player.shield=Number(me.shield)||0;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);classAbilityCd=Math.max(0,((me.abilityReadyAt||0)-state.serverTime)/1000);
+  player.upgrades.laserSpeed=me.profile.laserSpeedLevel||0;player.livePvpRank=me.pvpRank;player.name=me.name;player.level=me.profile.level;player.droneCount=me.profile.droneCount;player.droneFormation=me.profile.droneFormation;refreshFormationButton();for(const key of ['maxHp','maxEnergy','attack','defense','speed'])player[key]=me.profile[key];player.hp=me.hp;player.energy=me.energy;player.maxShield=me.profile.maxShield||0;player.shield=Number(me.shield)||0;classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);classAbilityCd=Math.max(0,((me.abilityReadyAt||0)-state.serverTime)/1000);
   const predicted=new THREE.Vector3(...me.pos).add(new THREE.Vector3(...pending.offset));
   if(force){pvpCorrection=[0,0,0];playerMesh.position.set(...me.pos);clearFight();classAbilityTime=Math.max(0,((me.abilityUntil||0)-state.serverTime)/1000);classAbilityCd=Math.max(0,((me.abilityReadyAt||0)-state.serverTime)/1000);yaw=me.aim?.[0]||0;pitch=me.aim?.[1]||0;camera.position.copy(playerMesh.position).add(new THREE.Vector3(Math.sin(yaw)*285,105,Math.cos(yaw)*285));}
   else if(pending.fresh)pvpCorrection=predicted.sub(playerMesh.position).toArray();

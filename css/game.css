@@ -575,9 +575,3 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
 #dockBtn::before {filter:grayscale(1) sepia(1)}
 #dockBtn::after {inset:2px;background:linear-gradient(#172437,#080d18)}
 #dockBtn:focus-visible::after {background:#362a1d}
-
-#hangarLaserEquipment select {
- display:block;width:100%;min-height:44px;margin-top:8px;padding:8px;
- border:1px solid #e8bf7080;border-radius:7px;background:#151c28;color:#fff0c8;font:inherit;
-}
-#hangarLaserEquipment select:focus-visible {outline:2px solid #e8bf70;outline-offset:2px}
