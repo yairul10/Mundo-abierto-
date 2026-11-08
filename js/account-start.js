@@ -1,4 +1,4 @@
-import {createCloudSave} from './cloud-save-client.js?v=364';
+import {createCloudSave} from './cloud-save-client.js?v=399';
 import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 import {WORKING_SAVE,activeProfile,ensureProfiles,checkpointProfile,playProfile,profileKey,profileMeta,setProfileMeta,switchProfile,bindGuestProfile,guestProfile,newGuestProfile,storedProgress} from './account-storage.js?v=344';
 const CHOICE='cosmosLegacy.accountChoice.v1',FORCE='cosmosLegacy.forceAccountChoice.v2';

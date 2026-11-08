@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import {LASERS,normalizeLasers,laserLoadout,buyLaser,equipLaser,availableLasers} from '../js/laser-equipment.js';
+import {offlineRoster} from '../js/pvp-loadout.js';
+import {createHangarEditor,serializeHangarEditor} from '../js/pvp-hangar.js';
+import {makeCombatPlayer,volley} from '../server/pvp/combat.mjs';
+
+const pilot={gold:150000,droneCount:2};
+normalizeLasers(pilot);
+assert.deepEqual(pilot.lasers.ship,['basic','basic'],'existing saves receive working starter weapons');
+assert.equal(buyLaser(pilot,'basic'),false);
+assert(buyLaser(pilot,'plasma'));
+assert.equal(pilot.gold,50000);
+assert(equipLaser(pilot,'ship',0,'plasma'));
+assert.equal(equipLaser(pilot,'drones',0,'plasma'),false,'one purchased unit cannot fill two slots');
+assert(equipLaser(pilot,'ship',0,'basic'));
+assert(equipLaser(pilot,'drones',0,'plasma'));
+assert.equal(availableLasers(pilot,'plasma'),0);
+assert.equal(equipLaser(pilot,'drones',2,'basic'),false,'unowned drones cannot be equipped');
+assert.equal(buyLaser(pilot,'plasma'),false,'insufficient credits cannot buy a weapon');
+assert(buyLaser(pilot,'pulse'));
+assert(equipLaser(pilot,'ship',1,'pulse'));
+const restored=JSON.parse(JSON.stringify(pilot));normalizeLasers(restored);
+assert.deepEqual(restored,pilot,'ownership and each mount survive reload');
+assert.deepEqual(laserLoadout({lasers:{owned:{plasma:1},ship:['plasma','plasma']}}).ship,['plasma','basic']);
+assert.deepEqual(laserLoadout({lasers:{owned:{plasma:-1},ship:['plasma','__proto__']}}).ship,['basic','basic']);
+
+const saved={...pilot,shipId:'aurora',ownedShips:{aurora:true},shipBaseStats:{maxHp:100,attack:100,defense:0,speed:220}};
+const roster=offlineRoster(saved);
+assert.deepEqual(roster.profiles.aurora.lasers,pilot.lasers);
+const editor=createHangarEditor(saved);
+assert.deepEqual(serializeHangarEditor(editor,saved).lasers,pilot.lasers,'PvP hangar saves equipment back to the same pilot');
+
+const player={id:'a',pos:[0,0,0]};
+makeCombatPlayer(player,{...roster.profiles.aurora,attack:100});
+const state={players:[player]},shot={offset:[0,0,-58],direction:[0,0,-1]};
+const shots=[{...shot,kind:'laser',laserSlot:0},{...shot,kind:'laser',laserSlot:1},{...shot,kind:'drone',laserSlot:0},{...shot,kind:'drone',laserSlot:1}];
+const bullets=volley(state,player,{weapon:'laser',shots},10000);
+assert.deepEqual(bullets.map(b=>b.damage),[50,50*LASERS.pulse.multiplier,20*LASERS.plasma.multiplier,20]);
+assert.equal(volley(state,player,{weapon:'laser',shots:[shots[1],shots[1]]},11000),null,'duplicate powerful mounts cannot be fired twice');
+assert.equal(volley(state,player,{weapon:'laser',shots:[{...shots[1],laserSlot:99}]},11000),null);
+assert(volley(state,player,{weapon:'laser',shots:shots.map(({laserSlot,...s})=>s)},11000),'legacy clients retain sequential mounts');
+console.log('Laser equipment: purchases, inventory, migration, persistence, PvP damage and slot validation passed.');
