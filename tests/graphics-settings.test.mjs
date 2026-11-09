@@ -14,6 +14,15 @@ c.select('high');simulate(c,40,15);assert.equal(c.level,'high','manual choice is
 c.select('auto');simulate(c,40,15,false);assert.equal(c.level,'medium','loading, background and menus do not lower auto quality');
 c.recover();assert.equal(c.level,'low','context loss retry starts conservatively');assert.equal(c.mode,'auto');
 c.select('high');c.recover();assert.equal(c.level,'low');assert.equal(c.mode,'high','recovery does not overwrite saved preference');
+let restoredLevel=null;
+const manual=createGraphicsController({mode:'high',onChange:level=>{restoredLevel=level}});
+manual.recover();assert.equal(manual.level,'low');
+manual.finishRecovery();assert.equal(manual.level,'high','world-ready restores manually selected High after low-quality recovery');
+assert.equal(restoredLevel,'high');assert.equal(manual.profile.lights,true);
+manual.finishRecovery();assert.equal(manual.level,'high','restoring twice preserves the selected quality');
+manual.recover();manual.select('medium');manual.finishRecovery();assert.equal(manual.level,'medium','a selection during recovery takes precedence');
+const automatic=createGraphicsController({mode:'auto'});
+automatic.recover();automatic.finishRecovery();assert.equal(automatic.level,'low','automatic mode resumes its existing adaptive recovery');
 assert.equal(isGraphicsRecoveryReload('1000','1000',1100),true);
 assert.equal(isGraphicsRecoveryReload(null,'1000',1100),false,'ordinary reentry honors saved quality after a recent recovery');
 assert.equal(isGraphicsRecoveryReload('1001','1000',1100),false,'only the matching recovery reload uses low quality');

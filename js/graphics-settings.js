@@ -22,6 +22,7 @@ export function createGraphicsController({mode='auto',initial='medium',onChange=
   get mode(){return choice},get level(){return level},get profile(){return QUALITY[level]},
   select(next){choice=normalizeGraphics(next);reset();level=choice==='auto'?'medium':choice;onChange(level,choice)},
   recover(){reset();change('low')},
+  finishRecovery(){if(choice!=='auto')change(choice)},
   sample(dt,eligible=true){
    if(choice!=='auto')return;
    if(!eligible||!Number.isFinite(dt)||dt<=0||dt>2){seconds=frames=bad=good=0;warmup=8;return}

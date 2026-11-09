@@ -32,7 +32,7 @@ import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
-import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings,isGraphicsRecoveryReload} from './graphics-settings.js?v=397';
+import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings,isGraphicsRecoveryReload} from './graphics-settings.js?v=404';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=225';
@@ -120,6 +120,7 @@ canvas.addEventListener('webglcontextrestored',()=>{
  graphicsRecoveryText.textContent='Gráficos restaurados. Reiniciando el mundo…';
  setTimeout(reloadGraphics,350);
 });
+addEventListener('cosmos:world-ready',()=>graphics.finishRecovery(),{once:true});
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x020611);scene.fog=new THREE.FogExp2(0x020611,.00032);
 // Fondo espacial panorámico ligero: textura generada una vez, sin geometría
 // adicional ni llamadas de red. Nebulosas tenues y estrellas sobre espacio oscuro.
