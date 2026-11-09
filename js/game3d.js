@@ -2354,7 +2354,7 @@ const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
 // Caja 3D compartida para todas las rarezas. Si el GLB aún no existe,
 // se conserva el botín original sin interrumpir el juego.
 let lootCrateTemplate=null;
-deferredModelLoad(modelLoader,'./assets/models/scificrate.glb?v=105',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/material-crate.glb?v=409',gltf=>{
  const template=gltf.scene;
  const box=new THREE.Box3().setFromObject(template);
  const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
