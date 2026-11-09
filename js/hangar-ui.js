@@ -14,7 +14,7 @@ export function formationPreview(id){
  return '<svg class="formation-preview" viewBox="0 0 300 260" role="img" aria-label="Vista previa de '+f.name+'"><defs><radialGradient id="glow-'+id+'"><stop stop-color="'+f.color+'" stop-opacity=".14"/><stop offset="1" stop-color="#06101c" stop-opacity="0"/></radialGradient></defs><ellipse cx="150" cy="140" rx="128" ry="108" fill="url(#glow-'+id+')"/><path d="M150 23V238M28 143H272" stroke="#75bde0" stroke-opacity=".12" stroke-dasharray="3 8"/>'+dots+'<g transform="translate(150,143)"><path d="M0 -28L12 -8L32 14L9 10L7 24L-7 24L-9 10L-32 14L-12 -8Z" fill="#d7e6ee" stroke="#7c97ab" stroke-width="2"/><path d="M0 -20L4 5L0 12L-4 5Z" fill="#ee5c66"/><path d="M-20 9L-10 7M20 9L10 7" stroke="#ee5c66" stroke-width="3"/><circle cx="-7" cy="24" r="3" fill="#65dfff"/><circle cx="7" cy="24" r="3" fill="#65dfff"/></g></svg>';
 }
 export function assembledShipPreview(id){return ASSEMBLED_SHIPS[id]?shipThumbnail(id):''}
-export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equip,equipShip,log=()=>{},changed}){
+export function mountHangarUI({player,isDocked,isOffline,canShop=isOffline,isPvpBase=()=>false,equip,equipShip,log=()=>{},changed}){
  const $=id=>document.getElementById(id);let equipmentShip=player.shipId,selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='',assemblyZone=isPvpBase()?'pvp':'pve';
  const note=text=>{message=text;for(const id of ['hangarNotice','shopNotice']){const el=$(id);el.textContent=text;el.hidden=!text}};
  function show(next){stopAssemblyPreview();view=next;$('hangarSections').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.hangarView===view)));for(const v of ['home','equipment','shop','assembly'])$('hangar'+v[0].toUpperCase()+v.slice(1)+'View').classList.toggle('hidden',v!==view);$('hangarPanel').classList.toggle('expanded',view!=='home');note('');render(true);if(view==='shop'&&category==='ships')previewShip()}
@@ -50,8 +50,8 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
 
  function render(force=false){
   $('hangarCredits').textContent=$('shopCredits').textContent=fmt(player.gold)+' créditos';
-  $('shopPurchases').disabled=!isDocked()||!isOffline();
-  $('shopAccessNotice').hidden=isDocked()&&isOffline();
+  $('shopPurchases').disabled=!canShop();
+  $('shopAccessNotice').hidden=canShop();
   if(assemblyZone!==baseZone()){assemblyZone=baseZone();selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear();stopAssemblyPreview();force=true}
   const next=JSON.stringify([baseZone(),player.gold,player.loot,player.formations,player.droneFormation,player.droneCount,player.repairRobotLevel,player.boosters,player.ownedShips,player.shipId,player.level]);
   if(!force&&next===stamp)return;stamp=next;
@@ -75,7 +75,7 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
   }
   $('shopBoosters').innerHTML='<h3>Potenciadores de vuelo</h3><p class="muted">El tiempo se pausa al salir, abrir menús o atracar. Repetir una compra suma tiempo. X3 tiene prioridad y X2 espera en reserva; sus efectos no se multiplican.</p><div class="commerce-grid">'+BOOSTERS.filter(b=>!b.retired).map(b=>'<article class="commerce-card"><span class="commerce-icon">'+b.icon+'</span><h4>'+b.name+'</h4><strong class="formation-perk">'+b.benefit+'</strong><p>'+fmt(b.price)+' créditos · '+duration(b.seconds)+'</p><small>'+(player.boosters[b.id]>0?(b.multiplier&&activeDamageBooster(player.boosters)?.id!==b.id?'En reserva: ':'Disponible: ')+duration(player.boosters[b.id]):'Sin activar')+'</small><button data-booster="'+b.id+'" '+(player.gold<b.price||player.boosters[b.id]+b.seconds>86400?'disabled':'')+'>Comprar y activar</button></article>').join('')+'</div>';
   $('shopBoosters').querySelectorAll('[data-booster]').forEach(button=>button.onclick=()=>{
-   if(!isDocked()||!isOffline())return;
+   if(!canShop())return;
    const id=button.dataset.booster,booster=BOOSTERS.find(b=>b.id===id);
    const previous={gold:player.gold,boosters:{...player.boosters}};
    if(!buyBooster(player,id))return;
@@ -87,10 +87,10 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
   $('shopSell').querySelectorAll('[data-sell-quantity]').forEach(input=>input.oninput=()=>{const n=Number(input.value),id=input.dataset.sellQuantity,valid=Number.isSafeInteger(n)&&n>0&&n<=(Number(player.loot[id])||0);$('shopSell').querySelector('[data-sale-total="'+id+'"]').textContent=valid?'Recibirás '+fmt(n*SELL_PRICES[id])+' créditos':'Introduce una cantidad disponible';$('shopSell').querySelector('[data-sell="'+id+'"]').disabled=!valid});
   $('shopSell').querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
    const id=b.dataset.sell,n=Number($('shopSell').querySelector('[data-sell-quantity="'+id+'"]').value),name=MATERIALS.find(m=>m[0]===id)[1];
-   if(!isDocked()||!isOffline()||!Number.isSafeInteger(n)||n<1||n>(Number(player.loot[id])||0))return;
+   if(!canShop()||!Number.isSafeInteger(n)||n<1||n>(Number(player.loot[id])||0))return;
    const dialog=$('saleConfirm');$('saleConfirmText').textContent='Vender '+fmt(n)+' de '+name+' por '+fmt(n*SELL_PRICES[id])+' créditos.';dialog.classList.remove('hidden');
    $('cancelSale').onclick=()=>dialog.classList.add('hidden');
-   $('confirmSale').onclick=()=>{dialog.classList.add('hidden');if(!isDocked()||!isOffline()||!sellMaterial(player,id,n))return;log('commerce','Venta: '+fmt(n)+' '+name+' · +'+fmt(n*SELL_PRICES[id])+' créditos');note('Venta completada: +'+fmt(n*SELL_PRICES[id])+' créditos.');sync()};
+   $('confirmSale').onclick=()=>{dialog.classList.add('hidden');if(!canShop()||!sellMaterial(player,id,n))return;log('commerce','Venta: '+fmt(n)+' '+name+' · +'+fmt(n*SELL_PRICES[id])+' créditos');note('Venta completada: +'+fmt(n*SELL_PRICES[id])+' créditos.');sync()};
   });
  }
  function previewShip(){const id=player.shipId;if(!SHIP_PREVIEWS[id]||view!=='shop'||category!=='ships')return;const host=$('shopShipPreview');if(host){const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_PREVIEWS[id].name;void startAssemblyPreview(host,id)}}

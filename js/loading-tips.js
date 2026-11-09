@@ -1,5 +1,5 @@
 const TIPS = [
- {level:1, text:'Abre la tienda desde el menú de las tres líneas. Aterriza en una base para comprar.'},
+ {level:1, text:'Compra y mejora tu nave en vuelo desde la tienda del menú.'},
  {level:1, text:'Compra un robot reparador para reparar tu nave sin volver a la base.'},
  {level:1, text:'Acércate a una base y aterriza para acceder al hangar y al ensamblaje.'},
  {level:1, text:'Toca las tres líneas de arriba a la derecha para ajustar los gráficos y el volumen.'},

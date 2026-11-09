@@ -42,10 +42,10 @@ import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=358';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=401';
-import {mountHangarUI} from './hangar-ui.js?v=405';
+import {mountHangarUI} from './hangar-ui.js?v=407';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=401';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=407';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=401';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -67,7 +67,7 @@ function showStorageWarning(message='El navegador bloqueó el guardado. Esta ses
  notice.textContent='⚠️ '+message;document.body.appendChild(notice);setTimeout(()=>notice.remove(),6500);
 }
 function safeStorageGet(key){try{return localStorage.getItem(key)}catch{showStorageWarning();return null}}
-function safeStorageSet(key,value){if(testProgressReset.pending)return false;if(PVP_MODE&&!pvpHangar)return true;try{if(key==='mundoAbierto.player'&&(window.COSMOS_PROFILE_SWITCHING||window.COSMOS_ACTIVE_PROFILE&&activeProfile(localStorage)!==window.COSMOS_ACTIVE_PROFILE))throw Error('La cuenta cambió');localStorage.setItem(key,value);if(key==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);return true}catch{showStorageWarning();return false}}
+function safeStorageSet(key,value,commerce=false){if(testProgressReset.pending)return false;if(PVP_MODE&&!pvpHangar&&!commerce)return true;try{if(key==='mundoAbierto.player'&&(window.COSMOS_PROFILE_SWITCHING||window.COSMOS_ACTIVE_PROFILE&&activeProfile(localStorage)!==window.COSMOS_ACTIVE_PROFILE))throw Error('La cuenta cambió');localStorage.setItem(key,value);if(key==='mundoAbierto.player'&&window.COSMOS_ACTIVE_PROFILE)checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);return true}catch{showStorageWarning();return false}}
 function safeStorageRemove(key){if(PVP_MODE)return true;try{localStorage.removeItem(key);return true}catch{showStorageWarning();return false}}
 const DEFAULT={name:'Nave Cadete',classId:null,level:1,x:0,y:0,z:0,hp:100,maxHp:100,energy:100,maxEnergy:100,attack:10,defense:5,gold:0,xp:0,speed:220,quests:{}};
 const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mode==='test';const SAVE_KEY=qaActive?'mundoAbierto.qaPlayer':'mundoAbierto.player';let stored={};try{stored=JSON.parse(safeStorageGet(SAVE_KEY)||'{}')||{}}catch{showStorageWarning('El guardado estaba dañado y se inició una sesión segura.')}let player={...DEFAULT,...(PVP_MODE?initialPvpPilot(stored):stored)};player.x=Number.isFinite(+player.x)?+player.x:0;player.y=Number.isFinite(+player.y)?+player.y:0;player.z=Number.isFinite(+player.z)?+player.z:0;player.quests=PVP_MODE?JSON.parse(JSON.stringify(stored.quests||{})):player.quests||{};syncShield(player,{pvp:PVP_MODE});
@@ -1893,6 +1893,7 @@ const UPGRADES=[
 player.upgrades=player.upgrades&&typeof player.upgrades==='object'?player.upgrades:{};
 function upgradeLevel(id){return Math.max(0,Math.min(10,Math.floor(Number(player.upgrades[id])||0)))}
 function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u)=>n+upgradeLevel(u.id)*u.amount,0)}
+function canUseShop(){return !PVP_MODE||!!pvpHangar||!!pvpSession?.active&&player.hp>0&&!recoveryPending}
 function renderDrones(){
  const containers=[$('hangarDroneShop')].filter(Boolean);if(!containers.length)return;
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
@@ -1905,23 +1906,23 @@ function renderDrones(){
  for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml;
  el.querySelector('.buyRepairRobot').onclick=()=>{
   const price=repairRobotPrice();
-  if(!docked||player.repairRobotLevel>=5||!price||player.gold<price)return;
+  if(!canUseShop()||player.repairRobotLevel>=5||!price||player.gold<price)return;
   player.gold-=price;player.repairRobotLevel++;player.repairRobot=true;logAction('commerce','Robot reparador · Nivel '+player.repairRobotLevel+' · −'+price.toLocaleString('es')+' créditos');save();hud();hangarRefresh();lootToast('🔧 Robot reparador · Nivel '+player.repairRobotLevel);
  };
  el.querySelector('.buyExplorerRange').onclick=()=>{
-  const price=explorerUpgradePrice();if(!player.explorerDrone||player.explorerRangeLevel>=10||player.gold<price)return;
-  player.gold-=price;player.explorerRangeLevel++;logAction('commerce','Alcance del Explorador · Nivel '+player.explorerRangeLevel+' · −'+price.toLocaleString('es')+' créditos');save();hud();renderDrones();lootToast('📡 Explorador: alcance '+explorerRange()+' m');if(docked)hangarRefresh();
+  const price=explorerUpgradePrice();if(!canUseShop()||!player.explorerDrone||player.explorerRangeLevel>=10||player.gold<price)return;
+  player.gold-=price;player.explorerRangeLevel++;logAction('commerce','Alcance del Explorador · Nivel '+player.explorerRangeLevel+' · −'+price.toLocaleString('es')+' créditos');save();hud();renderDrones();lootToast('📡 Explorador: alcance '+explorerRange()+' m');if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
  };
  el.querySelector('.buyExplorerBtn').onclick=()=>{
-  if(player.explorerDrone||player.gold<EXPLORER_PRICE)return;
+  if(!canUseShop()||player.explorerDrone||player.gold<EXPLORER_PRICE)return;
   player.gold-=EXPLORER_PRICE;player.explorerDrone=true;logAction('commerce','Compra: Dron Explorador · −'+EXPLORER_PRICE.toLocaleString('es')+' créditos');save();hud();renderDrones();lootToast('🛰️ Dron Explorador equipado');
-  if(docked)hangarRefresh();
+  if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
  };el.querySelector('.buyDroneBtn').onclick=()=>{
   const owned=ownedDrones(),cost=DRONE_PRICES[owned];
-  if(owned>=MAX_DRONES||player.gold<cost)return;
+  if(!canUseShop()||owned>=MAX_DRONES||player.gold<cost)return;
   player.gold-=cost;player.droneCount=owned+1;logAction('commerce','Compra: dron '+player.droneCount+' · −'+cost.toLocaleString('es')+' créditos');syncShipStats();missionEvent('drone');save();hud();renderDrones();
   lootToast('🤖 Dron '+player.droneCount+' adquirido y equipado');
-  if(docked)hangarRefresh();
+  if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
  };}
 }
 // Flota: las mejoras generales permanecen en el perfil; las especializaciones son por nave.
@@ -2140,7 +2141,7 @@ function renderSpecialUpgrades(){
  }).join('');
  box.querySelectorAll('button[data-special]').forEach(b=>b.onclick=()=>{
   const key=b.dataset.special,level=specialLevel(key),cost=20000*(level+1),material=2+level;
-  if(level>=10||!SPECIAL_UPGRADES[player.shipId].some(x=>x[0]===key)||player.gold<cost||(Number(player.loot?.aleacion)||0)<material)return;
+  if(!canUseShop()||level>=10||!SPECIAL_UPGRADES[player.shipId].some(x=>x[0]===key)||player.gold<cost||(Number(player.loot?.aleacion)||0)<material)return;
   player.gold-=cost;player.loot.aleacion-=material;
   if(!player.shipSpecializations[player.shipId])player.shipSpecializations[player.shipId]={};
   player.shipSpecializations[player.shipId][key]=level+1;logAction('commerce','Mejora de '+SHIP_TYPES[player.shipId].name+': '+SPECIAL_UPGRADES[player.shipId].find(x=>x[0]===key)[1]+' · Nivel '+(level+1)+' · −'+cost.toLocaleString('es')+' créditos · '+material+' aleación');
@@ -2202,7 +2203,7 @@ function renderShips(){
   return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(owned||!canBuy?'disabled':'')+'>'+(owned?'Disponible en Hangar':'Comprar')+'</button></div>';
  }).join('');
  fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
-  const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t||!docked||t.recipe||player.ownedShips[id])return;
+  const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t||!canUseShop()||t.recipe||player.ownedShips[id])return;
   if(!player.ownedShips[id]){
    if(t.recipe){if(!assembleShip(player,id))return;logAction('commerce','Nave ensamblada: '+t.name+' · −'+t.cost.toLocaleString('es')+' créditos y materiales del plano');}else{
     if(player.level<t.level||player.gold<t.cost)return;
@@ -2228,27 +2229,27 @@ function renderUpgrades(){
  const missileAvailable=player.gold>=missileCost.credits&&(Number(player.loot.aleacion)||0)>=missileCost.material;
  const missileHtml='<div class="upgrade-card"><div><strong>🚀 Lanzamisiles múltiples</strong><small>Nivel '+missileLv+'/9 · '+(missileLv+1)+' misil(es) por lanzamiento, desde ambos lados de la nave.</small><small>'+(missileLv>=9?'Mejora máxima':'Costo: '+missileCost.material+' aleación + '+missileCost.credits.toLocaleString('es')+' créditos')+'</small></div><button class="buyMissileUpgrade" '+(missileLv>=9||!missileAvailable?'disabled':'')+'>'+(missileLv>=9?'Máximo':'Mejorar')+'</button></div>';
  const laserLv=laserLevel(player),laserCost=laserUpgradeCost(player),pvpBase=PVP_MODE&&!!pvpHangar;
- const canBuyLaser=pvpBase&&docked&&laserCost&&player.gold>=laserCost.credits&&(Number(player.loot.nucleoNexo)||0)>=laserCost.nuclei;
- const laserHtml='<div class="upgrade-card"><div><strong>⚡ Acelerador del láser</strong><small>Nivel '+laserLv+'/5 · '+laserSpeed(player).toLocaleString('es')+' unidades/s · +440 por nivel · Máximo 6.200</small><small>'+(laserCost?(pvpBase?'':'Comprar en la base PvP · ')+laserCost.credits.toLocaleString('es')+' créditos + '+laserCost.nuclei+' núcleos del Nexo':'Mejora máxima')+'</small></div><button class="buyLaserUpgrade" '+(!canBuyLaser?'disabled':'')+'>'+(laserCost?'Mejorar':'Máximo')+'</button></div>';
+ const canBuyLaser=canUseShop()&&laserCost&&player.gold>=laserCost.credits&&(Number(player.loot.nucleoNexo)||0)>=laserCost.nuclei;
+ const laserHtml='<div class="upgrade-card"><div><strong>⚡ Acelerador del láser</strong><small>Nivel '+laserLv+'/5 · '+laserSpeed(player).toLocaleString('es')+' unidades/s · +440 por nivel · Máximo 6.200</small><small>'+(laserCost?laserCost.credits.toLocaleString('es')+' créditos + '+laserCost.nuclei+' núcleos del Nexo':'Mejora máxima')+'</small></div><button class="buyLaserUpgrade" '+(!canBuyLaser?'disabled':'')+'>'+(laserCost?'Mejorar':'Máximo')+'</button></div>';
  const shieldLv=shieldLevel(player),shieldCost=shieldUpgradeCost(player);
- const shieldHtml='<div class="upgrade-card"><div><strong>🛡 Generador de escudo</strong><small>Nivel '+shieldLv+'/5 · Capacidad de esta nave: '+shieldCapacity(player)+' · +'+shieldCapacity({...player,upgrades:{...player.upgrades,shieldGenerator:1}})+' por nivel</small><small>Absorbe daño antes del casco. Recarga 10 %/s tras 5 s sin recibir daño.</small><small>'+(shieldCost===null?'Mejora máxima':shieldCost.toLocaleString('es')+' créditos')+'</small></div><button class="buyShieldUpgrade" '+(!docked||shieldCost===null||player.gold<shieldCost?'disabled':'')+'>'+(shieldLv===0?'Activar escudo':shieldCost===null?'Máximo':'Mejorar')+'</button></div>';
+ const shieldHtml='<div class="upgrade-card"><div><strong>🛡 Generador de escudo</strong><small>Nivel '+shieldLv+'/5 · Capacidad de esta nave: '+shieldCapacity(player)+' · +'+shieldCapacity({...player,upgrades:{...player.upgrades,shieldGenerator:1}})+' por nivel</small><small>Absorbe daño antes del casco. Recarga 10 %/s tras 5 s sin recibir daño.</small><small>'+(shieldCost===null?'Mejora máxima':shieldCost.toLocaleString('es')+' créditos')+'</small></div><button class="buyShieldUpgrade" '+(!canUseShop()||shieldCost===null||player.gold<shieldCost?'disabled':'')+'>'+(shieldLv===0?'Activar escudo':shieldCost===null?'Máximo':'Mejorar')+'</button></div>';
  for(const el of containers){el.innerHTML=shieldHtml+html+missileHtml+laserHtml;
  el.querySelector('.buyShieldUpgrade').onclick=()=>{
-  const cost=shieldUpgradeCost(player);if(!buyShieldUpgrade(player,{docked:docked&&(!PVP_MODE||!!pvpHangar)}))return;
-  logAction('commerce','Generador de escudo · Nivel '+shieldLevel(player)+' · −'+cost.toLocaleString('es')+' créditos');missionEvent('upgrade');save();hud();renderUpgrades();if(docked)hangarRefresh();lootToast('🛡 Escudo: '+player.maxShield);
+  const cost=shieldUpgradeCost(player);if(!buyShieldUpgrade(player,{docked:canUseShop()}))return;
+  logAction('commerce','Generador de escudo · Nivel '+shieldLevel(player)+' · −'+cost.toLocaleString('es')+' créditos');missionEvent('upgrade');save();hud();renderUpgrades();if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();lootToast('🛡 Escudo: '+player.maxShield);
  };
 
  el.querySelector('.buyLaserUpgrade').onclick=()=>{
-  const cost=laserUpgradeCost(player);if(!buyLaserUpgrade(player,{isPvpBase:PVP_MODE&&!!pvpHangar,isDocked:docked}))return;
+  const cost=laserUpgradeCost(player);if(!buyLaserUpgrade(player,{isPvpBase:canUseShop(),isDocked:canUseShop()}))return;
   logAction('commerce','Acelerador del láser · Nivel '+laserLevel(player)+' · −'+cost.credits.toLocaleString('es')+' créditos · '+cost.nuclei+' núcleos del Nexo');
-  missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();lootToast('⚡ Velocidad del láser: '+laserSpeed(player).toLocaleString('es'));
+  missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();lootToast('⚡ Velocidad del láser: '+laserSpeed(player).toLocaleString('es'));
  };
 el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));
  el.querySelector('.buyMissileUpgrade').onclick=()=>{
   const lv=upgradeLevel('missiles'),cost=missileUpgradeCost();
-  if(lv>=9||player.gold<cost.credits||(Number(player.loot.aleacion)||0)<cost.material)return;
+  if(!canUseShop()||lv>=9||player.gold<cost.credits||(Number(player.loot.aleacion)||0)<cost.material)return;
   player.gold-=cost.credits;player.loot.aleacion-=cost.material;player.upgrades.missiles=lv+1;logAction('commerce','Lanzamisiles · Nivel '+(lv+1)+' · −'+cost.credits.toLocaleString('es')+' créditos · '+cost.material+' aleación');missionEvent('missileUpgrade');
-  missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
+  missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
   lootToast('🚀 Misiles por lanzamiento: '+missileCount());
  };
  }
@@ -2256,12 +2257,12 @@ el.querySelectorAll('button[data-upgrade]').forEach(b=>b.onclick=()=>buyUpgrade(
 function buyUpgrade(id){
  const u=UPGRADES.find(v=>v.id===id);if(!u)return;
  const lv=upgradeLevel(id),need=u.base+lv,price=u.credits*(lv+1);
- if(lv>=10||(Number(player.loot[u.material])||0)<need||player.gold<price)return;
+ if(!canUseShop()||lv>=10||(Number(player.loot[u.material])||0)<need||player.gold<price)return;
  player.loot[u.material]-=need;player.gold-=price;player.upgrades[id]=lv+1;logAction('commerce','Mejora: '+u.name+' · Nivel '+(lv+1)+' · −'+price.toLocaleString('es')+' créditos · '+need+' '+(LOOT_TYPES.find(t=>t.id===u.material)?.name||u.material));
  if(player.shipBaseStats){player.shipBaseStats[u.stat]+=u.amount;syncShipStats()}
  else player[u.stat]+=u.amount;
  if(u.stat==='maxHp')player.hp=Math.min(player.maxHp,player.hp+u.amount);
- missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked)hangarRefresh();
+ missionEvent('upgrade');save();hud();renderUpgrades();renderInventory();if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
 }
 // Campaña inicial del Sector Aurora: progreso persistente por perfil.
 const MISSIONS=[
@@ -2785,6 +2786,13 @@ $('skillBtn').onpointerdown=()=>{if(panel.classList.contains('hidden')&&!docked&
 $('classAbilityBtn').onpointerdown=()=>{if(panel.classList.contains('hidden'))activateClassAbility()};
 function save(){if(testProgressReset.pending)return false;if(PVP_MODE){
  if(!pvpHangar){
+  if(!$('shopPanel').classList.contains('hidden')&&canUseShop()){
+   const latest=readOfflinePilot(localStorage),saved=serializeHangarEditor(player,latest);
+   // Arena damage and shields must never overwrite the offline pilot's condition.
+   for(const key of ['hp','maxHp','shield','maxShield','energy','maxEnergy'])if(Object.hasOwn(latest,key))saved[key]=latest[key];
+   if(!safeStorageSet(SAVE_KEY,JSON.stringify(saved),true))return false;
+   pvpSession.refreshProgress(saved);return true;
+  }
   if(!pvpBoostersKnown)return true;
   const saved=readOfflinePilot(localStorage);
   saved.boosters={...saved.boosters,...damageBoosterTimers(player.boosters)};
@@ -3138,7 +3146,7 @@ function closeShop(){
  $('shopPanel').classList.add('hidden');hangarUI?.stopPreview();hangarUI?.show('home');$('menuShop').focus();
 }
 $('menuShop').onclick=()=>{
- resetDockControls();fireHeld=false;hangarRefresh();hangarUI.show('shop');$('shopPanel').classList.remove('hidden');$('closeShop').focus();
+ resetDockControls();fireHeld=false;if(PVP_MODE&&!pvpHangar){const pilot=readOfflinePilot(localStorage);player.boosters={...pilot.boosters,...damageBoosterTimers(player.boosters)}}hangarRefresh();hangarUI.show('shop');$('shopPanel').classList.remove('hidden');$('closeShop').focus();
 };
 $('closeShop').onclick=closeShop;
 $('shopPanel').addEventListener('pointerdown',event=>{if(event.target===$('shopPanel')){event.preventDefault();event.stopPropagation();closeShop()}});
@@ -3153,7 +3161,7 @@ $('qaPanel').classList.toggle('hidden',!window.MUNDO_PLAY_MODE?.testEnabled&&!qa
 qaTools.classList.toggle('hidden',!qaActive);
 qaSwitch.onclick=()=>{if(!save())return;window.MUNDO_PLAY_MODE.choose()};
 addEventListener('mundo:save-before-switch',()=>{save()});
-function qaApply(fn,label=document.activeElement?.textContent){if(!qaActive)return;fn();logAction('qa',label||'Ayuda de prueba aplicada');save();hud();renderDrones();renderUpgrades();renderInventory();if(docked)hangarRefresh()}
+function qaApply(fn,label=document.activeElement?.textContent){if(!qaActive)return;fn();logAction('qa',label||'Ayuda de prueba aplicada');save();hud();renderDrones();renderUpgrades();renderInventory();if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh()}
 $('qaCredits').onclick=()=>qaApply(()=>player.gold=(Number(player.gold)||0)+100000);
 $('qaDrones').onclick=()=>qaApply(()=>{player.droneCount=8;syncShipStats()});
 $('qaHeal').onclick=()=>qaApply(()=>{player.hp=player.maxHp;player.energy=player.maxEnergy;syncShield(player,{fill:true})});
@@ -3167,7 +3175,7 @@ $('resetBtn').onclick=()=>{
  if(confirm('¿Reiniciar la nave y todo su progreso?')&&safeStorageRemove(SAVE_KEY))location.reload();
 };
 $('interactBtn').classList.add('hidden');$('dialogue').classList.add('hidden');renderMission();
-hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!PVP_MODE||!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{if(!save())return false;hud();renderInventory();hangarRefresh();return true}});
+hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,canShop:canUseShop,isOffline:()=>!PVP_MODE||!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{if(!save())return false;hud();renderInventory();hangarRefresh();return true}});
 let boosterStatusSecond=-1;
 function updateBoosterStatus(){
  const second=Math.floor(performance.now()/1000);if(second===boosterStatusSecond)return;boosterStatusSecond=second;
@@ -3261,7 +3269,7 @@ function farmBasePoint(){
 let farmObstacles=[],farmObstacleAt=-Infinity,farmBase=null,farmObstacleSector=null;
 function farmInput(dt,now){
  if(!farmPilot?.running)return null;
- const paused=systemMap.open||farmUI.open||!panel.classList.contains('hidden')||document.body.classList.contains('journal-open')||document.body.classList.contains('portrait-blocked');
+ const paused=!$('shopPanel').classList.contains('hidden')||systemMap.open||farmUI.open||!panel.classList.contains('hidden')||document.body.classList.contains('journal-open')||document.body.classList.contains('portrait-blocked');
  if(now-farmObstacleAt>500||farmObstacleSector!==activeSector){farmObstacleSector=activeSector;farmObstacleAt=now;farmBase=farmBasePoint();farmObstacles=asteroidField.visible?asteroidField.children.filter(o=>o.position.distanceToSquared(playerMesh.position)<700*700).map(o=>({position:o.position,radius:Math.max(o.scale.x,o.scale.y,o.scale.z)*1.5})):[];}
  const command=farmPilot.tick({pvp:PVP_MODE,active:!document.hidden&&document.hasFocus()&&!graphicsLost,dead:player.hp<=0||recoveryPending,paused,abilityReady:classAbilityTime<=0&&classAbilityCd<=0,position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,gold:player.gold,repairCost:Math.ceil(Math.max(0,player.maxHp-player.hp)*.3),robot:player.repairRobot,docked,landing,base:farmBase,sector:activeSector,level:player.level,routes:sectorPortalRoutes(),enemies,drops,safe:inSafeZone,center:currentSector(),radius:currentSector().radius,obstacles:farmObstacles,attacks:enemyShots.concat(titanProjectiles)},now/1000);
  if(!farmPilot.running)farmUI.refresh();
@@ -3322,9 +3330,9 @@ wreckVisibility.update(playerMesh.position,dt,activeSector==='graveyard'&&!PVP_M
 graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
 updateGraphicsDetail(now);
 updateProAuras(THREE,enemies,now/1000);
-if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(document.body.classList.contains('journal-open')){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(player.hp<=0||recoveryPending){showRecovery();titanFireburst.update(dt);if(recoveryPending&&now>=destructionUntil)recoveryPanel.style.display='flex';hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||!!document.getElementById('worldLoading')||document.hidden||docked||landing||!panel.classList.contains('hidden')||systemMap.open||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
+if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(document.body.classList.contains('journal-open')){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(player.hp<=0||recoveryPending){showRecovery();titanFireburst.update(dt);if(recoveryPending&&now>=destructionUntil)recoveryPanel.style.display='flex';hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||!!document.getElementById('worldLoading')||document.hidden||docked||landing||!$('shopPanel').classList.contains('hidden')||!panel.classList.contains('hidden')||systemMap.open||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
  updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!systemMap.open&&!docked&&!landing&&panel.classList.contains('hidden'))fire();if(!PVP_MODE)regenerateShield(player,dt,Date.now(),shipRole(player.shipId)==='aurora'?1+specialLevel('energy')*.04:1);
-const menuOpen=systemMap.open||docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);
+const menuOpen=!$('shopPanel').classList.contains('hidden')||systemMap.open||docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
 const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
 const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const strafe=menuOpen?0:THREE.MathUtils.clamp((autoInput?.strafe??joy.strafe)+(keys.d?1:0)-(keys.a?1:0),-1,1);const movementScale=Math.max(1,Math.hypot(throttle,strafe)),scrapMovement=scrapCombat.blocked()||pvpSession?.paralyzed?0:1;playerMesh.position.addScaledVector(forward,player.speed*equippedBonus().speed*throttle*dt*scrapMovement/movementScale);playerMesh.position.addScaledVector(right,player.speed*equippedBonus().speed*strafe*dt*scrapMovement/movementScale);advanceLanding(dt);if(pvpSession)pvpSession.input(menuOpen?[0,0,0]:forward.clone().multiplyScalar(throttle*scrapMovement/movementScale).addScaledVector(right,strafe*scrapMovement/movementScale).toArray(),[yaw,pitch],!menuOpen&&(fireHeld||autoInput?.fire),dt,now,player.speed);
@@ -3422,7 +3430,7 @@ function openPvpHangar(){
  player=createHangarEditor(readOfflinePilot(localStorage));if(pvpSession.adminShipAllowed)player.ownedShips.adminpod=true;normalizeHangar(player);
  missionBoard=createMissionBoard(missionCatalog,player.quests);docked=true;landing=false;resetDockControls();fireHeld=false;clearCombatShots();
  document.body.classList.add('docked');$('saleConfirm').classList.add('hidden');hangar.classList.remove('hidden');
- hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,isOffline:()=>!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{if(!save())return false;hud();renderInventory();hangarRefresh();return true}});
+ hangarUI=mountHangarUI({player,isDocked:()=>docked,isPvpBase:()=>PVP_MODE&&!!pvpHangar,canShop:canUseShop,isOffline:()=>!!pvpHangar,equip:equipFormation,equipShip:changeShip,log:logAction,changed:()=>{if(!save())return false;hud();renderInventory();hangarRefresh();return true}});
  hangarUI.show('home');hangarRefresh();
 }
 function closePvpHangar(){

@@ -25,7 +25,7 @@ function node(id){
  return nodes.get(id);
 }
 let view='home',refreshes=0,stopped=0;
-const context={$:node,fireHeld:true,resetDockControls(){},hangarRefresh(){refreshes++},hangarUI:{show(next){view=next},stopPreview(){stopped++}}};
+const context={PVP_MODE:false,$:node,fireHeld:true,resetDockControls(){},hangarRefresh(){refreshes++},hangarUI:{show(next){view=next},stopPreview(){stopped++}}};
 vm.createContext(context);
 const start=game.indexOf('function closeShop(){'),end=game.indexOf("document.addEventListener('pointerdown'",start);
 vm.runInContext(game.slice(start,end),context);
