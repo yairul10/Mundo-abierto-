@@ -1,15 +1,15 @@
 const TIPS = [
- {level:1, text:'Compra y mejora tu nave en vuelo desde la tienda del menú.'},
+ {level:1, text:'Abre la Tienda en el menú de tres líneas para comprar y mejorar en vuelo.'},
  {level:1, text:'Compra un robot reparador para reparar tu nave sin volver a la base.'},
- {level:1, text:'Acércate a una base y aterriza para acceder al hangar y al ensamblaje.'},
- {level:1, text:'Toca las tres líneas de arriba a la derecha para ajustar los gráficos y el volumen.'},
+ {level:1, text:'Al aterrizar encontrarás Hangar y Ensamblaje.'},
+ {level:1, text:'En el menú de tres líneas encontrarás la Tienda y los ajustes de gráficos y volumen.'},
  {level:1, text:'Toca el minimapa para ver los sectores y los requisitos para desbloquearlos.'},
  {level:1, text:'Desde «Acomodar controles» puedes mover los botones y el joystick a tu gusto.'},
  {level:1, text:'Consulta el botón de misiones para ver tus objetivos y las recompensas disponibles.'},
  {level:10, text:'Tu mascota puede combatir, recoger recursos o hacer ambas cosas. Elige su modo desde su icono.'},
  {level:10, text:'Puedes cambiar la formación de tus drones durante el vuelo desde el botón de formación.'},
  {level:10, text:'Conserva los materiales que dejan los enemigos. Los necesitarás para el ensamblaje.'},
- {level:30, text:'En la base PvP encontrarás el hangar, la tienda y el ensamblaje de ese mapa.'},
+ {level:30, text:'En la base PvP encontrarás Hangar y Ensamblaje PvP. La Tienda está en el menú.'},
  {level:40, text:'Las naves tienen habilidades diferentes. Consulta sus características en el hangar antes de equiparlas.'}
 ];
 

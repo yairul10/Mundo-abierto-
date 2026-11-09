@@ -54,7 +54,7 @@ document.currentScript.after(threeMap);
 </script>
 <script type="module">
 const status=document.getElementById('bootStatus');
-const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261108-407';
+const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261108-408';
 let stopLoadingTips=()=>{};
 async function loadWithDeadline(promise,label){
  let timer;
@@ -95,7 +95,7 @@ try {
   void engineReady.catch(()=>{});
   const cloud=await accountReady;
   // Read progress after the selected account has restored its local save.
-  void import('./js/loading-tips.js?v=407').then(({mountLoadingTips})=>{
+  void import('./js/loading-tips.js?v=408').then(({mountLoadingTips})=>{
    const element=document.getElementById('worldLoadingTip');
    if(!element?.isConnected)return;
    let level=1;
