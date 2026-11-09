@@ -2616,9 +2616,11 @@ function finishLanding(){
  player.energy=player.maxEnergy;hangar.classList.remove('hidden');if(hangarUI)hangarUI.show('home');
  hangarRefresh();missionEvent('dock',{sector:activeSector});save();
 }
-// Solo aceptar una superficie horizontal realmente situada debajo de la nave.
+function inLandingZone(){return PVP_MODE?pvpSession?.zone==='base':inSafeZone(playerMesh.position)}
+// Desde la zona segura, aproximarse a la plataforma real más cercana.
 // No usar posiciones antiguas si no existe una plataforma detectable.
 function selectLandingPlatform(apply=false){
+ if(!inLandingZone())return false;
  if(activeSector==='graveyard'||activeSector==='ember'?false:activeSector==='belt'?!beltStationReady:!auroraModelReady)return false;
  if(activeSector==='graveyard'||activeSector==='ember'||activeSector==='belt'||modularStationReady){
   currentStation().updateMatrixWorld(true);
@@ -2627,8 +2629,7 @@ function selectLandingPlatform(apply=false){
    const bounds=new THREE.Box3().setFromObject(pad);
    const center=bounds.getCenter(new THREE.Vector3());
    const distance=Math.hypot(playerMesh.position.x-center.x,playerMesh.position.z-center.z);
-   const deltaY=playerMesh.position.y-bounds.max.y;
-   if(distance<(pad.userData.landingRadius||155)&&deltaY>=-30&&deltaY<240&&distance<best){
+   if(distance<best){
     best=distance;nearest={center,top:bounds.max.y};
    }
   }
@@ -2669,8 +2670,7 @@ function beginLanding(){
 }
 dockBtn.onclick=()=>{
  if(dockBtn.disabled||dockBtn.classList.contains('hidden'))return;
- const base=currentStation(),distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
- if(distance<LANDING_RADIUS&&selectLandingPlatform()){if(PVP_MODE)pvpSession?.requestHangar();else beginLanding()}
+ if(inLandingZone()&&selectLandingPlatform()){if(PVP_MODE)pvpSession?.requestHangar();else beginLanding()}
 };
 function advanceLanding(dt){
  if(!landing)return;
@@ -2710,12 +2710,11 @@ function updateDock(){
  if(landing){dockBtn.classList.remove('hidden');return}
  const base=currentStation(),distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
  if(distance>LANDING_RADIUS+110)landingArmed=true;
- // Activación sólo cerca de la plataforma, no en toda la zona segura.
- const inCorridor=distance<LANDING_RADIUS&&selectLandingPlatform();
- const available=inCorridor&&panel.classList.contains('hidden')&&(!PVP_MODE||pvpSession?.canDock);
- dockBtn.classList.toggle('hidden',!available);
+ const visible=inLandingZone()&&panel.classList.contains('hidden')&&!(PVP_MODE&&pvpHangar);
+ const available=visible&&selectLandingPlatform()&&(!PVP_MODE||pvpSession?.canDock);
+ dockBtn.classList.toggle('hidden',!visible);
  dockBtn.disabled=!available;
- if(available)dockBtn.textContent='Aterrizar en '+(PVP_MODE?'Base PvP':currentStationName());
+ if(visible)dockBtn.textContent='Aterrizar en '+(PVP_MODE?'Base PvP':currentStationName());
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{if(document.body.classList.contains('system-map-open')||e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
