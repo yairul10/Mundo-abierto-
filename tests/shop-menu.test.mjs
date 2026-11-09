@@ -11,6 +11,10 @@ assert(!nav.includes('data-hangar-view="shop"'));
 assert.equal((html.match(/id="hangarShopView"/g)||[]).length,1,'one store preserves the existing handlers');
 assert(html.indexOf('id="shopPanel"')<html.indexOf('id="hangarShopView"'));
 assert(html.includes('id="shopPurchases"'));
+// Sale rendering replaces shopSell.innerHTML; the confirmation must survive it.
+assert(html.indexOf('id="saleConfirm"')>html.indexOf('</fieldset>'));
+assert(html.includes('<div id="shopSell" class="hidden"></div>'));
+
 
 const nodes=new Map();
 function node(id){
@@ -31,3 +35,13 @@ node('menuShop').onclick();let prevented=false;
 node('shopPanel').handlers.keydown({key:'Escape',preventDefault(){prevented=true},stopPropagation(){}});
 assert(prevented);assert(node('shopPanel').classList.contains('hidden'));
 console.log('Shop menu: relocated store, two landing services, open/back and Escape passed.');
+
+node('menuShop').onclick();
+node('shopPanel').handlers.pointerdown({target:node('closeShop'),preventDefault(){},stopPropagation(){}});
+assert(!node('shopPanel').classList.contains('hidden'),'inside touches keep the store open');
+node('shopPanel').handlers.pointerdown({target:node('shopPanel'),preventDefault(){},stopPropagation(){}});
+assert(node('shopPanel').classList.contains('hidden'),'backdrop closes the store');
+// A missing secondary dialog must never trap the player in the shop.
+context.$=id=>id==='saleConfirm'?null:node(id);
+node('menuShop').onclick();node('closeShop').onclick();
+assert(node('shopPanel').classList.contains('hidden'));

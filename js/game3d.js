@@ -3134,7 +3134,7 @@ hudToggle.onclick=()=>{
 };
 const panel=$('characterPanel');combatAudio.mount(panel);graphicsUI=mountGraphicsSettings(graphics,{parent:panel,storage:{setItem:(key,value)=>localStorage.setItem(key,value)}});const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open');if(docked)hangar.classList.remove('hidden')};$('characterBtn').onclick=()=>{if(docked)hangar.classList.add('hidden');$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Escudo máximo: '+player.maxShield+'<br>Potencia: '+player.attack+'<br>Defensa: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;
 function closeShop(){
- $('saleConfirm').classList.add('hidden');
+ $('saleConfirm')?.classList.add('hidden');
  $('shopPanel').classList.add('hidden');hangarUI?.stopPreview();hangarUI?.show('home');$('menuShop').focus();
 }
 $('menuShop').onclick=()=>{
