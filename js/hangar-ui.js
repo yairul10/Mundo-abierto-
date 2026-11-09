@@ -1,9 +1,10 @@
+import {activeDamageBooster} from './damage-boosters.js?v=401';
 import {shieldCapacity} from './shield-system.js?v=364';
-import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=358';
+import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=401';
 import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=355';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=358';
-import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=177';
+import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=401';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
 const MATERIALS=[['chatarra','Chatarra espacial','#bac9d7'],['aleacion','Aleación reforzada','#55c6ff'],['nucleo','Núcleo de energía','#c783ff'],['reliquia','Componente ancestral','#ffca58']];
 const duration=n=>Math.ceil(Math.max(0,n)/60)+' min';
@@ -32,7 +33,7 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
   host.querySelectorAll('[data-equip-owned]').forEach(b=>b.onclick=()=>{if(view!=='equipment'||!isDocked()||!isOffline()||!player.ownedShips?.[b.dataset.equipOwned])return;equipShip(b.dataset.equipOwned);render(true)});
   host.querySelectorAll('[data-equip-owned-formation]').forEach(b=>b.onclick=()=>{if(view!=='equipment'||!isDocked()||!isOffline()||!player.formations?.[b.dataset.equipOwnedFormation])return;equip(b.dataset.equipOwnedFormation);render(true)});
  }
- function sync(){changed();render(true)}
+ function sync(){const saved=changed();render(true);return saved}
  function renderShipAssembly(id){
   const arena=pvpMultipliers(id),normal=pveMultipliers(id);
   const ship=ASSEMBLED_SHIPS[id],owned=!!player.ownedShips?.[id],recipe=Object.entries(ship.recipe);
@@ -70,8 +71,16 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
   if($('assembleFormation'))$('assembleFormation').onclick=()=>{if(view!=='assembly'||baseZone()!=='pve'||assemblyZone!=='pve'||!isOffline()||!isDocked()||draft.size!==4||!assemble(player,selected))return;log('commerce','Formación ensamblada: '+f.name+' · −'+fmt(RECIPE.credits)+' créditos y materiales del plano');draft.clear();note('Formación ensamblada. Ya puedes equiparla.');sync()};
   }
   }
-  $('shopBoosters').innerHTML='<h3>Potenciadores de vuelo</h3><p class="muted">15 minutos de vuelo por compra. Se pausan al salir, abrir menús o atracar. Repetir la compra suma tiempo; la ventaja no se multiplica.</p><div class="commerce-grid">'+BOOSTERS.map(b=>'<article class="commerce-card"><span class="commerce-icon">'+b.icon+'</span><h4>'+b.name+'</h4><strong class="formation-perk">'+b.benefit+'</strong><p>'+fmt(b.price)+' créditos · 15 min</p><small>'+(player.boosters[b.id]>0?'Disponible: '+duration(player.boosters[b.id]):'Sin activar')+'</small><button data-booster="'+b.id+'" '+(player.gold<b.price||player.boosters[b.id]+b.seconds>86400?'disabled':'')+'>Comprar y activar</button></article>').join('')+'</div>';
-  $('shopBoosters').querySelectorAll('[data-booster]').forEach(b=>b.onclick=()=>{if(!isDocked()||!isOffline()||!buyBooster(player,b.dataset.booster))return;log('commerce','Compra: '+BOOSTERS.find(x=>x.id===b.dataset.booster).name+' · −'+fmt(BOOSTERS.find(x=>x.id===b.dataset.booster).price)+' créditos');note('Potenciador activado. Su tiempo comienza al despegar.');sync()});
+  $('shopBoosters').innerHTML='<h3>Potenciadores de vuelo</h3><p class="muted">El tiempo se pausa al salir, abrir menús o atracar. Repetir una compra suma tiempo. X3 tiene prioridad y X2 espera en reserva; sus efectos no se multiplican.</p><div class="commerce-grid">'+BOOSTERS.filter(b=>!b.retired).map(b=>'<article class="commerce-card"><span class="commerce-icon">'+b.icon+'</span><h4>'+b.name+'</h4><strong class="formation-perk">'+b.benefit+'</strong><p>'+fmt(b.price)+' créditos · '+duration(b.seconds)+'</p><small>'+(player.boosters[b.id]>0?(b.multiplier&&activeDamageBooster(player.boosters)?.id!==b.id?'En reserva: ':'Disponible: ')+duration(player.boosters[b.id]):'Sin activar')+'</small><button data-booster="'+b.id+'" '+(player.gold<b.price||player.boosters[b.id]+b.seconds>86400?'disabled':'')+'>Comprar y activar</button></article>').join('')+'</div>';
+  $('shopBoosters').querySelectorAll('[data-booster]').forEach(button=>button.onclick=()=>{
+   if(!isDocked()||!isOffline())return;
+   const id=button.dataset.booster,booster=BOOSTERS.find(b=>b.id===id);
+   const previous={gold:player.gold,boosters:{...player.boosters}};
+   if(!buyBooster(player,id))return;
+   if(sync()===false){Object.assign(player,previous);render(true);note('No se pudo guardar la compra. Inténtalo de nuevo.');return}
+   log('commerce','Compra: '+booster.name+' · −'+fmt(booster.price)+' créditos');
+   note(booster.multiplier&&activeDamageBooster(player.boosters)?.id!==id?'Tiempo añadido en reserva. Se usará cuando termine X3.':'Potenciador activado. Su tiempo comienza al despegar.');
+  });
   $('shopSell').innerHTML='<h3>Vender materiales</h3><p class="muted">Elige una cantidad y revisa el total antes de confirmar la venta.</p><div class="commerce-grid">'+MATERIALS.map(([id,name,color])=>'<article class="commerce-card"><span class="material-crystal" style="--gem:'+color+'"></span><h4>'+name+'</h4><p>Tienes '+fmt(player.loot[id]||0)+' · '+SELL_PRICES[id]+' créditos por unidad</p><label>Cantidad <input type="number" inputmode="numeric" min="1" max="'+Math.floor(player.loot[id]||0)+'" value="1" data-sell-quantity="'+id+'"></label><p class="sale-total" data-sale-total="'+id+'">Recibirás '+SELL_PRICES[id]+' créditos</p><button data-sell="'+id+'" '+(!(player.loot[id]>=1)?'disabled':'')+'>Revisar venta</button></article>').join('')+'</div>';
   $('shopSell').querySelectorAll('[data-sell-quantity]').forEach(input=>input.oninput=()=>{const n=Number(input.value),id=input.dataset.sellQuantity,valid=Number.isSafeInteger(n)&&n>0&&n<=(Number(player.loot[id])||0);$('shopSell').querySelector('[data-sale-total="'+id+'"]').textContent=valid?'Recibirás '+fmt(n*SELL_PRICES[id])+' créditos':'Introduce una cantidad disponible';$('shopSell').querySelector('[data-sell="'+id+'"]').disabled=!valid});
   $('shopSell').querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{

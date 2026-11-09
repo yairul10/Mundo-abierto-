@@ -16,7 +16,7 @@ export function importRoster(raw){
 export function equip(p,id){
  if(id==='adminpod'&&(!p.adminShipAllowed||p.clientVersion<4))return false;
  if(!Object.hasOwn(SHIPS,id)||!Object.hasOwn(p.roster||{},id==='adminpod'?'aurora':id))return false;
- const raw=p.roster[id==='adminpod'?'aurora':id];makeCombatPlayer(p,{...raw,shipId:id});const q=p.profile;
+ const source=p.roster[id==='adminpod'?'aurora':id];const raw=p.profile?.boosters&&!p.hangar?{...source,boosters:{...source.boosters,...p.profile.boosters}}:source;makeCombatPlayer(p,{...raw,shipId:id});const q=p.profile;
  // Derive admin stats from the ordinary Aurora profile (PvP Cadete uses base ×0.7).
  if(id==='adminpod'){const hullFactor=raw.fleetBalanceVersion===2?.7:.5;const defenseFactor=raw.fleetBalanceVersion===2?1:.5;q.maxHp=Math.round(q.maxHp*15/hullFactor);q.attack=Math.round(q.attack*1.6/hullFactor);q.defense=Math.round(q.defense/defenseFactor);q.speed=Math.round(q.speed*1.7/hullFactor);}
  // Multiply the original offline hull once; never multiply a previous PvP snapshot.

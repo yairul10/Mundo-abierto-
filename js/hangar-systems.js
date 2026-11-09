@@ -1,3 +1,4 @@
+import {DAMAGE_BOOSTERS,damageBoosterMultiplier,tickDamageBoosters} from './damage-boosters.js?v=401';
 export const RECIPE=Object.freeze({credits:20000,chatarra:200,aleacion:70,nucleo:25,reliquia:8});
 export const FORMATIONS=Object.freeze([
  {id:'fan',name:'Abanico',icon:'↗',color:'#78dbff',benefit:'Gratis · Formación inicial',description:'Parejas abiertas a ambos lados de la nave.'},
@@ -9,7 +10,8 @@ export const FORMATIONS=Object.freeze([
  {id:'recovery',name:'Recuperación',icon:'✧',color:'#84ffaf',benefit:'+25 % de reparación del robot',description:'Dos arcos de drones a los costados del casco. Requiere robot reparador para la ventaja.'}
 ]);
 export const BOOSTERS=Object.freeze([
- {id:'damage',name:'Potencia de combate',icon:'⚡',price:10000,benefit:'+15 % de daño',seconds:900},
+ ...DAMAGE_BOOSTERS,
+ {id:'damage',retired:true,name:'Potencia de combate',icon:'⚡',price:10000,benefit:'+15 % de daño',seconds:900},
  {id:'resistance',name:'Protección reforzada',icon:'🛡',price:10000,benefit:'−15 % de daño recibido',seconds:900},
  {id:'xp',name:'Aprendizaje acelerado',icon:'⭐',price:15000,benefit:'+25 % de XP',seconds:900}
 ]);
@@ -35,11 +37,12 @@ export function sellMaterial(p,id,quantity){
  p.loot[id]-=n;p.gold=count(p.gold)+n*SELL_PRICES[id];return true;
 }
 export function buyBooster(p,id){
- const b=BOOSTERS.find(x=>x.id===id);if(!b||count(p.gold)<b.price||p.boosters[id]+b.seconds>86400)return false;
+ const b=BOOSTERS.find(x=>x.id===id);if(!b||b.retired||!Number.isFinite(p.gold)||count(p.gold)<b.price||p.boosters[id]+b.seconds>86400)return false;
  p.gold-=b.price;p.boosters[id]+=b.seconds;return true;
 }
 export function boosterBonus(p,id,offline=true){return offline&&p.boosters?.[id]>0?(id==='damage'?1.15:id==='resistance'?.85:1.25):1}
-export function tickBoosters(p,dt,paused){if(paused||!Number.isFinite(dt)||dt<=0)return false;let expired=false;for(const b of BOOSTERS){const old=p.boosters[b.id];p.boosters[b.id]=Math.max(0,old-dt);if(old>0&&!p.boosters[b.id])expired=true}return expired}
+export function laserBoosterBonus(p){return Math.max(damageBoosterMultiplier(p.boosters),boosterBonus(p,'damage'))}
+export function tickBoosters(p,dt,paused){if(paused||!Number.isFinite(dt)||dt<=0)return false;let expired=tickDamageBoosters(p.boosters,dt);for(const b of BOOSTERS.filter(b=>!DAMAGE_BOOSTERS.some(d=>d.id===b.id))){const old=p.boosters[b.id];p.boosters[b.id]=Math.max(0,old-dt);if(old>0&&!p.boosters[b.id])expired=true}return expired}
 // Offsets in the ship's right / forward / up basis. No new models or assets needed.
 export function formationOffset(id,i,count,time=0){
  const side=i%2===0?-1:1,pair=Math.floor(i/2),n=Math.max(1,count),angle=time*.42+i*Math.PI*2/n;

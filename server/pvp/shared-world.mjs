@@ -90,10 +90,10 @@ export class SharedWorld extends DurableObject {
   let error=null;
   if(m.type==='input'){
    if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;
-   const dt=Math.max(0,Math.min(.15,(now-p.lastInput)/1000));p.lastInput=now;p.seq=m.seq;p.firing=!p.hangar&&!!m.firing;
+   const dt=Math.max(0,Math.min(.15,(now-p.lastInput)/1000));p.lastInput=now;p.seq=m.seq;p.boostersPaused=m.boostersPaused===true;p.firing=!p.hangar&&!!m.firing;
    if(Array.isArray(m.aim)&&m.aim.length===2&&m.aim.every(Number.isFinite))p.aim=[Math.max(-1000,Math.min(1000,m.aim[0])),Math.max(-1.15,Math.min(1.15,m.aim[1]))];
    p.pos=p.pos.map((v,i)=>v+(p.death||p.exiting||p.hangar||(p.paralyzedUntil||0)>now?0:m.move[i])*p.profile.speed*dt);const r=Math.hypot(p.pos[0],p.pos[2]);if(r>WORLD.radius){p.pos[0]*=WORLD.radius/r;p.pos[2]*=WORLD.radius/r;}updateProtection(p,now);if(protectedAt(p,now))p.firing=false;
-  }else if(m.type==='rankings'){if(now-(a.rankingsAt||0)<3000)return;a.rankingsAt=now;ws.serializeAttachment(a);this.worldSave(s,true);ws.send(JSON.stringify(rankings(this.ctx,p.id)));}
+  }else if(m.type==='boosterPause'){p.boostersPaused=m.paused===true;}else if(m.type==='rankings'){if(now-(a.rankingsAt||0)<3000)return;a.rankingsAt=now;ws.serializeAttachment(a);this.worldSave(s,true);ws.send(JSON.stringify(rankings(this.ctx,p.id)));}
   else if(m.type==='respawn'){error=requestRespawn(s,p,m);this.worldSave(s,true);if(!error&&p.death?.bill)ws.send(JSON.stringify({type:'respawnBill',bill:p.death.bill}));}
   else if(m.type==='respawnAck'){const bill=confirmRespawn(s,p,m.id,reset)||(!p.death?p.lastRespawn:null);if(bill?.id===m.id){this.worldSave(s,true);ws.send(JSON.stringify({type:'respawnReady',bill}));}}
   else if(m.type==='duelBlock'){p.duelRequestsOff=m.block===true;s.invites=s.invites.filter(i=>i.to!==p.id);}
