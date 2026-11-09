@@ -45,7 +45,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=407';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=408';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=409';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=401';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -1568,7 +1568,7 @@ const supportLaserMaterial=new THREE.MeshBasicMaterial({color:0x49d8ff,transpare
 const remoteLaserMaterial=new THREE.MeshBasicMaterial({color:0xff7777,transparent:true,opacity:.95,depthWrite:false});
 const sniperShotGeometry=new THREE.CylinderGeometry(5,5,65,10);
 function updateExplorerCombat(dt){
- if(PVP_MODE&&!pvpSession?.canFight)return;
+ if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)return;
  explorerFireCd=Math.max(0,explorerFireCd-dt);
  const target=explorerTask().target;if(!target)return;
  if(!player.explorerDrone||!explorerMesh.visible||docked||landing||explorerFireCd>0)return;
@@ -1713,7 +1713,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
-const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1,source=null)=>applyPlayerDamage(Math.max(1,amount*proMultiplier(source)*advancedEnemyScale(player.level,40)-player.defense*.25)*elapsed),notify:message=>lootToast(message),onBombImpact:(point,radius)=>titanFireburst.spawn(point,radius),sound:(kind,position)=>combatAudio.play(kind,position)});
+const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!portalTransitProtected()&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1,source=null)=>applyPlayerDamage(Math.max(1,amount*proMultiplier(source)*advancedEnemyScale(player.level,40)-player.defense*.25)*elapsed),notify:message=>lootToast(message),onBombImpact:(point,radius)=>titanFireburst.spawn(point,radius),sound:(kind,position)=>combatAudio.play(kind,position)});
 const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={stalker:new THREE.MeshBasicMaterial({color:0xff1838}),scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff}),destroyer:new THREE.MeshBasicMaterial({color:0xff3d9b}),devastator:new THREE.MeshBasicMaterial({color:0xff7733})};
@@ -1837,7 +1837,7 @@ function updateTargetLock(){
   $('targetHpFill').style.width=(100*Math.max(0,Math.min(1,(candidate.hp+(candidate.shield||0))/(candidate.maxHp+(candidate.maxShield||0)))))+'%';
  }else lockFrame.classList.add('hidden');
 }
-function fire(mult=1,count=1){if(PVP_MODE&&!pvpSession?.canFight)return;
+function fire(mult=1,count=1){if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)return;
  if(player.hp<=0||recoveryPending||fireCd>0)return;
  lastAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  updateTargetLock();markExplorerAttack(lockedEnemy);
@@ -2100,7 +2100,7 @@ function activateClassAbility(){if(PVP_MODE&&!pvpSession?.canFight)return;
 }
 function classAbilityActive(id){return shipRole(player.shipId)===id&&classAbilityTime>0}
 function applyPlayerDamage(amount){
- if(docked||landing||inSafeZone(playerMesh.position))return;
+ if(docked||landing||portalTransitProtected()||inSafeZone(playerMesh.position))return;
  if(shipRole(player.shipId)==='espectro'&&Math.random()<specialLevel('evasion')*.008)return;
  let damage=Math.max(0,amount)*equippedBonus().resistance*activeBooster('resistance');
  if(shipRole(player.shipId)==='titan')damage*=1-(0.1+specialLevel('armor')*.01);
@@ -2484,7 +2484,7 @@ function removeMissileEffects(p){
 // Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
 function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
-function skill(){if(PVP_MODE&&!pvpSession?.canFight)return;
+function skill(){if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)return;
  if(player.hp<=0||recoveryPending)return;
  if(skillCd>0||docked||landing||inSafeZone(playerMesh.position))return;
  combatAudio.play('missile',playerMesh.position);
@@ -2985,6 +2985,12 @@ function sectorPortalRoutes(){
 let selectedPortalId=null;
 const portalMessage=document.createElement('div');portalMessage.style.cssText='position:fixed;left:50%;top:24%;transform:translateX(-50%);z-index:40;background:#170e35ec;color:white;border:1px solid #9c83ff;border-radius:12px;padding:12px 16px;font:700 15px system-ui;text-align:center;pointer-events:none;display:none';document.body.appendChild(portalMessage);
 let portalCountdown=0,portalLastTick=performance.now();
+function portalTransitProtected(){
+ if(PVP_MODE||docked||landing||player.hp<=0||portalCountdown<=0)return false;
+ const route=sectorPortalRoutes().find(route=>route.id===selectedPortalId);
+ return !!route&&player.level>=route.level&&playerMesh.position.distanceTo(route.pos)<=100;
+}
+
 function portalChargePulse(seconds){
  const t=Math.max(0,Math.min(3,seconds));
  // Frecuencia continua: de 0,6 destellos/s al inicio a 5 destellos/s al final.
@@ -3023,7 +3029,7 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  const distance=playerMesh.position.distanceTo(route.pos),near=distance<=350,unlocked=player.level>=route.level;
  if(activeSector==='aurora'&&unlocked&&near)missionEvent('portalNear',{sector:'aurora'});
  const charging=distance<=100&&unlocked&&!docked&&!landing;
- if(charging){combatAudio.play('portalCharge');portalCountdown+=dt;if(portalCountdown>=3){switchSector(route);portalMessage.style.display='none';return}}else portalCountdown=0;
+ if(charging){if(portalCountdown===0){clearCombatShots();fireHeld=false}combatAudio.play('portalCharge');portalCountdown+=dt;if(portalCountdown>=3){switchSector(route);portalMessage.style.display='none';return}}else portalCountdown=0;
  const pulse=charging?portalChargePulse(portalCountdown):0;
  const idleGlow=1.15+Math.sin(performance.now()*.0016)*.18;
  updatePortalEmission(portalMesh,idleGlow+(charging ? .8+pulse*1.4 : 0));
@@ -3066,7 +3072,7 @@ function updateZoneMembrane(){
 
 function updateSectorBoundary(dt){if(PVP_MODE){updateZoneMembrane();const d=Math.hypot(playerMesh.position.x,playerMesh.position.z);const radius=pvpSession?.radius||5900;if(d>radius){playerMesh.position.x*=radius/d;playerMesh.position.z*=radius/d;}return}
  updateZoneMembrane();
- if(docked||landing){sectorNotice.style.display='none';return}
+ if(docked||landing||portalTransitProtected()){sectorNotice.style.display='none';return}
  const sector=currentSector(),d=sectorDistance(),remaining=sector.radius-d;
  if(remaining>sector.warning){sectorNotice.style.display='none';return}
  sectorNotice.style.display='flex';sectorNotice.classList.toggle('urgent',remaining<sector.warning*.3);combatAudio.play('boundary');

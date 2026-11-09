@@ -5,7 +5,7 @@ import {awardKill} from './pvp-results.mjs';
 import {ensureArenaEnemies,advanceArenaEnemies,recordArenaDamage} from './arena-enemies.mjs';
 import {PVP_SKILLS,equippedSkills,validSkills,clearSkills,activateSkill} from './skills.mjs';
 import {makeCombatPlayer,stepCombat,volley,ability} from './combat.mjs';
-export const WORLD={autoFarmPro:true,formationSwitch:true,radius:ZONES.edge,safeRadius:ZONES.base,pveRadius:ZONES.pve,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portal:[0,120,850],spawn:[0,120,0]};
+export const WORLD={autoFarmPro:true,formationSwitch:true,radius:ZONES.edge,safeRadius:ZONES.base,pveRadius:ZONES.pve,openCombat:true,protectionDelay:5000,capacity:24,skills:PVP_SKILLS,portalImmunity:true,portal:[0,120,850],spawn:[0,120,0]};
 export const SHIPS={agilbasica:[1,1,1,1.5],adminpod:[15,1.6,1,1.7],azote:[1.6,2.1,1,1.6],egida:[2.1,1.6,1,1.6],vertigo:[1.6,1.6,1,2.1],obsidian:[2.2,2.2,1,2.2],aurora:[1,1,1,1],titan:[1.5,1,1,1],espectro:[1,1.5,1,1],segadora:[1.5,2,1,1.5],bastion:[2,1.5,1,1.5],centella:[1.5,1.5,1,2]};
 export const safe=p=>zoneOf(p)==='base';
 export const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
@@ -36,13 +36,16 @@ export function updateProtection(p,now){
  else if(!inside)p.baseEnteredAt=null;
  p.baseInside=inside;return protectedAt(p,now);
 }
-export const protectedAt=(p,now)=>!!p&&!p.duelId&&safe(p)&&(p.baseEnteredAt===undefined||p.baseEnteredAt===null||now>=p.baseEnteredAt+WORLD.protectionDelay);
+// Position is authoritative: clients cannot claim portal immunity remotely.
+export const portalProtected=p=>!!p&&!p.npc&&!p.boss&&p.connected&&p.hp>0&&!p.duelId&&!p.death&&!p.exiting&&!p.hangar&&Array.isArray(p.pos)&&p.pos.length===3&&p.pos.every(Number.isFinite)&&Math.hypot(...p.pos.map((v,i)=>v-WORLD.portal[i]))<=100;
+export const protectedAt=(p,now)=>!!p&&!p.duelId&&(portalProtected(p)||safe(p)&&(p.baseEnteredAt===undefined||p.baseEnteredAt===null||now>=p.baseEnteredAt+WORLD.protectionDelay));
 export const combatEligible=(p,now)=>!!p&&p.connected&&p.hp>0&&!p.hangar&&!p.death&&!p.exiting&&(!p.duelId||now>=p.duelStartsAt)&&(!!p.duelId||!protectedAt(p,now));
 export const canDamage=(owner,target,now)=>{
  if(!owner?.connected||owner.hp<=0||owner.death||owner.hangar)return false;
  if(owner.exiting)return false;
  if(!owner.npc&&!owner.boss&&!combatEligible(owner,now))return false;
  if(!target)return owner.npc||owner.boss?true:combatEligible(owner,now);
+ if(portalProtected(target))return false;
  if(target.id===owner.id||!target.connected||target.hp<=0||target.death||target.hangar)return false;
  const a=!!(owner.npc||owner.boss),b=!!(target.npc||target.boss);
  if(a&&b)return false;
