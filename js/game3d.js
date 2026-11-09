@@ -1582,13 +1582,17 @@ function updateExplorerCombat(dt){
  explorerMesh.lookAt(target.mesh.position);explorerFireCd=.68;
 }
 
+// Espera a la derecha y detrás respecto al rumbo actual, dejando libre la mira.
+function explorerIdlePosition(){
+ return playerMesh.position.clone().add(new THREE.Vector3(150,20,90).applyEuler(new THREE.Euler(pitch,yaw,0,'YXZ')));
+}
 function updateExplorer(dt,now){
  explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
  if(!explorerMesh.visible){explorerCompanion.initialized=false;return}
  const c=explorerCompanion,t=now*.001,range=explorerRange();
  const radius=Math.max(120,range-45);
  if(!c.initialized){
-  explorerMesh.position.copy(playerMesh.position).add(new THREE.Vector3(65,24,-40));
+  explorerMesh.position.copy(explorerIdlePosition());
   c.destination.copy(explorerMesh.position);
   c.nextChange=0;c.initialized=true;
  }
@@ -1601,16 +1605,8 @@ function updateExplorer(dt,now){
   if(distance<best){best=distance;nearest=drop}
  }
  c.targetDrop=nearest;
- if(!nearest&&(t>=c.nextChange||explorerMesh.position.distanceTo(c.destination)<30)){
-  const angle=Math.random()*Math.PI*2;
-  const r=radius*(.28+Math.random()*.57);
-  c.destination.copy(playerMesh.position).add(new THREE.Vector3(
-   Math.cos(angle)*r,(Math.random()-.5)*100,Math.sin(angle)*r
-  ));
-  c.nextChange=t+5+Math.random()*6;
- }
- // El objetivo del botín cambia dinámicamente; la exploración normal usa destinos estables.
- const target=combat?task.target?playerMesh.position.clone().lerp(task.target.mesh.position,.15).add(new THREE.Vector3(45,25,0)):playerMesh.position.clone().add(new THREE.Vector3(65,24,-40)):nearest?nearest.mesh.position:c.destination;
+ // Sin enemigos ni botín, acompaña a la nave desde un costado y por detrás.
+ const target=combat?task.target?playerMesh.position.clone().lerp(task.target.mesh.position,.15).add(new THREE.Vector3(45,25,0)):explorerIdlePosition():nearest?nearest.mesh.position:explorerIdlePosition();
  const distanceToPlayer=explorerMesh.position.distanceTo(playerMesh.position);
  // Cuando la nave se desplaza, el dron regresa hacia el radio de cobertura.
  let goal=target;
@@ -1629,7 +1625,7 @@ function updateExplorer(dt,now){
  const distance=motion.length();
  const speed=combat?Math.min(520,220+distance*.8):nearest?Math.min(420,180+distance*.55):Math.min(235,85+distance*.35);
  if(distance>2)explorerMesh.position.addScaledVector(motion,Math.min(distance,speed*dt)/distance);
- if(distanceToPlayer>range+260)explorerMesh.position.copy(playerMesh.position).add(new THREE.Vector3(45,25,-35));
+ if(distanceToPlayer>range+260)explorerMesh.position.copy(explorerIdlePosition());
  if(distance>8){
   const desiredYaw=Math.atan2(-motion.x,-motion.z);
   explorerMesh.rotation.y+=Math.atan2(Math.sin(desiredYaw-explorerMesh.rotation.y),Math.cos(desiredYaw-explorerMesh.rotation.y))*Math.min(1,dt*3);
