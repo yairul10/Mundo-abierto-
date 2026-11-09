@@ -1,5 +1,5 @@
 const TIPS = [
- {level:1, text:'Compra tu robot reparador en la tienda para reparar tu nave fuera de la base. Se activa tras unos segundos sin combatir.'},
+ {level:1, text:'Compra un robot reparador para reparar tu nave sin volver a la base.'},
  {level:1, text:'Acércate a una base y aterriza para acceder al hangar, la tienda y el ensamblaje.'},
  {level:1, text:'Toca las tres líneas de arriba a la derecha para ajustar los gráficos y el volumen.'},
  {level:1, text:'Toca el minimapa para ver los sectores y los requisitos para desbloquearlos.'},
