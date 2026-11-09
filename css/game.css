@@ -32,7 +32,7 @@
 #dockBtn::before{content:"";width:21px;height:21px;flex:none;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2390eaff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12m-5-5 5 5 5-5M4 20h16'/%3E%3C/svg%3E")}
 #dockBtn:active:not(:disabled){filter:brightness(1.2)}
 #dockBtn:disabled{cursor:default}
-#hangarPanel{position:absolute;z-index:50;inset:0;background:#020914ef;display:flex;align-items:center;justify-content:center;padding:18px;overflow-y:auto}#hangarPanel.hidden{display:none}.hangar-inner{width:min(440px,100%);padding:25px 20px;background:linear-gradient(145deg,#132d49,#081523);border:1px solid #67cfff77;border-radius:20px;box-shadow:0 0 45px #167dc444}.hangar-tag{font-size:11px;letter-spacing:3px;color:#74dcff;font-weight:800}.hangar-inner h2{margin:12px 0}.hangar-inner p{color:#c5d7e9;font-size:13px;line-height:1.5}#hangarStats{padding:14px;background:#071322;border:1px solid #ffffff2b;border-radius:12px;font-size:13px}#hangarPanel button{display:block;width:100%;margin-top:13px;padding:13px;border:0;border-radius:12px;background:#f0b739;color:#111c2a;font-weight:800}#hangarPanel button:disabled{opacity:.45}#hangarPanel #launchBtn{background:#27b4e9;color:#04121c}body.docked #hud,body.docked #characterBtn,body.docked #targetInfo,body.docked #radarWidget,body.docked #aimReticle,body.docked #combatControls,body.docked #joystick,body.docked #flightNotices{visibility:hidden}body.docked #lookZone{pointer-events:none}
+:is(#hangarPanel,#shopPanel){position:absolute;z-index:50;inset:0;background:#020914ef;display:flex;align-items:center;justify-content:center;padding:18px;overflow-y:auto}:is(#hangarPanel,#shopPanel).hidden{display:none}.hangar-inner{width:min(440px,100%);padding:25px 20px;background:linear-gradient(145deg,#132d49,#081523);border:1px solid #67cfff77;border-radius:20px;box-shadow:0 0 45px #167dc444}.hangar-tag{font-size:11px;letter-spacing:3px;color:#74dcff;font-weight:800}.hangar-inner h2{margin:12px 0}.hangar-inner p{color:#c5d7e9;font-size:13px;line-height:1.5}#hangarStats{padding:14px;background:#071322;border:1px solid #ffffff2b;border-radius:12px;font-size:13px}:is(#hangarPanel,#shopPanel) button{display:block;width:100%;margin-top:13px;padding:13px;border:0;border-radius:12px;background:#f0b739;color:#111c2a;font-weight:800}:is(#hangarPanel,#shopPanel) button:disabled{opacity:.45}:is(#hangarPanel,#shopPanel) #launchBtn{background:#27b4e9;color:#04121c}body.docked #hud,body.docked #characterBtn,body.docked #targetInfo,body.docked #radarWidget,body.docked #aimReticle,body.docked #combatControls,body.docked #joystick,body.docked #flightNotices{visibility:hidden}body.docked #lookZone{pointer-events:none}
 
 /* Durante el aterrizaje automático se ocultan controles manuales, pero se mantiene el HUD y el radar. */
 body.landing #joystick,body.landing #combatControls,body.landing #characterBtn,body.landing #aimReticle{visibility:hidden}body.landing #lookZone{pointer-events:none}body.landing #dockBtn{visibility:visible;bottom:15%;border-color:#71dfff}
@@ -159,14 +159,14 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 
 
 /* Hangar: destinos independientes, planos y mercado. */
-#hangarPanel .hangar-inner{width:min(570px,100%);padding:22px;background:radial-gradient(ellipse at top right,#18436366,transparent 60%),linear-gradient(145deg,#101f32,#070f1b);border-color:#78cde666;box-shadow:0 24px 80px #0009;scrollbar-color:#375b73 #081320}
-#hangarPanel.expanded .hangar-inner{width:min(1080px,100%)}
-#hangarPanel .subtle{background:#12283a;color:#c5e2f4;border:1px solid #68b8df42}
+:is(#hangarPanel,#shopPanel) .hangar-inner{width:min(570px,100%);padding:22px;background:radial-gradient(ellipse at top right,#18436366,transparent 60%),linear-gradient(145deg,#101f32,#070f1b);border-color:#78cde666;box-shadow:0 24px 80px #0009;scrollbar-color:#375b73 #081320}
+:is(#hangarPanel,#shopPanel).expanded .hangar-inner{width:min(1080px,100%)}
+:is(#hangarPanel,#shopPanel) .subtle{background:#12283a;color:#c5e2f4;border:1px solid #68b8df42}
 .commerce-header{display:flex;align-items:center;gap:16px;margin:18px 0}.commerce-header h3{margin:3px 0;font-size:23px}
-#hangarPanel .commerce-header button{width:auto;margin:0;flex:none;padding:10px 14px}.hangar-eyebrow{font-size:10px;font-weight:800;color:#6dcbec;letter-spacing:1.8px}
+:is(#hangarPanel,#shopPanel) .commerce-header button{width:auto;margin:0;flex:none;padding:10px 14px}.hangar-eyebrow{font-size:10px;font-weight:800;color:#6dcbec;letter-spacing:1.8px}
 .commerce-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:9px}
-#hangarPanel .commerce-tabs button{width:auto;white-space:nowrap;flex:none;padding:10px 16px;margin:0;background:#122334;color:#a6c3d9;border:1px solid #54748b44}
-#hangarPanel .commerce-tabs button[aria-pressed="true"]{background:#194d64;border-color:#6fdbed;color:#e2fcff}
+:is(#hangarPanel,#shopPanel) .commerce-tabs button{width:auto;white-space:nowrap;flex:none;padding:10px 16px;margin:0;background:#122334;color:#a6c3d9;border:1px solid #54748b44}
+:is(#hangarPanel,#shopPanel) .commerce-tabs button[aria-pressed="true"]{background:#194d64;border-color:#6fdbed;color:#e2fcff}
 #hangarStore{padding:16px;border-color:#7ac4df30;background:#060f1bad}
 #hangarStore .upgrade-card{padding:15px;background:linear-gradient(115deg,#172c40,#0b1b2b);border:1px solid #6e9bb533;border-radius:13px;margin:10px 0;gap:16px}
 #hangarStore .upgrade-card strong{font-size:15px}#hangarStore .upgrade-card small{font-size:12px;line-height:1.5}
@@ -174,30 +174,30 @@ body.portrait-blocked #game{visibility:hidden;pointer-events:none}
 #hangarStore .upgrade-card button:disabled{background:#28445a;color:#a8bccb}
 .commerce-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .commerce-card{padding:20px;background:linear-gradient(145deg,#162d41,#0c1828);border:1px solid #6ba8c13d;border-radius:16px;min-width:0}.commerce-card h4{margin:10px 0;font-size:17px}.commerce-card p,.commerce-card small{font-size:12px;color:#b8cedf;line-height:1.5}.commerce-icon{font-size:29px}.commerce-card small{display:block}
-#hangarPanel .commerce-card button{margin-top:15px;background:#60d5e6;color:#092435}
-#hangarPanel .commerce-card input{width:100%;margin-top:6px;background:#081627;color:#e4f8ff;padding:12px;border:1px solid #53778f;border-radius:8px;font:inherit}.commerce-card label{font-size:12px;color:#b8cedf;display:block}.sale-total{color:#ffe5a1!important}
+:is(#hangarPanel,#shopPanel) .commerce-card button{margin-top:15px;background:#60d5e6;color:#092435}
+:is(#hangarPanel,#shopPanel) .commerce-card input{width:100%;margin-top:6px;background:#081627;color:#e4f8ff;padding:12px;border:1px solid #53778f;border-radius:8px;font:inherit}.commerce-card label{font-size:12px;color:#b8cedf;display:block}.sale-total{color:#ffe5a1!important}
 .assembly-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start}
 #formationCatalog{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-#hangarPanel .formation-tile{width:100%;padding:9px;margin:0;border:1px solid #6487a442;background:#0c1b2b;color:#e4f3fe;text-align:left;overflow:hidden;border-radius:12px}
-#hangarPanel .formation-tile.chosen{border-color:var(--formation-color);background:#183346;box-shadow:inset 0 0 16px #79dfff12}.formation-tile strong{display:block;font-size:12px;min-height:30px}.formation-tile small{display:block;font-size:10px;color:#afc8da;margin-top:3px;font-weight:500}
+:is(#hangarPanel,#shopPanel) .formation-tile{width:100%;padding:9px;margin:0;border:1px solid #6487a442;background:#0c1b2b;color:#e4f3fe;text-align:left;overflow:hidden;border-radius:12px}
+:is(#hangarPanel,#shopPanel) .formation-tile.chosen{border-color:var(--formation-color);background:#183346;box-shadow:inset 0 0 16px #79dfff12}.formation-tile strong{display:block;font-size:12px;min-height:30px}.formation-tile small{display:block;font-size:10px;color:#afc8da;margin-top:3px;font-weight:500}
 .formation-preview{display:block;width:100%;height:90px;background:transparent}.assembly-hero .formation-preview{height:190px;max-width:235px;flex:0 0 38%}
 #assemblyDetail{padding:20px;background:linear-gradient(135deg,#142d40,#0a1827);border:1px solid #74bcdf33;border-radius:17px}
 .assembly-hero{display:flex;align-items:center;gap:14px}.assembly-hero h3{font-size:23px;margin:7px 0}.assembly-hero p{font-size:12px}.formation-perk{color:#a4f2d1;font-size:15px}.muted{color:#a0bbce!important;font-size:12px!important;line-height:1.5}
 .recipe-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:18px}
-#hangarPanel .recipe-slot{margin:0;min-height:145px;padding:13px 7px;background:#071726;color:#e4f2ff;border:1px dashed #5e8eaa}
-#hangarPanel .recipe-slot.filled{border-style:solid;border-color:#7dd7ae;background:#123a35}
+:is(#hangarPanel,#shopPanel) .recipe-slot{margin:0;min-height:145px;padding:13px 7px;background:#071726;color:#e4f2ff;border:1px dashed #5e8eaa}
+:is(#hangarPanel,#shopPanel) .recipe-slot.filled{border-style:solid;border-color:#7dd7ae;background:#123a35}
 .recipe-slot strong,.recipe-slot b,.recipe-slot small,.recipe-slot em{display:block}.recipe-slot strong{font-size:11px;min-height:29px;margin-top:12px}.recipe-slot b{font-size:19px;margin:5px 0}.recipe-slot small{font-size:10px;font-weight:400;color:#bbd0df}.recipe-slot em{font-size:10px;font-style:normal;color:#79dcb7;margin-top:8px}
 .material-crystal{display:inline-block;width:21px;height:21px;transform:rotate(45deg);background:var(--gem);border:1px solid #ffffffa3;box-shadow:0 0 15px color-mix(in srgb,var(--gem),transparent 70%)}
 .recipe-price{font-size:21px!important;font-weight:800;color:#ffe1a1!important;margin-bottom:8px}.recipe-price span{display:block;font-size:12px;font-weight:400;color:#b3c9d9}.assembly-actions{display:flex;gap:12px}
-#hangarPanel .assembly-actions button{flex:1}#hangarPanel #assembleFormation,#hangarPanel #equipFormation{background:#75e4b6;color:#092c23}
+:is(#hangarPanel,#shopPanel) .assembly-actions button{flex:1}:is(#hangarPanel,#shopPanel) #assembleFormation,:is(#hangarPanel,#shopPanel) #equipFormation{background:#75e4b6;color:#092c23}
 .hangar-credit-pill{margin:15px 0;color:#ffe1a1;font-size:14px;font-weight:800;text-align:right}.hangar-notice{padding:12px 16px;border:1px solid #69d1a873;background:#10382e;color:#c6ffdf;border-radius:10px;font-size:13px;margin:15px 0}
 .sale-confirm{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;background:#020712e8}.sale-confirm.hidden{display:none}.sale-confirm>div{width:min(430px,100%);padding:25px;background:#10253a;border:1px solid #6bc9dd;border-radius:17px}
 #boosterStatus{position:absolute;left:50%;bottom:59px;transform:translateX(-50%);z-index:12;border:1px solid #8cc9da55;background:#081a2ad9;padding:6px 12px;border-radius:18px;color:#c8f3ff;font-size:11px;pointer-events:none;white-space:nowrap}body.docked #boosterStatus,body.inventory-open #boosterStatus{visibility:hidden}
-#hangarPanel button:focus-visible{outline:2px solid #ffe19c;outline-offset:3px}
-@media(max-width:850px){#hangarPanel{padding:9px}#hangarPanel .hangar-inner{padding:15px;max-height:calc(100dvh - 18px)}.assembly-layout{grid-template-columns:170px minmax(0,1fr);gap:12px}#assemblyDetail{padding:13px}.assembly-hero{gap:9px}.assembly-hero .formation-preview{height:150px}.assembly-hero h3{font-size:19px}.recipe-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.recipe-slot strong{min-height:0}#hangarPanel .recipe-slot{min-height:115px}.formation-preview{height:67px}.commerce-card{padding:15px}.commerce-header h3{font-size:19px}}
+:is(#hangarPanel,#shopPanel) button:focus-visible{outline:2px solid #ffe19c;outline-offset:3px}
+@media(max-width:850px){:is(#hangarPanel,#shopPanel){padding:9px}:is(#hangarPanel,#shopPanel) .hangar-inner{padding:15px;max-height:calc(100dvh - 18px)}.assembly-layout{grid-template-columns:170px minmax(0,1fr);gap:12px}#assemblyDetail{padding:13px}.assembly-hero{gap:9px}.assembly-hero .formation-preview{height:150px}.assembly-hero h3{font-size:19px}.recipe-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.recipe-slot strong{min-height:0}:is(#hangarPanel,#shopPanel) .recipe-slot{min-height:115px}.formation-preview{height:67px}.commerce-card{padding:15px}.commerce-header h3{font-size:19px}}
 @media(max-width:550px){.assembly-layout{grid-template-columns:1fr}#formationCatalog{grid-template-columns:repeat(4,minmax(0,1fr))}.commerce-grid{grid-template-columns:1fr}.assembly-actions{flex-direction:column}.assembly-hero{display:block}.assembly-hero .formation-preview{max-width:none}}
 
-#hangarPanel .ship-preview{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain;border-radius:9px;background:#0c1b2b}
+:is(#hangarPanel,#shopPanel) .ship-preview{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain;border-radius:9px;background:#0c1b2b}
 
 #questTracker{width:min(380px,54vw);max-height:65vh;display:flex;flex-direction:column;gap:5px;background:#07101bf2;z-index:12}#questTracker.hidden{display:none}#missionList{overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;min-height:0;padding-right:5px}.mission-card{padding:10px 0;border-top:1px solid #ffffff25}.mission-card .mission-prize{color:#ffdf80}#missionSummary{color:#b4c8de}#missionList .quest-progress i{display:block;height:100%;background:#d5a22d}@media(max-height:500px){#questTracker{max-height:62vh}}
 
@@ -218,24 +218,24 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
  body:not(.pvp-hud) #zoomControls button{width:40px;height:40px;font-size:22px}
 }
 
-#hangarPanel .ship-model-preview{position:relative;min-height:160px;height:230px;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:radial-gradient(ellipse at center,#203851,#091625);isolation:isolate}#hangarPanel .ship-model-preview>img{width:100%;height:100%;object-fit:contain}#hangarPanel .shop-model-hero{display:flex;align-items:center;gap:16px;margin:12px 0 18px}#hangarPanel .shop-model-hero .ship-model-preview{width:min(60%,360px);flex-shrink:0}#hangarPanel .shop-model-hero small{display:block;line-height:1.5;margin-top:10px}#hangarPanel .ship-preview-button{padding:0;width:110px;min-width:80px;flex-shrink:0;border:1px solid #456583;border-radius:10px;background:#0c1b2b}#hangarPanel .ship-preview-button .ship-preview{width:100%;height:auto;margin:0}@media(max-width:600px){#hangarPanel .ship-preview-button{width:80px}#hangarPanel .shop-model-hero{gap:10px}#hangarPanel .ship-model-preview{height:180px}}
+:is(#hangarPanel,#shopPanel) .ship-model-preview{position:relative;min-height:160px;height:230px;aspect-ratio:4/3;overflow:hidden;border-radius:12px;background:radial-gradient(ellipse at center,#203851,#091625);isolation:isolate}:is(#hangarPanel,#shopPanel) .ship-model-preview>img{width:100%;height:100%;object-fit:contain}:is(#hangarPanel,#shopPanel) .shop-model-hero{display:flex;align-items:center;gap:16px;margin:12px 0 18px}:is(#hangarPanel,#shopPanel) .shop-model-hero .ship-model-preview{width:min(60%,360px);flex-shrink:0}:is(#hangarPanel,#shopPanel) .shop-model-hero small{display:block;line-height:1.5;margin-top:10px}:is(#hangarPanel,#shopPanel) .ship-preview-button{padding:0;width:110px;min-width:80px;flex-shrink:0;border:1px solid #456583;border-radius:10px;background:#0c1b2b}:is(#hangarPanel,#shopPanel) .ship-preview-button .ship-preview{width:100%;height:auto;margin:0}@media(max-width:600px){:is(#hangarPanel,#shopPanel) .ship-preview-button{width:80px}:is(#hangarPanel,#shopPanel) .shop-model-hero{gap:10px}:is(#hangarPanel,#shopPanel) .ship-model-preview{height:180px}}
 
 
 /* Compact fleet selection, with one live preview for the selected ship. */
-#hangarPanel{padding:16px;align-items:center;overflow:hidden}
-#hangarPanel .hangar-inner{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
-#hangarPanel [hidden]{display:none!important}
+:is(#hangarPanel,#shopPanel){padding:16px;align-items:center;overflow:hidden}
+:is(#hangarPanel,#shopPanel) .hangar-inner{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
+:is(#hangarPanel,#shopPanel) [hidden]{display:none!important}
 .equipment-roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
-#hangarPanel .equipment-ship-tile{margin:0;padding:8px;background:#102638;color:#eaf8ff;border:1px solid #456583}
-#hangarPanel .equipment-ship-tile[aria-pressed="true"]{border-color:#70e1f1;background:#19475a}
-#hangarPanel .equipment-ship-tile .ship-preview{height:76px;aspect-ratio:auto;background:transparent}
+:is(#hangarPanel,#shopPanel) .equipment-ship-tile{margin:0;padding:8px;background:#102638;color:#eaf8ff;border:1px solid #456583}
+:is(#hangarPanel,#shopPanel) .equipment-ship-tile[aria-pressed="true"]{border-color:#70e1f1;background:#19475a}
+:is(#hangarPanel,#shopPanel) .equipment-ship-tile .ship-preview{height:76px;aspect-ratio:auto;background:transparent}
 .equipment-ship-tile strong,.equipment-ship-tile small{display:block;font-size:12px}
 .equipment-ship-tile small{font-size:10px;margin-top:5px}
 .equipment-detail{display:flex;align-items:center;gap:16px;padding:12px;margin:14px 0;background:#0b1b2b;border-radius:12px}
-#hangarPanel .equipment-detail .ship-model-preview{width:180px;min-width:120px;min-height:100px;height:130px;flex-shrink:0}
+:is(#hangarPanel,#shopPanel) .equipment-detail .ship-model-preview{width:180px;min-width:120px;min-height:100px;height:130px;flex-shrink:0}
 .equipment-formation{display:inline-block;width:min(180px,45%);margin:5px;padding:10px;vertical-align:top}
-#hangarPanel .equipment-formation .formation-preview{height:70px}
-@media(max-height:500px){#hangarPanel{padding:12px 28px}#hangarPanel .hangar-inner{max-height:calc(100dvh - 24px)}#characterPanel{inset:5% 7%;max-height:90%;overflow-y:auto}}
+:is(#hangarPanel,#shopPanel) .equipment-formation .formation-preview{height:70px}
+@media(max-height:500px){:is(#hangarPanel,#shopPanel){padding:12px 28px}:is(#hangarPanel,#shopPanel) .hangar-inner{max-height:calc(100dvh - 24px)}#characterPanel{inset:5% 7%;max-height:90%;overflow-y:auto}}
 
 /* Admin-only Obsidian cosmetic trial, mounted only after server authorization. */
 .admin-designs{margin-top:24px;padding:20px;border:1px solid #667e9c;border-radius:18px;background:linear-gradient(145deg,#102337e8,#17172ce8)}
@@ -273,22 +273,22 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 #dockBtn:focus-visible{outline:2px solid var(--cockpit-accent);outline-offset:3px}
 #dockBtn:not(:disabled):active{translate:0 1px}
 
-#hangarPanel .hangar-inner{
+:is(#hangarPanel,#shopPanel) .hangar-inner{
  position:relative;
  background:var(--cockpit-panel);
  border:1px solid var(--cockpit-edge);
  border-radius:var(--cockpit-radius);
  box-shadow:inset 0 1px 0 #ffffff20,0 6px 14px #0008;
 }
-#hangarPanel .hangar-inner h2,
-#hangarPanel .commerce-header h3{
+:is(#hangarPanel,#shopPanel) .hangar-inner h2,
+:is(#hangarPanel,#shopPanel) .commerce-header h3{
  padding-right:32px;
  font-size:24px;
  font-weight:850;
  letter-spacing:.04em;
 }
-#hangarPanel .hangar-inner h2{text-transform:uppercase}
-#hangarPanel #hangarClose{
+:is(#hangarPanel,#shopPanel) .hangar-inner h2{text-transform:uppercase}
+:is(#hangarPanel,#shopPanel) #hangarClose{
  position:absolute;
  top:8px;
  right:8px;
@@ -313,8 +313,8 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
  margin:16px 0;
  border-bottom:1px solid #ffffff20;
 }
-#hangarPanel #hangarSections button,
-#hangarPanel .commerce-tabs button{
+:is(#hangarPanel,#shopPanel) #hangarSections button,
+:is(#hangarPanel,#shopPanel) .commerce-tabs button{
  width:auto;
  min-height:44px;
  margin:0;
@@ -325,13 +325,13 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
  border-bottom:2px solid transparent;
  border-radius:0;
 }
-#hangarPanel :is(#hangarSections,.commerce-tabs) button[aria-pressed="true"]{
+:is(#hangarPanel,#shopPanel) :is(#hangarSections,.commerce-tabs) button[aria-pressed="true"]{
  color:var(--cockpit-accent);
  border-bottom-color:var(--cockpit-accent);
 }
-#hangarPanel button:focus-visible{outline-color:var(--cockpit-accent)}
-#hangarPanel button:not(:disabled):active{translate:0 1px}
-#hangarPanel #hangarClose:active{background:var(--cockpit-hover)}
+:is(#hangarPanel,#shopPanel) button:focus-visible{outline-color:var(--cockpit-accent)}
+:is(#hangarPanel,#shopPanel) button:not(:disabled):active{translate:0 1px}
+:is(#hangarPanel,#shopPanel) #hangarClose:active{background:var(--cockpit-hover)}
 .equipment-layout{
  display:grid;
  grid-template-columns:minmax(140px,1fr) minmax(0,2fr);
@@ -344,7 +344,7 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
  overflow:auto;
  padding:3px;
 }
-#hangarPanel .equipment-ship-tile{
+:is(#hangarPanel,#shopPanel) .equipment-ship-tile{
  display:flex;
  align-items:center;
  gap:8px;
@@ -354,12 +354,12 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
  border-color:var(--cockpit-edge);
  color:var(--cockpit-text);
 }
-#hangarPanel .equipment-ship-tile .ship-preview{
+:is(#hangarPanel,#shopPanel) .equipment-ship-tile .ship-preview{
  width:clamp(44px,7vw,84px);
  height:48px;
  flex:none;
 }
-#hangarPanel .equipment-ship-tile[aria-pressed="true"]{
+:is(#hangarPanel,#shopPanel) .equipment-ship-tile[aria-pressed="true"]{
  background:var(--cockpit-surface);
  border-color:var(--cockpit-accent);
 }
@@ -369,21 +369,21 @@ body:not(.pvp-hud) #zoomControls button{width:42px;height:42px;flex:none}
 }
 .equipment-detail h4{font-size:18px;margin:0 0 8px}
 .equipment-equipped,.equipment-ship-tile[data-equipped="true"] small{color:var(--cockpit-accent)}
-#hangarPanel :is([data-equip-owned],#assembleShip,#assembleFormation):not(:disabled){
+:is(#hangarPanel,#shopPanel) :is([data-equip-owned],#assembleShip,#assembleFormation):not(:disabled){
  background:var(--cockpit-accent);
  color:var(--cockpit-panel);
 }
 @media(max-width:740px){
- #hangarPanel .equipment-detail .ship-model-preview{width:clamp(80px,20vw,145px);min-width:0}
+ :is(#hangarPanel,#shopPanel) .equipment-detail .ship-model-preview{width:clamp(80px,20vw,145px);min-width:0}
  .equipment-detail{gap:8px}
 }
 @media(max-width:530px){
  .equipment-layout{grid-template-columns:minmax(0,1fr)}
  .equipment-roster{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));max-height:132px}
- #hangarPanel #hangarSections button{padding-inline:8px}
+ :is(#hangarPanel,#shopPanel) #hangarSections button{padding-inline:8px}
 }
 @media(hover:hover){
- #hangarPanel :is(#hangarClose,#hangarSections button,.equipment-ship-tile):hover{background-color:var(--cockpit-hover)}
+ :is(#hangarPanel,#shopPanel) :is(#hangarClose,#hangarSections button,.equipment-ship-tile):hover{background-color:var(--cockpit-hover)}
 }
 
 /* Compact flight instruments. */
@@ -433,14 +433,14 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
 #companionModeChoices button[aria-pressed="true"]{background:var(--cockpit-surface);color:var(--cockpit-accent)}
 
 /* Hangar overview */
-#hangarPanel .hangar-inner {
+:is(#hangarPanel,#shopPanel) .hangar-inner {
  --hangar-gold:#e8bf70;
  background:radial-gradient(ellipse at top,#202839,#101721 65%);
  border-color:#967546;
  box-sizing:border-box;
 }
-#hangarPanel .hangar-tag {color:var(--hangar-gold)}
-#hangarPanel .hangar-inner > h2 {margin:5px 0 12px}
+:is(#hangarPanel,#shopPanel) .hangar-tag {color:var(--hangar-gold)}
+:is(#hangarPanel,#shopPanel) .hangar-inner > h2 {margin:5px 0 12px}
 #hangarStats {
  padding:9px 12px;
  border-color:#e8bf7038;
@@ -450,14 +450,14 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
  font-variant-numeric:tabular-nums;
 }
 #hangarMessage:empty {display:none}
-#hangarPanel #hangarSections {
+:is(#hangarPanel,#shopPanel) #hangarSections {
  display:grid;
  grid-template-columns:repeat(3,minmax(0,1fr));
  gap:6px;
  margin:10px 0 12px;
  border-bottom:0;
 }
-#hangarPanel #hangarSections button {
+:is(#hangarPanel,#shopPanel) #hangarSections button {
  min-width:0;
  padding:6px 3px;
  border:1px solid #e8bf704d;
@@ -465,15 +465,15 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
  background:#ffffff06;
  font-size:clamp(11px,2.6vw,14px);
 }
-#hangarPanel #hangarSections button[aria-pressed="true"] {
+:is(#hangarPanel,#shopPanel) #hangarSections button[aria-pressed="true"] {
  color:#fff0c8;
  border-color:var(--hangar-gold);
  background:#e8bf7026;
 }
-#hangarPanel :is(#hangarSections button,#pvpEditControls):focus-visible {
+:is(#hangarPanel,#shopPanel) :is(#hangarSections button,#pvpEditControls):focus-visible {
  outline-color:var(--hangar-gold);
 }
-#hangarPanel #pvpControlEditorEntry {
+:is(#hangarPanel,#shopPanel) #pvpControlEditorEntry {
  display:grid!important;
  grid-template-columns:minmax(0,1fr) auto;
  grid-template-rows:auto auto;
@@ -484,18 +484,18 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
  border-radius:8px;
  background:#0b121e;
 }
-#hangarPanel #pvpControlEditorEntry h3 {
+:is(#hangarPanel,#shopPanel) #pvpControlEditorEntry h3 {
  grid-column:1;
  margin:0;
  font-size:15px;
 }
-#hangarPanel #pvpControlEditorEntry p {
+:is(#hangarPanel,#shopPanel) #pvpControlEditorEntry p {
  grid-column:1;
  margin:0;
  font-size:12px;
  line-height:1.4;
 }
-#hangarPanel #pvpEditControls {
+:is(#hangarPanel,#shopPanel) #pvpEditControls {
  grid-area:1 / 2 / 3 / 3;
  width:auto;
  min-height:44px;
@@ -508,8 +508,8 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
  font-size:13px;
 }
 @media (max-width:480px) {
- #hangarPanel #pvpControlEditorEntry {grid-template-columns:minmax(0,1fr)}
- #hangarPanel #pvpEditControls {grid-area:auto; width:100%; margin-top:4px}
+ :is(#hangarPanel,#shopPanel) #pvpControlEditorEntry {grid-template-columns:minmax(0,1fr)}
+ :is(#hangarPanel,#shopPanel) #pvpEditControls {grid-area:auto; width:100%; margin-top:4px}
 }
 
 /* Match the character controls and approach indicator to the hangar. */
@@ -575,3 +575,11 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
 #dockBtn::before {filter:grayscale(1) sepia(1)}
 #dockBtn::after {inset:2px;background:linear-gradient(#172437,#080d18)}
 #dockBtn:focus-visible::after {background:#362a1d}
+
+#shopPanel {position:fixed;z-index:70}
+#shopPurchases {border:0;padding:0;margin:0;min-width:0}
+#shopPurchases:disabled {opacity:.65}
+#hangarPanel #hangarSections {grid-template-columns:repeat(2,minmax(0,1fr))}
+#characterPanel #menuShop {min-height:44px;width:100%;padding:10px 14px;border:1px solid #e8bf7080;border-radius:7px;background:#27231d;color:#fff0c8;font:inherit;font-weight:700}
+#characterPanel #menuShop:focus-visible {outline:2px solid #e8bf70;outline-offset:2px}
+body.docked:not(.inventory-open) #characterBtn {visibility:visible;z-index:60}

@@ -16,7 +16,7 @@ export function formationPreview(id){
 export function assembledShipPreview(id){return ASSEMBLED_SHIPS[id]?shipThumbnail(id):''}
 export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equip,equipShip,log=()=>{},changed}){
  const $=id=>document.getElementById(id);let equipmentShip=player.shipId,selected='shield',draft=new Set(),message='',view='home',category='ships',stamp='',assemblyZone=isPvpBase()?'pvp':'pve';
- const note=text=>{message=text;const el=$('hangarNotice');el.textContent=text;el.hidden=!text};
+ const note=text=>{message=text;for(const id of ['hangarNotice','shopNotice']){const el=$(id);el.textContent=text;el.hidden=!text}};
  function show(next){stopAssemblyPreview();view=next;$('hangarSections').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.hangarView===view)));for(const v of ['home','equipment','shop','assembly'])$('hangar'+v[0].toUpperCase()+v.slice(1)+'View').classList.toggle('hidden',v!==view);$('hangarPanel').classList.toggle('expanded',view!=='home');note('');render(true);if(view==='shop'&&category==='ships')previewShip()}
  document.querySelectorAll('[data-hangar-view]').forEach(b=>b.onclick=()=>show(b.dataset.hangarView));
  document.querySelectorAll('[data-shop-category]').forEach(b=>b.onclick=()=>{category=b.dataset.shopCategory;stopAssemblyPreview();render(true);if(view==='shop'&&category==='ships')previewShip()});
@@ -49,7 +49,9 @@ export function mountHangarUI({player,isDocked,isOffline,isPvpBase=()=>false,equ
  }
 
  function render(force=false){
-  $('hangarCredits').textContent=fmt(player.gold)+' créditos';
+  $('hangarCredits').textContent=$('shopCredits').textContent=fmt(player.gold)+' créditos';
+  $('shopPurchases').disabled=!isDocked()||!isOffline();
+  $('shopAccessNotice').hidden=isDocked()&&isOffline();
   if(assemblyZone!==baseZone()){assemblyZone=baseZone();selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear();stopAssemblyPreview();force=true}
   const next=JSON.stringify([baseZone(),player.gold,player.loot,player.formations,player.droneFormation,player.droneCount,player.repairRobotLevel,player.boosters,player.ownedShips,player.shipId,player.level]);
   if(!force&&next===stamp)return;stamp=next;

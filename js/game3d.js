@@ -42,7 +42,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=358';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=401';
-import {mountHangarUI} from './hangar-ui.js?v=401';
+import {mountHangarUI} from './hangar-ui.js?v=405';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=401';
@@ -3132,7 +3132,18 @@ hudToggle.onclick=()=>{
  hudToggle.setAttribute('aria-expanded',String(!folded));
  hudToggle.setAttribute('aria-label',folded?'Desplegar información de vida':'Plegar información de vida');
 };
-const panel=$('characterPanel');combatAudio.mount(panel);graphicsUI=mountGraphicsSettings(graphics,{parent:panel,storage:{setItem:(key,value)=>localStorage.setItem(key,value)}});const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open')};$('characterBtn').onclick=()=>{$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Escudo máximo: '+player.maxShield+'<br>Potencia: '+player.attack+'<br>Defensa: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;document.addEventListener('pointerdown',event=>{if(panel.classList.contains('hidden')||panel.contains(event.target)||event.target.closest('#characterBtn'))return;event.preventDefault();event.stopImmediatePropagation();closeCharacterPanel()},true);$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Cadete';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
+const panel=$('characterPanel');combatAudio.mount(panel);graphicsUI=mountGraphicsSettings(graphics,{parent:panel,storage:{setItem:(key,value)=>localStorage.setItem(key,value)}});const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open');if(docked)hangar.classList.remove('hidden')};$('characterBtn').onclick=()=>{if(docked)hangar.classList.add('hidden');$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Escudo máximo: '+player.maxShield+'<br>Potencia: '+player.attack+'<br>Defensa: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;
+function closeShop(){
+ $('saleConfirm').classList.add('hidden');
+ $('shopPanel').classList.add('hidden');hangarUI?.stopPreview();hangarUI?.show('home');$('menuShop').focus();
+}
+$('menuShop').onclick=()=>{
+ resetDockControls();fireHeld=false;hangarRefresh();hangarUI.show('shop');$('shopPanel').classList.remove('hidden');$('closeShop').focus();
+};
+$('closeShop').onclick=closeShop;
+$('shopPanel').addEventListener('pointerdown',event=>{if(event.target===$('shopPanel')){event.preventDefault();event.stopPropagation();closeShop()}});
+$('shopPanel').addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeShop()}});
+document.addEventListener('pointerdown',event=>{if(!$('shopPanel').classList.contains('hidden')||panel.classList.contains('hidden')||panel.contains(event.target)||event.target.closest('#characterBtn'))return;event.preventDefault();event.stopImmediatePropagation();closeCharacterPanel()},true);$('saveBtn').onclick=()=>{player.name=$('nameInput').value.trim()||'Nave Cadete';save();closeCharacterPanel()};// QA es local y no representa autenticación segura: mantenerlo solo en pruebas.
 const activityJournal=mountJournal({getPlayer:()=>PVP_MODE&&!pvpHangar?readOfflinePilot(localStorage):player,onOpen:()=>resetDockControls()});
 $('journalBtn').onclick=()=>activityJournal.open();$('hangarJournal').onclick=()=>activityJournal.open();
 addEventListener('mundo:open-journal',()=>activityJournal.open());
@@ -3473,7 +3484,7 @@ if(PVP_MODE){
  function keepArena(){if(!returnModelReady&&portalMesh.userData.portalModel)mountReturnPortal();graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraStation.visible=true;auroraStation.position.set(0,-180,0);auroraStation.scale.setScalar(.65);auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';asteroidField.visible=false;}
  function clearFight(){resetDockControls();clearCombatShots();lockedEnemy=null;fireCd=skillCd=classAbilityTime=classAbilityCd=0;}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
- for(const id of ['characterBtn','questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
+ for(const id of ['questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  mountPvpZones(THREE,scene);$('hint').textContent='Base · Zona PvE hasta 1.800 m · Zona hostil hasta 2.950 m';$('stationDistance').textContent='Mapa PvP';
  pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
