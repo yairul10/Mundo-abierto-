@@ -102,3 +102,26 @@ test('boss-kind migration retains pending old receipts and preserves new mission
  const receipts=messages[0].receipts;assert.equal(receipts.length,2);assert.equal(receipts.find(r=>r.id==='new').enemyKind,'colossusPro');assert.equal(Object.hasOwn(receipts.find(r=>r.id==='old'),'enemyKind'),false);assert.equal(db.prepare('SELECT claimed FROM boss_rewards WHERE id=?').get('old').claimed,0);
  }finally{db.close()}
 });
+
+
+test('broadcast deltas are opt-in, recover after failed sends/restarts, and preserve legacy ships',async()=>{
+ const {restoreWorldSnapshot}=await import('../../js/world-snapshot.js');
+ const realNow=Date.now;let now=1700000000000;Date.now=()=>now;
+ const ctx=context(),w=new SharedWorld(ctx,{}),s=world('normal');
+ const pilot=(id,version=5)=>({id,name:id,profile:{shipId:'adminpod',maxHp:100},hp:100,connected:true,clientVersion:version,pos:[0,120,0]});
+ s.players=[pilot('delta'),pilot('old',3),pilot('full')];
+ const socket=(id,optIn)=>({messages:[],fail:false,deserializeAttachment:()=>({world:true,id,snapshotDelta:optIn,lastRewardsAt:now}),send(data){if(this.fail)throw Error('send failed');this.messages.push(JSON.parse(data))}});
+ const delta=socket('delta',1),legacy=socket('old',0),full=socket('full',0);ctx.setSockets([delta,legacy,full]);
+ try{
+  w.worldBroadcast(s);let client=delta.messages.at(-1);assert.equal(client.type,'world');
+  assert.equal(legacy.messages.at(-1).players[0].profile.shipId,'aurora');
+  assert.equal(full.messages.at(-1).players[0].profile.shipId,'adminpod');
+  now+=100;s.players[0].pos[0]=50;w.worldBroadcast(s);
+  assert.equal(delta.messages.at(-1).type,'worldDelta');assert.equal(full.messages.at(-1).type,'world');
+  client=restoreWorldSnapshot(delta.messages.at(-1),client);assert.deepEqual(client,full.messages.at(-1));
+  delta.fail=true;now+=100;w.worldBroadcast(s);delta.fail=false;
+  now+=100;w.worldBroadcast(s);assert.equal(delta.messages.at(-1).type,'world');
+  const late=socket('delta',1);ctx.setSockets([delta,legacy,full,late]);now+=100;w.worldBroadcast(s);assert.equal(late.messages.at(-1).type,'world');
+  now+=100;new SharedWorld(ctx,{}).worldBroadcast(s);assert.equal(delta.messages.at(-1).type,'world');
+ }finally{Date.now=realNow;w.stopSimulation()}
+});

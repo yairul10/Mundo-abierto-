@@ -1,3 +1,4 @@
+import {snapshotFrames} from './snapshot-delta.mjs';
 import {groupAction,updateGroups} from './groups.mjs';
 import {compatiblePvpClient} from './client-version.mjs';
 import {initResults,persistResults,rankings,pilotRanks} from './pvp-results.mjs';
@@ -55,7 +56,30 @@ export class SharedWorld extends DurableObject {
  }
  sendRewards(ws,id){const attachment=ws.deserializeAttachment(),now=Date.now();if(now-(attachment.lastRewardsAt||0)<3000)return;attachment.lastRewardsAt=now;ws.serializeAttachment(attachment);if(this.worldLoad().recoveries?.[id]?.bill)ws.send(JSON.stringify({type:'respawnBill',bill:this.worldLoad().recoveries[id].bill}));const receipts=this.ctx.storage.sql.exec('SELECT id,amount,damage,total_damage AS totalDamage,boss_id AS bossId,materials,xp,enemy_kind AS enemyKind FROM boss_rewards WHERE player_id=? AND claimed=0 LIMIT 50',id).toArray().map(r=>({...Object.fromEntries(Object.entries(r).filter(([k,v])=>k!=='enemyKind'||!!v)),materials:JSON.parse(r.materials||'{}')}));if(receipts.length)ws.send(JSON.stringify({type:'bossRewards',receipts}))}
  worldSnapshot(s){const ids=s.players.filter(p=>p.connected).map(p=>p.id),stamp=ids.join(',');if(!this.rankCache||this.rankStamp!==stamp||this.rankCheckpoint!==this.lastCheckpoint){this.rankCache=pilotRanks(this.ctx,ids);this.rankStamp=stamp;this.rankCheckpoint=this.lastCheckpoint;}return {type:'world',boss:bossSnapshot(s.boss),enemies:arenaEnemySnapshots(s),serverTime:Date.now(),rules:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,shield,pos,aim,seq,duelId,duelStartsAt,death,exiting,abilityUntil,abilityReadyAt,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({pvpRank:this.rankCache[id],adminShipAllowed:!!p.adminShipAllowed,id,name,profile,hp,energy,shield,pos,aim,seq,duelId,abilityUntil,abilityReadyAt:abilityReadyAt||0,revision,hangar,death:death?{id:death.id,time:death.time}:null,exiting:!!exiting,zone:zoneOf(pForProtection(s,id)),duelStartsAt:duelStartsAt||0,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,npcTether:p.npcTether?{owner:p.npcTether.owner}:null,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,groups:s.groups||[],groupInvites:s.groupInvites||[],events:s.events}}
- worldBroadcast(s){if(Date.now()-this.lastBroadcast<100)return;this.lastBroadcast=Date.now();const snapshot=this.worldSnapshot(s),data=JSON.stringify(snapshot),legacy=JSON.stringify({...snapshot,players:snapshot.players.map(p=>p.profile.shipId==='adminpod'?{...p,profile:{...p.profile,shipId:'aurora'}}:p)});for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.world)try{const id=ws.deserializeAttachment().id;ws.send((s.players.find(p=>p.id===id)?.clientVersion||0)>=4?data:legacy);this.sendRewards(ws,id)}catch{}}
+ worldBroadcast(s){
+  if(Date.now()-this.lastBroadcast<100)return;
+  this.lastBroadcast=Date.now();
+  const snapshot=this.worldSnapshot(s),previous=this.broadcastState,frames=snapshotFrames(snapshot,previous);
+  this.broadcastState=frames.state;
+  this.sentSnapshots??=new WeakMap();
+  let legacy;
+  const players=new Map(s.players.map(p=>[p.id,p]));
+  for(const ws of this.ctx.getWebSockets()){
+   const attachment=ws.deserializeAttachment();if(!attachment?.world)continue;
+   const player=players.get(attachment.id);
+   try{
+    if((player?.clientVersion||0)<4){
+     legacy??=JSON.stringify({...snapshot,players:snapshot.players.map(p=>p.profile.shipId==='adminpod'?{...p,profile:{...p.profile,shipId:'aurora'}}:p)});
+     ws.send(legacy);
+    }else {
+     // A new socket, failed send or reconstructed object always gets a full baseline.
+     ws.send(attachment.snapshotDelta===1&&this.sentSnapshots.get(ws)===previous&&frames.delta?frames.delta:frames.full);
+    }
+    this.sentSnapshots.set(ws,frames.state);
+    this.sendRewards(ws,attachment.id);
+   }catch{this.sentSnapshots.delete(ws)}
+  }
+ }
  async enter(body){
   if(typeof body.accountId!=='string'||!/^[a-f0-9-]{36}$/i.test(body.accountId))return {error:'google_required'};
   const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('google-play:'+body.accountId)),id=Array.from(new Uint8Array(bytes)).map(v=>v.toString(16).padStart(2,'0')).join('').slice(0,24);
@@ -66,7 +90,7 @@ export class SharedWorld extends DurableObject {
   let p=s.players.find(x=>x.id===id);if(p?.connected)return {error:'already_connected'};
   if(s.players.filter(q=>q.id!==id&&(q.connected||!q.death&&now-q.lastSeen<30000)).length>=WORLD.capacity)return {error:'world_full'};
   if(!p){p={id,pos:[...WORLD.spawn],seq:-1,aim:[0,0],connected:false,revision:0};s.players.push(p)}
-  p.adminShipAllowed=String(this.env.CHAT_ADMIN_IDS||'').split(',').map(x=>x.trim()).includes(id);p.clientVersion=body.clientVersion;p.accountId=body.accountId;p.realm=body.realm==='test'?'test':'normal';p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];p.roster=importRoster(body.roster);equip(p,body.shipId)||equip(p,Object.keys(p.roster)[0]);reset(p,true);p.equippedSkills=validSkills(body.skills)?[...body.skills]:equippedSkills(p);p.hangar=false;p.exiting=false;p.duelRequestsOff=body.duelRequestsOff===true;p.death=s.recoveries?.[id]||null;if(p.death)p.hp=0;
+  p.adminShipAllowed=String(this.env.CHAT_ADMIN_IDS||'').split(',').map(x=>x.trim()).includes(id);p.snapshotDelta=body.snapshotDelta===1?1:0;p.clientVersion=body.clientVersion;p.accountId=body.accountId;p.realm=body.realm==='test'?'test':'normal';p.name=String(body.name||'Invitado').trim().slice(0,20)||'Invitado';p.token=secret();p.lastSeen=p.lastInput=now;p.seq=-1;const angle=parseInt(id.slice(-6),16)*Math.PI/180,radius=260+parseInt(id.slice(0,2),16)%100;p.spawn=[Math.cos(angle)*radius,120,Math.sin(angle)*radius];p.roster=importRoster(body.roster);equip(p,body.shipId)||equip(p,Object.keys(p.roster)[0]);reset(p,true);p.equippedSkills=validSkills(body.skills)?[...body.skills]:equippedSkills(p);p.hangar=false;p.exiting=false;p.duelRequestsOff=body.duelRequestsOff===true;p.death=s.recoveries?.[id]||null;if(p.death)p.hp=0;
   this.worldSave(s,true);await this.ctx.storage.setAlarm(now+15000);return {playerId:id,token:p.token,expiresAt:now+30000};
  }
  async fetch(request){
@@ -76,7 +100,7 @@ export class SharedWorld extends DurableObject {
   if(p?.accountId&&!compatiblePvpClient(p,this.env))return json({error:'update_required'},426);
   if(protocols[0]!=='mundo-world-v1'||!p?.accountId)return json({error:'invalid_ticket'},403);
   if(p.connected)return json({error:'already_connected'},409);
-  const [client,server]=Object.values(new WebSocketPair());this.ctx.acceptWebSocket(server);server.serializeAttachment({world:true,id:p.id,windowStart:now,count:0});
+  const [client,server]=Object.values(new WebSocketPair());this.ctx.acceptWebSocket(server);server.serializeAttachment({world:true,id:p.id,snapshotDelta:p.snapshotDelta,windowStart:now,count:0});
   p.connected=true;p.lastSeen=p.lastInput=now;this.worldSave(s,true);this.startSimulation(s);this.worldBroadcast(s);await this.ctx.storage.setAlarm(now+3000);
   return new Response(null,{status:101,webSocket:client,headers:{'Sec-WebSocket-Protocol':'mundo-world-v1'}});
  }
