@@ -1,3 +1,4 @@
+import {createInfernoCombat} from './inferno.js?v=415';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
@@ -287,7 +288,7 @@ const auroraPlanetLoader=new GLTFLoader();
 // jugador conserva carga inmediata; el resto aprovecha períodos de reposo.
 let modelSector=PVP_MODE?'aurora':player.sector||'aurora';
 // Explosion fragments are shared by all sectors, including PvP.
-const graveyardModels=['metalcrate','estacion_recuperacion','restos_anillo','spaceship%20(3)','spacecruiser%20(1)','catapulta_','arponero_','acechador_','gran_titan'];
+const graveyardModels=['metalcrate','estacion_recuperacion','restos_anillo','spaceship%20(3)','spacecruiser%20(1)','catapulta_','arponero_','acechador_','gran_titan','inferno'];
 const modelQueue=createModelLoadQueue({
  priority:path=>/spaceship%20|spacecruiser%20/.test(path)?3:/metalcrate|restos_anillo/.test(path)?2:0,
  schedule:fn=>{if('requestIdleCallback' in window)requestIdleCallback(fn,{timeout:1200});else setTimeout(fn,80)},
@@ -910,6 +911,7 @@ const TYPES={
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
  catapult:{hp:3000,damage:300,speed:75,xp:1200,gold:800,loot:8,color:0x815942},
  harpooner:{hp:5000,damage:50,speed:130,xp:1600,gold:1200,loot:7,color:0x505b69},
+ inferno:{hp:6500,damage:100,speed:110,xp:2400,gold:1800,loot:8,color:0xd32625},
  stalker:{hp:4000,damage:250,speed:155,xp:2000,gold:1600,loot:8,color:0xa52a35},
  granTitan:{...TITAN_STATS,speed:0,color:0x555b63},
  carrier:{hp:40000,damage:150,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
@@ -921,9 +923,9 @@ function enemyDifficultyScale(){
  const level=Math.max(1,Math.floor(Number(player.level)||1));
  return Math.min(5,1+Math.max(0,level-1)*.10);
 }
-function enemyMaxHp(type){return type==='granTitan'?Math.round(TITAN_STATS.hp*titanScale(player.level)):type==='carrier'?Math.round(TYPES.carrier.hp*advancedEnemyScale(player.level,30)):type==='catapult'||type==='harpooner'||type==='stalker'?Math.round(TYPES[type].hp*advancedEnemyScale(player.level,40)):type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
+function enemyMaxHp(type){return type==='granTitan'?Math.round(TITAN_STATS.hp*titanScale(player.level)):type==='carrier'?Math.round(TYPES.carrier.hp*advancedEnemyScale(player.level,30)):type==='catapult'||type==='harpooner'||type==='stalker'||type==='inferno'?Math.round(TYPES[type].hp*advancedEnemyScale(player.level,40)):type==='devastator'?Math.round(enemyMaxHp('destroyer')*.7):Math.round(TYPES[type].hp*enemyDifficultyScale())}
 function enemyRewardScale(){return Math.min(2.5,1+Math.max(0,(Number(player.level)||1)-1)*.035)}
-const enemyKinds=[...Array(34).fill('scout'),...Array(19).fill('raider'),...Array(20).fill('sentinel'),...Array(19).fill('destroyer'),...Array(10).fill('devastator'),...Array(12).fill('catapult'),...Array(12).fill('harpooner'),...Array(8).fill('stalker')]; // Aproximadamente +40%: 53 enemigos en Aurora y 39 en Cinturón; Ascuas conserva 16 Destructores.
+const enemyKinds=[...Array(34).fill('scout'),...Array(19).fill('raider'),...Array(20).fill('sentinel'),...Array(19).fill('destroyer'),...Array(10).fill('devastator'),...Array(12).fill('catapult'),...Array(12).fill('harpooner'),...Array(8).fill('stalker'),...Array(3).fill('inferno')]; // Aproximadamente +40%: 53 enemigos en Aurora y 39 en Cinturón; Ascuas conserva 16 Destructores.
 function randomEnemyHome(type){
  // Los fuertes tienden a estar más lejos, pero pueden aparecer en cualquier dirección.
  const min=type==='scout'?850:type==='raider'?1200:1700;
@@ -942,7 +944,7 @@ linkScrapPairs(enemies.filter(e=>!e.pro));
 function enemyBelongsToSector(e,rank=1){
  if(e.pro)return activeSector===e.proSector;
  if(e.titanAdd||e.type==='granTitan')return activeSector==='graveyard';
- if(activeSector==='graveyard')return e.type==='catapult'||e.type==='harpooner'||e.type==='stalker';
+ if(activeSector==='graveyard')return e.type==='catapult'||e.type==='harpooner'||e.type==='stalker'||e.type==='inferno';
  if(e.bossAdd||e.type==='carrier')return activeSector==='ember';
  if(activeSector==='aurora')return e.type==='scout'||e.type==='raider';
  if(activeSector==='belt')return e.type==='sentinel'||e.type==='destroyer'&&rank<=19;
@@ -979,6 +981,19 @@ for(const [key,file]of [['launcher','arponero_lanzador'],['spool','arponero_carr
  harpoonParts[key]=gltf.scene;assembleHarpoonParts();
  },undefined,error=>console.warn('Pieza de arponero no disponible: '+file+'; se conserva el respaldo.',error));
 }
+// One shared uploaded model, aligned with the enemy's local +Z forward axis.
+deferredModelLoad(modelLoader,'./assets/models/inferno.glb?v=415',gltf=>{
+ const source=gltf.scene;source.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(source),span=Math.max(...bounds.getSize(new THREE.Vector3()).toArray());
+ if(!Number.isFinite(span)||span<=0)return;
+ const center=bounds.getCenter(new THREE.Vector3()),factor=180/span;
+ for(const enemy of enemies.filter(e=>e.type==='inferno')){
+  const model=source.clone(true);model.scale.multiplyScalar(factor);model.position.copy(center).multiplyScalar(-factor);
+  model.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+  for(const child of enemy.mesh.children)if(child!==enemy.mesh.userData.infernoEffects)child.visible=false;
+  enemy.mesh.add(model);
+ }
+},undefined,error=>console.warn('Inferno: modelo no disponible; se conserva el respaldo.',error));
 // Diseño propio del Devastador: casco metálico cobrizo y dos alas largas.
 for(const e of enemies.filter(e=>e.type==='devastator')){
  const armor=new THREE.MeshStandardMaterial({color:0xd86d31,metalness:.7,roughness:.5});
@@ -1714,6 +1729,11 @@ function fireSupportDrones(aimPoint,locked,noseDir){
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
 const scrapCombat=createScrapCombat(THREE,scene,{position:()=>playerMesh.position,canHit:()=>player.hp>0&&!recoveryPending&&!docked&&!landing&&!portalTransitProtected()&&!inSafeZone(playerMesh.position),damage:(amount,elapsed=1,source=null)=>applyPlayerDamage(Math.max(1,amount*proMultiplier(source)*advancedEnemyScale(player.level,40)-player.defense*.25)*elapsed),notify:message=>lootToast(message),onBombImpact:(point,radius)=>titanFireburst.spawn(point,radius),sound:(kind,position)=>combatAudio.play(kind,position)});
+const infernoCombat=createInfernoCombat(THREE,{
+ targets:()=>[{position:playerMesh.position,radius:30,canHit:player.hp>0&&!recoveryPending&&!docked&&!landing&&!portalTransitProtected()&&!inSafeZone(playerMesh.position)}],
+ damage:(target,amount,enemy)=>{lastIncomingAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;registerExplorerThreat(enemy);applyPlayerDamage(amount*Math.max(.1,1-player.defense*.0025))},
+ warn:()=>lootToast('🔥 Inferno · ¡Aléjate del frente!')
+});
 const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={stalker:new THREE.MeshBasicMaterial({color:0xff1838}),scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff}),destroyer:new THREE.MeshBasicMaterial({color:0xff3d9b}),devastator:new THREE.MeshBasicMaterial({color:0xff7733})};
@@ -1831,7 +1851,7 @@ function updateTargetLock(){
   lockFrame.classList.toggle('pvp-neutral',PVP_MODE&&!pvpSession?.canTarget(candidate.playerId));
   lockFrame.style.left=((screen.x+1)*50)+'%';
   lockFrame.style.top=((1-screen.y)*50)+'%';
-  const info=candidate.pvpRemote?[candidate.pilotName,candidate.pilotLevel]:{scout:['Explorador',1],raider:['Asaltante',3],sentinel:['Guardián',5],destroyer:['Destructor',8],devastator:['Devastador',30],catapult:['Catapulta de Chatarra',40],stalker:['Acechador de Chatarra',40],harpooner:['Arponero',40],granTitan:['Gran Titán',40],carrier:['Coloso Portanaves',30]}[candidate.type]||['Enemigo',1];
+  const info=candidate.pvpRemote?[candidate.pilotName,candidate.pilotLevel]:{scout:['Explorador',1],raider:['Asaltante',3],sentinel:['Guardián',5],destroyer:['Destructor',8],devastator:['Devastador',30],catapult:['Catapulta de Chatarra',40],inferno:['Inferno',40],stalker:['Acechador de Chatarra',40],harpooner:['Arponero',40],granTitan:['Gran Titán',40],carrier:['Coloso Portanaves',30]}[candidate.type]||['Enemigo',1];
   $('targetName').textContent=info[0]+(candidate.pro?' Pro':'')+' · Nv. '+(candidate.pvpRemote?info[1]:Math.max(info[1],Math.floor(Number(player.level)||1)));
   $('targetHpText').textContent=Math.max(0,Math.ceil(candidate.hp))+'/'+candidate.maxHp+(candidate.maxShield?' · Escudo '+Math.ceil(candidate.shield||0)+'/'+candidate.maxShield:'');
   $('targetHpFill').style.width=(100*Math.max(0,Math.min(1,(candidate.hp+(candidate.shield||0))/(candidate.maxHp+(candidate.maxShield||0)))))+'%';
@@ -2401,8 +2421,9 @@ function updateLoot(dt){
 }
 function kill(e,missile=false){
  if(e.dead)return;
+ if(e.type==='inferno')infernoCombat.reset(e);
  combatAudio.play('explosion',e.mesh.position);
- const t=TYPES[e.type],enemyName=(({scout:'Explorador',raider:'Asaltante',sentinel:'Guardián',destroyer:'Destructor',devastator:'Devastador',carrier:'Coloso Portanaves',catapult:'Catapulta de Chatarra',stalker:'Acechador de Chatarra',harpooner:'Arponero',granTitan:'Gran Titán'})[e.type]||'Enemigo')+(e.pro?' Pro':''),reward=e.type==='granTitan'?titanScale(player.level):e.type==='carrier'?advancedEnemyScale(player.level,30):enemyRewardScale(),gold=Math.round(t.gold*reward)*proRewardMultiplier(e),xp=Math.round(t.xp*reward)*proRewardMultiplier(e);
+ const t=TYPES[e.type],enemyName=(({scout:'Explorador',raider:'Asaltante',sentinel:'Guardián',destroyer:'Destructor',devastator:'Devastador',carrier:'Coloso Portanaves',catapult:'Catapulta de Chatarra',inferno:'Inferno',stalker:'Acechador de Chatarra',harpooner:'Arponero',granTitan:'Gran Titán'})[e.type]||'Enemigo')+(e.pro?' Pro':''),reward=e.type==='granTitan'?titanScale(player.level):e.type==='carrier'?advancedEnemyScale(player.level,30):enemyRewardScale(),gold=Math.round(t.gold*reward)*proRewardMultiplier(e),xp=Math.round(t.xp*reward)*proRewardMultiplier(e);
  if(e.type==='carrier'){
   bossState.hp=0;
   if(bossState.rewarded)return;
@@ -2808,6 +2829,7 @@ function resetSectorPopulation(){
  for(const rock of asteroidField.children)rock.position.copy(randomSectorPosition(850,currentSector().radius-50));
  const counts={};
  for(const e of enemies){
+  if(e.type==='inferno')infernoCombat.reset(e);
   if(e.type==='granTitan'){e.mesh.visible=activeSector==='graveyard'&&!e.dead;continue}
   if(e.titanAdd){e.mesh.visible=activeSector==='graveyard'&&!e.dead;continue}
   if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead&&!e.launchRemaining;continue}
@@ -3370,6 +3392,7 @@ const playerSafe=updateZone();updateDock();
 for(const e of enemies){
  if(e.pvpRemote)continue;
  if(e.pro&&e.mesh.userData.proBadge)e.mesh.userData.proBadge.visible=true;
+ if(e.type==='inferno'&&(e.dead||!e.mesh.visible))infernoCombat.reset(e);
  if(e.dead){
   if(!e.titanAdd&&e.type!=='granTitan'&&!e.bossAdd&&e.type!=='carrier'&&now/1000>=e.dead){
    e.dead=0;e.maxHp=enemyMaxHp(e.type)*proMultiplier(e);e.hp=e.maxHp;e.aggressive=!e.pro&&e.type!=='devastator';
@@ -3380,6 +3403,11 @@ for(const e of enemies){
  if(e.bossAdd&&e.launchRemaining>0){advanceCarrierLaunch(e,dt);continue}
  if(!e.mesh.visible||e.type==='carrier'||e.type==='granTitan')continue;
  const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);
+ if(e.type==='inferno'){
+  const active=activeSector==='graveyard'&&!PVP_MODE&&player.hp>0&&!recoveryPending&&!playerSafe&&!docked&&!landing&&!portalTransitProtected()&&d<1500;
+  if(active&&d>650)e.mesh.position.addScaledVector(playerMesh.position.clone().sub(e.mesh.position).normalize(),Math.min(t.speed*dt,d-650));
+  infernoCombat.update(e,dt,{active,aim:playerMesh.position,scale:advancedEnemyScale(player.level,40)});continue;
+ }
  if(e.partner){
   // The launcher sets the squad's pace; the harpooner maintains its flank.
   const partnerAlive=!e.partner.dead&&e.partner.mesh.visible;
