@@ -1,4 +1,4 @@
-export const COOP_CORRIDOR=Object.freeze({radius:1600,centerY:120,start:1200,end:-10000,baseEnd:-650});
+export const COOP_CORRIDOR=Object.freeze({radius:1600,centerY:120,start:1200,end:-12500,baseEnd:-650});
 export function constrainCorridor(pos,margin=60){
  const r=Math.hypot(pos[0],pos[1]-COOP_CORRIDOR.centerY),limit=COOP_CORRIDOR.radius-margin;
  if(r>limit){pos[0]*=limit/r;pos[1]=COOP_CORRIDOR.centerY+(pos[1]-COOP_CORRIDOR.centerY)*limit/r}

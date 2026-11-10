@@ -10,8 +10,8 @@ export const ARENA_ENEMIES=Object.freeze([
  ...[-1,1].map((side,i)=>({...BOSS_RULES,id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),kind:'colossusPro',zone:'pve',projectile:'missile',pos:[side*1200,120,-250],patrolRadius:100,maxHp:200000,damage:750,targets:1,attackInterval:5000,teleportInterval:0,reward:55000,xpReward:82500,hitRadius:220,materialCount:60}))
 ]);
 export const COOP_ENEMIES=Object.freeze([
- {...ARENA_ENEMIES[0],zone:'pve',corridor:true,pos:[0,120,-8500]},
- {...ARENA_ENEMIES[1],corridor:true,pos:[200,120,-6000]},
+ {...ARENA_ENEMIES[0],zone:'pve',corridor:true,pos:[0,120,-10500]},
+ {...ARENA_ENEMIES[1],corridor:true,pos:[200,120,-7000]},
  ...[1200,2500,3800].map((distance,i)=>({...ARENA_ENEMIES[2],id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),corridor:true,pos:[i===1?380:-380,120,-distance]}))
 ]);
 // Six level-105 escorts use the agreed PvE Pro x4, then PvP x2.
@@ -32,7 +32,7 @@ export function ensureArenaEnemies(s,now){
  for(const rules of (s.realm==='test'?COOP_ENEMIES:ARENA_ENEMIES)){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
   const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;b.level=105;
-  if(b.arenaLayout!==(s.realm==='test'?4:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=s.realm==='test'?4:3;b.patrolPhase=0}constrainEnemy(b)
+  if(b.arenaLayout!==(s.realm==='test'?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=s.realm==='test'?5:3;b.patrolPhase=0}constrainEnemy(b)
   next.push(b);
  }
  const parents=new Map(next.map(b=>[b.id,b]));

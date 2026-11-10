@@ -4,7 +4,7 @@ import {COOP_CORRIDOR,constrainCorridor,zoneOf} from './zones.mjs';
 import {ARENA_ENEMIES,ensureArenaEnemies} from './arena-enemies.mjs';
 import {canDamage,advance} from './world-rules.mjs';
 test('cooperative cylinder bounds preserve the base and forward route',()=>{
- for(const position of [[9999,9999,9999],[-9999,-9999,-99999],[0,120,850]]){constrainCorridor(position);assert(Math.hypot(position[0],position[1]-120)<=1540.0001);assert(position[2]>=-9940&&position[2]<=1140)}
+ for(const position of [[9999,9999,9999],[-9999,-9999,-99999],[0,120,850]]){constrainCorridor(position);assert(Math.hypot(position[0],position[1]-120)<=1540.0001);assert(position[2]>=-12440&&position[2]<=1140)}
  assert.equal(zoneOf({corridor:true,pos:[0,120,0]}),'base');assert.equal(zoneOf({corridor:true,pos:[0,120,-8000]}),'pve');
  assert.equal(zoneOf({pos:[0,120,-4550]}),'hostile');
 });
@@ -21,3 +21,5 @@ test('allies cannot damage one another, existing PvP still works',()=>{
  assert.equal(canDamage(player('a',false),player('b',false),10000),true);
  const npc={...b,id:'npc',npc:true,rules:{corridor:true,zone:'pve'}};assert.equal(canDamage(a,npc,10000),true);
 });
+
+test('different cooperative boss types are separated by over 3 km',()=>{const s={realm:'test',players:[]};ensureArenaEnemies(s,1000);const last=s.arenaEnemies.find(b=>b.id==='pvp-coloso-3'),titan=s.arenaEnemies.find(b=>b.kind==='granTitanPro'),nexo=s.arenaEnemies.find(b=>b.kind==='nexo');assert(last.rules.pos[2]-titan.rules.pos[2]>=3000);assert(titan.rules.pos[2]-nexo.rules.pos[2]>=3000)});
