@@ -1,4 +1,4 @@
-import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=424';
+import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=425';
 import {createInfernoCombat} from './inferno.js?v=419';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
@@ -3526,7 +3526,7 @@ if(PVP_MODE){
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
  for(const id of ['questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  const cooperativeClouds=COOP_TEST?mountCooperativeClouds(THREE,scene):null;
- if(COOP_TEST)scene.fog=new THREE.FogExp2(0x5c6682,.0008);
+ if(COOP_TEST)scene.fog=new THREE.Fog(0x52617c,1000,2900);
  if(!COOP_TEST)mountPvpZones(THREE,scene);$('hint').textContent=COOP_TEST?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=COOP_TEST?'Mapa cooperativo':'Mapa PvP';
  pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
