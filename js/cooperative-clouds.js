@@ -1,4 +1,4 @@
-import {createCloudLightning} from './cloud-lightning.js?v=428';
+import {createCloudLightning} from './cloud-lightning.js?v=429';
 // Camera-space cloud volume: no distant cylinder cap or camera-far-plane seam.
 export function mountCooperativeClouds(T,scene){
  let seed=127;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
@@ -7,10 +7,10 @@ export function mountCooperativeClouds(T,scene){
  for(let i=0;i<values.length;i++)values[i]=Math.floor(random()*255);
  for(let z=0;z<64;z++)for(let y=0;y<66;y++)for(let x=0;x<66;x++){const sx=(x+63)%64,sy=(y+63)%64,n=values[z*4096+sy*64+sx],offset=(((z>>3)*66+y)*atlasSize+(z%8)*66+x)*4;data.set([n,n,n,255],offset)}
  const noise=new T.DataTexture(data,atlasSize,atlasSize,T.RGBAFormat);noise.minFilter=noise.magFilter=T.LinearFilter;noise.needsUpdate=true;
- const uniforms={lightningPower:{value:0},lightningPosition:{value:new T.Vector3()},lightningColor:{value:new T.Color(0x788dff)},noiseMap:{value:noise},time:{value:0},eye:{value:new T.Vector3()},cameraWorld:{value:new T.Matrix4()},inverseProjection:{value:new T.Matrix4()}};
+ const uniforms={lightningPower:{value:0},lightningPosition:{value:new T.Vector3()},lightningColor:{value:new T.Color(0x438aff)},lightningColor2:{value:new T.Color(0xb34dff)},noiseMap:{value:noise},time:{value:0},eye:{value:new T.Vector3()},cameraWorld:{value:new T.Matrix4()},inverseProjection:{value:new T.Matrix4()}};
  const material=new T.ShaderMaterial({uniforms,depthWrite:false,depthTest:false,
  vertexShader:`varying vec2 screenUv;void main(){screenUv=uv;gl_Position=vec4(position.xy,1.,1.);}`,
- fragmentShader:`uniform float lightningPower;uniform vec3 lightningPosition;uniform vec3 lightningColor;uniform sampler2D noiseMap;uniform float time;uniform vec3 eye;uniform mat4 cameraWorld;uniform mat4 inverseProjection;varying vec2 screenUv;
+ fragmentShader:`uniform float lightningPower;uniform vec3 lightningPosition;uniform vec3 lightningColor;uniform vec3 lightningColor2;uniform sampler2D noiseMap;uniform float time;uniform vec3 eye;uniform mat4 cameraWorld;uniform mat4 inverseProjection;varying vec2 screenUv;
  float volumeNoise(vec3 q){
   vec3 cell=floor(q),f=fract(q);f=f*f*(3.-2.*f);
   float z0=mod(cell.z,64.),z1=mod(z0+1.,64.);
@@ -42,7 +42,7 @@ export function mountCooperativeClouds(T,scene){
    float tint=.5+.5*sin(p.z*.00065+p.x*.0005);
    vec3 shadow=mix(vec3(.21,.30,.47),vec3(.36,.27,.49),tint);
    vec3 cloud=mix(shadow,vec3(.84,.88,.95),light*.82);
-   if(lightningPower>0.){vec3 delta=p-lightningPosition;float glow=exp(-dot(delta,delta)/490000.);cloud+=lightningColor*glow*lightningPower*.9;}
+   if(lightningPower>0.){vec3 delta=p-lightningPosition;float glow=exp(-dot(delta,delta)/490000.);float blend=.5+.5*sin(p.z*.003+p.x*.0017);vec3 electricColor=mix(lightningColor,lightningColor2,blend);cloud+=electricColor*glow*lightningPower*1.05;}
    vec3 color=mix(vec3(.27,.33,.45),cloud,density/(density+haze+.000001));
    accumulated+=transmission*alpha*color;transmission*=1.-alpha;
    if(transmission<.015)break;

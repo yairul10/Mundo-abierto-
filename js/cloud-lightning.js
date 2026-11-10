@@ -1,15 +1,20 @@
 // Local ambient effect only: never emits damage, projectiles or network messages.
 export function createCloudLightning(T,scene,uniforms,random=Math.random){
  const root=new T.Group();root.name='Relámpagos entre nubes';root.visible=false;scene.add(root);
- const core=new T.MeshBasicMaterial({color:0xe4ecff,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,fog:false});
- const glow=new T.MeshBasicMaterial({color:0x788dff,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,fog:false});
+ const core=new T.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,fog:false});
+ const glow=new T.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,fog:false});
  let wait=1+random()*2,age=0,duration=1.6,active=false,chainLeft=0,path=[];
  function clear(){for(const child of [...root.children]){root.remove(child);child.geometry.dispose()}root.visible=false}
- function tube(points,radius,material){const curve=new T.CatmullRomCurve3(points);const mesh=new T.Mesh(new T.TubeGeometry(curve,points.length*3,radius,3,false),material);mesh.geometry.setDrawRange(0,0);root.add(mesh)}
+ function tube(points,radius,material){
+  const curve=new T.CatmullRomCurve3(points),geometry=new T.TubeGeometry(curve,points.length*3,radius,3,false),positions=geometry.attributes.position,colors=new Float32Array(positions.count*3);
+  const blue=new T.Color(0x438aff),violet=new T.Color(0xb34dff),color=new T.Color();
+  for(let i=0;i<positions.count;i++){const blend=.5+.5*Math.sin(positions.getZ(i)*.003+positions.getX(i)*.0017);color.copy(blue).lerp(violet,blend);colors[i*3]=color.r;colors[i*3+1]=color.g;colors[i*3+2]=color.b}
+  geometry.setAttribute('color',new T.BufferAttribute(colors,3));geometry.setDrawRange(0,0);root.add(new T.Mesh(geometry,material));
+ }
  function strike(chained=false){
   clear();active=true;age=0;duration=1.2+random()*.8;
   if(!chained)chainLeft=random()<.55?1+Math.floor(random()*2):0;
-  const violet=random()<.5;uniforms.lightningColor.value.set(violet?0xaa62ff:0x4c8dff);glow.color.copy(uniforms.lightningColor.value);
+  uniforms.lightningColor.value.set(0x438aff);uniforms.lightningColor2.value.set(0xb34dff);
   const eye=uniforms.eye.value,direction=-uniforms.cameraWorld.value.elements[10]||-1;
   const z=Math.max(-11500,Math.min(750,eye.z+direction*(1700+random()*1100)));
   const angle=(random()<.5?0:Math.PI)+(random()-.5)*1.05,turn=(random()<.5?-1:1)*(.7+random()*.6),radius=1480+random()*240,length=1800+random()*800,points=[];
