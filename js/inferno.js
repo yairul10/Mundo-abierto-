@@ -1,5 +1,5 @@
 // Enemy flame footprint and visual use the same two nozzle origins and widening cones.
-export const INFERNO=Object.freeze({range:900,nozzleX:46,nozzleY:-5,nozzleZ:85,mouthRadius:14,spread:.29,charge:1,fire:3,cooldown:4,damage:100});
+export const INFERNO=Object.freeze({range:900,nozzleX:46,nozzleY:-5,nozzleZ:85,mouthRadius:28,spread:.40,charge:1,fire:3,cooldown:4,damage:100});
 export function inInfernoFlames(point,radius=0,c=INFERNO){
  const z=point.z-c.nozzleZ;
  if(z < -radius || z > c.range+radius)return false;
@@ -32,7 +32,7 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
   const material=new THREE.ShaderMaterial({uniforms,vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
   for(const side of [-1,1]){
    const jet=new THREE.Group();jet.position.set(side*INFERNO.nozzleX,INFERNO.nozzleY,INFERNO.nozzleZ);
-   for(const angle of [0,Math.PI/2]){const plane=new THREE.Mesh(geometry,material);plane.rotation.z=angle;jet.add(plane)}root.add(jet);
+   for(const angle of [0,Math.PI/4,Math.PI/2,3*Math.PI/4]){const plane=new THREE.Mesh(geometry,material);plane.rotation.z=angle;jet.add(plane)}root.add(jet);
   }
   const glow=new THREE.PointLight(0xff7020,0,380);glow.position.z=95;root.add(glow);enemy.mesh.add(root);enemy.mesh.userData.infernoEffects=root;
   state={phase:'cooldown',elapsed:2,root,uniforms,glow,announced:false};states.set(enemy,state);return state;
