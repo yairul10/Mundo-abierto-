@@ -1,19 +1,21 @@
 // Enemy flame footprint and visual use the same two nozzle origins and widening cones.
-export const INFERNO=Object.freeze({range:900,nozzleX:46,nozzleY:-5,nozzleZ:85,mouthRadius:28,spread:.40,charge:1,fire:3,cooldown:4,damage:100});
+export const INFERNO=Object.freeze({range:900,nozzleX:46,nozzleY:-5,nozzleZ:85,mouthRadius:28,spread:.40,charge:1,fire:3,fade:.5,cooldown:3.5,damage:100});
 export function inInfernoFlames(point,radius=0,c=INFERNO){
  const z=point.z-c.nozzleZ;
  if(z < -radius || z > c.range+radius)return false;
  const width=c.mouthRadius+Math.max(0,Math.min(c.range,z))*c.spread+radius;
  return [-1,1].some(side=>Math.hypot(point.x-side*c.nozzleX,point.y-c.nozzleY)<=width);
 }
-// Return only the actual firing interval, even when a frame crosses a phase boundary.
+// Integrate flame intensity, including the linear fade, across phase boundaries.
+export function infernoPower(state,c=INFERNO){return state.phase==='fire'?1:state.phase==='fade'?Math.max(0,1-state.elapsed/c.fade):0}
 export function advanceInferno(state,dt,c=INFERNO){
  let firing=0,remaining=Math.max(0,dt);
  while(remaining>0){
   const duration=c[state.phase],step=Math.min(remaining,duration-state.elapsed);
   if(state.phase==='fire')firing+=step;
+  if(state.phase==='fade')firing+=step*(1-(state.elapsed+step/2)/c.fade);
   state.elapsed+=step;remaining-=step;
-  if(state.elapsed>=duration-1e-9){state.phase=state.phase==='charge'?'fire':state.phase==='fire'?'cooldown':'charge';state.elapsed=0}
+  if(state.elapsed>=duration-1e-9){state.phase=state.phase==='charge'?'fire':state.phase==='fire'?'fade':state.phase==='fade'?'cooldown':'charge';state.elapsed=0}
  }
  return firing;
 }
@@ -42,12 +44,12 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
   if(!active||enemy.dead||!enemy.mesh.visible){reset(enemy);return}
   const s=stateFor(enemy);s.root.visible=true;
   // Lock orientation for the firing burst so pilots can escape through the sides.
-  if(s.phase!=='fire')enemy.mesh.lookAt(aim);
+  if(s.phase!=='fire'&&s.phase!=='fade')enemy.mesh.lookAt(aim);
   const firing=advanceInferno(s,dt);
   if(s.phase==='charge'&&!s.announced){warn(enemy);s.announced=true}
   if(s.phase==='cooldown')s.announced=false;
-  s.uniforms.time.value+=dt;s.uniforms.power.value=s.phase==='fire'?1:0;
-  s.glow.intensity=s.phase==='charge'?1+s.elapsed*3:s.phase==='fire'?4:0;
+  s.uniforms.time.value+=dt;s.uniforms.power.value=infernoPower(s);
+  s.glow.intensity=s.phase==='charge'?1+s.elapsed*3:4*infernoPower(s);
   if(firing){
    enemy.mesh.updateMatrixWorld(true);
    // Iterate every eligible pilot; overlapping jets count once per pilot.
