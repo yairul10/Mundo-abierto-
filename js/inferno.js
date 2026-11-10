@@ -21,23 +21,50 @@ export function advanceInferno(state,dt,c=INFERNO){
 }
 export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  const states=new WeakMap();
- const geometry=new THREE.PlaneGeometry(2,1,1,20),positions=geometry.attributes.position,uv=geometry.attributes.uv;
- for(let i=0;i<positions.count;i++){const z=uv.getY(i)*INFERNO.range;positions.setXYZ(i,positions.getX(i)*(INFERNO.mouthRadius+z*INFERNO.spread),0,z)}
- geometry.computeBoundingSphere();
- const fragmentShader=`uniform float time;uniform float power;varying vec2 vUv;
+ // A single instanced draw call per enemy: rounded, camera-facing flame puffs.
+ const geometry=new THREE.InstancedBufferGeometry();
+ const quad=new THREE.PlaneGeometry(2,2);
+ geometry.setIndex(quad.index);geometry.setAttribute('position',quad.attributes.position);geometry.setAttribute('uv',quad.attributes.uv);
+ const count=112,seeds=new Float32Array(count*3);
+ for(let i=0;i<count;i++){seeds[i*3]=i%2===0?-1:1;seeds[i*3+1]=Math.floor(i/2)/56;seeds[i*3+2]=((i*73)%113)/113}
+ geometry.setAttribute('seed',new THREE.InstancedBufferAttribute(seeds,3));geometry.instanceCount=count;
+ const vertexShader=`uniform float time;attribute vec3 seed;varying vec2 vUv;varying float age;varying float variation;
+ void main(){
+  vUv=uv;age=fract(seed.y+time*.72);variation=seed.z;
+  float distance=age*900.;float width=28.+distance*.40;
+  float angle=seed.z*39.5+time*1.7;
+  vec3 center=vec3(seed.x*46.+cos(angle)*width*.30,-5.+sin(angle*1.23)*width*.30,85.+distance);
+  vec4 viewCenter=modelViewMatrix*vec4(center,1.);
+  float spin=seed.z*6.283+time*(seed.z-.5);
+  mat2 turn=mat2(cos(spin),-sin(spin),sin(spin),cos(spin));
+  vec2 offset=turn*position.xy*width*.72;
+  viewCenter.xy+=offset;
+  gl_Position=projectionMatrix*viewCenter;
+ }`;
+ const fragmentShader=`uniform float time;uniform float power;varying vec2 vUv;varying float age;varying float variation;
  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
- void main(){float z=vUv.y;float n=noise(vec2(vUv.x*7.,z*13.-time*7.));float edge=abs(vUv.x*2.-1.);float body=1.-smoothstep(.35+n*.25,.85+n*.15,edge);float tip=1.-smoothstep(.68,1.,z+n*.13);float alpha=body*tip*power*(.55+n*.4);if(alpha<.015)discard;vec3 color=mix(vec3(1.,.09,.006),vec3(1.,.65,.08),body*(1.-z*.5));color=mix(color,vec3(1.,.94,.55),pow(body,5.)*(1.-z)*.7);gl_FragColor=vec4(color,alpha);}`;
+ void main(){
+  vec2 p=vUv*2.-1.;
+  float n=noise(p*4.+vec2(variation*17.,-time*3.));
+  float detail=noise(p*9.-time*1.5);
+  float edge=length(p)+(.5-n)*.32;
+  float body=1.-smoothstep(.40,.98,edge);
+  float life=smoothstep(0.,.045,age)*(1.-smoothstep(.68,1.,age));
+  float alpha=body*life*power*(.22+.30*n);
+  if(alpha<.012)discard;
+  float heat=clamp((1.-edge)*.72+n*.32-age*.40,0.,1.);
+  vec3 color=mix(vec3(.72,.055,.008),vec3(1.,.34,.018),heat);
+  color=mix(color,vec3(1.,.72,.16),smoothstep(.62,.96,heat)*(.5+.5*detail));
+  gl_FragColor=vec4(color,alpha);
+ }`;
  function stateFor(enemy){
   let state=states.get(enemy);if(state)return state;
   const root=new THREE.Group(),uniforms={time:{value:0},power:{value:0}};
-  const material=new THREE.ShaderMaterial({uniforms,vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
-  for(const side of [-1,1]){
-   const jet=new THREE.Group();jet.position.set(side*INFERNO.nozzleX,INFERNO.nozzleY,INFERNO.nozzleZ);
-   for(const angle of [0,Math.PI/4,Math.PI/2,3*Math.PI/4]){const plane=new THREE.Mesh(geometry,material);plane.rotation.z=angle;jet.add(plane)}root.add(jet);
-  }
+  const material=new THREE.ShaderMaterial({uniforms,vertexShader,fragmentShader,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.NormalBlending});
+  const flames=new THREE.Mesh(geometry,material);flames.frustumCulled=false;root.add(flames);
   const glow=new THREE.PointLight(0xff7020,0,380);glow.position.z=95;root.add(glow);enemy.mesh.add(root);enemy.mesh.userData.infernoEffects=root;
-  state={phase:'cooldown',elapsed:2,root,uniforms,glow,announced:false};states.set(enemy,state);return state;
+  state={phase:'cooldown',elapsed:2,root,uniforms,glow,flames,announced:false};states.set(enemy,state);return state;
  }
  function reset(enemy){const s=states.get(enemy);if(!s)return;s.root.visible=false;s.glow.intensity=0;s.phase='cooldown';s.elapsed=0;s.announced=false}
  function update(enemy,dt,{active,aim,scale=1}){
@@ -48,7 +75,7 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
   const firing=advanceInferno(s,dt);
   if(s.phase==='charge'&&!s.announced){warn(enemy);s.announced=true}
   if(s.phase==='cooldown')s.announced=false;
-  s.uniforms.time.value+=dt;s.uniforms.power.value=infernoPower(s);
+  s.uniforms.time.value+=dt;s.uniforms.power.value=infernoPower(s);s.flames.visible=s.uniforms.power.value>0;
   s.glow.intensity=s.phase==='charge'?1+s.elapsed*3:4*infernoPower(s);
   if(firing){
    enemy.mesh.updateMatrixWorld(true);

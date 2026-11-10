@@ -1,4 +1,4 @@
-import {createInfernoCombat} from './inferno.js?v=417';
+import {createInfernoCombat} from './inferno.js?v=418';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
