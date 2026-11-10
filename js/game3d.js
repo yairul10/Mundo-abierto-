@@ -1,4 +1,4 @@
-import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=427';
+import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=428';
 import {createInfernoCombat} from './inferno.js?v=419';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';

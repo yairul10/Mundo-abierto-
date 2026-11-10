@@ -1,4 +1,4 @@
-import {createCloudLightning} from './cloud-lightning.js?v=427';
+import {createCloudLightning} from './cloud-lightning.js?v=428';
 // Camera-space cloud volume: no distant cylinder cap or camera-far-plane seam.
 export function mountCooperativeClouds(T,scene){
  let seed=127;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
