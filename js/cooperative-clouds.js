@@ -16,9 +16,28 @@ export function mountCooperativeClouds(T,scene){
  vertexShader:`attribute vec4 cloud;uniform float time;varying vec2 vUv;varying float tint;varying float depth;
  void main(){vUv=uv;tint=sin(cloud.z*.004+cloud.x*.005)*.5+.5;vec3 center=cloud.xyz;center.y+=sin(time*.12+cloud.z*.01)*24.;vec4 view=modelViewMatrix*vec4(center,1.);depth=-view.z;view.xy+=position.xy*cloud.w*.5;gl_Position=projectionMatrix*view;}`,
  fragmentShader:`uniform sampler2D map;uniform float time;varying vec2 vUv;varying float tint;varying float depth;
- void main(){vec2 p=vUv-.5;float a=sin(time*.018+tint*4.)*.22;vec2 uv=mat2(cos(a),-sin(a),sin(a),cos(a))*p+.5;float shape=texture2D(map,uv).a;float detail=texture2D(map,uv*1.7+vec2(time*.004,0.)).a;float alpha=shape*(.38+detail*.40)*smoothstep(5.,150.,depth);if(alpha<.008)discard;vec3 color=mix(vec3(.10,.28,.85),vec3(.52,.13,.90),tint);color+=vec3(.12,.14,.25)*detail;gl_FragColor=vec4(color,alpha);}`});
+ void main(){vec2 p=vUv-.5;float a=sin(time*.018+tint*4.)*.22;vec2 uv=mat2(cos(a),-sin(a),sin(a),cos(a))*p+.5;float shape=texture2D(map,uv).a;float detail=texture2D(map,uv*1.7+vec2(time*.004,0.)).a;float alpha=shape*(.62+detail*.35)*smoothstep(5.,150.,depth);if(alpha<.008)discard;vec3 color=mix(vec3(.68,.78,.93),vec3(.83,.73,.94),tint);color+=vec3(.12,.12,.13)*detail;gl_FragColor=vec4(color,alpha);}`});
  const mesh=new T.Mesh(geometry,material);mesh.name='Límites de nubes cooperativas';mesh.frustumCulled=false;scene.add(mesh);
- return {update(dt){uniforms.time.value+=dt},dispose(){scene.remove(mesh);geometry.dispose();quad.dispose();material.dispose();texture.dispose()}};
+ // An opaque cloud layer behind the soft puffs blocks every view of the exterior.
+ // Its pale colors simulate light scattered through dense mist, without rock walls.
+ const veilMaterial=new T.ShaderMaterial({uniforms,side:T.DoubleSide,depthWrite:true,
+ vertexShader:`varying vec3 cloudPosition;void main(){cloudPosition=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform sampler2D map;uniform float time;varying vec3 cloudPosition;
+ void main(){
+  vec3 p=cloudPosition*.0007;
+  vec2 drift=vec2(time*.002,time*.0007);
+  float a=texture2D(map,fract(p.xy+drift)).a;
+  float b=texture2D(map,fract(p.yz*.71-drift+vec2(.37,.19))).a;
+  float c=texture2D(map,fract(p.xz*1.31+vec2(.61,.43))).a;
+  float billow=clamp(a*.45+b*.35+c*.30,0.,1.);
+  float tint=.5+.5*sin(cloudPosition.z*.0008+cloudPosition.x*.0005+time*.025);
+  vec3 color=mix(vec3(.50,.61,.78),vec3(.68,.58,.80),tint);
+  color=mix(color,vec3(.88,.90,.96),billow*.80);
+  gl_FragColor=vec4(color,1.);
+ }`});
+ const veilGeometry=new T.CylinderGeometry(2150,2150,11800,64,1,false);veilGeometry.rotateX(Math.PI/2);veilGeometry.translate(0,120,-4500);
+ const veil=new T.Mesh(veilGeometry,veilMaterial);veil.name='Niebla cerrada · sin vista al exterior';scene.add(veil);
+ return {update(dt){uniforms.time.value+=dt},dispose(){scene.remove(veil);veilGeometry.dispose();veilMaterial.dispose();scene.remove(mesh);geometry.dispose();quad.dispose();material.dispose();texture.dispose()}};
 }
 export function constrainCooperativePosition(p){
  const r=Math.hypot(p.x,p.y-120),limit=1540;
