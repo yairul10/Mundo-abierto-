@@ -16,11 +16,12 @@ function picker(){return new Promise(resolve=>{
     <li><button type="button" data-mode="test">
      Servidor de prueba
     </button></li>
+    <li><a href="cooperative-test.html" style="display:block;text-align:center;padding:14px;color:inherit;text-decoration:none">Prueba cooperativa</a></li>
    </ul>
    <small class="mode-error" role="alert"></small>
   </div>`;
  const buttons=[...overlay.querySelectorAll('button')];for(const b of buttons)b.onclick=()=>{try{setMode(localStorage,b.dataset.mode);try{sessionStorage.setItem(SESSION,b.dataset.mode)}catch{}overlay.remove();resolve(b.dataset.mode)}catch{overlay.querySelector('.mode-error').textContent='No se pudo guardar la elección. Habilita el almacenamiento del juego e inténtalo de nuevo.'}};
- overlay.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();buttons[(buttons.indexOf(document.activeElement)+(e.shiftKey?-1:1)+buttons.length)%buttons.length].focus()}});
+ overlay.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const choices=[...overlay.querySelectorAll('button,a')];choices[(choices.indexOf(document.activeElement)+(e.shiftKey?-1:1)+choices.length)%choices.length].focus()}});
  document.body.appendChild(overlay);buttons[0].focus();
  })}
 export async function startPlayMode(){
