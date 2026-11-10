@@ -1,5 +1,12 @@
 // Only the identity service verifies Google sessions. Client-supplied player IDs are ignored.
-export async function verifiedPvpAccount(request,env){
+export async function verifiedPvpAccount(request,env,realm='normal'){
+ const guest=request.headers.get('Authorization')?.match(/^Bearer test-guest-([a-f0-9]{64})$/);
+ if(guest){
+  if(realm!=='test'||env.TEST_SERVER_ENABLED==='false'||env.TEST_GUEST_ACCESS!=='true')return {error:'google_required',status:401};
+  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('cosmos-test-guest:'+guest[1]));
+  const hex=Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('').slice(0,32);
+  return {playerId:[hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-'),testGuest:true};
+ }
  const token=request.headers.get('Authorization')||'';
  if(!/^Bearer [A-Za-z0-9_.-]{10,4096}$/.test(token))return {error:'google_required',status:401};
  if(!env.PLAY_IDENTITY)return {error:'identity_unavailable',status:503};

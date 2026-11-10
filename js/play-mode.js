@@ -17,6 +17,7 @@ function picker(){return new Promise(resolve=>{
      Servidor de prueba
     </button></li>
     <li><a href="cooperative-test.html" style="display:block;text-align:center;padding:14px;color:inherit;text-decoration:none">Prueba cooperativa</a></li>
+    <li><a href="index.html?pvp=1&guesttest=1" style="display:block;text-align:center;padding:12px;color:inherit">Mapa online · Invitado de prueba</a></li>
    </ul>
    <small class="mode-error" role="alert"></small>
   </div>`;
@@ -31,7 +32,7 @@ export async function startPlayMode(){
  const params=new URLSearchParams(location.search);
  const returning=session===previous&&(params.get('pvp')==='1'||params.get('play')===previous);
  if(params.has('play')){const url=new URL(location.href);url.searchParams.delete('play');history.replaceState(null,'',url)}
- if(enabled)mode=returning?previous:await picker();
+ if(enabled)mode=params.get('guesttest')==='1'?'test':returning?previous:await picker();
  try{setMode(localStorage,mode);sessionStorage.setItem(SESSION,mode)}catch{}
  document.body.classList.toggle('test-realm',mode==='test');
  const state=window.MUNDO_PLAY_MODE={mode,testEnabled:enabled,async choose(){if(!state.testEnabled)return;const next=await picker();if(next!==mode){dispatchEvent(new Event('mundo:save-before-switch'));location.href='index.html?play='+next}}};

@@ -3,9 +3,21 @@ import {applyAccountGrants} from './account-grants.js?v=1';
 import {isNativePlayGames,playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode} from './play-games-auth.js';
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev';
 const CLIENT='430904114567-2s03dmhrv4o4lfp73qal65kseu837035.apps.googleusercontent.com';
+let testGuestSecret=null;
 let cached=null,expires=0,profile=null,nativeId=null,ignoreReady=false;
 export const pvpAccountProfile=()=>profile;
 export async function pvpAccountToken(){
+ if(window.MUNDO_PLAY_MODE?.mode==='test'&&!isNativePlayGames()){
+  if(!testGuestSecret){
+   try{testGuestSecret=sessionStorage.getItem('cosmos.testGuestSecret')}catch{}
+   if(!/^[a-f0-9]{64}$/.test(testGuestSecret||'')){
+    testGuestSecret=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+    try{sessionStorage.setItem('cosmos.testGuestSecret',testGuestSecret)}catch{}
+   }
+  }
+  profile={displayName:'Invitado de prueba',playerId:null};
+  return 'test-guest-'+testGuestSecret;
+ }
  if(!isNativePlayGames())throw Error('Para entrar a PvP necesitas Google Play Games en la aplicación Android. Puedes seguir jugando PvE como invitado.');
  let state=await playGamesStatus();
  if(cached&&Date.now()<expires&&state.authenticated&&(!nativeId||nativeId===state.playerId)){if(window.MUNDO_PLAY_MODE?.mode!=='test'&&activeProfile(localStorage)!==playProfile(profile.playerId))throw Error('La cuenta cambió. Reinicia para cargar su partida.');return cached}
