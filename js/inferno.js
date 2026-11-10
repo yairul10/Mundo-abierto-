@@ -30,14 +30,17 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  geometry.setAttribute('seed',new THREE.InstancedBufferAttribute(seeds,3));geometry.instanceCount=count;
  const vertexShader=`uniform float time;attribute vec3 seed;varying vec2 vUv;varying float age;varying float variation;
  void main(){
-  vUv=uv;age=fract(seed.y+time*.72);variation=seed.z;
+  vUv=uv;age=fract(seed.y+time*1.05);variation=seed.z;
   float distance=age*900.;float width=28.+distance*.40;
   float angle=seed.z*39.5+time*1.7;
   vec3 center=vec3(seed.x*46.+cos(angle)*width*.30,-5.+sin(angle*1.23)*width*.30,85.+distance);
   vec4 viewCenter=modelViewMatrix*vec4(center,1.);
-  float spin=seed.z*6.283+time*(seed.z-.5);
-  mat2 turn=mat2(cos(spin),-sin(spin),sin(spin),cos(spin));
-  vec2 offset=turn*position.xy*width*.72;
+  // Stretch tongues along the jet's projected direction; round when viewed head-on.
+  vec2 projected=modelViewMatrix[2].xy;
+  float projectedLength=length(projected);
+  vec2 along=projectedLength>.001?projected/projectedLength:vec2(0.,1.);
+  vec2 across=vec2(along.y,-along.x);
+  vec2 offset=(across*position.x*.58+along*position.y*mix(.65,1.25,min(1.,projectedLength)))*width;
   viewCenter.xy+=offset;
   gl_Position=projectionMatrix*viewCenter;
  }`;
@@ -46,22 +49,24 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
  void main(){
   vec2 p=vUv*2.-1.;
-  float n=noise(p*4.+vec2(variation*17.,-time*3.));
-  float detail=noise(p*9.-time*1.5);
-  float edge=length(p)+(.5-n)*.32;
-  float body=1.-smoothstep(.40,.98,edge);
-  float life=smoothstep(0.,.045,age)*(1.-smoothstep(.68,1.,age));
-  float alpha=body*life*power*(.22+.30*n);
-  if(alpha<.012)discard;
-  float heat=clamp((1.-edge)*.72+n*.32-age*.40,0.,1.);
-  vec3 color=mix(vec3(.72,.055,.008),vec3(1.,.34,.018),heat);
-  color=mix(color,vec3(1.,.72,.16),smoothstep(.62,.96,heat)*(.5+.5*detail));
+  float n=noise(p*4.+vec2(variation*17.,-time*7.));
+  float detail=noise(p*10.+vec2(time*2.,-time*11.));
+  // Cut irregular tongues and holes rather than filling every puff with red fog.
+  float edge=length(p)+(.5-n)*.55;
+  float body=1.-smoothstep(.32,.94,edge);
+  float tongues=smoothstep(.23,.66,n*.65+detail*.35);
+  float life=smoothstep(0.,.025,age)*(1.-smoothstep(.65,1.,age));
+  float alpha=body*tongues*life*power*(.055+.105*detail);
+  if(alpha<.006)discard;
+  float heat=clamp((1.-edge)*.70+n*.40-age*.18,0.,1.);
+  vec3 color=mix(vec3(1.,.16,.006),vec3(1.,.57,.025),smoothstep(.15,.60,heat));
+  color=mix(color,vec3(1.,.88,.30),smoothstep(.58,.90,heat));
   gl_FragColor=vec4(color,alpha);
  }`;
  function stateFor(enemy){
   let state=states.get(enemy);if(state)return state;
   const root=new THREE.Group(),uniforms={time:{value:0},power:{value:0}};
-  const material=new THREE.ShaderMaterial({uniforms,vertexShader,fragmentShader,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.NormalBlending});
+  const material=new THREE.ShaderMaterial({uniforms,vertexShader,fragmentShader,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
   const flames=new THREE.Mesh(geometry,material);flames.frustumCulled=false;root.add(flames);
   const glow=new THREE.PointLight(0xff7020,0,380);glow.position.z=95;root.add(glow);enemy.mesh.add(root);enemy.mesh.userData.infernoEffects=root;
   state={phase:'cooldown',elapsed:2,root,uniforms,glow,flames,announced:false};states.set(enemy,state);return state;
