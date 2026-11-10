@@ -1,5 +1,5 @@
 import {updateGroups} from './groups.mjs';
-import {ZONES,zoneOf,sameCombatZone,radial} from './zones.mjs';
+import {COOP_CORRIDOR,constrainCorridor,ZONES,zoneOf,sameCombatZone,radial} from './zones.mjs';
 import {inviteDuel,replyDuel,tickDuels,duelFor,finishDuel} from './duels.mjs';
 import {awardKill} from './pvp-results.mjs';
 import {ensureArenaEnemies,advanceArenaEnemies,recordArenaDamage} from './arena-enemies.mjs';
@@ -49,12 +49,15 @@ export const canDamage=(owner,target,now)=>{
  if(target.id===owner.id||!target.connected||target.hp<=0||target.death||target.hangar)return false;
  const a=!!(owner.npc||owner.boss),b=!!(target.npc||target.boss);
  if(a&&b)return false;
+ if(!a&&!b&&(owner.corridor||target.corridor))return false;
  if(owner.duelId||target.duelId)return !a&&!b&&owner.duelId===target.duelId&&now>=owner.duelStartsAt&&now>=target.duelStartsAt;
  if(!sameCombatZone(owner,target))return false;
  if(a||b)return combatEligible(a?target:owner,now);
  return zoneOf(owner)==='hostile';
 };
 export function advance(s,now){
+ for(const p of s.players){p.corridor=s.realm==='test';if(p.corridor){constrainCorridor(p.pos);p.duelId=null}}
+ if(s.realm==='test'){s.duels=[];s.invites=[]}
  if(s.groups?.length||s.groupInvites?.length)updateGroups(s,now);
  s.invites||=[];s.duels||=[];s.events||=[];s.bullets||=[];s.recoveries||={};tickDuels(s,reset,now);
  for(const p of s.players){if(p.duelId&&!s.duels.some(d=>d.id===p.duelId))p.duelId=null;updateProtection(p,now);if(p.firstHostileHit&&(zoneOf(p)!=='hostile'||p.death||now-p.firstHostileHit.lastHit>30000))delete p.firstHostileHit}
@@ -64,7 +67,7 @@ export function advance(s,now){
   if(!target.firstHostileHit)target.firstHostileHit={id:owner.id,lastHit:time};
   target.firstHostileHit.lastHit=time;
  }}};
- combat.allowBullet=(b,owner)=>b.duelId?owner.duelId===b.duelId:zoneOf({pos:b.pos})===b.combatZone&&zoneOf(owner)===b.combatZone;
+ combat.allowBullet=(b,owner)=>b.duelId?owner.duelId===b.duelId:zoneOf({pos:b.pos,corridor:s.realm==='test'})===b.combatZone&&zoneOf(owner)===b.combatZone;
  stepCombat(combat,now);s.bullets=combat.bullets;s.simTime=combat.simTime;
  advanceArenaEnemies(s,now,combatEligible);tickDuels(s,reset,now);
  for(const p of s.players)if(p.connected&&p.hp<=0&&!p.death){

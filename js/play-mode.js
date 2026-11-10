@@ -16,8 +16,7 @@ function picker(){return new Promise(resolve=>{
     <li><button type="button" data-mode="test">
      Servidor de prueba
     </button></li>
-    <li><a href="cooperative-test.html" style="display:block;text-align:center;padding:14px;color:inherit;text-decoration:none">Prueba cooperativa</a></li>
-    <li><a href="index.html?pvp=1&guesttest=1" style="display:block;text-align:center;padding:12px;color:inherit">Mapa online · Invitado de prueba</a></li>
+    <li><a href="index.html?pvp=1&guesttest=1" style="display:block;text-align:center;padding:12px;color:inherit">Mapa cooperativo · Prueba</a></li>
    </ul>
    <small class="mode-error" role="alert"></small>
   </div>`;
