@@ -29,10 +29,10 @@ function applyReinforcementBalance(b){
 export function ensureArenaEnemies(s,now){
  s.arenaEnemies||=[];
  const next=[];
- for(const rules of (s.realm==='test'?COOP_ENEMIES:ARENA_ENEMIES)){
+ for(const rules of ((s.cooperative===true||s.realm==='test')?COOP_ENEMIES:ARENA_ENEMIES)){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
   const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;b.level=105;
-  if(b.arenaLayout!==(s.realm==='test'?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=s.realm==='test'?5:3;b.patrolPhase=0}constrainEnemy(b)
+  if(b.arenaLayout!==((s.cooperative===true||s.realm==='test')?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=(s.cooperative===true||s.realm==='test')?5:3;b.patrolPhase=0}constrainEnemy(b)
   next.push(b);
  }
  const parents=new Map(next.map(b=>[b.id,b]));

@@ -56,8 +56,8 @@ export const canDamage=(owner,target,now)=>{
  return zoneOf(owner)==='hostile';
 };
 export function advance(s,now){
- for(const p of s.players){p.corridor=s.realm==='test';if(p.corridor){constrainCorridor(p.pos);p.duelId=null}}
- if(s.realm==='test'){s.duels=[];s.invites=[]}
+ for(const p of s.players){p.corridor=(s.cooperative===true||s.realm==='test');if(p.corridor){constrainCorridor(p.pos);p.duelId=null}}
+ if((s.cooperative===true||s.realm==='test')){s.duels=[];s.invites=[]}
  if(s.groups?.length||s.groupInvites?.length)updateGroups(s,now);
  s.invites||=[];s.duels||=[];s.events||=[];s.bullets||=[];s.recoveries||={};tickDuels(s,reset,now);
  for(const p of s.players){if(p.duelId&&!s.duels.some(d=>d.id===p.duelId))p.duelId=null;updateProtection(p,now);if(p.firstHostileHit&&(zoneOf(p)!=='hostile'||p.death||now-p.firstHostileHit.lastHit>30000))delete p.firstHostileHit}
@@ -67,7 +67,7 @@ export function advance(s,now){
   if(!target.firstHostileHit)target.firstHostileHit={id:owner.id,lastHit:time};
   target.firstHostileHit.lastHit=time;
  }}};
- combat.allowBullet=(b,owner)=>b.duelId?owner.duelId===b.duelId:zoneOf({pos:b.pos,corridor:s.realm==='test'})===b.combatZone&&zoneOf(owner)===b.combatZone;
+ combat.allowBullet=(b,owner)=>b.duelId?owner.duelId===b.duelId:zoneOf({pos:b.pos,corridor:(s.cooperative===true||s.realm==='test')})===b.combatZone&&zoneOf(owner)===b.combatZone;
  stepCombat(combat,now);s.bullets=combat.bullets;s.simTime=combat.simTime;
  advanceArenaEnemies(s,now,combatEligible);tickDuels(s,reset,now);
  for(const p of s.players)if(p.connected&&p.hp<=0&&!p.death){
