@@ -5,7 +5,7 @@ import {applyBossReceipts} from '../js/pvp-boss-rewards.js';
 const time=100000;
 function pilot(id,pos){const p={id,pos,connected:true,roster:{aurora:{maxHp:100000,maxEnergy:500,attack:100000,defense:0,speed:220,level:105}}};equip(p,'aurora');updateProtection(p,time);return p}
 const a=pilot('a',[-1200,120,100]),b=pilot('b',[-1100,120,100]),safe=pilot('safe',[0,120,0]);
-const s={realm:'test',players:[a,b,safe],events:[],bullets:[],simTime:time};
+const s={realm:'normal',players:[a,b,safe],events:[],bullets:[],simTime:time};
 advance(s,time);assert.equal(s.arenaEnemies.length,4);assert.equal(s.arenaEnemies.filter(e=>e.kind==='nexo').length,1);assert.equal(s.arenaEnemies.filter(e=>e.kind==='colossusPro').length,2);
 for(const e of s.arenaEnemies){assert(Math.hypot(...e.pos)-e.hitRadius>650);assert.equal(e.active,false)}
 const boss=s.arenaEnemies.find(e=>e.kind==='colossusPro');recordArenaDamage(s,boss,a,60000,time);recordArenaDamage(s,boss,b,20000,time);boss.hp=120000;
@@ -26,10 +26,10 @@ const big=applyBossReceipts({gold:0},[{id:'nexo:solo',amount:1100000}]);assert.e
 const normal={players:[pilot('normal',[0,120,0])],events:[]};advance(normal,time);assert.equal(normal.arenaEnemies.length,4);assert.equal(normal.arenaEnemies.filter(e=>e.kind==='granTitanPro').length,1,'Normal mode includes the new PvE boss');assert.equal(normal.boss.rules.zone,'hostile');
 assert(arenaEnemySnapshots(s).every(e=>e.kind&&e.instanceId));
 // All four bosses can be targeted using the existing server projectile path.
-const fight={realm:'test',players:[a],events:[],bullets:[],simTime:time};advance(fight,time);a.pos=[...fight.arenaEnemies[0].pos];a.pos[2]-=300;updateProtection(a,time);assert(attack(fight,a,{weapon:'missile',targetId:fight.arenaEnemies[0].id,shots:[{offset:[0,0,0],direction:[0,0,-1],locked:true}]},time));assert.equal(fight.bullets[0].target,fight.arenaEnemies[0].id);
+const fight={realm:'normal',players:[a],events:[],bullets:[],simTime:time};advance(fight,time);a.pos=[...fight.arenaEnemies[0].pos];a.pos[2]-=300;updateProtection(a,time);assert(attack(fight,a,{weapon:'missile',targetId:fight.arenaEnemies[0].id,shots:[{offset:[0,0,0],direction:[0,0,-1],locked:true}]},time));assert.equal(fight.bullets[0].target,fight.arenaEnemies[0].id);
 // Coloso missiles are server projectiles: no instant damage and no NPC friendly fire.
 {
- const p=pilot('missile-target',[-1200,120,100]),world={realm:'test',players:[p],events:[],bullets:[],simTime:time};advance(world,time);const carrier=world.arenaEnemies.find(e=>e.kind==='colossusPro');carrier.hp-=100000;recordArenaDamage(world,carrier,p,100000,time);const hp=p.hp;advance(world,time+5100);assert(world.bullets.some(b=>b.owner===carrier.id&&b.missile));assert.equal(p.hp,hp,'Missile damage waits for collision');for(let i=1;i<=20;i++)advance(world,time+5100+i*100);assert(p.hp<hp,'Authoritative missile collision causes damage');assert(world.arenaEnemies.filter(e=>e.id!==carrier.id).every(e=>e.hp===e.maxHp),'NPCs do not damage other bosses');
+ const p=pilot('missile-target',[-1200,120,100]),world={realm:'normal',players:[p],events:[],bullets:[],simTime:time};advance(world,time);const carrier=world.arenaEnemies.find(e=>e.kind==='colossusPro');carrier.hp-=100000;recordArenaDamage(world,carrier,p,100000,time);const hp=p.hp;advance(world,time+5100);assert(world.bullets.some(b=>b.owner===carrier.id&&b.missile));assert.equal(p.hp,hp,'Missile damage waits for collision');for(let i=1;i<=20;i++)advance(world,time+5100+i*100);assert(p.hp<hp,'Authoritative missile collision causes damage');assert(world.arenaEnemies.filter(e=>e.id!==carrier.id).every(e=>e.hp===e.maxHp),'NPCs do not damage other bosses');
 }
 console.log('PASS: shared zoned bosses, bounded waves, shared damage/rewards, 10% bonus, materials, base protection, restart, targeting and normal-mode isolation');
 
@@ -39,4 +39,12 @@ console.log('PASS: shared zoned bosses, bounded waves, shared damage/rewards, 10
  let adds=state.arenaEnemies.filter(e=>e.parentId===titan.id);assert.equal(adds.length,3);assert.deepEqual(adds.map(e=>e.model),['catapult','harpooner','stalker']);assert.deepEqual(adds.map(e=>e.maxHp),[55200,92000,73600]);assert.deepEqual(adds.map(e=>e.rules.damage),[5520,920,4600]);
  titan.hp=titan.maxHp*.39;advanceArenaEnemies(state,time+200,combatEligible,()=>.5);assert.equal(state.arenaEnemies.filter(e=>e.parentId===titan.id).length,6);const restored=JSON.parse(JSON.stringify(state));for(let i=0;i<10;i++)advanceArenaEnemies(restored,time+300+i*100,combatEligible,()=>.5);assert.equal(restored.arenaEnemies.filter(e=>e.parentId===titan.id).length,6,'No duplicate waves after reload');
  titan.hp=0;advanceArenaEnemies(state,time+2000,combatEligible,()=>.5);const rewards=state.bossRewards.filter(e=>e.bossId===titan.instanceId);assert(rewards.every(r=>r.enemyKind==='granTitanPro'),'Titan receipts identify the correct Pro boss');assert.equal(rewards.reduce((n,r)=>n+r.amount,0),151800);assert.equal(rewards.reduce((n,r)=>n+r.xp,0),227700);assert.equal(rewards.reduce((n,r)=>n+Object.entries(r.materials).filter(([k])=>k!=='nucleoNexo').reduce((n,[,v])=>n+v,0),0),66);assert.equal(state.arenaEnemies.filter(e=>e.parentId===titan.id&&e.hp>0).length,6);
+}
+
+// The test realm is now a cooperative corridor, with one additional Colossus.
+{
+ const cooperative={realm:'test',players:[],events:[]};advance(cooperative,time);
+ const colossi=cooperative.arenaEnemies.filter(e=>e.kind==='colossusPro');
+ assert.equal(colossi.length,3);assert.deepEqual(colossi.map(e=>e.rules.pos[2]),[-1200,-2500,-3800]);
+ assert(cooperative.arenaEnemies.every(e=>e.rules.corridor&&e.rules.zone==='pve'));
 }
