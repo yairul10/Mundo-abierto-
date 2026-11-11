@@ -14,11 +14,12 @@ export function advanceInfernoDrones(s,now,eligible){
    const attackers=s.players.filter(p=>eligible(p,now)&&!p.duelId&&Object.hasOwn(b.droneAttackers,p.id));
    for(const [i,p]of attackers.entries()){
     const angle=i*Math.PI*2/Math.max(1,attackers.length),id=b.id+'-drone-'+remaining+'-'+p.id;
-    s.arenaEnemies.push({id,instanceId:b.instanceId+':'+remaining+':'+p.id,kind:'infernoDrone',model:'infernoDrone',npc:true,boss:false,connected:true,parentId:b.id,parentInstance:b.instanceId,targetId:p.id,level:105,pos:[b.pos[0]+Math.cos(angle)*110,b.pos[1]+30,b.pos[2]+Math.sin(angle)*110],hp:25000,maxHp:25000,hitRadius:28,active:true,motionAt:now,contributions:{},rules:{name:'Dron perseguidor',zone:b.rules.zone,corridor:true,reward:0,range:0}});
+    s.arenaEnemies.push({id,instanceId:b.instanceId+':'+remaining+':'+p.id,kind:'infernoDrone',model:'infernoDrone',npc:true,boss:false,connected:true,parentId:b.id,parentInstance:b.instanceId,targetId:p.id,level:105,pos:[b.pos[0]+Math.cos(angle)*110,b.pos[1]+30,b.pos[2]+Math.sin(angle)*110],hp:25000,maxHp:25000,hitRadius:28,active:true,motionAt:now,contributions:{},rules:{name:'Chaos',zone:b.rules.zone,corridor:true,reward:0,range:0}});
    }
   }
  }
  for(const d of s.arenaEnemies.filter(x=>x.kind==='infernoDrone'&&x.hp>0)){
+  d.rules.name='Chaos';
   const parent=s.arenaEnemies.find(x=>x.id===d.parentId),target=s.players.find(p=>p.id===d.targetId);
   if(!parent||parent.instanceId!==d.parentInstance||!target||!eligible(target,now)||target.duelId){finish(d,now,'cancelled');continue}
   const dt=Math.max(0,Math.min(.3,(now-(d.motionAt??now))/1000));d.motionAt=now;
