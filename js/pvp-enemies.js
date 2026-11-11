@@ -21,6 +21,8 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   }else if(data.kind==='granTitanPro'){replace();r.rig=createGranTitan(T,r.mesh,{position:new T.Vector3()});r.rig.root.scale.setScalar(.5);model('./assets/models/gran_titan.glb?v=327').then(m=>{if(entities.has(data.id))r.rig.mount(m)}).catch(()=>{});
   }else if(data.kind==='colossusPro'){
    Promise.all([model('./assets/models/coloso.glb?v=187'),model('./assets/models/scifipanelcrate_optimizado.glb?v=159')]).then(([hull,door])=>{if(!entities.has(data.id))return;replace();r.rig=createColosoRig(T,hull,door);r.flames=attachColosoExhaust(T,r.rig,hull);r.mesh.add(r.rig.root)}).catch(()=>{});
+  }else if(data.kind==='infernoDrone'){
+   model('./assets/models/inferno-drone.gltf?v=433').then(m=>{if(!entities.has(data.id))return;replace();r.mesh.add(fit(m,65))}).catch(()=>{});
   }else if(data.kind==='infernoPro'){
    model('./assets/models/inferno.glb?v=415').then(m=>{if(!entities.has(data.id))return;replace();r.mesh.add(fit(m,180))}).catch(()=>{});
   }else if(['catapult','harpooner'].includes(data.model)){
@@ -50,9 +52,9 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   npcFx.sync(r,b,now);
   const fresh=r.instance!==b.instanceId,jump=(b.lastTeleport?.seq||0)>r.teleportSeq;
   if(fresh||jump){r.mesh.position.set(...b.pos);r.instance=b.instanceId;r.attackSeq=b.lastAttack?.seq||0;r.teleportSeq=b.lastTeleport?.seq||0}
-  if(!fresh&&r.hp>0&&b.hp<=0&&!hidden())onDestroyed(r.mesh,r.kind);
-  r.goal.set(...b.pos);r.hp=b.hp;r.maxHp=b.maxHp;r.dead=b.hp>0?0:1;r.mesh.visible=b.hp>0;r.active=b.active;r.inferno=b.inferno||null;r.label.querySelector('span').textContent=b.name;
-  r.label.querySelector('small').textContent=Math.ceil(b.hp).toLocaleString()+' / '+b.maxHp.toLocaleString()+' PV'+(b.kind==='reinforcement'?'':' · '+Number(b.reward).toLocaleString()+' créditos');r.label.querySelector('i').style.width=(100*Math.max(0,b.hp)/b.maxHp)+'%';
+  if(!fresh&&r.hp>0&&b.hp<=0&&b.finishReason!=='cancelled'&&!hidden())onDestroyed(r.mesh,r.kind);
+  r.goal.set(...b.pos);r.hp=b.hp;r.maxHp=b.maxHp;r.dead=b.hp>0?0:1;r.mesh.visible=b.hp>0;r.active=b.active;r.inferno=b.inferno||null;r.targetId=b.targetId||null;r.label.querySelector('span').textContent=b.name;
+  r.label.querySelector('small').textContent=Math.ceil(b.hp).toLocaleString()+' / '+b.maxHp.toLocaleString()+' PV'+(['reinforcement','infernoDrone'].includes(b.kind)?'':' · '+Number(b.reward).toLocaleString()+' créditos');r.label.querySelector('i').style.width=(100*Math.max(0,b.hp)/b.maxHp)+'%';
   if(r.kind==='nexo'){r.rig.assignTargets(b.aimTargets||[]);r.rig.setCharge((b.nextAttackAt-now)/1000)}
   if(b.lastAttack&&!b.lastAttack.special&&b.lastAttack.seq>r.attackSeq){r.attackSeq=b.lastAttack.seq;if(now-b.lastAttack.time<1500){if(r.kind==='nexo')r.rig.fire(b.lastAttack.targets||[b.lastAttack]);else beam(b.lastAttack)}}
  }
@@ -60,6 +62,9 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
  }
  function update(dt){for(const r of entities.values()){
   const delta=r.goal.clone().sub(r.mesh.position);if(delta.lengthSq()>.01)r.mesh.rotation.y+=Math.atan2(Math.sin(Math.atan2(r.kind==='colossusPro'?delta.x:-delta.x,r.kind==='colossusPro'?delta.z:-delta.z)-r.mesh.rotation.y),Math.cos(Math.atan2(r.kind==='colossusPro'?delta.x:-delta.x,r.kind==='colossusPro'?delta.z:-delta.z)-r.mesh.rotation.y))*(1-Math.exp(-dt*4));r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));
+  if(r.kind==='infernoDrone'){
+   const target=targetPosition(r.targetId);if(target)r.mesh.lookAt(target);
+  }
   if(r.kind==='infernoPro')infernoFx.present(r,r.inferno,dt);
   if(r.kind==='granTitanPro'){r.rig.updateEngines(performance.now()/1000,true)}
   if(r.kind==='nexo')r.rig.update(dt,performance.now()/1000);

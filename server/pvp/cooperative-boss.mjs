@@ -72,7 +72,7 @@ export function tickBoss(s,now,eligible){
  b.regenTickAt=now;
  if(b.hp>=b.maxHp&&b.kind!=='reinforcement'){b.contributions={};b.active=false;b.inferno=null;b.aimTargets=[];b.charge=null;b.patternDue=null;b.firstAttackerId=null;return;}
  if(rules.attackPattern==='inferno'){tickInferno(s,b,now,eligible);return}
- let targets=s.players.filter(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=rules.range).sort((a,b)=>a.hp-b.hp||a.id.localeCompare(b.id)).slice(0,rules.targets);
+ let targets=s.players.filter(p=>eligible(p,now)&&(b.kind!=='nexo'||(b.contributions?.[p.id]||0)>0||now-(b.recentAttackers?.[p.id]??-Infinity)<=30000)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=rules.range).sort((a,b)=>a.hp-b.hp||a.id.localeCompare(b.id)).slice(0,rules.targets);
  b.aimTargets=targets.map(p=>({targetId:p.id,targetPos:[...p.pos]}));
  if(rules.attackPattern){
   const modern=targets.filter(p=>(p.clientVersion??5)>=5),legacy=targets.filter(p=>(p.clientVersion??5)<5);

@@ -1,3 +1,4 @@
+import {recordInfernoAttacker,advanceInfernoDrones} from './inferno-drones.mjs';
 import {splitGroupRewards} from './groups.mjs';
 import {enemyBalance,PVP_PRO_MULTIPLIER} from './enemy-balance.mjs';
 import {advanceNpcHazards,NPC_PATTERNS} from './npc-patterns.mjs';
@@ -5,14 +6,14 @@ import {BOSS_RULES,ensureBoss,advanceBossMotion,tickBoss,recordBossDamage,bossSn
 
 import {zoneOf,constrainEnemy} from './zones.mjs';
 export const ARENA_ENEMIES=Object.freeze([
- {...BOSS_RULES,id:'pvp-super-boss',name:'Titán del Nexo',kind:'nexo',zone:'hostile',pos:[0,120,-4550],patrolRadius:150,reward:1100000},
+ {...BOSS_RULES,id:'pvp-super-boss',name:'Titán del Nexo',kind:'nexo',zone:'hostile',pos:[0,120,-4550],patrolRadius:150,range:5000,reward:1100000},
  {...BOSS_RULES,id:'pvp-gran-titan',name:'Gran Titán Pro',kind:'granTitanPro',zone:'pve',pos:[0,120,1250],patrolRadius:100,maxHp:368000,damage:1472,targets:2,attackInterval:4000,teleportInterval:0,reward:151800,xpReward:227700,materialCount:60,hitRadius:270,projectile:null,attackPattern:'titan',attackInterval:8000,tetherDps:230},
  ...[-1,1].map((side,i)=>({...BOSS_RULES,id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),kind:'colossusPro',zone:'pve',projectile:'missile',pos:[side*1200,120,-250],patrolRadius:100,maxHp:200000,damage:750,targets:1,attackInterval:5000,teleportInterval:0,reward:55000,xpReward:82500,hitRadius:220,materialCount:60}))
 ]);
 export const COOP_ENEMIES=Object.freeze([
  {...ARENA_ENEMIES[0],zone:'pve',corridor:true,pos:[0,120,-10500]},
  {...ARENA_ENEMIES[1],corridor:true,pos:[200,120,-7000]},
- {...BOSS_RULES,id:'coop-inferno-pro',name:'Inferno Pro',kind:'infernoPro',model:'inferno',zone:'pve',corridor:true,pos:[-400,120,-5350],patrolRadius:100,maxHp:358800,damage:5520,reward:108000,xpReward:144000,materialCount:24,targets:24,range:1500,hitRadius:90,teleportInterval:0,attackPattern:'inferno',attackInterval:1000},
+ {...BOSS_RULES,id:'coop-inferno-pro',name:'Inferno Pro',kind:'infernoPro',model:'inferno',zone:'pve',corridor:true,pos:[-400,120,-5350],patrolRadius:100,maxHp:500000,damage:5520,reward:108000,xpReward:144000,materialCount:24,targets:24,range:1500,hitRadius:90,teleportInterval:0,attackPattern:'inferno',attackInterval:1000},
  ...[1200,2500,3800].map((distance,i)=>({...ARENA_ENEMIES[2],id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),corridor:true,pos:[i===1?380:-380,120,-distance]}))
 ]);
 // Six level-105 escorts use the agreed PvE Pro x4, then PvP x2.
@@ -34,13 +35,18 @@ export function ensureArenaEnemies(s,now){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
   const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;if(rules.model)b.model=rules.model;b.level=105;
   if(b.arenaLayout!==((s.cooperative===true||s.realm==='test')?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=(s.cooperative===true||s.realm==='test')?5:3;b.patrolPhase=0}constrainEnemy(b)
+  if(b.kind==='infernoPro'&&b.maxHp!==rules.maxHp){const ratio=rules.maxHp/b.maxHp;b.hp=b.hp/b.maxHp*rules.maxHp;b.maxHp=rules.maxHp;b.droneWaves??=Array.from({length:9},(_,i)=>450000-i*50000).filter(t=>b.hp<=t);for(const id of Object.keys(b.contributions||{}))b.contributions[id]*=ratio}
   next.push(b);
  }
  const parents=new Map(next.map(b=>[b.id,b]));
  for(const b of s.arenaEnemies.filter(b=>b.kind==='reinforcement'))if(parents.get(b.parentId)?.instanceId===b.parentInstance){b.rules.zone=parents.get(b.parentId).rules.zone;b.rules.corridor=parents.get(b.parentId).rules.corridor;const pattern=NPC_PATTERNS[b.model];if(pattern)Object.assign(b.rules,{attackPattern:b.model,attackInterval:pattern.interval,range:pattern.range,tetherDps:b.model==='harpooner'?230:0});applyReinforcementBalance(b);next.push(b);}
+ for(const d of s.arenaEnemies.filter(b=>b.kind==='infernoDrone'))if(parents.get(d.parentId)?.instanceId===d.parentInstance&&(d.hp>0||now-(d.finishedAt??now)<3000))next.push(d);
  s.arenaEnemies=next;s.boss=next[0];return next;
 }
 export function recordArenaDamage(s,target,owner,damage,now,noRewards=false){
+ if(target.kind==='infernoDrone'){if(target.hp<=0){target.finishedAt=now;target.finishReason='destroyed'}return}
+ recordInfernoAttacker(target,owner,damage,now);
+ if(owner?.id&&Number.isFinite(damage)&&damage>0)(target.recentAttackers||={})[owner.id]=now;
  if(noRewards||owner?.profile?.shipId==='adminpod'){target.lastDamageAt=target.regenTickAt=now;if(target.hp>0&&!target.active){target.active=true;target.nextAttackAt=now+target.rules.attackInterval;}}
  else recordBossDamage(target,owner,damage,now);
  if(target.kind==='reinforcement'){
@@ -90,6 +96,7 @@ function nexusCoreRewards(s,b,from,random){
 export function advanceArenaEnemies(s,now,eligible,random=Math.random){
  ensureArenaEnemies(s,now);s.bossRewards||=[];
  for(const b of [...s.arenaEnemies]){
+  if(b.kind==='infernoDrone')continue;
   if(b.kind!=='reinforcement')advanceBossMotion({...s,boss:b},now,p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone,random);
   else{
    const dt=Math.max(0,Math.min(.3,(now-b.motionAt)/1000));b.motionAt=now;
@@ -107,9 +114,10 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
   for(let i=s.bossRewards.length-1;i>=from;i--)if(s.players.some(p=>p.id===s.bossRewards[i].playerId&&p.profile?.shipId==='adminpod'))s.bossRewards.splice(i,1);
   if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId)){if(['colossusPro','granTitanPro'].includes(b.kind))receipt.enemyKind=b.kind;if(b.rules.xpReward)receipt.xp=b.kind==='reinforcement'?b.rules.xpReward:Math.max(0,Math.round(b.rules.xpReward*receipt.damage/Math.max(1,receipt.totalDamage)));}splitGroupRewards(s,b,s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId),allowed);}
  }
+ advanceInfernoDrones(s,now,eligible);
  advanceNpcHazards(s,now,(owner,p,t)=>eligible(p,t)&&!p.duelId&&zoneOf(p)===owner.rules.zone);
  // Keep surviving escorts until killed or their parent begins a new instance.
 }
 export function arenaEnemySnapshots(s){
- return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105,charge:b.charge||null,patternEvents:b.patternEvents||[],patternImpacts:b.patternImpacts||[],bombs:b.bombs||[],inferno:b.inferno||null}));
+ return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105,charge:b.charge||null,patternEvents:b.patternEvents||[],patternImpacts:b.patternImpacts||[],bombs:b.bombs||[],inferno:b.inferno||null,targetId:b.targetId||null,finishReason:b.finishReason||null}));
 }
