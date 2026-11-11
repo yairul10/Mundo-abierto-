@@ -29,7 +29,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=356';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=436';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
@@ -37,7 +37,7 @@ import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
 import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings,isGraphicsRecoveryReload} from './graphics-settings.js?v=404';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
-import {recordAction,mountJournal} from './activity-journal.js?v=225';
+import {recordAction,mountJournal} from './activity-journal.js?v=436';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
@@ -3575,7 +3575,7 @@ if(PVP_MODE){
  bossRewards(receipts){
   const latest=readOfflinePilot(localStorage),source=pvpHangar?player:latest;
   const result=saveBossReceipts(localStorage,SAVE_KEY,source,receipts,p=>pvpHangar?serializeHangarEditor(p,latest):p);
-  if(result.ids.length){player.quests=result.pilot.quests||{};missionBoard=createMissionBoard(missionCatalog,player.quests);renderMission();for(const m of result.missions){combatAudio.play('mission');lootToast('🏆 '+m.title+' · '+missionPrize(m))}player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;player.xp=result.pilot.xp;if(pvpHangar)Object.assign(player,result.pilot);if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
+  if(result.ids.length){player.quests=result.pilot.quests||{};missionBoard=createMissionBoard(missionCatalog,player.quests);renderMission();for(const m of result.missions){combatAudio.play('mission');lootToast('🏆 '+m.title+' · '+missionPrize(m))}player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;player.activityJournal=result.pilot.activityJournal||[];player.xp=result.pilot.xp;if(pvpHangar)Object.assign(player,result.pilot);if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
   return result;
  },
  remoteShots(bullets){for(const b of bullets){

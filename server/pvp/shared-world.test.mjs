@@ -44,7 +44,7 @@ test('reinforcement awards persist in SQLite and replay after reconstruction wit
   const restored=new SharedWorld(ctx,{}),sent=[],attachment={};
   const ws={deserializeAttachment:()=>attachment,serializeAttachment:()=>{},send:data=>sent.push(JSON.parse(data))};
   restored.sendRewards(ws,'first');assert.equal(sent.length,1);
-  assert.deepEqual(sent[0].receipts,[{id:receipt.id,amount:receipt.amount,damage:1000,totalDamage:add.maxHp,bossId:add.instanceId,materials:receipt.materials,xp:720}]);
+  assert.deepEqual(sent[0].receipts,[{id:receipt.id,amount:receipt.amount,damage:1000,totalDamage:add.maxHp,bossId:add.instanceId,materials:receipt.materials,xp:720,enemyKind:'raider'}]);
   const loaded=restored.worldLoad();advanceArenaEnemies(loaded,now+400,()=>false,()=>.1);restored.worldSave(loaded,true);
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM boss_rewards').get().count,1);
   sent.length=0;restored.sendRewards({...ws,deserializeAttachment:()=>({})},'second');assert.equal(sent.length,0);
@@ -125,3 +125,5 @@ test('broadcast deltas are opt-in, recover after failed sends/restarts, and pres
   now+=100;new SharedWorld(ctx,{}).worldBroadcast(s);assert.equal(delta.messages.at(-1).type,'world');
  }finally{Date.now=realNow;w.stopSimulation()}
 });
+
+test('Inferno, Nexo and escort identities persist in SQLite for the cooperative journal',()=>{const db=new DatabaseSync(':memory:'),ctx={getWebSockets:()=>[],blockConcurrencyWhile:fn=>fn(),storage:{sql:{exec(q,...args){const rows=db.prepare(q).all(...args);return {toArray:()=>rows}}},transactionSync(fn){db.exec('BEGIN');try{fn();db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}}};try{const w=new SharedWorld(ctx,{}),s=world('normal'),kinds=['infernoPro','nexo','raider'];s.bossRewards=kinds.map((enemyKind,i)=>({id:'journal-'+i,playerId:'pilot',amount:100,damage:10,totalDamage:100,bossId:'boss-'+i,enemyKind,xp:20}));w.worldSave(s,true);const restored=new SharedWorld(ctx,{}),messages=[];restored.sendRewards({deserializeAttachment:()=>({}),serializeAttachment(){},send:data=>messages.push(JSON.parse(data))},'pilot');assert.deepEqual(messages[0].receipts.map(r=>r.enemyKind).sort(),[...kinds].sort())}finally{db.close()}});

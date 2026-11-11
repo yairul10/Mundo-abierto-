@@ -33,7 +33,7 @@ export class SharedWorld extends DurableObject {
   this.memory=s;
   if(!force&&!s.critical&&!pending.length&&now-this.lastCheckpoint<5000)return;
   this.ctx.storage.transactionSync(()=>{
-   persistResults(this.ctx,s);for(const r of pending)this.ctx.storage.sql.exec('INSERT OR IGNORE INTO boss_rewards(id,player_id,amount,damage,total_damage,boss_id,materials,xp,enemy_kind) VALUES(?,?,?,?,?,?,?,?,?)',r.id,r.playerId,r.amount,r.damage,r.totalDamage,r.bossId,JSON.stringify(r.materials||{}),Math.max(0,Math.min(15000000,Math.floor(Number(r.xp)||0))),['colossusPro','granTitanPro'].includes(r.enemyKind)?r.enemyKind:'');
+   persistResults(this.ctx,s);for(const r of pending)this.ctx.storage.sql.exec('INSERT OR IGNORE INTO boss_rewards(id,player_id,amount,damage,total_damage,boss_id,materials,xp,enemy_kind) VALUES(?,?,?,?,?,?,?,?,?)',r.id,r.playerId,r.amount,r.damage,r.totalDamage,r.bossId,JSON.stringify(r.materials||{}),Math.max(0,Math.min(15000000,Math.floor(Number(r.xp)||0))),['colossusPro','granTitanPro','infernoPro','nexo','raider','sentinel','destroyer','catapult','harpooner','stalker'].includes(r.enemyKind)?r.enemyKind:'');
    this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify({...s,bossRewards:[],pendingKills:[],critical:false}));
   });
   // Clear receipts only after commit, so an exception cannot discard pending awards.
