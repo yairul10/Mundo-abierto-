@@ -23,3 +23,11 @@ for(const step of [1/30,1/60,1/144]){
 }
 state={phase:'charge',elapsed:0};assert.equal(advanceInferno(state,16),6.5,'long frame counts exactly two bursts');
 console.log('Inferno: dual cones, range, vertical bounds, overlap, hull radius and frame-independent cycle passed.');
+
+assert.equal(c.damage,300,'Inferno deals triple its former flame damage');
+const game=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8');
+assert.match(game,/inferno:\{hp:19500,damage:300/,'triple base health and damage');
+assert.match(game,/aggressive:!pro&&type!=='devastator'&&type!=='inferno'/,'Inferno spawns passive');
+assert.equal((game.match(/e\.aggressive=!e\.pro&&e\.type!=='devastator'&&e\.type!=='inferno'/g)||[]).length,2,'both respawn paths reset aggression');
+assert.match(game,/const active=e\.aggressive===true&&activeSector==='graveyard'/,'proximity alone cannot start pursuit or flames');
+assert.match(game,/if\(damage>0\)e\.aggressive=true/,'positive damage provokes retaliation');

@@ -1,5 +1,5 @@
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=429';
-import {createInfernoCombat} from './inferno.js?v=419';
+import {createInfernoCombat} from './inferno.js?v=431';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
@@ -913,7 +913,7 @@ const TYPES={
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
  catapult:{hp:3000,damage:300,speed:75,xp:1200,gold:800,loot:8,color:0x815942},
  harpooner:{hp:5000,damage:50,speed:130,xp:1600,gold:1200,loot:7,color:0x505b69},
- inferno:{hp:6500,damage:100,speed:110,xp:2400,gold:1800,loot:8,color:0xd32625},
+ inferno:{hp:19500,damage:300,speed:110,xp:2400,gold:1800,loot:8,color:0xd32625},
  stalker:{hp:4000,damage:250,speed:155,xp:2000,gold:1600,loot:8,color:0xa52a35},
  granTitan:{...TITAN_STATS,speed:0,color:0x555b63},
  carrier:{hp:40000,damage:150,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}
@@ -939,7 +939,7 @@ const enemies=[...enemyKinds.map(type=>({type})),...proPopulation()].map(({type,
  const t=TYPES[type],mesh=['catapult','harpooner'].includes(type)?graveyard.enemyVisual(type):ship(t.color,type);scene.add(mesh);
  const home=randomEnemyHome(type);mesh.position.copy(home);mesh.visible=type==='scout'||type==='raider';
  if(pro){const badge=new THREE.Sprite(proBadgeMaterial);badge.position.set(0,100,0);badge.scale.set(85,28,1);mesh.add(badge);mesh.userData.proBadge=badge}
- const maxHp=enemyMaxHp(type)*proMultiplier({type,pro});return {type,pro,proSector,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,aggressive:!pro&&type!=='devastator',fireTimer:1+Math.random()*2};
+ const maxHp=enemyMaxHp(type)*proMultiplier({type,pro});return {type,pro,proSector,mesh,home,hp:maxHp,maxHp,dead:0,angle:i,aggressive:!pro&&type!=='devastator'&&type!=='inferno',fireTimer:1+Math.random()*2};
 });
 
 linkScrapPairs(enemies.filter(e=>!e.pro));
@@ -1270,7 +1270,7 @@ function updateGranTitan(dt){if(PVP_MODE)return;
 
 function damageEnemy(e,damage,missile=false){if(e.pvpRemote)return;
  if(e.dead||!e.mesh.visible)return;
- e.aggressive=true;e.hp=Math.max(0,e.hp-damage);
+ if(damage>0)e.aggressive=true;e.hp=Math.max(0,e.hp-damage);
  if(damage>0)combatAudio.play(missile?'explosion':'impact',e.mesh.position);
  if(e.type==='carrier'){bossState.hp=e.hp;if(e.hp>0)triggerCarrierWaves()}
  if(e.hp<=0)kill(e,missile);
@@ -2838,7 +2838,7 @@ function resetSectorPopulation(){
   if(e.bossAdd){e.mesh.visible=activeSector==='ember'&&!e.dead&&!e.launchRemaining;continue}
   if(e.type==='carrier'){e.maxHp=enemyMaxHp('carrier');e.hp=bossState.hp;e.dead=bossState.hp>0?0:Infinity;e.mesh.visible=activeSector==='ember'&&bossState.hp>0;continue}
   if(e.type==='stalker')ensureAcechadorVisual(e);
-  e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type)*proMultiplier(e);e.hp=e.maxHp;e.dead=0;e.aggressive=!e.pro&&e.type!=='devastator';
+  e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.maxHp=enemyMaxHp(e.type)*proMultiplier(e);e.hp=e.maxHp;e.dead=0;e.aggressive=!e.pro&&e.type!=='devastator'&&e.type!=='inferno';
   counts[e.type]=(counts[e.type]||0)+1;e.spawnRank=counts[e.type];e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;
  }
  placeScrapPairs(enemies.filter(e=>!e.pro));
@@ -3398,7 +3398,7 @@ for(const e of enemies){
  if(e.type==='inferno'&&(e.dead||!e.mesh.visible))infernoCombat.reset(e);
  if(e.dead){
   if(!e.titanAdd&&e.type!=='granTitan'&&!e.bossAdd&&e.type!=='carrier'&&now/1000>=e.dead){
-   e.dead=0;e.maxHp=enemyMaxHp(e.type)*proMultiplier(e);e.hp=e.maxHp;e.aggressive=!e.pro&&e.type!=='devastator';
+   e.dead=0;e.maxHp=enemyMaxHp(e.type)*proMultiplier(e);e.hp=e.maxHp;e.aggressive=!e.pro&&e.type!=='devastator'&&e.type!=='inferno';
    e.home.copy(randomEnemyHome(e.type));e.mesh.position.copy(e.home);e.mesh.visible=enemyBelongsToSector(e,e.spawnRank);e.fireTimer=1+Math.random()*2;rejoinScrapPair(e);ensureAcechadorVisual(e);
   }
   continue;
@@ -3407,7 +3407,7 @@ for(const e of enemies){
  if(!e.mesh.visible||e.type==='carrier'||e.type==='granTitan')continue;
  const t=TYPES[e.type],d=e.mesh.position.distanceTo(playerMesh.position);
  if(e.type==='inferno'){
-  const active=activeSector==='graveyard'&&!PVP_MODE&&player.hp>0&&!recoveryPending&&!playerSafe&&!docked&&!landing&&!portalTransitProtected()&&d<1500;
+  const active=e.aggressive===true&&activeSector==='graveyard'&&!PVP_MODE&&player.hp>0&&!recoveryPending&&!playerSafe&&!docked&&!landing&&!portalTransitProtected()&&d<1500;
   if(active&&d>650)e.mesh.position.addScaledVector(playerMesh.position.clone().sub(e.mesh.position).normalize(),Math.min(t.speed*dt,d-650));
   infernoCombat.update(e,dt,{active,aim:playerMesh.position,scale:advancedEnemyScale(player.level,40)});continue;
  }

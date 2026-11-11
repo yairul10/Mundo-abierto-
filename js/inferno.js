@@ -1,5 +1,5 @@
 // Enemy flame footprint and visual use the same two nozzle origins and widening cones.
-export const INFERNO=Object.freeze({range:900,nozzleX:46,nozzleY:-5,nozzleZ:85,mouthRadius:28,spread:.40,charge:1,fire:3,fade:.5,cooldown:3.5,damage:100});
+export const INFERNO=Object.freeze({range:900,nozzleX:46,nozzleY:-5,nozzleZ:85,mouthRadius:28,spread:.40,charge:1,fire:3,fade:.5,cooldown:3.5,damage:300});
 export function inInfernoFlames(point,radius=0,c=INFERNO){
  const z=point.z-c.nozzleZ;
  if(z < -radius || z > c.range+radius)return false;
@@ -73,7 +73,7 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  }
  function reset(enemy){const s=states.get(enemy);if(!s)return;s.root.visible=false;s.glow.intensity=0;s.phase='cooldown';s.elapsed=0;s.announced=false}
  function update(enemy,dt,{active,aim,scale=1}){
-  if(!active||enemy.dead||!enemy.mesh.visible){reset(enemy);return}
+  if(!active||!enemy.aggressive||enemy.dead||!enemy.mesh.visible){reset(enemy);return}
   const s=stateFor(enemy);s.root.visible=true;
   // Lock orientation for the firing burst so pilots can escape through the sides.
   if(s.phase!=='fire'&&s.phase!=='fade')enemy.mesh.lookAt(aim);
