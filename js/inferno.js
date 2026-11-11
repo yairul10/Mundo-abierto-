@@ -28,12 +28,12 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  const count=112,seeds=new Float32Array(count*3);
  for(let i=0;i<count;i++){seeds[i*3]=i%2===0?-1:1;seeds[i*3+1]=Math.floor(i/2)/56;seeds[i*3+2]=((i*73)%113)/113}
  geometry.setAttribute('seed',new THREE.InstancedBufferAttribute(seeds,3));geometry.instanceCount=count;
- const vertexShader=`uniform float time;attribute vec3 seed;varying vec2 vUv;varying float age;varying float variation;
+ const vertexShader=`uniform float time;uniform float hullScale;attribute vec3 seed;varying vec2 vUv;varying float age;varying float variation;
  void main(){
   vUv=uv;age=fract(seed.y+time*1.05);variation=seed.z;
-  float distance=age*900.;float width=28.+distance*.40;
+  float distance=age*900.;float width=28.*hullScale+distance*.40;
   float angle=seed.z*39.5+time*1.7;
-  vec3 center=vec3(seed.x*46.+cos(angle)*width*.30,-5.+sin(angle*1.23)*width*.30,85.+distance);
+  vec3 center=vec3(seed.x*46.*hullScale+cos(angle)*width*.30,-5.*hullScale+sin(angle*1.23)*width*.30,85.*hullScale+distance);
   vec4 viewCenter=modelViewMatrix*vec4(center,1.);
   // Stretch tongues along the jet's projected direction; round when viewed head-on.
   vec2 projected=modelViewMatrix[2].xy;
@@ -65,7 +65,7 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  }`;
  function stateFor(enemy){
   let state=states.get(enemy);if(state)return state;
-  const root=new THREE.Group(),uniforms={time:{value:0},power:{value:0}};
+  const root=new THREE.Group(),uniforms={time:{value:0},power:{value:0},hullScale:{value:1}};
   const material=new THREE.ShaderMaterial({uniforms,vertexShader,fragmentShader,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
   const flames=new THREE.Mesh(geometry,material);flames.frustumCulled=false;root.add(flames);
   const glow=new THREE.PointLight(0xff7020,0,380);glow.position.z=95;root.add(glow);enemy.mesh.add(root);enemy.mesh.userData.infernoEffects=root;
@@ -94,7 +94,7 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  }
  function present(enemy,snapshot,dt){
   if(!snapshot||enemy.dead||!enemy.mesh.visible){reset(enemy);return}
-  const s=stateFor(enemy);s.root.visible=true;
+  const s=stateFor(enemy);s.root.visible=true;s.uniforms.hullScale.value=enemy.kind==='infernoPro'?2:1;
   if(s.remoteSnapshot!==snapshot){s.remoteSnapshot=snapshot;s.phase=snapshot.phase;s.elapsed=snapshot.elapsed}else advanceInferno(s,dt);
   const direction=snapshot.direction;enemy.mesh.lookAt(enemy.mesh.position.clone().add(new THREE.Vector3(...direction)));
   s.uniforms.time.value+=dt;s.uniforms.power.value=infernoPower(s);s.flames.visible=s.uniforms.power.value>0;

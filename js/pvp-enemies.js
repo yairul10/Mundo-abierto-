@@ -1,4 +1,4 @@
-import {createInfernoCombat} from './inferno.js?v=432';
+import {createInfernoCombat} from './inferno.js?v=434';
 import {createNpcEffects} from './pvp-npc-effects.js?v=385';
 import {createCatapultRig} from './catapult-rig.js?v=339';
 import {createHarpoonRig} from './harpoon-rig.js?v=339';
@@ -24,7 +24,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   }else if(data.kind==='infernoDrone'){
    model('./assets/models/inferno-drone.gltf?v=433').then(m=>{if(!entities.has(data.id))return;replace();r.mesh.add(fit(m,65))}).catch(()=>{});
   }else if(data.kind==='infernoPro'){
-   model('./assets/models/inferno.glb?v=415').then(m=>{if(!entities.has(data.id))return;replace();r.mesh.add(fit(m,180))}).catch(()=>{});
+   model('./assets/models/inferno.glb?v=415').then(m=>{if(!entities.has(data.id))return;replace();r.mesh.add(fit(m,360))}).catch(()=>{});
   }else if(['catapult','harpooner'].includes(data.model)){
    const files=data.model==='catapult'?{hull:'catapulta_casco',stand:'catapulta_soporte',arm:'catapulta_brazo',bomb:'catapulta_bomba'}:{hull:'catapulta_casco',launcher:'arponero_lanzador',spool:'arponero_carrete',spear:'arponero_arpon'};
    Promise.all(Object.entries(files).map(async([k,f])=>[k,await model('./assets/models/'+f+'.glb?v=327')])).then(parts=>{if(!entities.has(data.id))return;replace();r.rig=(data.model==='catapult'?createCatapultRig:createHarpoonRig)(T,Object.fromEntries(parts));r.rig.root.scale.setScalar(2/3);r.mesh.add(r.rig.root)}).catch(()=>{});

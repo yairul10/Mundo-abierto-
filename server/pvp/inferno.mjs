@@ -22,6 +22,7 @@ export function advanceInferno(state,dt,c=INFERNO){
  return firing;
 }
 
+export const PRO_INFERNO=Object.freeze({...INFERNO,nozzleX:92,nozzleY:-10,nozzleZ:170,mouthRadius:56});
 export function tickInferno(s,b,now,eligible){
  const candidates=s.players.filter(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<1500);
  if(!b.active||b.hp<=0||!candidates.length){b.inferno=null;b.infernoTickAt=now;return}
@@ -33,7 +34,7 @@ export function tickInferno(s,b,now,eligible){
  if(!firing)return;
  const forward=state.direction,horizontal=Math.hypot(forward[0],forward[2]),right=horizontal>1e-6?[forward[2]/horizontal,0,-forward[0]/horizontal]:[1,0,0],up=[forward[1]*right[2],forward[2]*right[0]-forward[0]*right[2],-forward[1]*right[0]];
  for(const p of candidates){const delta=p.pos.map((v,i)=>v-b.pos[i]),dot=v=>delta.reduce((n,x,i)=>n+x*v[i],0);
-  if(!inInfernoFlames({x:dot(right),y:dot(up),z:dot(forward)},30))continue;
+  if(!inInfernoFlames({x:dot(right),y:dot(up),z:dot(forward)},30,PRO_INFERNO))continue;
   applyShieldDamage(p,defenseDamage(p,b.rules.damage,now)*firing,now);p.lastHit=p.lastIncoming=now;p.lastDamagedBy=b.id;
  }
 }

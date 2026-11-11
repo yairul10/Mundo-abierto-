@@ -1,5 +1,5 @@
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=429';
-import {createInfernoCombat} from './inferno.js?v=432';
+import {createInfernoCombat} from './inferno.js?v=434';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
@@ -22,7 +22,7 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
 import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
-import {createArenaEnemyView} from './pvp-enemies.js?v=433';
+import {createArenaEnemyView} from './pvp-enemies.js?v=434';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=390';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';

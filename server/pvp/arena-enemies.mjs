@@ -13,7 +13,7 @@ export const ARENA_ENEMIES=Object.freeze([
 export const COOP_ENEMIES=Object.freeze([
  {...ARENA_ENEMIES[0],zone:'pve',corridor:true,pos:[0,120,-10500]},
  {...ARENA_ENEMIES[1],corridor:true,pos:[200,120,-7000]},
- {...BOSS_RULES,id:'coop-inferno-pro',name:'Inferno Pro',kind:'infernoPro',model:'inferno',zone:'pve',corridor:true,pos:[-400,120,-5350],patrolRadius:100,maxHp:500000,damage:5520,reward:108000,xpReward:144000,materialCount:24,targets:24,range:1500,hitRadius:90,teleportInterval:0,attackPattern:'inferno',attackInterval:1000},
+ {...BOSS_RULES,id:'coop-inferno-pro',name:'Inferno Pro',kind:'infernoPro',model:'inferno',zone:'pve',corridor:true,pos:[-400,120,-5350],patrolRadius:100,maxHp:500000,damage:5520,reward:108000,xpReward:144000,materialCount:24,targets:24,range:1500,hitRadius:180,teleportInterval:0,attackPattern:'inferno',attackInterval:1000},
  ...[1200,2500,3800].map((distance,i)=>({...ARENA_ENEMIES[2],id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),corridor:true,pos:[i===1?380:-380,120,-distance]}))
 ]);
 // Six level-105 escorts use the agreed PvE Pro x4, then PvP x2.
@@ -33,7 +33,7 @@ export function ensureArenaEnemies(s,now){
  const next=[];
  for(const rules of ((s.cooperative===true||s.realm==='test')?COOP_ENEMIES:ARENA_ENEMIES)){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
-  const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;if(rules.model)b.model=rules.model;b.level=105;
+  const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;if(b.kind==='infernoPro')b.hitRadius=rules.hitRadius;if(rules.model)b.model=rules.model;b.level=105;
   if(b.arenaLayout!==((s.cooperative===true||s.realm==='test')?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=(s.cooperative===true||s.realm==='test')?5:3;b.patrolPhase=0}constrainEnemy(b)
   if(b.kind==='infernoPro'&&b.maxHp!==rules.maxHp){const ratio=rules.maxHp/b.maxHp;b.hp=b.hp/b.maxHp*rules.maxHp;b.maxHp=rules.maxHp;b.droneWaves??=Array.from({length:9},(_,i)=>450000-i*50000).filter(t=>b.hp<=t);for(const id of Object.keys(b.contributions||{}))b.contributions[id]*=ratio}
   next.push(b);
