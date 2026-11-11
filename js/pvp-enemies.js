@@ -8,6 +8,7 @@ import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 const MODELS={catapult:'./assets/models/catapulta_casco.glb?v=327',harpooner:'./assets/models/arponero_lanzador.glb?v=327',stalker:'./assets/models/acechador_optimizado.glb?v=327',raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
 export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,onDestroyed=()=>{},onBombImpact,sound=()=>{},targetPosition=()=>null,makeMissile=null}){
  const entities=new Map(),templates=new Map(),effects=[];
+ let serverNow=0,syncedAt=0;
  const infernoFx=createInfernoCombat(T,{targets:()=>[],damage:()=>{}});
  const npcFx=createNpcEffects(T,scene,camera,{sound,targetPosition,hidden,onBombImpact});
  function model(path){if(!templates.has(path))templates.set(path,loader.loadAsync(path).then(g=>g.scene));return templates.get(path).then(s=>s.clone(true))}
@@ -43,6 +44,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
  }
  function beam(attack){if(attack.projectile){sound(attack.projectile==='missile'?'missile':'enemyLaser',{x:attack.origin[0],y:attack.origin[1],z:attack.origin[2]});for(const hit of attack.targets||[]){const missile=attack.projectile==='missile',mesh=missile&&makeMissile?makeMissile():new T.Mesh(missile?new T.ConeGeometry(4,20,8):new T.CylinderGeometry(1.5,1.5,40,6),new T.MeshBasicMaterial({color:0xff964b})),goal=new T.Vector3(...hit.targetPos),velocity=goal.clone().sub(new T.Vector3(...attack.origin)).normalize().multiplyScalar(missile?650:1150);mesh.position.set(...attack.origin);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),velocity.clone().normalize());scene.add(mesh);effects.push({mesh,time:missile?5:1.05,age:0,missile,projectile:true,goal,targetId:hit.targetId,velocity})}return}sound('enemyLaser',{x:attack.origin[0],y:attack.origin[1],z:attack.origin[2]});for(const hit of attack.targets||[]){const start=new T.Vector3(...attack.origin),end=new T.Vector3(...hit.targetPos),delta=end.clone().sub(start);const mesh=new T.Mesh(new T.CylinderGeometry(2,2,delta.length(),6),new T.MeshBasicMaterial({color:0xff853c,transparent:true,opacity:.85,depthWrite:false}));mesh.position.copy(start).add(end).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),delta.normalize());scene.add(mesh);effects.push({mesh,time:.18})}}
  function sync(list,now,players=[]){
+  serverNow=now;syncedAt=performance.now();
   const present=new Set(list.map(b=>b.id));for(const [id,r]of entities)if(!present.has(id)){npcFx.clearOwner(id);if(r.kind==='infernoPro')infernoFx.reset(r);scene.remove(r.mesh);r.label.remove();const i=enemies.indexOf(r);if(i>=0)enemies.splice(i,1);entities.delete(id)}
   for(const b of list){let r=entities.get(b.id);if(!r){
    const mesh=new T.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.append(label);scene.add(mesh);mesh.position.set(...b.pos);
@@ -53,14 +55,25 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   const fresh=r.instance!==b.instanceId,jump=(b.lastTeleport?.seq||0)>r.teleportSeq;
   if(fresh||jump){r.mesh.position.set(...b.pos);r.instance=b.instanceId;r.attackSeq=b.lastAttack?.seq||0;r.teleportSeq=b.lastTeleport?.seq||0}
   if(!fresh&&r.hp>0&&b.hp<=0&&b.finishReason!=='cancelled'&&!hidden())onDestroyed(r.mesh,r.kind);
-  r.goal.set(...b.pos);r.hp=b.hp;r.maxHp=b.maxHp;r.dead=b.hp>0?0:1;r.mesh.visible=b.hp>0;r.active=b.active;r.inferno=b.inferno||null;r.targetId=b.targetId||null;r.label.querySelector('span').textContent=b.name;
+  r.goal.set(...b.pos);r.hp=b.hp;r.maxHp=b.maxHp;r.dead=b.hp>0?0:1;r.mesh.visible=b.hp>0;r.active=b.active;r.inferno=b.inferno||null;r.targetId=b.targetId||null;r.parentId=b.parentId||null;r.launch=b.launch||null;r.launchBaysUntil=b.launchBaysUntil??null;r.label.querySelector('span').textContent=b.name;
   r.label.querySelector('small').textContent=Math.ceil(b.hp).toLocaleString()+' / '+b.maxHp.toLocaleString()+' PV'+(['reinforcement','infernoDrone'].includes(b.kind)?'':' · '+Number(b.reward).toLocaleString()+' créditos');r.label.querySelector('i').style.width=(100*Math.max(0,b.hp)/b.maxHp)+'%';
   if(r.kind==='nexo'){r.rig.assignTargets(b.aimTargets||[]);r.rig.setCharge((b.nextAttackAt-now)/1000)}
   if(b.lastAttack&&!b.lastAttack.special&&b.lastAttack.seq>r.attackSeq){r.attackSeq=b.lastAttack.seq;if(now-b.lastAttack.time<1500){if(r.kind==='nexo')r.rig.fire(b.lastAttack.targets||[b.lastAttack]);else beam(b.lastAttack)}}
  }
  npcFx.syncTethers(players,entities,now);
  }
- function update(dt){for(const r of entities.values()){
+ function update(dt){const displayNow=serverNow+performance.now()-syncedAt;for(const r of entities.values()){
+  if(r.launch){
+   r.mesh.visible=r.hp>0&&displayNow>=r.launch.start;r.label.hidden=true;
+   const parent=entities.get(r.parentId),bay=r.launch.bay;
+   if(parent?.rig?.exits?.[bay]){
+    parent.mesh.updateMatrixWorld(true);
+    const start=parent.mesh.localToWorld(parent.rig.exits[bay].clone()),direction=parent.rig.directions[bay].clone().applyQuaternion(parent.mesh.quaternion),control=start.clone().addScaledVector(direction,180),t=Math.max(0,Math.min(1,(displayNow-r.launch.start)/(r.launch.end-r.launch.start)));
+    r.mesh.position.copy(start).multiplyScalar((1-t)*(1-t)).addScaledVector(control,2*(1-t)*t).addScaledVector(r.goal,t*t);
+    const tangent=control.clone().sub(start).multiplyScalar(1-t).addScaledVector(r.goal.clone().sub(control),t);if(tangent.lengthSq()>.001)r.mesh.lookAt(r.mesh.position.clone().sub(tangent));
+   }else r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));
+   continue;
+  }
   const delta=r.goal.clone().sub(r.mesh.position);if(delta.lengthSq()>.01)r.mesh.rotation.y+=Math.atan2(Math.sin(Math.atan2(r.kind==='colossusPro'?delta.x:-delta.x,r.kind==='colossusPro'?delta.z:-delta.z)-r.mesh.rotation.y),Math.cos(Math.atan2(r.kind==='colossusPro'?delta.x:-delta.x,r.kind==='colossusPro'?delta.z:-delta.z)-r.mesh.rotation.y))*(1-Math.exp(-dt*4));r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));
   if(r.kind==='infernoDrone'){
    const target=targetPosition(r.targetId);if(target)r.mesh.lookAt(target);
@@ -68,7 +81,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   if(r.kind==='infernoPro')infernoFx.present(r,r.inferno,dt);
   if(r.kind==='granTitanPro'){r.rig.updateEngines(performance.now()/1000,true)}
   if(r.kind==='nexo')r.rig.update(dt,performance.now()/1000);
-  if(r.kind==='colossusPro'){for(const p of r.rig?.panels||[])p.hinge.rotation.x+=((r.active?p.openAngle:0)-p.hinge.rotation.x)*(1-Math.exp(-dt*6));for(const flame of r.flames||[])flame.scale.y=.9+Math.sin(performance.now()*.015)*.12}
+  if(r.kind==='colossusPro'){for(const p of r.rig?.panels||[])p.hinge.rotation.x+=(((r.launchBaysUntil===null?r.active:displayNow<r.launchBaysUntil)?p.openAngle:0)-p.hinge.rotation.x)*(1-Math.exp(-dt*6));for(const flame of r.flames||[])flame.scale.y=.9+Math.sin(performance.now()*.015)*.12}
   for(const flame of r.destroyerFlames||[])flame.scale.y=.9+.1*Math.sin(performance.now()*.016);
   const point=r.mesh.position.clone().add(new T.Vector3(0,r.kind==='nexo'?235:r.kind==='colossusPro'?180:75,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new T.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=(r.mesh.position.distanceTo(camera.position)>1500)||hidden()||!!r.dead||view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';
  }

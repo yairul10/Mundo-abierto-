@@ -22,7 +22,7 @@ export function tickNpcPattern(s,b,now,targets){
  for(const {mark,player}of selected){
   if(weapon==='bomb'){
    const offsets=kind==='titan'?[[0,0],...[-1,0,1].map(i=>[Math.cos(round*Math.PI/4+i*2*Math.PI/3)*220,Math.sin(round*Math.PI/4+i*2*Math.PI/3)*220])]:[[0,0]];
-   for(const [x,z]of offsets){const target=mark.targetPos.map((v,i)=>v+(i===0?x:i===2?z:0)),fuse=kind==='titan'?3500:1500,radius=kind==='titan'?150:180,shot={origin:[...b.pos],targetPos:target,targetId:player.id,detonateAt:now+fuse,radius,arc:kind==='catapult'?180:0};shots.push(shot);(b.bombs||=[]).push({...shot,instance:b.instanceId,damage:kind==='titan'?2070:b.rules.damage})}
+   for(const [x,z]of offsets){const target=mark.targetPos.map((v,i)=>v+(i===0?x:i===2?z:0)),fuse=kind==='titan'?3500:1500,radius=kind==='titan'?150:180,shot={origin:[...b.pos],targetPos:target,targetId:player.id,detonateAt:now+fuse,radius,arc:kind==='catapult'?180:0};shots.push(shot);(b.bombs||=[]).push({...shot,instance:b.instanceId,damage:kind==='titan'?(b.rules.bombDamage||2070):b.rules.damage})}
   }else if(weapon==='spear'){
    const gap=[-2,-1,1,2][round%4];for(let lane=-3;lane<=3;lane++)if(lane!==gap)shots.push(bullet(s,b,player,now,'spear',b.rules.damage,lane*.13));
   }else shots.push(bullet(s,b,player,now,weapon,weapon==='harpoon'?0:b.rules.damage));

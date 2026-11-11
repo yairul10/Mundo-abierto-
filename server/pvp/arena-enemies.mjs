@@ -12,9 +12,9 @@ export const ARENA_ENEMIES=Object.freeze([
 ]);
 export const COOP_ENEMIES=Object.freeze([
  {...ARENA_ENEMIES[0],zone:'pve',corridor:true,pos:[0,120,-10500]},
- {...ARENA_ENEMIES[1],corridor:true,pos:[200,120,-7000]},
+ {...ARENA_ENEMIES[1],damage:6800,bombDamage:9400,tetherDps:1000,reward:182160,xpReward:273240,materialCount:72,corridor:true,pos:[200,120,-7000]},
  {...BOSS_RULES,id:'coop-inferno-pro',name:'Inferno Pro',kind:'infernoPro',model:'inferno',zone:'pve',corridor:true,pos:[-400,120,-5350],patrolRadius:100,maxHp:500000,damage:5520,reward:108000,xpReward:144000,materialCount:24,targets:24,range:1500,hitRadius:180,teleportInterval:0,attackPattern:'inferno',attackInterval:1000},
- ...[1200,2500,3800].map((distance,i)=>({...ARENA_ENEMIES[2],id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),corridor:true,pos:[i===1?380:-380,120,-distance]}))
+ ...[1200,2500,3800].map((distance,i)=>({...ARENA_ENEMIES[2],id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),damage:4000,reward:66000,xpReward:99000,materialCount:72,corridor:true,pos:[i===1?380:-380,120,-distance]}))
 ]);
 // Six level-105 escorts use the agreed PvE Pro x4, then PvP x2.
 const distance=(a,b)=>Math.hypot(...a.pos.map((v,i)=>v-b.pos[i]));
@@ -26,14 +26,17 @@ function applyReinforcementBalance(b){
   b.balanceVersion=1;
  }
  Object.assign(b.rules,{maxHp:values.hp,damage:values.damage,reward:values.gold,xpReward:values.xp});
- if(b.model==='harpooner')b.rules.tetherDps=values.damage;
+ if(b.model==='harpooner'){
+  b.rules.tetherDps=values.damage;
+  if(b.rules.corridor)Object.assign(b.rules,{damage:1667,tetherDps:1667,reward:Math.round(values.gold*1.2),xpReward:Math.round(values.xp*1.2),materialCount:11});
+ }
 }
 export function ensureArenaEnemies(s,now){
  s.arenaEnemies||=[];
  const next=[];
  for(const rules of ((s.cooperative===true||s.realm==='test')?COOP_ENEMIES:ARENA_ENEMIES)){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
-  const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;if(b.kind==='infernoPro')b.hitRadius=rules.hitRadius;if(rules.model)b.model=rules.model;b.level=105;
+  const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;if(b.kind==='colossusPro'&&rules.corridor)b.launchBaysUntil??=0;if(b.kind==='infernoPro')b.hitRadius=rules.hitRadius;if(rules.model)b.model=rules.model;b.level=105;
   if(b.arenaLayout!==((s.cooperative===true||s.realm==='test')?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=(s.cooperative===true||s.realm==='test')?5:3;b.patrolPhase=0}constrainEnemy(b)
   if(b.kind==='infernoPro'&&b.maxHp!==rules.maxHp){const ratio=rules.maxHp/b.maxHp;b.hp=b.hp/b.maxHp*rules.maxHp;b.maxHp=rules.maxHp;b.droneWaves??=Array.from({length:9},(_,i)=>450000-i*50000).filter(t=>b.hp<=t);for(const id of Object.keys(b.contributions||{}))b.contributions[id]*=ratio}
   next.push(b);
@@ -56,14 +59,16 @@ export function recordArenaDamage(s,target,owner,damage,now,noRewards=false){
 function spawnWave(s,parent,threshold,now){
  parent.waves||=[];if(parent.waves.includes(threshold))return;
  parent.waves.push(threshold);
- const titan=parent.kind==='granTitanPro';
- for(let i=0;i<(titan?3:2);i++){
+ const titan=parent.kind==='granTitanPro',expanded=!titan&&parent.rules.corridor,count=expanded?3:titan?3:2,limit=expanded?12:6;
+ for(let i=0;i<count;i++){
   const children=s.arenaEnemies.filter(b=>b.parentInstance===parent.instanceId);
-  if(children.length>=6||children.filter(b=>b.hp>0).length>=6)break;
-  const types=titan?['catapult','harpooner','stalker']:['raider','sentinel','destroyer'],model=titan?types[i]:types[parent.waves.length-1],balance=enemyBalance(model,105,PVP_PRO_MULTIPLIER),hp=balance.hp,index=children.length;
+  if(children.length>=limit||children.filter(b=>b.hp>0).length>=limit)break;
+  const types=titan?['catapult','harpooner','stalker']:['raider','sentinel','destroyer'],model=titan?types[i]:expanded?({90:'raider',70:'sentinel',40:'destroyer',15:'destroyer'}[threshold]):types[parent.waves.length-1],balance=enemyBalance(model,105,PVP_PRO_MULTIPLIER),hp=balance.hp,index=children.length;
   const rules={...BOSS_RULES,corridor:parent.rules.corridor,zone:parent.rules.zone,id:parent.id+'-add-'+index,name:{raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro',catapult:'Catapulta Pro',harpooner:'Arponero Pro',stalker:'Acechador Pro'}[model],kind:'reinforcement',projectile:'laser',maxHp:hp,hitRadius:35,reward:balance.gold,xpReward:balance.xp,materialCount:{raider:10,sentinel:9,destroyer:10,catapult:10,harpooner:9,stalker:10}[model],damage:balance.damage,targets:1,attackInterval:1800,range:800,respawnDelay:0,pos:[parent.pos[0]+(i?140:-140),parent.pos[1],parent.pos[2]+100]};
   if(titan)Object.assign(rules,{attackPattern:model,attackInterval:NPC_PATTERNS[model].interval,range:NPC_PATTERNS[model].range,tetherDps:model==='harpooner'?230:0});
-  const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,partnerId:titan&&['catapult','harpooner'].includes(model)?parent.id+'-add-'+(index+(model==='catapult'?1:-1)):null,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,nextAttackAt:now+rules.attackInterval,motionAt:now,spawnIndex:index});applyReinforcementBalance(b);s.arenaEnemies.push(b);
+  const b=ensureBoss({},now,rules);Object.assign(b,{npc:true,kind:'reinforcement',model,partnerId:titan&&['catapult','harpooner'].includes(model)?parent.id+'-add-'+(index+(model==='catapult'?1:-1)):null,parentId:parent.id,parentInstance:parent.instanceId,level:105,active:true,nextAttackAt:now+rules.attackInterval,motionAt:now,spawnIndex:index});applyReinforcementBalance(b);
+  if(expanded){const start=Math.max(now,parent.nextLaunchAt||now),bay=index%4;parent.nextLaunchAt=start+800;parent.launchBaysUntil=parent.nextLaunchAt+1200;b.launch={start,end:start+1200,bay};b.connected=false;b.active=false;b.pos=[parent.pos[0]+(bay<2?100:-100),parent.pos[1],parent.pos[2]+(bay%2?180:-140)];}
+  s.arenaEnemies.push(b);
  }
 }
 function materialRewards(s,b,from,random){
@@ -102,12 +107,17 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
    const dt=Math.max(0,Math.min(.3,(now-b.motionAt)/1000));b.motionAt=now;
    const parent=s.arenaEnemies.find(p=>p.id===b.parentId),targets=s.players.filter(p=>eligible(p,now)&&(parent?.contributions?.[p.id]>0||parent?.participants?.[p.id])&&distance(p,parent)<1400).sort((a,c)=>distance(a,b)-distance(c,b)),target=targets[0];
    if(!parent||parent.instanceId!==b.parentInstance){b.hp=0;b.rewarded=true;continue}
+   if(b.launch&&b.hp>0){
+    if(parent.hp<=0&&now<b.launch.start){b.hp=0;b.rewarded=true;b.launch=null;continue}
+    if(now<b.launch.end){const progress=Math.max(0,Math.min(1,(now-b.launch.start)/1200)),side=b.launch.bay<2?1:-1;b.pos=[parent.pos[0]+side*(100+300*progress),parent.pos[1],parent.pos[2]+(b.launch.bay%2?180:-140)];b.motionAt=now;continue}
+    b.launch=null;b.connected=true;b.active=true;b.nextAttackAt=now+b.rules.attackInterval;b.motionAt=now;
+   }
    if(target){const d=distance(target,b),sign=b.model==='stalker'?(d>1300?1:d<1100?-1:0):d>400?1:0;if(sign){const direction=target.pos.map((v,i)=>v-b.pos[i]),length=Math.hypot(...direction)||1;b.pos=b.pos.map((v,i)=>v+direction[i]/length*180*dt*sign)}}
    // Reinforcements remain in their parent's sector and never cross the base.
    const leash=distance(b,parent);if(leash>900)b.pos=b.pos.map((v,i)=>parent.pos[i]+(v-parent.pos[i])*900/leash);
    if(Math.hypot(...b.pos)<800){const length=Math.hypot(...b.pos)||1;b.pos=b.pos.map(v=>v*800/length)}
   }
-  if(['colossusPro','granTitanPro'].includes(b.kind)&&b.active&&b.hp>0)for(const threshold of (b.kind==='granTitanPro'?[70,40]:[70,40,10]))if(b.hp/b.maxHp*100<=threshold)spawnWave(s,b,threshold,now);
+  if(['colossusPro','granTitanPro'].includes(b.kind)&&b.active&&b.hp>0)for(const threshold of (b.kind==='granTitanPro'?[70,40]:b.rules.corridor?[90,70,40,15]:[70,40,10]))if(b.hp/b.maxHp*100<=threshold)spawnWave(s,b,threshold,now);
   // Reinforcements only engage pilots participating against their own parent.
   const allowed=b.kind==='reinforcement'?p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone&&!!((s.arenaEnemies.find(x=>x.id===b.parentId)?.contributions?.[p.id]||0)>0||s.arenaEnemies.find(x=>x.id===b.parentId)?.participants?.[p.id]):p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone;
   constrainEnemy(b);if(b.hp<=0)for(const p of s.players)if(p.profile?.shipId==='adminpod')delete b.contributions[p.id];const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);
@@ -119,5 +129,5 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
  // Keep surviving escorts until killed or their parent begins a new instance.
 }
 export function arenaEnemySnapshots(s){
- return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105,charge:b.charge||null,patternEvents:b.patternEvents||[],patternImpacts:b.patternImpacts||[],bombs:b.bombs||[],inferno:b.inferno||null,targetId:b.targetId||null,finishReason:b.finishReason||null}));
+ return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105,charge:b.charge||null,patternEvents:b.patternEvents||[],patternImpacts:b.patternImpacts||[],bombs:b.bombs||[],inferno:b.inferno||null,targetId:b.targetId||null,finishReason:b.finishReason||null,launch:b.launch||null,launchBaysUntil:b.launchBaysUntil??null}));
 }
