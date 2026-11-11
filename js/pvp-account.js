@@ -3,26 +3,14 @@ import {applyAccountGrants} from './account-grants.js?v=1';
 import {isNativePlayGames,playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode} from './play-games-auth.js';
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev';
 const CLIENT='430904114567-2s03dmhrv4o4lfp73qal65kseu837035.apps.googleusercontent.com';
-let testGuestSecret=null;
 let cached=null,expires=0,profile=null,nativeId=null,ignoreReady=false;
 export const pvpAccountProfile=()=>profile;
 export async function pvpAccountToken(){
- if(window.MUNDO_PLAY_MODE?.mode==='test'&&!isNativePlayGames()){
-  if(!testGuestSecret){
-   try{testGuestSecret=sessionStorage.getItem('cosmos.testGuestSecret')}catch{}
-   if(!/^[a-f0-9]{64}$/.test(testGuestSecret||'')){
-    testGuestSecret=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
-    try{sessionStorage.setItem('cosmos.testGuestSecret',testGuestSecret)}catch{}
-   }
-  }
-  profile={displayName:'Invitado de prueba',playerId:null};
-  return 'test-guest-'+testGuestSecret;
- }
- if(!isNativePlayGames())throw Error('Para entrar a PvP necesitas Google Play Games en la aplicación Android. Puedes seguir jugando PvE como invitado.');
+ if(!isNativePlayGames())throw Error('Para entrar al cooperativo necesitas Google Play Games en la aplicación Android. Puedes seguir jugando PvE como invitado.');
  let state=await playGamesStatus();
  if(cached&&Date.now()<expires&&state.authenticated&&(!nativeId||nativeId===state.playerId)){if(window.MUNDO_PLAY_MODE?.mode!=='test'&&activeProfile(localStorage)!==playProfile(profile.playerId))throw Error('La cuenta cambió. Reinicia para cargar su partida.');return cached}
  cached=null;expires=0;if(!state.authenticated)state=await playGamesSignIn();
- if(!state.authenticated)throw Error('Inicia sesión con Google Play para entrar a PvP.');
+ if(!state.authenticated)throw Error('Inicia sesión con Google Play para entrar al cooperativo.');
  const ready=window.cosmosAccountSession?.();
  if(!ignoreReady&&ready&&ready.expiresAt>Date.now()+60000){
   if(window.MUNDO_PLAY_MODE?.mode!=='test'&&(activeProfile(localStorage)!==playProfile(ready.playerId)||(ready.nativeId&&ready.nativeId!==state.playerId)))throw Error('Cambió la cuenta de Google. Reinicia para cargar su partida.');
@@ -32,7 +20,7 @@ export async function pvpAccountToken(){
  const code=await getPlayGamesServerAuthCode(CLIENT);
  const response=await fetch(API+'/v1/play-games/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code}),signal:AbortSignal.timeout(12000)});
  const data=await response.json();
- if(!response.ok||!data.authenticated||typeof data.sessionToken!=='string')throw Error('No se pudo verificar tu cuenta de Google Play. Reintenta antes de entrar a PvP.');
+ if(!response.ok||!data.authenticated||typeof data.sessionToken!=='string')throw Error('No se pudo verificar tu cuenta de Google Play. Reintenta antes de entrar al cooperativo.');
  const test=window.MUNDO_PLAY_MODE?.mode==='test';
  if(!test&&activeProfile(localStorage)!==playProfile(data.playerId))throw Error('Reinicia el juego para preparar la partida de esta cuenta de Google.');
  nativeId=state.playerId;applyAccountGrants(localStorage,data.grants,test?'mundoAbierto.qaPlayer':'mundoAbierto.player');
