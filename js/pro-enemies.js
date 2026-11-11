@@ -1,4 +1,4 @@
-import {ENEMY_BASELINES,PVE_PRO_MULTIPLIER} from './enemy-balance.js?v=343';
+import {ENEMY_BASELINES,PVE_PRO_MULTIPLIER} from './enemy-balance.js?v=432';
 // One optional, neutral elite per normal enemy type and sector. Bosses are unchanged.
 export const PRO_TYPES_BY_SECTOR=Object.freeze({aurora:['scout','raider'],belt:['sentinel','destroyer'],ember:['destroyer','devastator'],graveyard:['catapult','harpooner','stalker']});
 export const proMultiplier=enemy=>enemy?.pro?(ENEMY_BASELINES[enemy.type]?PVE_PRO_MULTIPLIER:2):1;

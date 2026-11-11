@@ -1,3 +1,4 @@
+import {tickInferno} from './inferno.mjs';
 import {applyShieldDamage} from './shield-system.mjs';
 import {tickNpcPattern} from './npc-patterns.mjs';
 import {constrainEnemy} from './zones.mjs';
@@ -45,14 +46,14 @@ export function splitBossReward(contributions,pool=BOSS_RULES.reward){
 export function tickBoss(s,now,eligible){
  const b=s.boss;if(!b)return;const rules=b.rules||BOSS_RULES;
  if(b.hp<=0){
-  b.aimTargets=[];b.charge=null;
+  b.aimTargets=[];b.charge=null;b.inferno=null;
   if(!b.rewarded){b.rewarded=true;b.active=false;b.respawnAt=now+rules.respawnDelay;s.bossRewards||=[];const rewards=b.kind==='reinforcement'&&b.firstAttackerId
  ? [{playerId:b.firstAttackerId,amount:rules.reward,damage:b.contributions[b.firstAttackerId]||0,totalDamage:Object.values(b.contributions).reduce((total,damage)=>total+(Number.isFinite(damage)&&damage>0?damage:0),0)}]
  : splitBossReward(b.contributions,rules.reward);
  for(const share of rewards)if(share.amount>0)s.bossRewards.push({...share,id:b.instanceId+':'+share.playerId,bossId:b.instanceId});s.events.push({type:'bossDefeated',id:b.instanceId,time:now})}
   return;
  }
- if(!b.active){b.aimTargets=[];b.charge=null;b.patternDue=null;return}
+ if(!b.active){b.inferno=null;b.infernoTickAt=now;b.aimTargets=[];b.charge=null;b.patternDue=null;return}
  // Regenerate 3% of maximum HP per second after 3 seconds without damage.
  // Reverse the recovered damage proportionally for every contributor.
  const last=b.lastDamageAt??now;
@@ -69,7 +70,8 @@ export function tickBoss(s,now,eligible){
   }
  }
  b.regenTickAt=now;
- if(b.hp>=b.maxHp&&b.kind!=='reinforcement'){b.contributions={};b.active=false;b.aimTargets=[];b.charge=null;b.patternDue=null;b.firstAttackerId=null;return;}
+ if(b.hp>=b.maxHp&&b.kind!=='reinforcement'){b.contributions={};b.active=false;b.inferno=null;b.aimTargets=[];b.charge=null;b.patternDue=null;b.firstAttackerId=null;return;}
+ if(rules.attackPattern==='inferno'){tickInferno(s,b,now,eligible);return}
  let targets=s.players.filter(p=>eligible(p,now)&&Math.hypot(...p.pos.map((v,i)=>v-b.pos[i]))<=rules.range).sort((a,b)=>a.hp-b.hp||a.id.localeCompare(b.id)).slice(0,rules.targets);
  b.aimTargets=targets.map(p=>({targetId:p.id,targetPos:[...p.pos]}));
  if(rules.attackPattern){

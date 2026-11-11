@@ -1,5 +1,5 @@
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=429';
-import {createInfernoCombat} from './inferno.js?v=431';
+import {createInfernoCombat} from './inferno.js?v=432';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
@@ -22,7 +22,7 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
 import {mountPvpZones} from './pvp-zones.js?v=2';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
-import {createArenaEnemyView} from './pvp-enemies.js?v=430';
+import {createArenaEnemyView} from './pvp-enemies.js?v=432';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=390';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
@@ -30,7 +30,7 @@ import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=356';
-import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=343';
+import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
@@ -913,7 +913,7 @@ const TYPES={
  devastator:{hp:196,damage:70,speed:155,xp:195,gold:120,loot:6,color:0xff7733},
  catapult:{hp:3000,damage:300,speed:75,xp:1200,gold:800,loot:8,color:0x815942},
  harpooner:{hp:5000,damage:50,speed:130,xp:1600,gold:1200,loot:7,color:0x505b69},
- inferno:{hp:19500,damage:300,speed:110,xp:2400,gold:1800,loot:8,color:0xd32625},
+ inferno:{hp:19500,damage:300,speed:110,xp:7200,gold:5400,loot:24,color:0xd32625},
  stalker:{hp:4000,damage:250,speed:155,xp:2000,gold:1600,loot:8,color:0xa52a35},
  granTitan:{...TITAN_STATS,speed:0,color:0x555b63},
  carrier:{hp:40000,damage:150,speed:0,xp:15000,gold:10000,loot:30,color:0x606a78}

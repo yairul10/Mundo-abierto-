@@ -12,6 +12,7 @@ export const ARENA_ENEMIES=Object.freeze([
 export const COOP_ENEMIES=Object.freeze([
  {...ARENA_ENEMIES[0],zone:'pve',corridor:true,pos:[0,120,-10500]},
  {...ARENA_ENEMIES[1],corridor:true,pos:[200,120,-7000]},
+ {...BOSS_RULES,id:'coop-inferno-pro',name:'Inferno Pro',kind:'infernoPro',model:'inferno',zone:'pve',corridor:true,pos:[-400,120,-5350],patrolRadius:100,maxHp:358800,damage:5520,reward:108000,xpReward:144000,materialCount:24,targets:24,range:1500,hitRadius:90,teleportInterval:0,attackPattern:'inferno',attackInterval:1000},
  ...[1200,2500,3800].map((distance,i)=>({...ARENA_ENEMIES[2],id:'pvp-coloso-'+(i+1),name:'Coloso Pro '+(i+1),corridor:true,pos:[i===1?380:-380,120,-distance]}))
 ]);
 // Six level-105 escorts use the agreed PvE Pro x4, then PvP x2.
@@ -31,7 +32,7 @@ export function ensureArenaEnemies(s,now){
  const next=[];
  for(const rules of ((s.cooperative===true||s.realm==='test')?COOP_ENEMIES:ARENA_ENEMIES)){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
-  const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;b.level=105;
+  const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;if(rules.model)b.model=rules.model;b.level=105;
   if(b.arenaLayout!==((s.cooperative===true||s.realm==='test')?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=(s.cooperative===true||s.realm==='test')?5:3;b.patrolPhase=0}constrainEnemy(b)
   next.push(b);
  }
@@ -81,7 +82,7 @@ function nexusCoreRewards(s,b,from,random){
   if(random()<.5){const receipt=receipts.find(r=>r.playerId===b.firstAttackerId);if(receipt)(receipt.materials||={}).nucleoNexo=1;}
   return;
  }
- const amount=b.kind==='colossusPro'?1:['nexo','granTitanPro'].includes(b.kind)?3:0;
+ const amount=['colossusPro','infernoPro'].includes(b.kind)?1:['nexo','granTitanPro'].includes(b.kind)?3:0;
  if(!amount)return;
  const top=Object.entries(b.contributions||{}).filter(([,v])=>v>0).sort((a,c)=>c[1]-a[1]||a[0].localeCompare(c[0])).slice(0,3);
  for(const [playerId] of top){const receipt=receipts.find(r=>r.playerId===playerId);if(receipt)(receipt.materials||={}).nucleoNexo=amount;}
@@ -110,5 +111,5 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
  // Keep surviving escorts until killed or their parent begins a new instance.
 }
 export function arenaEnemySnapshots(s){
- return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105,charge:b.charge||null,patternEvents:b.patternEvents||[],patternImpacts:b.patternImpacts||[],bombs:b.bombs||[]}));
+ return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105,charge:b.charge||null,patternEvents:b.patternEvents||[],patternImpacts:b.patternImpacts||[],bombs:b.bombs||[],inferno:b.inferno||null}));
 }

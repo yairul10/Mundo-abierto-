@@ -92,5 +92,13 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
    }
   }
  }
- return {update,reset};
+ function present(enemy,snapshot,dt){
+  if(!snapshot||enemy.dead||!enemy.mesh.visible){reset(enemy);return}
+  const s=stateFor(enemy);s.root.visible=true;
+  if(s.remoteSnapshot!==snapshot){s.remoteSnapshot=snapshot;s.phase=snapshot.phase;s.elapsed=snapshot.elapsed}else advanceInferno(s,dt);
+  const direction=snapshot.direction;enemy.mesh.lookAt(enemy.mesh.position.clone().add(new THREE.Vector3(...direction)));
+  s.uniforms.time.value+=dt;s.uniforms.power.value=infernoPower(s);s.flames.visible=s.uniforms.power.value>0;
+  s.glow.intensity=s.phase==='charge'?1+s.elapsed*3:4*infernoPower(s);
+ }
+ return {update,reset,present};
 }
