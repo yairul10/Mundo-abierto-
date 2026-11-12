@@ -3284,6 +3284,7 @@ function showRecovery(){
  sectorNotice.style.display='none';portalMessage.style.display='none';portalCountdown=0;
  $('recoveryBalance').textContent='Créditos disponibles: '+player.gold;
  $('recoverCurrent').disabled=player.gold<1000;$('recoverCurrent').textContent='Revivir en '+currentStationName()+' · 1.000 créditos';
+ $('recoverAurora').disabled=false;
  $('recoverAurora').textContent='Revivir en Aurora · '+pveRecoveryCost(false,player.gold).toLocaleString('es-CL')+' créditos';
  $('recoveryHelp').textContent=player.gold<100?'Rescate de emergencia: se cobra solo tu saldo disponible.':'';
  save();
@@ -3684,6 +3685,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 
