@@ -34,7 +34,7 @@ import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
-import {GRAPHICS_KEY,createGraphicsController,renderRatio,mountGraphicsSettings,isGraphicsRecoveryReload} from './graphics-settings.js?v=404';
+import {GRAPHICS_KEY,FRAME_RATE_KEY,normalizeFrameRate,initialGraphicsLevel,createFrameLimiter,createGraphicsController,renderRatio,mountGraphicsSettings,isGraphicsRecoveryReload} from './graphics-settings.js?v=438';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=436';
@@ -77,9 +77,18 @@ const QA_FLAG='mundoAbierto.qaActive';const qaActive=window.MUNDO_PLAY_MODE?.mod
 const combatAudio=createCombatAudio({listener:()=>playerMesh.position,storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)}});
 let graphicsUI=null;
 let graphicsMode='auto';try{graphicsMode=localStorage.getItem(GRAPHICS_KEY)||'auto'}catch{}
-const graphics=createGraphicsController({mode:graphicsMode,onChange:()=>{resizeGraphics();graphicsUI?.refresh()}});
+let frameRate=30;try{frameRate=normalizeFrameRate(localStorage.getItem(FRAME_RATE_KEY))}catch{}
+const drawLimiter=createFrameLimiter(frameRate);let lastDrawAt=null;
+const graphics=createGraphicsController({mode:graphicsMode,initial:initialGraphicsLevel(navigator),frameRate,onChange:()=>{resizeGraphics();graphicsUI?.refresh()}});
 // MSAA multiplies framebuffer memory on mobile; resolution controls edge quality.
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+function renderFrame(now){
+ if(document.hidden){lastDrawAt=null;drawLimiter.reset();return}
+ if(!drawLimiter.shouldRender(now))return;
+ const drawElapsed=lastDrawAt===null?0:(now-lastDrawAt)/1000;lastDrawAt=now;
+ if(drawElapsed>0){graphics.sample(drawElapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);}
+ renderer.render(scene,camera);
+}
 function resizeGraphics(){renderer.setPixelRatio(renderRatio(graphics.profile,innerWidth,innerHeight,devicePixelRatio));renderer.setSize(innerWidth,innerHeight)}
 resizeGraphics();renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
 const GRAPHICS_RECOVERY_KEY='mundoAbierto.webglRecoveryAt';
@@ -3166,7 +3175,7 @@ hudToggle.onclick=()=>{
  hudToggle.setAttribute('aria-expanded',String(!folded));
  hudToggle.setAttribute('aria-label',folded?'Desplegar información de vida':'Plegar información de vida');
 };
-const panel=$('characterPanel');combatAudio.mount(panel);graphicsUI=mountGraphicsSettings(graphics,{parent:panel,storage:{setItem:(key,value)=>localStorage.setItem(key,value)}});const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open');if(docked)hangar.classList.remove('hidden')};$('characterBtn').onclick=()=>{if(docked)hangar.classList.add('hidden');$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Escudo máximo: '+player.maxShield+'<br>Potencia: '+player.attack+'<br>Defensa: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;
+const panel=$('characterPanel');combatAudio.mount(panel);graphicsUI=mountGraphicsSettings(graphics,{parent:panel,onFrameRateSelect:value=>{drawLimiter.setFrameRate(value);lastDrawAt=null},storage:{setItem:(key,value)=>localStorage.setItem(key,value)}});const closeCharacterPanel=()=>{panel.classList.add('hidden');document.body.classList.remove('inventory-open');if(docked)hangar.classList.remove('hidden')};$('characterBtn').onclick=()=>{if(docked)hangar.classList.add('hidden');$('nameInput').value=player.name;$('statList').innerHTML='Nave equipada: '+(SHIP_TYPES[player.shipId]?.name||'Aurora')+'<br>Nivel: '+player.level+'<br>Casco máximo: '+player.maxHp+'<br>Vida actual: '+Math.ceil(player.hp)+'<br>Escudo máximo: '+player.maxShield+'<br>Potencia: '+player.attack+'<br>Defensa: '+player.defense+'<br>Velocidad: '+Math.round(player.speed*equippedBonus().speed);renderInventory();renderUpgrades();renderDrones();panel.classList.remove('hidden');document.body.classList.add('inventory-open')};$('closePanel').onclick=closeCharacterPanel;
 function closeShop(){
  $('saleConfirm')?.classList.add('hidden');
  $('shopPanel').classList.add('hidden');hangarUI?.stopPreview();hangarUI?.show('home');$('menuShop').focus();
@@ -3353,10 +3362,10 @@ const enginePower=Math.min(1,Math.hypot((autoInput?.throttle??joy.throttle)+(key
 combatAudio.setEngine(enginePower,player.hp>0&&!recoveryPending&&!graphicsLost&&!docked&&!landing&&panel.classList.contains('hidden')&&!systemMap.open&&!farmUI?.open&&!document.body.classList.contains('journal-open')&&!document.body.classList.contains('portrait-blocked')&&(!pvpSession||pvpSession.active&&!pvpHangar));
 if(graphicsLost){requestAnimationFrame(loop);return}
 wreckVisibility.update(playerMesh.position,dt,activeSector==='graveyard'&&!PVP_MODE);
-graphics.sample(elapsed,!document.hidden&&!document.body.classList.contains('portrait-blocked')&&!document.body.classList.contains('inventory-open')&&!document.body.classList.contains('journal-open')&&!modelQueue.busy);
+
 updateGraphicsDetail(now);
 updateProAuras(THREE,enemies,now/1000);
-if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(!pvpSession.active){hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}}if(document.body.classList.contains('journal-open')){renderer.render(scene,camera);requestAnimationFrame(loop);return}if(player.hp<=0||recoveryPending){showRecovery();titanFireburst.update(dt);if(recoveryPending&&now>=destructionUntil)recoveryPanel.style.display='flex';hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||!!document.getElementById('worldLoading')||document.hidden||docked||landing||!$('shopPanel').classList.contains('hidden')||!panel.classList.contains('hidden')||systemMap.open||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
+if(pvpSession){pvpSession.beforeFrame(dt,now);if(pvpHangar){renderFrame(now);requestAnimationFrame(loop);return}if(!pvpSession.active){hud();renderFrame(now);requestAnimationFrame(loop);return}}if(document.body.classList.contains('journal-open')){renderFrame(now);requestAnimationFrame(loop);return}if(player.hp<=0||recoveryPending){showRecovery();titanFireburst.update(dt);if(recoveryPending&&now>=destructionUntil)recoveryPanel.style.display='flex';hud();renderFrame(now);requestAnimationFrame(loop);return}if(tickBoosters(player,elapsed,PVP_MODE||!!document.getElementById('worldLoading')||document.hidden||docked||landing||!$('shopPanel').classList.contains('hidden')||!panel.classList.contains('hidden')||systemMap.open||document.body.classList.contains('portrait-blocked'))){save();if(hangarUI)hangarUI.render(true)}
  updateBoosterStatus();fireCd=Math.max(0,fireCd-dt);skillCd=Math.max(0,skillCd-dt);updateClassAbility(dt);if(fireHeld&&!systemMap.open&&!docked&&!landing&&panel.classList.contains('hidden'))fire();if(!PVP_MODE)regenerateShield(player,dt,Date.now(),shipRole(player.shipId)==='aurora'?1+specialLevel('energy')*.04:1);
 const menuOpen=!$('shopPanel').classList.contains('hidden')||systemMap.open||docked||landing||!panel.classList.contains('hidden')||!!document.activeElement?.matches('input,textarea,select')||!!farmUI?.open;const keyThrottle=menuOpen?0:(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),throttle=menuOpen?0:THREE.MathUtils.clamp((autoInput?.throttle??joy.throttle)+keyThrottle,-1,1);
 if(!docked&&!landing&&keys.arrowleft){yaw+=1.6*dt;bankInput=.42}else if(!docked&&!landing&&keys.arrowright){yaw-=1.6*dt;bankInput=-.42}else if(lookId===null)bankInput=0;if(!docked&&!landing&&keys.r)pitch=Math.min(1.15,pitch+1.1*dt);if(!docked&&!landing&&keys.f)pitch=Math.max(-1.15,pitch-1.1*dt);
@@ -3450,8 +3459,8 @@ updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);upda
    p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<delay?.12:3.7)))}
   p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize());
  }p.mesh.position.addScaledVector(p.vel,dt);if(p.missile)updateMissileEffects(p,dt);else{p.travelled=(p.travelled||0)+p.vel.length()*dt;if(p.travelled>(p.range||COMBAT_RANGE))p.life=0}p.life-=dt;for(const e of enemies){if((!PVP_MODE||pvpSession?.canTarget(e.playerId))&&!p.pvpRemote&&!e.dead&&e.mesh.visible&&p.life>0&&(p.missile||playerMesh.position.distanceTo(e.mesh.position)<=(p.range||COMBAT_RANGE))&&(e.type==='granTitan'?(p.missile?titanHit(p.mesh.position):titanSegmentHit(previousShotPosition,p.mesh.position)):segmentDistance(previousShotPosition,p.mesh.position,e.mesh.position)<(e.type==='carrier'?((carrierMesh.userData.hitRadius||205)*carrierMesh.scale.x):e.playerId==='pvp-super-boss'?180:(p.missile?44:30)))){p.life=0;damageEnemy(e,p.damage,!!p.missile)}}}for(let i=shots.length-1;i>=0;i--)if(shots[i].life<=0){removeMissileEffects(shots[i]);scene.remove(shots[i].mesh);shots.splice(i,1)}
-if(player.hp<=0){showRecovery();titanFireburst.update(dt);if(recoveryPending&&now>=destructionUntil)recoveryPanel.style.display='flex';hud();renderer.render(scene,camera);requestAnimationFrame(loop);return}
-const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);titanFireburst.update(dt);hud();renderer.render(scene,camera);requestAnimationFrame(loop)}requestAnimationFrame(loop);
+if(player.hp<=0){showRecovery();titanFireburst.update(dt);if(recoveryPending&&now>=destructionUntil)recoveryPanel.style.display='flex';hud();renderFrame(now);requestAnimationFrame(loop);return}
+const back=forward.clone().multiplyScalar(-cameraZoom).add(new THREE.Vector3(0,cameraZoom*105/285,0));const desired=playerMesh.position.clone().add(back);camera.position.lerp(desired,1-Math.pow(.006,dt));camera.lookAt(playerMesh.position.clone().add(forward.clone().multiplyScalar(215)));if(!docked&&!landing)updateTargetLock();else lockFrame.classList.add('hidden');updateRepairRobot(dt,now/1000);updateExplorationMissions(dt);titanFireburst.update(dt);hud();renderFrame(now);requestAnimationFrame(loop)}requestAnimationFrame(loop);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();resizeGraphics()});
 hud();
 
