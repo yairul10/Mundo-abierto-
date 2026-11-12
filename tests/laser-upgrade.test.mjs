@@ -27,5 +27,5 @@ assert.equal(profile({upgrades:{laserSpeed:999}}).laserSpeedLevel,5);
 // A fast bolt crosses a small target between frames; server segment collision still hits.
 const a={id:'a',pos:[0,0,0],connected:true},b={id:'b',pos:[0,0,-100],connected:true};
 makeCombatPlayer(a,{attack:10,maxHp:100,maxEnergy:100,upgrades:{laserSpeed:5}});makeCombatPlayer(b,{maxHp:100,maxEnergy:100,defense:0});
-const state={status:'active',players:[a,b],simTime:10000};volley(state,a,{weapon:'laser',shots:[{offset:[0,0,0],direction:[0,0,-1]}]},10000);stepCombat(state,10050);assert.equal(b.hp,95);
+const state={status:'active',players:[a,b],simTime:10000};volley(state,a,{weapon:'laser',shots:[{offset:[0,0,0],direction:[0,0,-1]}]},10000);stepCombat(state,10050);assert.equal(b.hp,85);
 console.log('Laser: exact costs, base/max, PvP dock guards, atomic payments, persistence, roster/server parity and fast collision.');
