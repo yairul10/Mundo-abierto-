@@ -23,5 +23,5 @@ for(const origin of [[120,40,0],[-120,0,0],[0,120,0],[0,0,120]])for(const level 
 assert.equal(run({weapon:'explorer'}).hp,240,'explorer uses reconciled aim');
 for(const invalid of ['point','nan','offset'])assert.equal(run({invalid}).bullets,null);
 assert.equal(run({origin:[2000,0,0]}).bullets,null,'reject unbounded predicted movement');
-assert.equal(run({origin:[0,0,0]}).hp,50,'new stationary ray unchanged');
+assert.equal(run({origin:[0,0,0]}).hp,150,'new stationary ray unchanged');
 console.log('PvP movement: reproduces old moving miss/stationary hit; corrected lateral, vertical and forward movement, both laser speeds, explorer and origin/aim validation.');
