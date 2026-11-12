@@ -1,17 +1,18 @@
+import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
-import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=429';
+import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
 import {createInfernoCombat} from './inferno.js?v=434';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
-import {createTitanFireburst} from './titan-fireburst.js?v=384';
+import {createTitanFireburst} from './titan-fireburst.js?v=440';
 import {mountSystemMap} from './system-map.js?v=369';
 import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield,shieldUpgradeCost,buyShieldUpgrade} from './shield-system.js?v=364';
 import {createTestProgressReset} from './test-progress-reset.js?v=363';
 import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-upgrade.js?v=358';
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=391';
-import {startAssemblyPreview} from './assembly-3d-preview.js?v=391';
+import {startAssemblyPreview} from './assembly-3d-preview.js?v=440';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=347';
@@ -45,7 +46,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=358';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=401';
-import {mountHangarUI} from './hangar-ui.js?v=407';
+import {mountHangarUI} from './hangar-ui.js?v=440';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=437';
@@ -1221,7 +1222,7 @@ const titanRespawn=Number(titanSaved.respawnAt)||0;
 const titanEnemy={type:'granTitan',mesh:titanRig.root,home:titanRig.root.position.clone(),maxHp:titanMaximum,hp:titanSaved.hp===0&&Date.now()<titanRespawn?0:scaledHealth(Number.isFinite(titanSaved.hp)?titanSaved.hp:titanMaximum,titanSaved.maxHp||titanMaximum,titanMaximum),dead:0,respawnAt:titanRespawn,fireTimer:0,aggressive:false};
 titanEnemy.dead=titanEnemy.hp<=0?Infinity:0;titanEnemy.mesh.visible=false;enemies.push(titanEnemy);
 const titanCycle=createTitanCycle(),titanProjectiles=[],titanEffects=createTitanEffects(THREE);
-const titanFireburst=createTitanFireburst(THREE,scene,index=>graveyard.cloneScrap(index));
+const titanFireburst=createTitanFireburst(THREE,scene,index=>graveyard.cloneScrap(index),{budget:()=>effectBudget(graphics.level),eye:()=>playerMesh.position});
 let titanWaveTimer=12,titanPatrolAngle=Number.isFinite(titanSaved.patrolAngle)?titanSaved.patrolAngle:Math.atan2(-1900,2300);
 if(Array.isArray(titanSaved.position)&&titanSaved.position.length===3&&titanSaved.position.every(Number.isFinite)){
  const v=new THREE.Vector3().fromArray(titanSaved.position),r=Math.hypot(v.x-GRAVEYARD.x,v.z-GRAVEYARD.z);
@@ -3546,7 +3547,7 @@ if(PVP_MODE){
  function clearFight(){resetDockControls();clearCombatShots();lockedEnemy=null;fireCd=skillCd=classAbilityTime=classAbilityCd=0;}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
  for(const id of ['questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
- const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene):null;
+ const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene,{budget:()=>effectBudget(graphics.level)}):null;
  if(COOP_MODE)scene.fog=new THREE.Fog(0x52617c,1000,2900);
  if(!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=COOP_MODE?'Mapa cooperativo':'Mapa PvP';
  pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,

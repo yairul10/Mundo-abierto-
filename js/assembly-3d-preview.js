@@ -1,3 +1,5 @@
+import {effectBudget} from './effect-budget.js?v=440';
+import {GRAPHICS_KEY,initialGraphicsLevel} from './graphics-settings.js?v=438';
 import {applyObsidianSkin} from './obsidian-skins.js?v=391';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=355';
@@ -13,6 +15,7 @@ export async function startAssemblyPreview(container,id,{skin='original'}={}){
  const resize=()=>{if(!renderer||!camera)return;const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.position.set(2.6,2.1,-3.3).multiplyScalar(1/Math.min(1,camera.aspect));camera.lookAt(0,0,0);camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
  const cleanup=()=>{if(cancelled)return;cancelled=true;cancelAnimationFrame(raf);observer?.disconnect();disposePreviewModel(model);model=null;if(renderer){renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();renderer=null}};
  let camera=null;
+ let previewFps=30;try{const mode=localStorage.getItem(GRAPHICS_KEY);previewFps=effectBudget(mode&&mode!=='auto'?mode:initialGraphicsLevel(navigator)).previewFps}catch{}
  const session={id,skin,cleanup,mount(next){observer?.disconnect();host=next;if(renderer&&model)host.replaceChildren(renderer.domElement);else host.innerHTML=shipThumbnail(id);observer?.observe(host);resize()}};
  active=session;host.innerHTML=shipThumbnail(id);
  try{
@@ -38,9 +41,10 @@ export async function startAssemblyPreview(container,id,{skin='original'}={}){
   function frame(t){
    if(cancelled)return;
    if(!host.isConnected||host.closest('#hangarPanel')?.classList.contains('hidden')){if(active===session)stopAssemblyPreview();return}
-   if(!document.hidden&&host.getClientRects().length&&t-lastRender>=1000/30){if(!dragging&&lastTime)turntable.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;animateObsidian(model,lastTime?Math.min((t-lastTime)/1000,.05):0,id==='obsidian'&&skin!=='original'?.65:0);renderer.render(scene,camera);lastTime=t;lastRender=t}else if(document.hidden)lastTime=0;
+   if(!document.hidden&&host.getClientRects().length&&t-lastRender>=1000/previewFps){if(!dragging&&lastTime)turntable.rotation.y+=Math.min((t-lastTime)/1000,.05)*.3;animateObsidian(model,lastTime?Math.min((t-lastTime)/1000,.05):0,id==='obsidian'&&skin!=='original'?.65:0);renderer.render(scene,camera);lastTime=t;lastRender=t}else if(document.hidden)lastTime=0;
    raf=requestAnimationFrame(frame);
   }
   raf=requestAnimationFrame(frame);
  }catch(error){if(!cancelled){console.warn('Vista 3D no disponible; se conserva la miniatura.',error);fallback();if(active===session)stopAssemblyPreview();else cleanup()}}
 }
+

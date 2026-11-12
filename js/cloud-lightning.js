@@ -1,12 +1,13 @@
+import {effectBudget} from './effect-budget.js?v=440';
 // Local ambient effect only: never emits damage, projectiles or network messages.
-export function createCloudLightning(T,scene,uniforms,random=Math.random){
+export function createCloudLightning(T,scene,uniforms,random=Math.random,{budget=()=>effectBudget('high')}={}){
  const root=new T.Group();root.name='Relámpagos entre nubes';root.visible=false;scene.add(root);
  const core=new T.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,fog:false});
  const glow=new T.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,fog:false});
  let wait=1+random()*2,age=0,duration=1.6,active=false,chainLeft=0,path=[];
  function clear(){for(const child of [...root.children]){root.remove(child);child.geometry.dispose()}root.visible=false}
  function tube(points,radius,material){
-  const curve=new T.CatmullRomCurve3(points),geometry=new T.TubeGeometry(curve,points.length*3,radius,3,false),positions=geometry.attributes.position,colors=new Float32Array(positions.count*3);
+  const curve=new T.CatmullRomCurve3(points),geometry=new T.TubeGeometry(curve,points.length*budget().lightningSegments,radius,3,false),positions=geometry.attributes.position,colors=new Float32Array(positions.count*3);
   const blue=new T.Color(0x438aff),violet=new T.Color(0xb34dff),color=new T.Color();
   for(let i=0;i<positions.count;i++){const blend=.5+.5*Math.sin(positions.getZ(i)*.003+positions.getX(i)*.0017);color.copy(blue).lerp(violet,blend);colors[i*3]=color.r;colors[i*3+1]=color.g;colors[i*3+2]=color.b}
   geometry.setAttribute('color',new T.BufferAttribute(colors,3));geometry.setDrawRange(0,0);root.add(new T.Mesh(geometry,material));
@@ -39,3 +40,4 @@ export function createCloudLightning(T,scene,uniforms,random=Math.random){
   dispose(){clear();scene.remove(root);core.dispose();glow.dispose();uniforms.lightningPower.value=0}
  };
 }
+

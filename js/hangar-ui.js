@@ -2,7 +2,7 @@ import {activeDamageBooster} from './damage-boosters.js?v=401';
 import {shieldCapacity} from './shield-system.js?v=364';
 import {pvpMultipliers,pveMultipliers} from './pvp-loadout.js?v=401';
 import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=355';
-import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=355';
+import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=440';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=358';
 import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=401';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
@@ -96,4 +96,5 @@ export function mountHangarUI({player,isDocked,isOffline,canShop=isOffline,isPvp
  function previewShip(){const id=player.shipId;if(!SHIP_PREVIEWS[id]||view!=='shop'||category!=='ships')return;const host=$('shopShipPreview');if(host){const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_PREVIEWS[id].name;void startAssemblyPreview(host,id)}}
  return {render(force=false){render(force);if(view==='shop'&&category==='ships')previewShip();},show,previewShip,stopPreview:stopAssemblyPreview};
 }
+
 

@@ -18,5 +18,5 @@ const source={position:new Vector3()},turn=fitPreviewModel({Vector3,Group,Box3},
 assert.equal(centered.children[0],source);assert.equal(centered.factor,3/40);assert.equal(centered.rotation.y,-Math.PI);
 assert.deepEqual(source.position,new Vector3(-100,20,-50),'Centering must happen inside the normalized parent');
 const preview=readFileSync(new URL('../js/assembly-3d-preview.js',import.meta.url),'utf8');
-assert.match(preview,/if\(cancelled\)\{disposePreviewModel\(gltf.scene\);return\}/);assert.match(preview,/1000\/30/);
+assert.match(preview,/if\(cancelled\)\{disposePreviewModel\(gltf.scene\);return\}/);assert.match(preview,/1000\/previewFps/);assert.match(preview,/effectBudget\(mode&&mode!=='auto'\?mode:initialGraphicsLevel\(navigator\)\).previewFps/);
 console.log('Ten current models/thumbnails, canonical orientation, scaled centering and unique GPU cleanup passed.');

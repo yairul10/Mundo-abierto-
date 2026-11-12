@@ -1,5 +1,6 @@
+import {effectBudget} from './effect-budget.js?v=440';
 // Local VFX only. Fragment clones share the Cemetery's geometries and materials.
-export function createTitanFireburst(T,scene,fragments){
+export function createTitanFireburst(T,scene,fragments,{budget=()=>effectBudget('high'),eye=()=>null}={}){
  const bursts=[];
  let texture;
  function fireTexture(){
@@ -24,7 +25,10 @@ export function createTitanFireburst(T,scene,fragments){
   for(const flame of burst.flames)flame.mesh.material.dispose();
  }
  function spawn(position,radius,{hull=null,count=0}={}){
-  if(bursts.length>=12)remove(bursts.shift());
+  const limits=budget(),viewer=eye();
+  if(viewer&&position.distanceToSquared(viewer)>limits.effectDistance**2)return;
+  count=Math.min(count,limits.fragments);
+  while(bursts.length>=limits.bursts)remove(bursts.shift());
   const root=new T.Group();root.position.copy(position);scene.add(root);
   const flames=(hull?[[0,0,-.8],[-.32,.18,.45],[.28,-.1,1.18]]:[[0,0,0]]).map(([x,y,z],i)=>{
    const material=new T.SpriteMaterial({map:fireTexture(),transparent:true,depthWrite:false,toneMapped:false,rotation:Math.random()*Math.PI*2});
@@ -47,6 +51,7 @@ export function createTitanFireburst(T,scene,fragments){
   bursts.push({root,flames,debris,age:0,duration:hull?1.65:count>0?1.22:.78});
  }
  function update(dt){
+  while(bursts.length>budget().bursts)remove(bursts.shift());
   for(let i=bursts.length-1;i>=0;i--){
    const burst=bursts[i];burst.age+=dt;
    if(burst.age>=burst.duration){remove(burst);bursts.splice(i,1);continue}
@@ -67,3 +72,4 @@ export function createTitanFireburst(T,scene,fragments){
  function clear(){for(const burst of bursts)remove(burst);bursts.length=0}
  return {spawn,update,clear};
 }
+
