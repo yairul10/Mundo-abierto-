@@ -1210,7 +1210,7 @@ function updateCarrier(dt){if(PVP_MODE)return;
 
  const maximum=enemyMaxHp('carrier');
  if(carrierEnemy.maxHp!==maximum){bossState.hp=scaledHealth(bossState.hp,carrierEnemy.maxHp,maximum);carrierEnemy.maxHp=maximum;carrierEnemy.hp=bossState.hp}
- if(activeSector==='ember'&&bossState.hp>0&&!docked&&!landing&&!inSafeZone(playerMesh.position)&&carrierMesh.position.distanceTo(playerMesh.position)<=COMBAT_RANGE){
+ if(activeSector==='ember'&&bossState.hp>0&&!docked&&!landing&&!portalTransitProtected()&&!inSafeZone(playerMesh.position)&&carrierMesh.position.distanceTo(playerMesh.position)<=COMBAT_RANGE){
   carrierEnemy.fireTimer-=dt;if(carrierEnemy.fireTimer<=0){fireCarrierMissile();carrierEnemy.fireTimer=5}
  }else carrierEnemy.fireTimer=5;
  if(bossState.hp<=0&&Date.now()>=bossState.respawnAt)respawnCarrier();
@@ -1237,6 +1237,7 @@ function clearTitanShots(){for(const p of titanProjectiles){titanEffects.dispose
 function titanHit(point){const p=titanEnemy.mesh.worldToLocal(point.clone());return (p.x/145)**2+(p.y/170)**2+(p.z/600)**2<1}
 function titanSegmentHit(start,end){const a=titanEnemy.mesh.worldToLocal(start.clone()),b=titanEnemy.mesh.worldToLocal(end.clone());for(const p of [a,b]){p.x/=145;p.y/=170;p.z/=600}return segmentDistance(a,b,new THREE.Vector3())<1}
 function fireTitan(){
+ if(portalTransitProtected())return;
  const scale=titanScale(player.level),kind=titanCycle.kind;
  combatAudio.play(kind==='spear'?'harpoon':'bombLaunch',titanEnemy.mesh.position);
  titanEnemy.mesh.updateMatrixWorld(true);
@@ -1278,9 +1279,9 @@ function updateGranTitan(dt){if(PVP_MODE)return;
   const orientation=new THREE.Matrix4().lookAt(heading,titanEnemy.mesh.position,new THREE.Vector3(0,1,0));
   titanEnemy.mesh.quaternion.rotateTowards(new THREE.Quaternion().setFromRotationMatrix(orientation),dt*.16);
  }
- const available=titanEnemy.mesh.visible&&!docked&&!landing&&!inSafeZone(playerMesh.position);
+ const available=titanEnemy.mesh.visible&&!docked&&!landing&&!portalTransitProtected()&&!inSafeZone(playerMesh.position);
  if(!available||playerMesh.position.distanceTo(titanEnemy.mesh.position)>2000)titanEnemy.aggressive=false;
- const active=titanEnemy.aggressive&&titanEnemy.mesh.visible&&!docked&&!landing&&!inSafeZone(playerMesh.position)&&playerMesh.position.distanceTo(titanEnemy.mesh.position)<=COMBAT_RANGE;
+ const active=titanEnemy.aggressive&&titanEnemy.mesh.visible&&!docked&&!landing&&!portalTransitProtected()&&!inSafeZone(playerMesh.position)&&playerMesh.position.distanceTo(titanEnemy.mesh.position)<=COMBAT_RANGE;
  const step=advanceTitanCycle(titanCycle,dt,active);titanRig.pose(step.open,titanCycle.kind);
  if(step.fire)fireTitan();
  if(active){titanWaveTimer-=dt;if(titanWaveTimer<=0){spawnTitanWave();titanWaveTimer=30}}else titanWaveTimer=12;
@@ -1764,6 +1765,7 @@ const enemyShots=[];
 const enemyShotGeometry=new THREE.CylinderGeometry(2.8,2.8,44,8);
 const enemyShotMaterials={stalker:new THREE.MeshBasicMaterial({color:0xff1838}),scout:new THREE.MeshBasicMaterial({color:0xff5757}),raider:new THREE.MeshBasicMaterial({color:0xffa43b}),sentinel:new THREE.MeshBasicMaterial({color:0xc475ff}),destroyer:new THREE.MeshBasicMaterial({color:0xff3d9b}),devastator:new THREE.MeshBasicMaterial({color:0xff7733})};
 function enemyFire(e){
+ if(portalTransitProtected())return;
  if(!['catapult','harpooner','stalker'].includes(e.type))combatAudio.play('enemyLaser',e.mesh.position);
  lastIncomingAttackAt=performance.now()/1000;
  repairRobot.visible=repairBeam.visible=false;
@@ -1814,6 +1816,7 @@ function createCarrierMissileMesh(){
  return mesh;
 }
 function fireCarrierMissile(){
+ if(portalTransitProtected())return;
  combatAudio.play('missile',carrierMesh.position);
  lastIncomingAttackAt=performance.now()/1000;repairRobot.visible=repairBeam.visible=false;
  const dir=playerMesh.position.clone().sub(carrierMesh.position).normalize(),mesh=createCarrierMissileMesh();
@@ -1824,7 +1827,7 @@ function fireCarrierMissile(){
 function updateEnemyShots(dt){
  for(const e of enemies){if(e.type!=='stalker'||!e.aiming)continue;
   const aim=e.aiming;aim.time-=dt;
-  if(e.dead||!e.mesh.visible||activeSector!=='graveyard'||docked||landing||inSafeZone(playerMesh.position)){
+  if(e.dead||!e.mesh.visible||activeSector!=='graveyard'||docked||landing||portalTransitProtected()||inSafeZone(playerMesh.position)){
    scene.remove(aim.line);aim.line.geometry.dispose();aim.line.material.dispose();e.aiming=null;continue;
   }
   aim.target.copy(playerMesh.position);aim.line.geometry.setFromPoints([e.mesh.position,aim.target]);
@@ -3431,7 +3434,7 @@ for(const [visual,active] of [[titanVisual,titanEnginesActive],[espectroVisual,e
 updateLoot(dt);
 drawRadar(dt);
 if($('game').dataset.sector!==activeSector)$('game').dataset.sector=activeSector;
-const playerSafe=updateZone();updateDock();
+const playerSafe=updateZone()||portalTransitProtected();updateDock();
 for(const e of enemies){
  if(e.pvpRemote)continue;
  if(e.pro&&e.mesh.userData.proBadge)e.mesh.userData.proBadge.visible=true;
@@ -3685,6 +3688,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 
