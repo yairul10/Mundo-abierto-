@@ -1,5 +1,5 @@
 import {recordAction} from './activity-journal.js?v=436';
-import {awardPvpMission,settlePvpMissionCores} from './pvp-missions.js?v=350';
+import {awardPvpMission,settlePvpMissionCores} from './pvp-missions.js?v=443';
 import {addPilotXp} from './pilot-xp.js?v=356';
 const REWARD_ENEMIES=Object.freeze({colossusPro:'Coloso Pro',granTitanPro:'Gran Titán Pro',infernoPro:'Inferno Pro',nexo:'Titán del Nexo',raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro',catapult:'Catapulta Pro',harpooner:'Arponero Pro',stalker:'Acechador Pro'});
 const REWARD_MATERIALS=Object.freeze({chatarra:'chatarra',aleacion:'aleación',nucleo:'núcleos de energía',reliquia:'componentes ancestrales',nucleoNexo:'núcleos del Nexo'});
@@ -25,3 +25,4 @@ export function saveBossReceipts(storage,key,source,receipts,serialize=p=>p){
  // A failed write must leave the in-memory pilot unchanged and return no ACK.
  storage.setItem(key,JSON.stringify(serialize(result.pilot)));return result;
 }
+

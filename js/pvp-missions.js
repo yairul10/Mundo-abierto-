@@ -1,9 +1,9 @@
 // One-time level-60 objectives. Progress comes only from fresh boss receipts.
 export const PVP_MISSIONS=Object.freeze([
- {id:'pvp-first-colossus',realm:'pvp',level:60,title:'Desafío PvP · Coloso Pro',reward:100000,xp:30000,cores:1,enemyKind:'colossusPro',objectives:[{event:'pvpColossus',sector:'pvp',goal:1,label:'Participa en la derrota de un Coloso Pro en el mapa PvP'}]},
- {id:'pvp-first-titan',realm:'pvp',level:60,title:'Desafío PvP · Gran Titán Pro',reward:200000,xp:60000,cores:1,enemyKind:'granTitanPro',objectives:[{event:'pvpGranTitan',sector:'pvp',goal:1,label:'Participa en la derrota de un Gran Titán Pro en el mapa PvP'}]},
- {id:'pvp-five-colossi',realm:'pvp',level:60,title:'Cazador PvP · 5 Colosos Pro',reward:0,xp:0,cores:3,enemyKind:'colossusPro',objectives:[{event:'pvpColossus',sector:'pvp',goal:5,label:'Participa en la derrota de 5 Colosos Pro en el mapa PvP'}]},
- {id:'pvp-five-titans',realm:'pvp',level:60,title:'Cazador PvP · 5 Grandes Titanes Pro',reward:0,xp:0,cores:3,enemyKind:'granTitanPro',objectives:[{event:'pvpGranTitan',sector:'pvp',goal:5,label:'Participa en la derrota de 5 Grandes Titanes Pro en el mapa PvP'}]}
+ {id:'pvp-first-colossus',realm:'pvp',level:60,title:'Desafío cooperativo · Coloso Pro',reward:100000,xp:30000,cores:1,enemyKind:'colossusPro',objectives:[{event:'pvpColossus',sector:'pvp',goal:1,label:'Participa en la derrota de un Coloso Pro en el mapa Cooperativo'}]},
+ {id:'pvp-first-titan',realm:'pvp',level:60,title:'Desafío cooperativo · Gran Titán Pro',reward:200000,xp:60000,cores:1,enemyKind:'granTitanPro',objectives:[{event:'pvpGranTitan',sector:'pvp',goal:1,label:'Participa en la derrota de un Gran Titán Pro en el mapa Cooperativo'}]},
+ {id:'pvp-five-colossi',realm:'pvp',level:60,title:'Cazador cooperativo · 5 Colosos Pro',reward:0,xp:0,cores:3,enemyKind:'colossusPro',objectives:[{event:'pvpColossus',sector:'pvp',goal:5,label:'Participa en la derrota de 5 Colosos Pro en el mapa Cooperativo'}]},
+ {id:'pvp-five-titans',realm:'pvp',level:60,title:'Cazador cooperativo · 5 Grandes Titanes Pro',reward:0,xp:0,cores:3,enemyKind:'granTitanPro',objectives:[{event:'pvpGranTitan',sector:'pvp',goal:5,label:'Participa en la derrota de 5 Grandes Titanes Pro en el mapa Cooperativo'}]}
 ]);
 export function awardPvpMission(pilot,receipt){
  const matching=PVP_MISSIONS.filter(m=>m.enemyKind===receipt.enemyKind&&Number(pilot.level)>=m.level);
@@ -31,3 +31,4 @@ export function settlePvpMissionCores(pilot){
  return added;
 }
 export function missionPrize(m){return [m.reward&&m.reward.toLocaleString('es')+' créditos',m.xp&&m.xp.toLocaleString('es')+' XP',m.cores&&m.cores+' núcleo'+(m.cores===1?'':'s')+' del Nexo'].filter(Boolean).join(' · ')}
+

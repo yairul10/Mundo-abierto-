@@ -4,7 +4,7 @@ import {loadingTipsForLevel,mountLoadingTips} from '../js/loading-tips.js';
 const beginner=loadingTipsForLevel(1);
 assert(beginner.length>=5);
 assert(!beginner.some(text=>text.includes('PvP')));
-assert(loadingTipsForLevel(40).some(text=>text.includes('PvP')));
+assert(loadingTipsForLevel(40).some(text=>text.includes('cooperativa')));
 assert.deepEqual(loadingTipsForLevel('damaged'),beginner);
 
 const originalInterval=globalThis.setInterval;
@@ -40,3 +40,4 @@ try{
  else globalThis.document=originalDocument;
 }
 console.log('Loading tips: progression, rotation, background pause and cleanup passed.');
+

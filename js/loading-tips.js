@@ -9,7 +9,7 @@ const TIPS = [
  {level:10, text:'Tu mascota puede combatir, recoger recursos o hacer ambas cosas. Elige su modo desde su icono.'},
  {level:10, text:'Puedes cambiar la formación de tus drones durante el vuelo desde el botón de formación.'},
  {level:10, text:'Conserva los materiales que dejan los enemigos. Los necesitarás para el ensamblaje.'},
- {level:30, text:'En la base PvP encontrarás Hangar y Ensamblaje PvP. La Tienda está en el menú.'},
+ {level:30, text:'En la base cooperativa encontrarás Hangar y Ensamblaje cooperativo. La Tienda está en el menú.'},
  {level:40, text:'Las naves tienen habilidades diferentes. Consulta sus características en el hangar antes de equiparlas.'}
 ];
 
@@ -31,3 +31,4 @@ export function mountLoadingTips(element,{level=1}={}){
  },7000);
  return ()=>{clearInterval(timer);element.hidden=true};
 }
+

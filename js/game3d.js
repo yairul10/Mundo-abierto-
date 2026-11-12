@@ -1,3 +1,4 @@
+import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
 import {createBackgroundTextures} from './background-textures.js?v=441';
 import {effectBudget} from './effect-budget.js?v=440';
@@ -8,14 +9,14 @@ import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from '.
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=440';
-import {mountSystemMap} from './system-map.js?v=369';
+import {mountSystemMap} from './system-map.js?v=443';
 import {shieldLevel,shieldCapacity,syncShield,applyShieldDamage,regenerateShield,shieldUpgradeCost,buyShieldUpgrade} from './shield-system.js?v=364';
 import {createTestProgressReset} from './test-progress-reset.js?v=363';
 import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-upgrade.js?v=358';
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=391';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=440';
-import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=350';
+import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=443';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=347';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
@@ -25,7 +26,7 @@ import {updateProAuras} from './pro-aura.js?v=342';
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
 import {mountPvpZones} from './pvp-zones.js?v=2';
-import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=5';
+import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
 import {createArenaEnemyView} from './pvp-enemies.js?v=437';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=390';
@@ -33,7 +34,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=436';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=443';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=255';
@@ -45,13 +46,13 @@ import {recordAction,mountJournal} from './activity-journal.js?v=436';
 import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
-import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=358';
+import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=443';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=401';
-import {mountHangarUI} from './hangar-ui.js?v=440';
+import {mountHangarUI} from './hangar-ui.js?v=443';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=437';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=443';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=401';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -1922,7 +1923,8 @@ const LOOT_TYPES=[
  {id:'reliquia',name:'Componente ancestral',color:0xffca58,rarity:'Épico',description:'Tecnología antigua de origen desconocido y gran valor.'},
  {id:'nucleo_demolicion',name:'Núcleo de demolición',color:0xff8448,rarity:'Exclusivo · Cementerio',description:'Componente explosivo recuperado de las Catapultas.'},
  {id:'bobina_anclaje',name:'Bobina de anclaje',color:0x68d2ce,rarity:'Exclusivo · Cementerio',description:'Mecanismo de arpón recuperado de los Arponeros.'},
- {id:'cristal_punteria',name:'Cristal de puntería',color:0xff436d,rarity:'Exclusivo · Cementerio',description:'Cristal de fijación de objetivos de los Acechadores.'}
+ {id:'cristal_punteria',name:'Cristal de puntería',color:0xff436d,rarity:'Exclusivo · Cementerio',description:'Cristal de fijación de objetivos de los Acechadores.'},
+ {id:'nucleoNexo',name:'Núcleo del Nexo',color:0x58eddd,rarity:'Exclusivo · Cooperativo',description:'Recurso para ensamblar las naves de la base cooperativa.'}
 ];
 player.loot=player.loot&&typeof player.loot==='object'?player.loot:{};
 // Mejoras permanentes: bonificaciones guardadas por separado de la clase.
@@ -2401,7 +2403,7 @@ function updateExplorationMissions(dt){
 }
 renderMission();
 function renderInventory(){
- $('lootInventory').innerHTML=LOOT_TYPES.map(t=>'<div class="inventory-item"><span class="inventory-gem" style="background:#'+t.color.toString(16).padStart(6,'0')+'"></span><div><strong>'+t.name+'</strong><small>'+t.rarity+' · '+t.description+'</small></div><b>×'+(Math.max(0,Number(player.loot[t.id])||0))+'</b></div>').join('');
+ $('lootInventory').innerHTML=materialInventoryHtml(LOOT_TYPES,player.loot);
 }
 const drops=[];const dropGeo=new THREE.OctahedronGeometry(16,0);
 // Caja 3D compartida para todas las rarezas. Si el GLB aún no existe,
@@ -2586,7 +2588,7 @@ function skill(){if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)re
 const SAFE_ZONE_RADIUS=760;
 function inSafeZone(position){if(PVP_MODE)return !pvpSession?.canFight;return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
 let lastZoneLabel='';
-function updateZone(){if(PVP_MODE){if(COOP_MODE){$('targetInfo').textContent=pvpSession?.zone==='base'?'BASE · Protegido':'EXPEDICIÓN COOPERATIVA';return inSafeZone(playerMesh.position)}$('targetInfo').textContent=pvpSession?.inDuel?'DUELO · Sin protección de base':pvpSession?.zone==='pve'?'ZONA PvE · Combate contra enemigos':pvpSession?.zone==='hostile'?'ZONA HOSTIL · PvP libre':'BASE PvP · Protegido';return inSafeZone(playerMesh.position)}
+function updateZone(){if(PVP_MODE){if(COOP_MODE){$('targetInfo').textContent=pvpSession?.zone==='base'?'BASE · Protegido':'EXPEDICIÓN COOPERATIVA';return inSafeZone(playerMesh.position)}$('targetInfo').textContent=pvpSession?.inDuel?'DUELO · Sin protección de base':pvpSession?.zone==='pve'?'ZONA PvE · Combate contra enemigos':pvpSession?.zone==='hostile'?'ZONA HOSTIL · PvP libre':'BASE COOPERATIVA · Protegido';return inSafeZone(playerMesh.position)}
  const safe=inSafeZone(playerMesh.position);
  const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='graveyard'?'CEMENTERIO DE NAVES|Sector de nivel 40+':activeSector==='ember'?'ASCUAS|Sector de nivel 30+':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
@@ -2641,7 +2643,7 @@ function drawRadar(dt){
  ctx.fillStyle='#fff7a1';ctx.beginPath();ctx.moveTo(78,68);ctx.lineTo(71,87);ctx.lineTo(78,83);ctx.lineTo(85,87);ctx.closePath();ctx.fill();
  ctx.strokeStyle='#5bb9e4aa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(78,78,72,0,Math.PI*2);ctx.stroke();
  const distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
- radarDistance.textContent=PVP_MODE?'Base PvP · '+Math.round(playerMesh.position.length())+' m':currentSectorName()+' · '+Math.round(distance)+' m';
+ radarDistance.textContent=PVP_MODE?'Base cooperativa · '+Math.round(playerMesh.position.length())+' m':currentSectorName()+' · '+Math.round(distance)+' m';
 }
 // Paso 14: atraque asistido y hangar sin cambiar de escena ni perder progreso.
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
@@ -2652,10 +2654,10 @@ const LANDING_APPROACH=new THREE.Vector3(535,175,-650);
 const LANDING_TOUCHDOWN=new THREE.Vector3(535,24,-650);
 const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t)};
 function hangarRefresh(){
- const tag=hangar.querySelector('.hangar-tag');if(tag)tag.textContent=PVP_MODE?'BASE PvP':currentStationName().toLocaleUpperCase('es');
- hangar.setAttribute('aria-label','Hangar '+(PVP_MODE?'Base PvP':currentStationName()));
+ const tag=hangar.querySelector('.hangar-tag');if(tag)tag.textContent=PVP_MODE?'BASE COOPERATIVA':currentStationName().toLocaleUpperCase('es');
+ hangar.setAttribute('aria-label','Hangar '+(PVP_MODE?'Base cooperativa':currentStationName()));
  const missing=Math.max(0,Math.ceil(player.maxHp-player.hp)),cost=Math.ceil(missing*.3);
- hangarStats.textContent=(pvpHangar?'Casco offline: ':'Casco: ')+Math.ceil(player.hp)+' / '+player.maxHp+' · Escudo: '+Math.ceil(player.shield)+' / '+player.maxShield+' · Créditos: '+player.gold+(pvpHangar?' · Casco PvP: '+(player.maxHp*20):'');
+ hangarStats.textContent=(pvpHangar?'Casco offline: ':'Casco: ')+Math.ceil(player.hp)+' / '+player.maxHp+' · Escudo: '+Math.ceil(player.shield)+' / '+player.maxShield+' · Créditos: '+player.gold+(pvpHangar?' · Casco cooperativo: '+(player.maxHp*20):'');
  $('repairBtn').textContent=missing?'Reparar casco · '+cost+' créditos':'Casco en perfecto estado';
  $('repairBtn').disabled=!missing||player.gold<cost;
  $('hangarMessage').textContent=missing&&player.gold<cost?'Necesitas '+cost+' créditos para reparar.':'';
@@ -2773,7 +2775,7 @@ function updateDock(){
  const available=visible&&selectLandingPlatform()&&(!PVP_MODE||pvpSession?.canDock);
  dockBtn.classList.toggle('hidden',!visible);
  dockBtn.disabled=!available;
- if(visible)dockBtn.textContent='Aterrizar en '+(PVP_MODE?'Base PvP':currentStationName());
+ if(visible)dockBtn.textContent='Aterrizar en '+(PVP_MODE?'Base cooperativa':currentStationName());
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{if(document.body.classList.contains('system-map-open')||e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
@@ -2983,7 +2985,7 @@ deferredModelLoad(modelLoader,'./assets/models/ancestral-portal.glb?v=300',gltf=
 },undefined,err=>console.warn('Modelo de portal no disponible; se conserva el portal provisional.',err));
 const portalLight=new THREE.PointLight(0x8a65ff,20,180);portalMesh.add(portalLight);scene.add(portalMesh);
 // Destination plaques: stone-carved labels placed above each portal arch.
-const portalNames={aurora:'AURORA',belt:'CINTURÓN PERDIDO',ember:'ASCUAS',graveyard:'CEMENTERIO DE NAVES',pvp:'MAPA PvP'};
+const portalNames={aurora:'AURORA',belt:'CINTURÓN PERDIDO',ember:'ASCUAS',graveyard:'CEMENTERIO DE NAVES',pvp:'COOPERATIVO'};
 function makeStonePortalLabel(){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=192;
  const ctx=canvas.getContext('2d');
@@ -3099,7 +3101,7 @@ function updateSectorPortal(){if(PVP_MODE){portalMesh.visible=secondaryPortal.vi
  portalRing.rotation.z=0;portalMat.color.setHex(charging?0x70faff:unlocked?0x9e75ff:0x68448f);portalFill.opacity=.25;portalLight.intensity=charging?20+pulse*70:20;
  if(portalMesh.userData.portalModel){portalHalo.material.opacity=unlocked?.18:.08;portalHalo.scale.setScalar(1)}
  portalMessage.style.display=near&&!docked&&!landing?'block':'none';
- if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel '+route.level:charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 '+(route.to==='pvp'?'Mapa PvP · requiere internet':route.to==='graveyard'?'Cementerio de Naves':route.to==='ember'?'Ascuas':route.to==='belt'?'Cinturón Perdido':'Aurora')+' · Acércate a 100 m';
+ if(near)portalMessage.textContent=!unlocked?'🔒 Portal bloqueado · Llega al nivel '+route.level:charging?'🌀 Portal activándose · '+Math.ceil(3-portalCountdown)+' s':'🌀 '+(route.to==='pvp'?'Cooperativo · requiere internet':route.to==='graveyard'?'Cementerio de Naves':route.to==='ember'?'Ascuas':route.to==='belt'?'Cinturón Perdido':'Aurora')+' · Acércate a 100 m';
 }
 
 const sectorNotice=document.createElement('div');sectorNotice.setAttribute('role','status');
@@ -3219,9 +3221,9 @@ const activityJournal=mountJournal({getPlayer:()=>PVP_MODE&&!pvpHangar?readOffli
 $('journalBtn').onclick=()=>activityJournal.open();$('hangarJournal').onclick=()=>activityJournal.open();
 addEventListener('mundo:open-journal',()=>activityJournal.open());
 const qaSwitch=$('qaSwitch'),qaTools=$('qaTools');
-qaSwitch.textContent=qaActive?'Volver a partida normal':'Cambiar de partida';
+qaSwitch.textContent='Cambiar de partida';
 $('qaPanel').classList.toggle('hidden',!window.MUNDO_PLAY_MODE?.testEnabled&&!qaActive);
-qaTools.classList.toggle('hidden',!qaActive);
+qaTools.classList.add('hidden');
 qaSwitch.onclick=()=>{if(!save())return;window.MUNDO_PLAY_MODE.choose()};
 addEventListener('mundo:save-before-switch',()=>{save()});
 function qaApply(fn,label=document.activeElement?.textContent){if(!qaActive)return;fn();logAction('qa',label||'Ayuda de prueba aplicada');save();hud();renderDrones();renderUpgrades();renderInventory();if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh()}
@@ -3606,7 +3608,7 @@ if(PVP_MODE){
    r.inHangar=other.hangar;r.hasPet=other.profile.explorerDrone;r.formation=other.profile.droneFormation;r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shield=Number(other.shield)||0;r.maxShield=other.profile.maxShield||0;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=other.profile.level;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=other.hp>0;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
 
    if(wasHit&&other.id===me.lastDamagedBy)registerExplorerThreat(r);
-   rankedName(r.label.querySelector('span'),other.name+' #'+other.id.slice(-6),other.pvpRank);r.label.querySelector('small').textContent=SHIP_TYPES[other.profile.shipId].name+(r.maxShield?' · Escudo '+Math.ceil(r.shield)+'/'+r.maxShield:'')+(other.hangar?' · En hangar':other.protected?' · Protegido':' · PvP')+Object.entries(other.skillUntil||{}).filter(([,until])=>until>state.serverTime).map(([id])=>' · '+(state.rules.skills?.[id]?.name||'')).join('');r.label.querySelector('i').style.width=(100*(other.hp+r.shield)/(r.maxHp+r.maxShield))+'%';syncRemoteVisual(r);
+   rankedName(r.label.querySelector('span'),other.name+' #'+other.id.slice(-6),other.pvpRank);r.label.querySelector('small').textContent=SHIP_TYPES[other.profile.shipId].name+(r.maxShield?' · Escudo '+Math.ceil(r.shield)+'/'+r.maxShield:'')+(other.hangar?' · En hangar':other.protected?' · Protegido':' · Cooperativo')+Object.entries(other.skillUntil||{}).filter(([,until])=>until>state.serverTime).map(([id])=>' · '+(state.rules.skills?.[id]?.name||'')).join('');r.label.querySelector('i').style.width=(100*(other.hp+r.shield)/(r.maxHp+r.maxShield))+'%';syncRemoteVisual(r);
   }
  },
  bossRewards(receipts){
@@ -3624,7 +3626,7 @@ if(PVP_MODE){
  });
  pvpFarmButton=document.createElement('button');
  pvpFarmButton.type='button';pvpFarmButton.id='pvpFarmBtn';pvpFarmButton.className='cockpit-control';
- pvpFarmButton.textContent='AUTO PRO';pvpFarmButton.title='Farmeo de enemigos en la zona PvE del mapa PvP';
+ pvpFarmButton.textContent='AUTO PRO';pvpFarmButton.title='Farmeo de enemigos en la zona PvE del mapa cooperativo';
  pvpFarmButton.hidden=true;pvpFarmButton.setAttribute('aria-pressed','false');
  $('pvpMapActions')?.prepend(pvpFarmButton);
  pvpFarmButton.onclick=()=>{
@@ -3682,6 +3684,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 

@@ -1,7 +1,7 @@
 import {damageBoosterTimers} from './damage-boosters.js?v=401';
 import {shieldCapacity,shieldLevel} from './shield-system.js?v=364';
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
-import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=358';
+import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=443';
 const SHIPS=Object.fromEntries(['agilbasica','aurora','titan','espectro',...Object.keys(ASSEMBLED_SHIPS)].map(id=>[id,{...ASSEMBLED_SHIPS[id]}]));
 const number=(value,fallback)=>Number.isFinite(Number(value))&&Number(value)>0?Number(value):fallback;
 export function readOfflinePilot(storage){try{const test=typeof window!=='undefined'&&window.MUNDO_PLAY_MODE?window.MUNDO_PLAY_MODE.mode==='test':storage.getItem('mundoAbierto.qaActive')==='1';const key=test?'mundoAbierto.qaPlayer':'mundoAbierto.player';return JSON.parse(storage.getItem(key)||'{}')||{}}catch{return {}}}
@@ -34,5 +34,6 @@ export function pvpRoster(source={}){
 
 // Permanent saves carry PvE stats; arena values are always rebuilt from base stats.
 export function pveMultipliers(id){return fleetMultipliers(id,'pve')}
+
 
 

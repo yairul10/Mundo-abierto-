@@ -29,7 +29,7 @@ export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
   const next=JSON.stringify([own,request,waiting,state.players.map(p=>[p.id,p.name])]);
   if(next===groupStamp)return;
   groupStamp=next;
-  const heading=document.createElement('h3');heading.textContent='Grupo PvP';
+  const heading=document.createElement('h3');heading.textContent=getState().state?.rules?.cooperative?'Grupo cooperativo':'Grupo PvP';
   const pilotName=id=>state.players.find(p=>p.id===id)?.name||'Piloto';
   groupPanel.replaceChildren(button('Cerrar',closeGroup),heading);
   if(own){
@@ -51,9 +51,16 @@ export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
  document.addEventListener('pointerdown',e=>{if(!ranks.hidden&&!root.contains(e.target))ranks.hidden=true});
  for(const event of ['pointerdown','touchstart','keydown','keyup'])root.addEventListener(event,e=>e.stopPropagation());
  function showRanks(){table.replaceChildren();for(const [key,title]of [['kills','Bajas válidas'],['xp','XP obtenida en PvP']]){const section=document.createElement('section'),h=document.createElement('h4');h.textContent=title;section.append(h);const data=result[key];if(!data.top.length)section.append('Aún no hay resultados.');for(const row of data.top){const p=document.createElement('p');if(key==='kills')rankedName(p,row.position+'. '+row.name+' · '+Number(row[key]).toLocaleString('es-CL'),row,{title:true});else p.textContent=row.position+'. '+row.name+' · '+Number(row[key]).toLocaleString('es-CL');section.append(p)}const own=document.createElement('strong');own.textContent=data.mine?'Tu posición: '+data.mine.position+' · '+data.mine[key]:'Todavía no tienes bajas válidas.';if(key==='kills'){const stats=data.mine||{};own.prepend(rankBadge(stats));own.append(' · '+pvpRank(stats).name)}section.append(own);table.append(section)}mine.textContent='La XP de misiones y enemigos no cuenta en esta clasificación.'}
- return {receive(m){if(m.type!=='rankings')return false;result=m;showRanks();return true},update(){const {state,me,selected}=getState();if(!state||!me)return;updateGroup(state,me);const now=state.serverTime,request=state.invites?.find(i=>i.to===me.id&&i.expiresAt>now),own=state.duels?.find(d=>d.id===me.duelId),other=state.players.find(p=>p.id===selected&&p.id!==me.id);const next=JSON.stringify([request,own,other?.id,other?.zone,other?.death,other?.duelId,me.zone,me.death,me.hangar,Math.ceil(((own?.startsAt||0)-now)/1000)]);if(next===stamp)return;stamp=next;duel.replaceChildren();duel.hidden=!request&&!own&&!(other&&me.zone==='pve'&&other.zone==='pve');if(duel.hidden)return;
+ return {receive(m){if(m.type!=='rankings')return false;result=m;showRanks();return true},update(){const {state,me,selected}=getState();if(!state||!me)return;updateGroup(state,me);
+ const cooperative=state.rules?.cooperative===true;
+ root.querySelector('[data-top]').hidden=cooperative;root.querySelector('[data-requests]').hidden=cooperative;
+ groupOpen.textContent=cooperative?'Grupo cooperativo':'Grupo PvP';
+ toggle.setAttribute('aria-label',cooperative?'Abrir grupo cooperativo':'Abrir clasificaciones, grupos y duelos');toggle.title=cooperative?'Grupo cooperativo':'Clasificaciones, grupos y duelos';
+ if(cooperative){ranks.hidden=true;duel.hidden=true;return}
+const now=state.serverTime,request=state.invites?.find(i=>i.to===me.id&&i.expiresAt>now),own=state.duels?.find(d=>d.id===me.duelId),other=state.players.find(p=>p.id===selected&&p.id!==me.id);const next=JSON.stringify([request,own,other?.id,other?.zone,other?.death,other?.duelId,me.zone,me.death,me.hangar,Math.ceil(((own?.startsAt||0)-now)/1000)]);if(next===stamp)return;stamp=next;duel.replaceChildren();duel.hidden=!request&&!own&&!(other&&me.zone==='pve'&&other.zone==='pve');if(duel.hidden)return;
  if(request){const from=state.players.find(p=>p.id===request.from),p=document.createElement('p');p.textContent=(from?.name||'Piloto')+' te invita a un duelo sin pérdidas.';duel.append(p,button('Aceptar',()=>send({type:'reply',id:request.id,accept:true})),button('Rechazar',()=>send({type:'reply',id:request.id,accept:false})),button('Bloquear solicitudes',()=>{storage.setItem('cosmos.duelRequestsOff','1');send({type:'duelBlock',block:true});syncRequests()}))}
  else if(own){const remaining=Math.ceil((own.startsAt-now)/1000),p=document.createElement('p');p.textContent=remaining>0?'El duelo comienza en '+remaining+'…':'Duelo activo · La base no te protege del rival';duel.append(p,button('Rendirse',()=>{if(confirm('¿Terminar el duelo y volver a la base sin coste?'))send({type:'surrender'})}))}
  else {const p=document.createElement('p');p.textContent=other.name+' · Duelo voluntario, sin premios ni pérdidas.';duel.append(p,button('Solicitar duelo',()=>send({type:'invite',target:other.id})))}
  },enableRequests(){storage.removeItem('cosmos.duelRequestsOff');send({type:'duelBlock',block:false})}};
 }
+

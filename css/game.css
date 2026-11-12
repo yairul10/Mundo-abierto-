@@ -583,3 +583,7 @@ body:is(.docked,.inventory-open,.journal-open,.system-map-open) #companionModeCh
 #characterPanel #menuShop {min-height:44px;width:100%;padding:10px 14px;border:1px solid #e8bf7080;border-radius:7px;background:#27231d;color:#fff0c8;font:inherit;font-weight:700}
 #characterPanel #menuShop:focus-visible {outline:2px solid #e8bf70;outline-offset:2px}
 body.docked:not(.inventory-open) #characterBtn {visibility:visible;z-index:60}
+
+
+/* Expand material origins with native touch and keyboard interaction. */
+details.inventory-item{display:block}details.inventory-item>summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;min-height:52px}details.inventory-item>summary::-webkit-details-marker{display:none}details.inventory-item .inventory-description{flex:1;min-width:0}details.inventory-item summary>b{flex:none;font-size:16px;color:#ffe3a1}details.inventory-item summary:focus-visible{outline:2px solid #78ceff;outline-offset:4px;border-radius:6px}.material-info-hint{color:#8ccfff!important}.material-source{margin:12px 0 5px 25px;color:#d6e8ff;font-size:13px;line-height:1.6}details[open] .material-info-hint{display:none}
