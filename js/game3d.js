@@ -1,7 +1,8 @@
+import {createBackgroundTextures} from './background-textures.js?v=441';
 import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
-import {createInfernoCombat} from './inferno.js?v=434';
+import {createInfernoCombat} from './inferno.js?v=441';
 import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
@@ -82,7 +83,8 @@ let graphicsMode='auto';try{graphicsMode=localStorage.getItem(GRAPHICS_KEY)||'au
 let frameRate=30;try{frameRate=normalizeFrameRate(localStorage.getItem(FRAME_RATE_KEY))}catch{}
 const drawLimiter=createFrameLimiter(frameRate);let lastDrawAt=null;
 const hudRefresh=createRefreshGate(100),coveredRefresh=createRefreshGate(100);let wasCovered=false;
-const graphics=createGraphicsController({mode:graphicsMode,initial:initialGraphicsLevel(navigator),frameRate,onChange:()=>{resizeGraphics();graphicsUI?.refresh()}});
+const backgrounds=createBackgroundTextures(THREE,{level:()=>graphics.level});
+const graphics=createGraphicsController({mode:graphicsMode,initial:initialGraphicsLevel(navigator),frameRate,onChange:()=>{resizeGraphics();backgrounds.refresh();graphicsUI?.refresh()}});
 // MSAA multiplies framebuffer memory on mobile; resolution controls edge quality.
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 function renderFrame(now){
@@ -195,11 +197,11 @@ function syncSectorEnvironment(){
 }
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_cinturon.webp?v=145',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace;
- beltBackground=texture;syncSectorEnvironment();
+ backgrounds.register(texture,next=>{beltBackground=next;syncSectorEnvironment()});
 },undefined,()=>console.info('Fondo Cinturón no disponible; usando respaldo espacial.'));
 // Mezclar la costura longitudinal y suavizar los polos del panorama al cargarlo.
-function seamlessSectorPanorama(image){
- const canvas=document.createElement('canvas');canvas.width=1536;canvas.height=768;
+function seamlessSectorPanorama(image,width=1536,height=768){
+ const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
  const ctx=canvas.getContext('2d');if(!ctx)return null;
  ctx.drawImage(image,0,0,canvas.width,canvas.height);
  const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),data=pixels.data,source=new Uint8ClampedArray(data),w=canvas.width,h=canvas.height;
@@ -227,13 +229,13 @@ function seamlessSectorPanorama(image){
 }
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_ascuas.webp?v=161',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace;
- const panorama=seamlessSectorPanorama(texture.image);emberBackground=panorama||texture;if(panorama)texture.dispose();syncSectorEnvironment();
+ backgrounds.register(texture,next=>{emberBackground=next;syncSectorEnvironment()},{prepare:seamlessSectorPanorama,maxWidth:1536});
 },undefined,()=>console.info('Fondo Ascuas no disponible; usando respaldo espacial.'));
 // Panorama artístico externo (2:1): si falta el archivo, conservar fondo procedural.
 new THREE.TextureLoader().load('./assets/models/fondo_espacial_aurora.webp?v=105',texture=>{
  texture.mapping=THREE.EquirectangularReflectionMapping;
  texture.colorSpace=THREE.SRGBColorSpace;
- auroraBackground=texture;syncSectorEnvironment();
+ backgrounds.register(texture,next=>{auroraBackground=next;syncSectorEnvironment()});
 },undefined,()=>console.info('Fondo espacial personalizado pendiente; usando fondo original.'));
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,9000);
 scene.add(new THREE.HemisphereLight(0x7bbcff,0x101827,2.2));const sun=new THREE.DirectionalLight(0xffffff,2.3);sun.position.set(-600,900,-400);scene.add(sun);

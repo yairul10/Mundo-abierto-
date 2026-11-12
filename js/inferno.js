@@ -28,6 +28,8 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  const count=112,seeds=new Float32Array(count*3);
  for(let i=0;i<count;i++){seeds[i*3]=i%2===0?-1:1;seeds[i*3+1]=Math.floor(i/2)/56;seeds[i*3+2]=((i*73)%113)/113}
  geometry.setAttribute('seed',new THREE.InstancedBufferAttribute(seeds,3));geometry.instanceCount=count;
+ // Includes both nozzles, the complete 900-unit jet and the enlarged Pro hull.
+ geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,0,600),1100);
  const vertexShader=`uniform float time;uniform float hullScale;attribute vec3 seed;varying vec2 vUv;varying float age;varying float variation;
  void main(){
   vUv=uv;age=fract(seed.y+time*1.05);variation=seed.z;
@@ -66,8 +68,8 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  function stateFor(enemy){
   let state=states.get(enemy);if(state)return state;
   const root=new THREE.Group(),uniforms={time:{value:0},power:{value:0},hullScale:{value:1}};
-  const material=new THREE.ShaderMaterial({uniforms,vertexShader,fragmentShader,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
-  const flames=new THREE.Mesh(geometry,material);flames.frustumCulled=false;root.add(flames);
+  const material=new THREE.ShaderMaterial({uniforms,vertexShader,fragmentShader,transparent:true,depthWrite:false,side:THREE.FrontSide,blending:THREE.AdditiveBlending});
+  const flames=new THREE.Mesh(geometry,material);flames.frustumCulled=true;root.add(flames);
   const glow=new THREE.PointLight(0xff7020,0,380);glow.position.z=95;root.add(glow);enemy.mesh.add(root);enemy.mesh.userData.infernoEffects=root;
   state={phase:'cooldown',elapsed:2,root,uniforms,glow,flames,announced:false};states.set(enemy,state);return state;
  }
@@ -102,3 +104,4 @@ export function createInfernoCombat(THREE,{targets,damage,warn=()=>{}}){
  }
  return {update,reset,present};
 }
+
