@@ -30,9 +30,9 @@ const player={id:'a',pos:[0,0,0],connected:true},state={status:'active',players:
 makeCombatPlayer(player,{attack:100,droneCount:1,explorerDrone:true,boosters:{damage2:300}});
 state.players=[player];player.boosterTickAt=10000;
 const shot={offset:[0,0,-58],direction:[0,0,-1]};
-assert.deepEqual(volley(state,player,{weapon:'laser',shots:[{...shot,kind:'laser'},{...shot,kind:'laser'},{...shot,kind:'drone'}]},10000).map(b=>b.damage),[100,100,40]);
-assert.equal(volley(state,player,{weapon:'missile',shots:[shot]},10000)[0].damage,300);
-assert.equal(volley(state,player,{weapon:'explorer',shots:[shot]},10000)[0].damage,20);
+assert.deepEqual(volley(state,player,{weapon:'laser',shots:[{...shot,kind:'laser'},{...shot,kind:'laser'},{...shot,kind:'drone'}]},10000).map(b=>b.damage),[300,300,120]);
+assert.equal(volley(state,player,{weapon:'missile',shots:[shot]},10000)[0].damage,240);
+assert.equal(volley(state,player,{weapon:'explorer',shots:[shot]},10000)[0].damage,60);
 stepCombat(state,11000);assert.equal(player.profile.boosters.damage2,299);
 player.hangar=true;stepCombat(state,21000);assert.equal(player.profile.boosters.damage2,299);
 player.hangar=false;player.boostersPaused=true;stepCombat(state,22000);assert.equal(player.profile.boosters.damage2,299);
@@ -40,7 +40,7 @@ player.boostersPaused=false;stepCombat(state,23000);assert.equal(player.profile.
 player.connected=false;stepCombat(state,24000);assert.equal(player.profile.boosters.damage2,298);
 player.connected=true;player.hp=0;stepCombat(state,25000);assert.equal(player.profile.boosters.damage2,298);
 player.profile.boosters={damage2:0,damage3:300};
-assert.equal(volley(state,player,{weapon:'laser',shots:[shot]},26000)[0].damage,150);
+assert.equal(volley(state,player,{weapon:'laser',shots:[shot]},26000)[0].damage,450);
 const oldTime=player.profile.boosters.damage3;
 player.roster=importRoster(roster.profiles);assert(equip(player,'aurora'));
 assert.equal(player.profile.boosters.damage3,oldTime,'refreshing progress cannot restart an in-flight timer');

@@ -1619,7 +1619,7 @@ function updateExplorerCombat(dt){
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
  const bolt=new THREE.Mesh(laserGeometry,supportLaserMaterial);
  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
- shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.2*activeBooster('damage')});
+ shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.6*activeBooster('damage')});
  if(pvpSession)pvpSession.shots('explorer',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1,target.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  explorerMesh.lookAt(target.mesh.position);explorerFireCd=.68;
 }
@@ -1751,7 +1751,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
   const range=supportRange();
-  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150),life:range/1150+.35,range,damage:player.attack*.2*equippedBonus().damage*activeLaserBooster()});
+  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150),life:range/1150+.35,range,damage:player.attack*.6*equippedBonus().damage*activeLaserBooster()});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
@@ -1910,7 +1910,7 @@ function fire(mult=1,count=1){if(portalTransitProtected()||PVP_MODE&&!pvpSession
   const mesh=new THREE.Mesh(laserGeometry,laserMaterial);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*.5*classDamageMultiplier()*classCritMultiplier()*activeLaserBooster()});
+  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*1.5*classDamageMultiplier()*classCritMultiplier()*activeLaserBooster()});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId,pvpFarmRunning);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -2581,7 +2581,7 @@ function skill(){if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)re
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),launchDir);
   mesh.position.copy(start);scene.add(mesh);
   const missileEffects=addMissileEffects(mesh);
-  shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*3*activeBooster('damage'),missile:true,target,
+  shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*2.4*activeBooster('damage'),missile:true,target,
    missileAim:target?null:aim.clone(),missileAge:0,missileSpeed,missileGuideDelay,missileEffects});
  }
  if(pvpSession)pvpSession.shots('missile',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1,shots.find(p=>!p.pvpSent&&!p.pvpRemote&&p.target?.playerId)?.target.playerId||lockedEnemy?.playerId,pvpFarmRunning);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
