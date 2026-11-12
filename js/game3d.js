@@ -1,3 +1,4 @@
+import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
 import {createBackgroundTextures} from './background-textures.js?v=441';
 import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
@@ -1910,6 +1911,7 @@ function fire(mult=1,count=1){if(portalTransitProtected()||PVP_MODE&&!pvpSession
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId,pvpFarmRunning);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  fireCd=classAbilityActive('aurora')?.68/(['centella','vertigo'].includes(player.shipId)?1.4:1.3):.68; // Sobrecarga aumenta la cadencia.
+ if(shouldAutoMissile(player,{target:lockedEnemy,remaining:skillCd,blocked:document.hidden||docked||landing||recoveryPending||systemMap.open||!$('shopPanel').classList.contains('hidden')||!panel.classList.contains('hidden')}))skill();
 }
 function xpNeed(){const level=Math.max(1,Math.floor(Number(player.level)||1));return 100+(level-1)*65+15*Math.pow(Math.max(0,level-10),2)}function gainXp(n){n=Math.round(n*activeBooster('xp'));player.xp+=n;while(player.xp>=xpNeed()){player.xp-=xpNeed();player.level++;combatAudio.play('levelUp');player.maxEnergy+=5;if(player.shipBaseStats){player.shipBaseStats.maxHp+=10;player.shipBaseStats.attack+=2;player.shipBaseStats.defense++;syncShipStats()}else{player.maxHp+=10;player.attack+=2;player.defense++}player.hp=player.maxHp;player.energy=player.maxEnergy;lootToast('Nivel '+player.level+' · Sistemas de la nave mejorados','level')}renderMission();}
 // Botín físico: queda flotando tras destruir un enemigo y se recoge al acercarse.
@@ -1943,7 +1945,18 @@ function renderDrones(){
  const repairLevel=player.repairRobotLevel,repairMax=repairLevel>=5,repairPrice=repairRobotPrice();
  const repairHtml='<div class="upgrade-card"><div><strong>🔧 Robot reparador · Nivel '+repairLevel+'/5</strong><small>Repara '+(repairLevel||1)+' % del casco por segundo tras 2 s sin disparar ni recibir ataques. Cada nivel añade 1 %. No ocupa espacios de drones.</small><small>'+(repairMax?'Nivel máximo · 5 % por segundo':(repairLevel?'Mejorar a nivel '+(repairLevel+1):'Compra permanente')+': '+repairPrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyRepairRobot" '+(repairMax||player.gold<repairPrice?'disabled':'')+'>'+(repairMax?'Máximo':repairLevel?'Mejorar':'Comprar')+'</button></div>';
  const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance del Explorador · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
- for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml;
+ const autoOwned=player.autoMissilesOwned===true,autoEnabled=autoOwned&&player.autoMissilesEnabled===true;
+ const autoHtml='<div class="upgrade-card"><div><strong>🚀 Misiles automáticos</strong><small>Lanza la salva de misiles mientras disparas el láser a un objetivo. Conserva el daño y la recarga normales.</small><small>'+(autoOwned?'Compra permanente · '+(autoEnabled?'Activados':'Desactivados'):'Compra permanente: '+AUTO_MISSILE_PRICE.toLocaleString('es')+' créditos')+'</small></div><button class="autoMissilesBtn" '+(!autoOwned&&player.gold<AUTO_MISSILE_PRICE?'disabled':'')+'>'+(autoOwned?(autoEnabled?'Desactivar':'Activar'):'Comprar')+'</button></div>';
+ for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml+autoHtml;
+ el.querySelector('.autoMissilesBtn').onclick=()=>{
+  if(!canUseShop())return;
+  const owned=player.autoMissilesOwned===true;
+  const changed=owned?toggleAutoMissiles(player,save):buyAutoMissiles(player,save);
+  if(!changed)return;
+  if(!owned){logAction('commerce','Compra: Misiles automáticos · −200.000 créditos');save()}
+  hud();renderDrones();hangarRefresh();lootToast('🚀 Misiles automáticos '+(player.autoMissilesEnabled?'activados':'desactivados'));
+ };
+
  el.querySelector('.buyRepairRobot').onclick=()=>{
   const price=repairRobotPrice();
   if(!canUseShop()||player.repairRobotLevel>=5||!price||player.gold<price)return;
@@ -3669,6 +3682,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 
