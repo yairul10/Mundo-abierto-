@@ -28,7 +28,8 @@ export async function startPlayMode(){
  const config=await configuration();let enabled=config?.testServerEnabled===true,mode='normal',previous='normal',session=null;
  try{previous=savedMode(localStorage);session=sessionStorage.getItem(SESSION)}catch{}
  const params=new URLSearchParams(location.search);
- const returning=session===previous&&(params.get('pvp')==='1'||params.get('play')===previous);
+ // Reuse this tab's choice after update, account or CDN-fallback reloads.
+ const returning=session===previous;
  if(params.has('play')){const url=new URL(location.href);url.searchParams.delete('play');history.replaceState(null,'',url)}
  if(enabled)mode=params.get('guesttest')==='1'?'test':returning?previous:await picker();
  try{setMode(localStorage,mode);sessionStorage.setItem(SESSION,mode)}catch{}

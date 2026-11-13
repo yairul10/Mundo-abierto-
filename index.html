@@ -54,7 +54,7 @@ document.currentScript.after(threeMap);
 </script>
 <script type="module">
 const status=document.getElementById('bootStatus');
-const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261111-438';
+const GAME_BUILD=window.COSMOS_GAME_BUILD='3d-20261113-447';
 let stopLoadingTips=()=>{};
 async function loadWithDeadline(promise,label){
  let timer;
@@ -65,7 +65,7 @@ const {mountDisplayShell}=await import('./js/display-shell.js?v=228');
 if(!mountDisplayShell()){
 try{
   const {startAccount,startCloudSync}=await import('./js/account-start.js?v=364');
-  const {startPlayMode,saveKey}=await import('./js/play-mode.js?v=435');
+  const {startPlayMode,saveKey}=await import('./js/play-mode.js?v=447');
   const realm=await startPlayMode();
   document.getElementById('worldLoadingText').textContent='Preparando pantalla de inicio…';
   await window.cosmosSplashReady;
