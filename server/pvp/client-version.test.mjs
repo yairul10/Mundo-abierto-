@@ -4,7 +4,7 @@ test('missing/obsolete/invalid PvP protocols are refused; compatible content bui
  assert(compatiblePvpClient({clientVersion:2},{}));assert(compatiblePvpClient({clientVersion:3},{}));assert(!compatiblePvpClient({clientVersion:2},{PVP_MIN_CLIENT_VERSION:'3'}));assert(!compatiblePvpClient({clientVersion:1},{PVP_MIN_CLIENT_VERSION:'3'}));assert(compatiblePvpClient({clientVersion:3},{PVP_MIN_CLIENT_VERSION:'3'}));assert.equal(pvpVersionConfig({PVP_MIN_CLIENT_VERSION:'bad'}).minPvpClientVersion,2);
 });
 test('obsolete clients receive explicit 426 before Google auth or room entry',async()=>{
- const source=readFileSync(new URL('./worker.mjs',import.meta.url),'utf8').replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {}').replace("import {SharedWorld} from './shared-world.mjs';",'class SharedWorld {}').replace(/from '(\.\/[^']+)'/g,(_,p)=>`from '${new URL(p,import.meta.url).href}'`);
+ const source=readFileSync(new URL('./worker.mjs',import.meta.url),'utf8').replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {}').replace("import {CoopLobby} from './coop-lobby.mjs';",'class CoopLobby {}').replace("import {SharedWorld} from './shared-world.mjs';",'class SharedWorld {}').replace(/from '(\.\/[^']+)'/g,(_,p)=>`from '${new URL(p,import.meta.url).href}'`);
  const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
  const env={API_LIMIT:{limit:async()=>({success:true})},ROOMS:{getByName(){throw Error('must not enter room')}}};
  const r=await worker.fetch(new Request('https://test/world/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guestKey:'a'.repeat(64)})}),env);

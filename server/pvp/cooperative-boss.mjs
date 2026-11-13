@@ -5,7 +5,7 @@ import {constrainEnemy} from './zones.mjs';
 import {defenseDamage} from './combat.mjs';
 export const BOSS_RULES=Object.freeze({id:'pvp-super-boss',name:'Titán del Nexo',maxHp:1000000,damage:11500,reward:1000000,attackInterval:3000,targets:3,patrolSpeed:80,teleportInterval:20000,range:1200,respawnDelay:300000,pos:[0,120,-1800],hitRadius:180});
 export function ensureBoss(s,now,rules=BOSS_RULES){
- if(!s.boss||s.boss.hp<=0&&now>=s.boss.respawnAt)s.boss={id:rules.id,instanceId:crypto.randomUUID(),boss:true,connected:true,pos:[...rules.pos],hp:rules.maxHp,maxHp:rules.maxHp,hitRadius:rules.hitRadius,contributions:{},active:false,nextAttackAt:0,attackSeq:0,motionAt:now,patrolPhase:0,teleportSeq:0,rulesVersion:2};
+ if(!s.boss||!rules.noRespawn&&s.boss.hp<=0&&now>=s.boss.respawnAt)s.boss={id:rules.id,instanceId:crypto.randomUUID(),boss:true,connected:true,pos:[...rules.pos],hp:rules.maxHp,maxHp:rules.maxHp,hitRadius:rules.hitRadius,contributions:{},active:false,nextAttackAt:0,attackSeq:0,motionAt:now,patrolPhase:0,teleportSeq:0,rulesVersion:2};
  const b=s.boss;b.rules=rules;
  // Upgrade an in-progress round without resetting HP, damage shares or rewards.
  if(b.rulesVersion!==2){b.rulesVersion=2;b.motionAt=now;b.patrolPhase=0;b.teleportSeq=0;if(b.active){b.nextAttackAt=Math.min(b.nextAttackAt||now,now+BOSS_RULES.attackInterval);b.nextTeleportAt=now+BOSS_RULES.teleportInterval}}
@@ -91,4 +91,5 @@ export function tickBoss(s,now,eligible){
  b.attackSeq++;b.lastAttack={seq:b.attackSeq,time:now,origin:[...b.pos],projectile:rules.attackPattern?(b.kind==='granTitanPro'?'missile':'laser'):rules.projectile||null,targets:hits,...hits[0]};
 }
 export function bossSnapshot(b){if(!b)return null;const rules=b.rules||BOSS_RULES;return {id:b.id,instanceId:b.instanceId,name:rules.name,pos:b.pos,hp:b.hp,maxHp:b.maxHp,active:b.active,respawnAt:b.respawnAt||0,reward:rules.reward,range:rules.range,lastAttack:b.lastAttack||null,lastTeleport:b.lastTeleport||null,aimTargets:b.aimTargets||[],nextAttackAt:b.nextAttackAt||0}}
+
 

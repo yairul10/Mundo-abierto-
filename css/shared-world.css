@@ -83,3 +83,6 @@ body.pvp-hud #pvpSkills button small{font-size:9px!important;line-height:1.1!imp
 .world-nameplate .pvp-rank-badge{width:25px;height:25px}
 #pvpSocial [data-table] p{display:flex;align-items:center;gap:4px}
 #playerName .pvp-rank-badge{width:25px;height:25px}
+
+#coopRoomInfo{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:3px;text-align:center;text-shadow:0 1px 4px #000;font-size:11px!important}#coopRoomInfo button{padding:4px 7px!important;font-size:10px!important;touch-action:manipulation;pointer-events:auto!important}body.docked #coopRoomInfo{display:none}
+.coop-room-dialog input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #69cfff;border-radius:9px;background:#10253b;color:white;font:18px system-ui;text-align:center;letter-spacing:3px}

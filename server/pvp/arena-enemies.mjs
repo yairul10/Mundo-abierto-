@@ -1,3 +1,4 @@
+import {shareExpeditionRewards} from './expedition.mjs';
 import {recordInfernoAttacker,advanceInfernoDrones} from './inferno-drones.mjs';
 import {splitGroupRewards} from './groups.mjs';
 import {enemyBalance,PVP_PRO_MULTIPLIER} from './enemy-balance.mjs';
@@ -36,7 +37,7 @@ export function ensureArenaEnemies(s,now){
  const next=[];
  for(const rules of ((s.cooperative===true||s.realm==='test')?COOP_ENEMIES:ARENA_ENEMIES)){
   const saved=s.arenaEnemies.find(b=>b.id===rules.id)||(rules.id==='pvp-super-boss'?s.boss:null),holder={boss:saved};
-  const b=ensureBoss(holder,now,rules);b.npc=true;b.kind=rules.kind;if(b.kind==='colossusPro'&&rules.corridor)b.launchBaysUntil??=0;if(b.kind==='infernoPro')b.hitRadius=rules.hitRadius;if(rules.model)b.model=rules.model;b.level=105;
+  const b=ensureBoss(holder,now,s.room?{...rules,noRespawn:true}:rules);b.npc=true;b.kind=rules.kind;if(b.kind==='colossusPro'&&rules.corridor)b.launchBaysUntil??=0;if(b.kind==='infernoPro')b.hitRadius=rules.hitRadius;if(rules.model)b.model=rules.model;b.level=105;
   if(b.arenaLayout!==((s.cooperative===true||s.realm==='test')?5:3)){b.pos=[...rules.pos];b.arenaPlaced=true;b.arenaLayout=(s.cooperative===true||s.realm==='test')?5:3;b.patrolPhase=0}constrainEnemy(b)
   if(b.kind==='infernoPro'&&b.maxHp!==rules.maxHp){const ratio=rules.maxHp/b.maxHp;b.hp=b.hp/b.maxHp*rules.maxHp;b.maxHp=rules.maxHp;b.droneWaves??=Array.from({length:9},(_,i)=>450000-i*50000).filter(t=>b.hp<=t);for(const id of Object.keys(b.contributions||{}))b.contributions[id]*=ratio}
   next.push(b);
@@ -122,7 +123,7 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
   const allowed=b.kind==='reinforcement'?p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone&&!!((s.arenaEnemies.find(x=>x.id===b.parentId)?.contributions?.[p.id]||0)>0||s.arenaEnemies.find(x=>x.id===b.parentId)?.participants?.[p.id]):p=>eligible(p,now)&&!p.duelId&&zoneOf(p)===b.rules.zone;
   constrainEnemy(b);if(b.hp<=0)for(const p of s.players)if(p.profile?.shipId==='adminpod')delete b.contributions[p.id];const from=s.bossRewards.length;tickBoss({...s,boss:b,bossRewards:s.bossRewards},now,allowed);
   for(let i=s.bossRewards.length-1;i>=from;i--)if(s.players.some(p=>p.id===s.bossRewards[i].playerId&&p.profile?.shipId==='adminpod'))s.bossRewards.splice(i,1);
-  if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId)){receipt.enemyKind=b.kind==='reinforcement'?b.model:b.kind;if(b.rules.xpReward)receipt.xp=b.kind==='reinforcement'?b.rules.xpReward:Math.max(0,Math.round(b.rules.xpReward*receipt.damage/Math.max(1,receipt.totalDamage)));}splitGroupRewards(s,b,s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId),allowed);}
+  if(b.hp<=0&&s.bossRewards.length>from){materialRewards(s,b,from,random);nexusCoreRewards(s,b,from,random);for(const receipt of s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId)){receipt.enemyKind=b.kind==='reinforcement'?b.model:b.kind;if(b.rules.xpReward)receipt.xp=b.kind==='reinforcement'?b.rules.xpReward:Math.max(0,Math.round(b.rules.xpReward*receipt.damage/Math.max(1,receipt.totalDamage)));}if(s.room)shareExpeditionRewards(s,b,from);else splitGroupRewards(s,b,s.bossRewards.slice(from).filter(r=>r.bossId===b.instanceId),allowed);}
  }
  advanceInfernoDrones(s,now,eligible);
  advanceNpcHazards(s,now,(owner,p,t)=>eligible(p,t)&&!p.duelId&&zoneOf(p)===owner.rules.zone);
@@ -131,3 +132,4 @@ export function advanceArenaEnemies(s,now,eligible,random=Math.random){
 export function arenaEnemySnapshots(s){
  return (s.arenaEnemies||[]).map(b=>({...bossSnapshot(b),zone:b.rules.zone,kind:b.kind,model:b.model||null,parentId:b.parentId||null,level:b.level||105,charge:b.charge||null,patternEvents:b.patternEvents||[],patternImpacts:b.patternImpacts||[],bombs:b.bombs||[],inferno:b.inferno||null,targetId:b.targetId||null,finishReason:b.finishReason||null,launch:b.launch||null,launchBaysUntil:b.launchBaysUntil??null}));
 }
+

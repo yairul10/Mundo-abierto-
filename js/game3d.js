@@ -1,3 +1,4 @@
+import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
 import {createBackgroundTextures} from './background-textures.js?v=441';
@@ -52,7 +53,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=443';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=448';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=449';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=401';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3069,10 +3070,13 @@ async function switchSector(route){
  combatAudio.play('portalTravel');
  if(route.to==='pvp'){
   if(checkingPvpVersion)return;checkingPvpVersion=true;
-  try{await checkPvpVersion()}catch(error){portalCountdown=0;if(error.updateRequired)showPvpUpdate();else window.alert(error.message);return}finally{checkingPvpVersion=false}
-  const portal=route.pos||graveyardPvpPortal,towardBase=currentStation().position.clone().sub(portal).normalize();
-  playerMesh.position.copy(portal).addScaledVector(towardBase,350);
-  if(save())location.href='./index.html?pvp=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD);return;
+  try{
+   await checkPvpVersion();const choice=await chooseCoopRoom();if(!choice){portalCountdown=0;return}saveCoopChoice(choice);
+   const portal=route.pos||graveyardPvpPortal,towardBase=currentStation().position.clone().sub(portal).normalize();
+   playerMesh.position.copy(portal).addScaledVector(towardBase,350);
+   if(save())location.href='./index.html?pvp=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD);
+  }catch(error){portalCountdown=0;if(error.updateRequired)showPvpUpdate();else window.alert(error.message)}finally{checkingPvpVersion=false}
+  return;
  }
  activeSector=route.to;player.sector=activeSector;
  syncStationVisibility();
@@ -3688,6 +3692,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 

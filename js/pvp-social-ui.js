@@ -17,7 +17,7 @@ export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
  const duel=root.querySelector('[data-duel]'),ranks=root.querySelector('[data-ranks]'),table=root.querySelector('[data-table]'),mine=root.querySelector('[data-mine]');let stamp='',result=null;
  function button(text,fn){const b=document.createElement('button');b.textContent=text;b.onclick=fn;return b}
  function updateGroup(state,me){
-  groupOpen.hidden=!Array.isArray(state.groups);
+  groupOpen.hidden=!Array.isArray(state.groups)||!!state.room;
   if(groupOpen.hidden){closeGroup();return}
   const own=state.groups.find(g=>g.members.includes(me.id));
   const request=state.groupInvites.find(i=>i.to===me.id&&i.expiresAt>state.serverTime);
@@ -63,4 +63,5 @@ const now=state.serverTime,request=state.invites?.find(i=>i.to===me.id&&i.expire
  else {const p=document.createElement('p');p.textContent=other.name+' · Duelo voluntario, sin premios ni pérdidas.';duel.append(p,button('Solicitar duelo',()=>send({type:'invite',target:other.id})))}
  },enableRequests(){storage.removeItem('cosmos.duelRequestsOff');send({type:'duelBlock',block:false})}};
 }
+
 

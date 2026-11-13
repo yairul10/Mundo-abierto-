@@ -70,7 +70,7 @@ export function advance(s,now){
  combat.allowBullet=(b,owner)=>b.duelId?owner.duelId===b.duelId:zoneOf({pos:b.pos,corridor:(s.cooperative===true||s.realm==='test')})===b.combatZone&&zoneOf(owner)===b.combatZone;
  stepCombat(combat,now);s.bullets=combat.bullets;s.simTime=combat.simTime;
  advanceArenaEnemies(s,now,combatEligible);tickDuels(s,reset,now);
- for(const p of s.players)if(p.connected&&p.hp<=0&&!p.death){
+ for(const p of s.players)if(p.connected&&p.hp<=0&&!p.death&&!p.exiting&&!p.coopEliminated){
   const finalAttacker=s.players.find(q=>q.id===p.lastDamagedBy),winner=finalAttacker?s.players.find(q=>q.id===(p.firstHostileHit?.id||finalAttacker.id)):null,id=crypto.randomUUID();
   delete p.firstHostileHit;
   s.bullets=s.bullets.filter(b=>b.owner!==p.id&&b.target!==p.id);
@@ -139,4 +139,5 @@ export function changeFormation(p,id){
 }
 
 export {zoneOf,duelFor,finishDuel};
+
 
