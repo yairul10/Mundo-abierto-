@@ -56,7 +56,7 @@ export const canDamage=(owner,target,now)=>{
  return zoneOf(owner)==='hostile';
 };
 export function advance(s,now){
- for(const p of s.players){p.corridor=(s.cooperative===true||s.realm==='test');if(p.corridor){constrainCorridor(p.pos);p.duelId=null}}
+ for(const p of s.players){p.corridor=(s.cooperative===true||s.realm==='test');if(p.corridor){constrainCorridor(p.pos);p.duelId=null;if(Object.keys(p.skillUntil||{}).length)p.skillUntil={};if(Object.keys(p.skillReadyAt||{}).length)p.skillReadyAt={}}}
  if((s.cooperative===true||s.realm==='test')){s.duels=[];s.invites=[]}
  if(s.groups?.length||s.groupInvites?.length)updateGroups(s,now);
  s.invites||=[];s.duels||=[];s.events||=[];s.bullets||=[];s.recoveries||={};tickDuels(s,reset,now);
@@ -103,11 +103,13 @@ export function applyHangarLoadout(s,p,raw,id,now=Date.now()){
 }
 
 export function setSkills(s,p,ids,now=Date.now()){
+ if(s.cooperative===true||s.realm==='test')return 'skills_disabled';
  updateProtection(p,now);if(p.duelId||!safe(p)||!protectedAt(p,now))return 'base_only';
  if(!validSkills(ids))return 'invalid_skills';
  p.equippedSkills=[...ids];clearSkills(p);return null;
 }
 export function usePvpSkill(s,p,id,now,targetId){
+ if(s.cooperative===true||s.realm==='test')return 'skills_disabled';
  updateProtection(p,now);if(!combatEligible(p,now))return 'protected';
  if(!Object.hasOwn(PVP_SKILLS,id)||!equippedSkills(p).includes(id))return 'invalid_skills';
  const other=s.players.find(x=>x.id===targetId&&canDamage(p,x,now));
