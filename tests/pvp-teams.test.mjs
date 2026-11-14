@@ -1,0 +1,47 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {enterPvp,advancePvp,pvpMessage,pvpSnapshot,changeTeam,swapTeams} from '../server/pvp/pvp-match.mjs';
+import {pvpRoomName} from '../server/pvp/pvp-teams.mjs';
+const body=(id,bot=false)=>({accountId:id,name:id,clientVersion:5,realm:'normal',shipId:'aurora',skills:['fury','paralyze'],pvpRoom:{mode:'2v2',code:'ABCDEF',visibility:bot?'practice':'private',bot},roster:{aurora:{maxHp:1000,attack:100,defense:0,speed:220,maxEnergy:100}}});
+async function fixture(bot=false){const s={players:[],events:[],duels:[],invites:[]},sent=[],ws={send:m=>sent.push(JSON.parse(m)),close(){}},world={ctx:{storage:{setAlarm:async()=>{}},getWebSockets:()=>[]},worldSave(){},worldBroadcast(){},startSimulation(){},worldDisconnect:async()=>{}};
+ for(let i=0;i<(bot?1:4);i++){await enterPvp(world,s,body('p'+i,bot),'p'+i,10000);s.players.find(p=>p.id==='p'+i).connected=true}return {s,world,ws,sent};}
+async function start(f){for(const p of f.s.players.filter(p=>!p.isBot))await pvpMessage(f.world,f.s,p,{type:'ready',ready:true},f.ws,10000);assert.equal(f.s.pvpMatch.status,'countdown');advancePvp(f.s,13000);assert.equal(f.s.pvpMatch.status,'active')}
+test('2v2 has isolated room identities, four reserved slots, balanced teams and four ready checks',async()=>{
+ assert.notEqual(pvpRoomName('normal','ABCDEF','1v1'),pvpRoomName('normal','ABCDEF','2v2'));
+ const f=await fixture();assert.deepEqual(f.s.players.map(p=>p.team),['a','b','a','b']);assert.equal(new Set(f.s.players.map(p=>JSON.stringify(p.spawn))).size,4);
+ assert.equal((await enterPvp(f.world,f.s,body('fifth'),'fifth',10000)).error,'world_full');
+ for(const p of f.s.players.slice(0,3))await pvpMessage(f.world,f.s,p,{type:'ready',ready:true},f.ws,10000);assert.equal(f.s.pvpMatch.status,'waiting');
+ await pvpMessage(f.world,f.s,f.s.players[3],{type:'ready',ready:true},f.ws,10000);assert.equal(f.s.pvpMatch.status,'countdown');assert.equal(pvpSnapshot(f.s,10000).rules.capacity,4);
+});
+test('private hosts can swap full teams, other players cannot, and active teams are locked',async()=>{
+ const f=await fixture(),p=f.s.players;assert.equal(changeTeam(f.s,p[1],'a'),'team_full');
+ assert.equal(swapTeams(f.s,p[3],[p[1].id,p[2].id]),'host_only');p[1].ready=p[2].ready=true;
+ assert.equal(swapTeams(f.s,p[0],[p[1].id,p[2].id]),null);assert.deepEqual(p.map(p=>p.team),['a','a','b','b']);assert.equal(p[1].ready,false);assert.equal(p[2].ready,false);
+ await start(f);assert.equal(changeTeam(f.s,p[0],'b'),'match_started');assert.equal(swapTeams(f.s,p[0],[p[1].id,p[2].id]),'host_only');
+});
+test('lasers and paralysis cannot affect allies; the first elimination does not finish the match',async()=>{
+ const f=await fixture();await start(f);const {s,world,ws,sent}=f,[a,b,ally,lastEnemy]=s.players;a.pos=[0,120,100];ally.pos=[0,120,0];b.pos=[1000,120,0];lastEnemy.pos=[1000,120,500];a.profile.attack=100000;
+ await pvpMessage(world,s,a,{type:'pvpSkill',skill:'paralyze',targetId:ally.id},ws,13100);assert.equal(ally.paralyzedUntil,0);assert.equal(a.skillReadyAt.paralyze,undefined);assert.equal(sent.at(-1).error,'too_far');
+ const hp=ally.hp;await pvpMessage(world,s,a,{type:'volley',weapon:'laser',shots:[{offset:[0,0,0],direction:[0,0,-1]}]},ws,13100);advancePvp(s,13200);assert.equal(ally.hp,hp);await pvpMessage(world,s,a,{type:'volley',weapon:'missile',targetId:ally.id,shots:[{offset:[0,0,0],direction:[0,0,-1],locked:true}]},ws,13200);advancePvp(s,13300);assert.equal(ally.hp,hp);
+ b.hp=0;advancePvp(s,13300);assert.equal(s.pvpMatch.status,'active');assert.equal(b.eliminated,true);assert.equal(pvpSnapshot(s,13300).players.find(p=>p.id===b.id).death,null);
+ const position=[...b.pos],shots=s.bullets.length;await pvpMessage(world,s,b,{type:'input',seq:1,move:[1,0,0],aim:[0,0]},ws,13400);assert.deepEqual(b.pos,position);
+ await pvpMessage(world,s,b,{type:'volley',weapon:'laser',shots:[{offset:[0,0,0],direction:[0,0,1]}]},ws,13400);assert.ok(s.bullets.length<=shots);
+ lastEnemy.hp=0;advancePvp(s,13500);assert.equal(s.pvpMatch.status,'finished');assert.equal(s.pvpMatch.winnerTeam,'a');assert.equal(s.bossRewards,undefined);assert.equal(s.pendingKills,undefined);
+});
+test('an expired disconnect removes one ship, preserves its team and never grants a free revival',async()=>{
+ const f=await fixture();await start(f);const {s,world}=f,missing=s.players[2];missing.connected=false;missing.lastSeen=13000;advancePvp(s,14000);assert.equal(s.pvpMatch.paused,true);
+ advancePvp(s,33000);assert.equal(missing.hp,0);assert.equal(missing.eliminated,true);assert.equal(s.pvpMatch.status,'active');assert.equal(s.pvpMatch.paused,false);
+ const resumed=await enterPvp(world,s,body(missing.id),missing.id,34000);assert.ok(resumed.token);assert.equal(missing.hp,0);assert.equal(missing.team,'a');
+});
+test('2v2 practice provides one allied bot and two rivals that only select opponents',async()=>{
+ const f=await fixture(true);assert.equal(f.s.players.length,4);assert.equal(f.s.players.filter(p=>p.isBot&&p.team==='a').length,1);assert.equal(f.s.players.filter(p=>p.isBot&&p.team==='b').length,2);await start(f);
+ for(let now=13100;now<=16000;now+=100)advancePvp(f.s,now);
+ for(const bot of f.s.players.filter(p=>p.isBot)){assert.ok(bot.botBrain?.targetId);assert.notEqual(f.s.players.find(p=>p.id===bot.botBrain.targetId).team,bot.team)}
+ const positions=f.s.players.map(p=>[...p.pos]);await pvpMessage(f.world,f.s,f.s.players[0],{type:'practicePause',paused:true},f.ws,16100);advancePvp(f.s,17000);assert.deepEqual(f.s.players.map(p=>p.pos),positions);
+});
+
+test('leaving removes only that player until the last living teammate leaves',async()=>{
+ const f=await fixture();await start(f);const [a,,ally]=f.s.players;
+ await pvpMessage(f.world,f.s,a,{type:'leave'},f.ws,13100);assert.equal(f.s.pvpMatch.status,'active');assert.equal(a.hp,0);assert.equal(ally.hp,ally.profile.maxHp);
+ await pvpMessage(f.world,f.s,ally,{type:'leave'},f.ws,13200);assert.equal(f.s.pvpMatch.status,'finished');assert.equal(f.s.pvpMatch.winnerTeam,'b');assert.equal(f.s.pvpMatch.reason,'surrender');
+});

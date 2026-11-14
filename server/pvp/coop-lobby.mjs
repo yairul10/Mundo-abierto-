@@ -1,3 +1,4 @@
+import {validPvpMode} from './pvp-teams.mjs';
 import {pvpRoomName} from './pvp-match.mjs';
 import {DurableObject} from 'cloudflare:workers';
 import {ROOM_CODE,roomName} from './expedition.mjs';
@@ -35,6 +36,7 @@ export class CoopLobby extends DurableObject{
   return {error:'rooms_busy'};
  }
  async enterDuel(body){
+  const mode=body.arena?.mode||'1v1';if(!validPvpMode(mode))return {error:'invalid_mode'};
   const action=body.arena?.action,code=String(body.arena?.code||'').trim().toUpperCase(),realm=body.realm==='test'?'test':'normal';
   if(!['find','create','join','resume','bot'].includes(action))return {error:'invalid_room_choice'};
   if(['join','resume'].includes(action)&&!ROOM_CODE.test(code))return {error:'invalid_room_code'};
@@ -45,7 +47,8 @@ export class CoopLobby extends DurableObject{
    else if(action==='find')room=this.ctx.storage.sql.exec("SELECT code,visibility FROM pvp_rooms WHERE visibility='public' AND closed=0 ORDER BY created_at DESC LIMIT 200").toArray().find(r=>!attempted.has(r.code));
    if(!room&&['join','resume'].includes(action))return {error:'room_not_found'};
    if(!room){let next;do{next=newCode()}while(this.ctx.storage.sql.exec('SELECT code FROM pvp_rooms WHERE code=?',next).toArray().length);room={code:next,visibility:action==='bot'?'practice':action==='create'?'private':'public'};this.ctx.storage.sql.exec('INSERT INTO pvp_rooms(code,visibility,created_at) VALUES(?,?,?)',room.code,room.visibility,Date.now())}
-   const ticket=await this.env.ROOMS.getByName(pvpRoomName(realm,room.code)).enter({...body,pvpRoom:{...room,realm,bot:room.visibility==='practice'}});
+   room={...room,mode};
+   const ticket=await this.env.ROOMS.getByName(pvpRoomName(realm,room.code,mode)).enter({...body,pvpRoom:{...room,realm,bot:room.visibility==='practice'}});
    if(!ticket.error)return {...ticket,arena:room};
    if(['match_finished','match_started'].includes(ticket.error))this.ctx.storage.sql.exec('UPDATE pvp_rooms SET closed=1 WHERE code=?',room.code);
    if(action!=='find'||!['world_full','match_finished','match_started'].includes(ticket.error))return ticket;attempted.add(room.code);
@@ -54,4 +57,5 @@ export class CoopLobby extends DurableObject{
  }
 
 }
+
 
