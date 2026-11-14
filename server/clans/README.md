@@ -78,3 +78,23 @@ Borrar reemplaza el texto y conserva el recibo/cooldown: autor, líder u oficial
 Chat global → pestaña Clan consulta cada 8 segundos solo con la ventana activa;
 cerrar o cambiar de pestaña detiene consultas e ignora respuestas tardías.
 Los autores se identifican por su ID corto verificado, igual que la lista de miembros.
+
+Ranking y misiones: GET /clans/missions y GET /clans/ranking, ambos con Google Play.
+Semana lunes 00:00 UTC; objetivos fijos por semana: 100 bajas (100 puntos),
+10 Colosos Pro (200), 5 Titanes Pro/Nexo (300), 3 Infernos Pro (400).
+Los jefes también suman a las 100 bajas. Cada objetivo da sus puntos una sola vez.
+Ranking: top 50 por puntos, bajas únicas, antigüedad e ID; sin premios monetarios.
+No hay endpoint público de aportes ni botones para reclamar puntos del cliente.
+0006-clan-missions.sql recibe únicamente eventos del combate cooperativo autoritativo.
+Una baja cuenta una vez por clan; cada miembro con daño real registra participación.
+Invitados, bots, prácticas PvP y naves admin no aportan. Entornos separados.
+El outbox SQLite se guarda en la misma transacción que la recompensa/snapshot.
+La alarma existente entrega hasta 50 recibos por lote a D1, reintenta tras errores
+incluso sin jugadores conectados y confirma solo después de persistir en D1.
+La clave de evento+actor hace idempotente la entrega tras reinicio o fallo parcial.
+D1 exige membresía con joined_at anterior al evento: un cambio de clan durante un
+reintento no transfiere bajas al nuevo clan. Los aportes ya obtenidos se conservan
+al salir, y se eliminan junto con el clan al disolver. Aportes con nombres verificados.
+El cambio semanal consulta una nueva clave sin borrar el historial ni requerir cron.
+Solo se cuentan bajas nuevas desde el despliegue; no se importan recompensas antiguas.
+Validación adicional: node server/clans/missions-runtime-test.mjs (Miniflare).

@@ -4,11 +4,11 @@ const admissions={open:'Ingreso libre',request:'Por solicitud',invite:'Solo invi
 export function mountClans({button,getToken,createClan,hasPendingCreation=()=>false,realm='normal'}){
  let dialog=null,controller=null,epoch=0,busy=false,accountState=null;
  const element=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
- const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=473';document.head.append(style);
+ const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=474';document.head.append(style);
  button.onclick=()=>{
   if(dialog)return;
   dialog=element('dialog');dialog.className='clan-dialog';dialog.setAttribute('aria-label','Clanes');
-  const header=element('header'),title=element('h2','Clanes'),close=element('button','Cerrar'),tabs=element('nav'),mine=element('button','Mi clan'),searchTab=element('button','Buscar clanes'),content=element('section'),status=element('p');status.setAttribute('role','status');content.setAttribute('aria-live','polite');header.append(title,close);tabs.append(mine,searchTab);dialog.append(header,tabs,status,content);
+  const header=element('header'),title=element('h2','Clanes'),close=element('button','Cerrar'),tabs=element('nav'),mine=element('button','Mi clan'),searchTab=element('button','Buscar clanes'),missionsTab=element('button','Misiones'),rankingTab=element('button','Ranking'),content=element('section'),status=element('p');status.setAttribute('role','status');content.setAttribute('aria-live','polite');header.append(title,close);tabs.append(mine,searchTab,missionsTab,rankingTab);dialog.append(header,tabs,status,content);
   function finish(){if(busy)return;epoch++;controller?.abort();dialog?.close();dialog?.remove();dialog=null;button.focus()}
   close.onclick=finish;dialog.addEventListener('cancel',e=>{e.preventDefault();finish()});dialog.addEventListener('click',e=>{if(e.target===dialog)finish()});
   for(const event of ['pointerdown','touchstart','keydown','keyup'])dialog.addEventListener(event,e=>e.stopPropagation());
@@ -35,7 +35,7 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
     else{const token=await getToken(),response=await fetch(API+'/clans/edit?realm='+encodeURIComponent(realm),{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({...values,id:clan.id,revision:clan.revision}),signal:AbortSignal.timeout(12000)}),result=await response.json();if(!response.ok)throw Error(result.error==='clan_edit_conflict'?'El clan cambió o no tienes permisos. Vuelve a abrir Mi clan.':'No se pudieron guardar los cambios.')}
    },form)};content.append(form);
   }
-  async function write(action,form){if(busy)return;busy=true;close.disabled=mine.disabled=searchTab.disabled=true;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=true;status.textContent='Guardando…';try{await action();busy=false;globalThis.dispatchEvent?.(new Event('cosmos:clans-changed'));mine.onclick()}catch(error){status.textContent=error.message}finally{busy=false;close.disabled=mine.disabled=searchTab.disabled=false;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=false}}
+  async function write(action,form){if(busy)return;busy=true;missionsTab.disabled=rankingTab.disabled=close.disabled=mine.disabled=searchTab.disabled=true;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=true;status.textContent='Guardando…';try{await action();busy=false;globalThis.dispatchEvent?.(new Event('cosmos:clans-changed'));mine.onclick()}catch(error){status.textContent=error.message}finally{busy=false;missionsTab.disabled=rankingTab.disabled=close.disabled=mine.disabled=searchTab.disabled=false;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=false}}
   function actionButton(label,action,clanId,targetId){const button=element('button',label);button.type='button';button.onclick=()=>membership(action,clanId,targetId);return button}
   function membership(action,clanId,targetId,form){return write(async()=>{
    const token=await getToken(),response=await fetch(API+'/clans/membership?realm='+encodeURIComponent(realm),{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action,clanId,targetId}),signal:AbortSignal.timeout(12000)}),result=await response.json();
@@ -88,6 +88,19 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
    function search(){const query=input.value.trim();load('/clans/search?q='+encodeURIComponent(query),data=>{content.append(form,results);results.replaceChildren();if(!data.clans.length){results.append(element('p',query?'No se encontraron clanes con ese nombre o etiqueta.':'Todavía no hay clanes creados.'));return}for(const clan of data.clans){const card=element('button');card.className='clan-card';card.append(element('strong','['+clan.tag+'] '+clan.name),element('span',clan.memberCount+'/20 · '+admissions[clan.admission]));card.onclick=()=>load('/clans/detail?id='+encodeURIComponent(clan.id),data=>showClan(data.clan));results.append(card)}if(data.clans.length===data.limit)results.append(element('p','Se muestran los primeros 20. Escribe un nombre o etiqueta para afinar la búsqueda.'))})}
    form.onsubmit=e=>{e.preventDefault();search()};search();
   };
+  const period=data=>element('p','Semana actual · termina '+new Date(data.endsAt).toLocaleString()+'. Reinicio: lunes 00:00 UTC.');
+  missionsTab.onclick=()=>{title.textContent='Misiones del clan';load('/clans/missions',data=>{
+   content.append(period(data));if(!data.clan){content.append(element('p','Únete a un clan para participar en sus misiones.'));return;}
+   content.append(element('h3','['+data.clan.tag+'] '+data.clan.name),element('p','Bajas del cooperativo validadas por el servidor. Cada enemigo cuenta una vez para el clan; los pilotos que hicieron daño registran su participación.'));
+   for(const mission of data.missions){const row=element('article'),bar=element('progress');bar.max=mission.goal;bar.value=mission.progress;bar.setAttribute('aria-label',mission.title);row.append(element('h3',mission.title),element('p',mission.progress+'/'+mission.goal+' · '+mission.points+' puntos'+(mission.completed?' · Completada ✓':'')),bar);content.append(row)}
+   content.append(element('h3','Aportes de la semana'),element('p','Las participaciones de varios miembros en una misma baja se muestran por separado. Los puntos ya obtenidos permanecen en el clan aunque un miembro salga.'));
+   const list=element('ol');for(const pilot of data.contributors)list.append(element('li',pilot.pilot+' · '+pilot.kills+' participaciones'));if(!data.contributors.length)content.append(element('p','Todavía no hay aportes.'));else content.append(list);
+  })};
+  rankingTab.onclick=()=>{title.textContent='Ranking semanal de clanes';load('/clans/ranking',data=>{
+   content.append(period(data),element('p','Puntos por misiones completadas. En empates se comparan las bajas únicas del clan.'));
+   if(!data.ranking.length){content.append(element('p','Todavía no hay clanes para mostrar.'));return;}
+   const list=element('ol');for(const clan of data.ranking){const row=element('li');row.append(element('strong','['+clan.tag+'] '+clan.name),element('p',clan.points+' puntos · '+clan.kills+' bajas'));list.append(row)}content.append(list,element('p','Se muestran hasta '+data.limit+' clanes.'));
+  })};
   document.body.append(dialog);dialog.showModal();mine.onclick();
  };
 }

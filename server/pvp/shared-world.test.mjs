@@ -6,7 +6,7 @@ import {ensureArenaEnemies,recordArenaDamage,advanceArenaEnemies} from './arena-
 // Exercise the real class with a small SQLite/context double, without a Workers runtime.
 const source=readFileSync(new URL('./shared-world.mjs',import.meta.url),'utf8')
  .replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {constructor(ctx){this.ctx=ctx}}')
- .replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${new URL(path,import.meta.url).href}'`);
+ .replace(/from '(\.\.?\/[^']+)'/g,(_,path)=>`from '${new URL(path,import.meta.url).href}'`);
 const {SharedWorld}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 function context(){
  const db={world:null,rewards:[],writes:0,reads:0,fail:false};let sockets=[];
