@@ -4,13 +4,13 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {clanAccountState,clanPermissions,CLAN_RULES} from '../server/clans/store.mjs';
+import {clanAccountState,clanPermissions,CLAN_RULES,searchClans,publicClan} from '../server/clans/store.mjs';
 import {clanRoute} from '../server/clans/route.mjs';
 const schema=readFileSync(new URL('../server/clans/migrations/0001-clans.sql',import.meta.url),'utf8');
 function database(path=':memory:'){
  const sql=new DatabaseSync(path);sql.exec('PRAGMA foreign_keys=ON');sql.exec(schema);
- const db={prepare(query){return {bind(...args){return {query,args}}}},async batch(statements){sql.exec('BEGIN');try{const result=statements.map(s=>({results:sql.prepare(s.query).all(...s.args)}));sql.exec('COMMIT');return result}catch(e){sql.exec('ROLLBACK');throw e}}};
- const clan=(id,realm='normal')=>sql.prepare('INSERT INTO clans(realm,id,name,name_key,tag,created_at) VALUES(?,?,?,?,?,?)').run(realm,id,'Clan '+id,'clan '+id,id.toUpperCase(),1);
+ const db={prepare(query){return {bind(...args){return {query,args,async all(){return {results:sql.prepare(query).all(...args)}}}}}},async batch(statements){sql.exec('BEGIN');try{const result=statements.map(s=>({results:sql.prepare(s.query).all(...s.args)}));sql.exec('COMMIT');return result}catch(e){sql.exec('ROLLBACK');throw e}}};
+ const clan=(id,realm='normal')=>sql.prepare('INSERT INTO clans(realm,id,name,name_key,tag,created_at) VALUES(?,?,?,?,?,?)').run(realm,id,'Clan '+id,('clan '+id).toLowerCase(),id.toUpperCase(),1);
  const member=(id,clanId,role='member',realm='normal')=>sql.prepare('INSERT INTO clan_members VALUES(?,?,?,?,?)').run(realm,id,clanId,role,1);
  return {sql,db,clan,member};
 }
@@ -53,5 +53,22 @@ test('clan reads require Google identity, ignore forged account/role and reject 
  assert.equal((await clanRoute(req('/clans/me','POST'),env)).status,405);
  assert.equal((await clanRoute(req('/clans/create','POST'),env)).status,404);
  const guest={...env,TEST_GUEST_ACCESS:'true',TEST_SERVER_ENABLED:'true'};assert.equal((await clanRoute(req('/clans/me?realm=test','GET','Bearer test-guest-'+'a'.repeat(64)),guest)).status,403);
+ }finally{f.sql.close()}
+});
+
+test('clan directory searches names and tags literally, isolates realms and hides private requests',async()=>{
+ const f=database();try{f.clan('COS');f.clan('TEST','test');f.member('lead123456','COS','leader');
+ assert.equal((await searchClans(f.db,'normal','cos')).clans[0].memberCount,1);
+ assert.equal((await searchClans(f.db,'normal','clan cos')).clans[0].tag,'COS');
+ assert.equal((await searchClans(f.db,'normal',"%' OR 1=1 --")).clans.length,0);
+ assert.equal((await searchClans(f.db,'normal','test')).clans.length,0);
+ const detail=await publicClan(f.db,'normal','COS');assert.equal(detail.members[0].role,'leader');assert.equal(detail.members[0].pilot,'Piloto #123456');assert.equal(detail.members[0].account_id,undefined);
+ assert.equal(await publicClan(f.db,'test','COS'),null);
+ const id='12345678-1234-1234-1234-123456789abc',env={CLANS_DB:f.db,PLAY_IDENTITY:{fetch:async()=>Response.json({authenticated:true,playerId:id})}};
+ const req=url=>new Request('https://test'+url,{headers:{Authorization:'Bearer valid-session-123'}});
+ assert.equal((await clanRoute(req('/clans/search?q=COS'),env)).body.clans.length,1);
+ assert.equal((await clanRoute(req('/clans/detail?id=missing'),env)).status,404);
+ assert.equal((await clanRoute(req('/clans/search?q='+'x'.repeat(41)),env)).status,400);
+ assert.equal((await clanRoute(req('/clans/detail?id=../COS'),env)).status,400);
  }finally{f.sql.close()}
 });

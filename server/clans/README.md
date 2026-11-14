@@ -25,3 +25,8 @@ La transferencia de liderazgo debe cambiar ambos roles en una sola transacción.
 La tabla de recibos conserva la operación aunque posteriormente se disuelva el clan.
 
 Validación: node --test tests/clan-storage.test.mjs
+
+Paso 3: menú Clanes en ☰ (mapa individual), Mi clan y búsqueda por nombre/etiqueta.
+GET /clans/search?q= devuelve hasta 20 clanes. GET /clans/detail?id= devuelve
+la ficha y miembros con identificador corto de piloto, sin solicitudes ni invitaciones.
+Ambas rutas requieren Google Play y aíslan realm. Crear/ingresar se añade después.

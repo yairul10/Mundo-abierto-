@@ -18,3 +18,19 @@ export async function clanAccountState(db,realm,accountId,now=Date.now()){
  ]);
  return {rules:CLAN_RULES,clan:{...clan,members:members.results},permissions,invitations:invites.results,requests:requests.results,pendingRequests:pending.results};
 }
+
+export async function searchClans(db,realm,query=''){
+ db=db.withSession?db.withSession('first-primary'):db;
+ const q=String(query).normalize('NFKC').trim().toLocaleLowerCase('es');
+ const data=await db.prepare("SELECT c.id,c.name,c.tag,c.description,c.admission,(SELECT count(*) FROM clan_members m WHERE m.realm=c.realm AND m.clan_id=c.id) AS member_count FROM clans c WHERE c.realm=? AND (?='' OR instr(c.name_key,?)>0 OR instr(lower(c.tag),?)>0) ORDER BY c.name_key,c.id LIMIT 20").bind(realm,q,q,q).all();
+ return {clans:data.results.map(row=>({id:row.id,name:row.name,tag:row.tag,description:row.description,admission:row.admission,memberCount:row.member_count})),limit:20};
+}
+export async function publicClan(db,realm,id){
+ db=db.withSession?db.withSession('first-primary'):db;
+ const [clans,members]=await db.batch([
+  db.prepare('SELECT id,name,tag,description,admission,created_at FROM clans WHERE realm=? AND id=?').bind(realm,id),
+  db.prepare("SELECT account_id,role,joined_at FROM clan_members WHERE realm=? AND clan_id=? ORDER BY CASE role WHEN 'leader' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END,joined_at,account_id LIMIT 20").bind(realm,id)
+ ]);
+ const row=clans.results[0];if(!row)return null;
+ return {id:row.id,name:row.name,tag:row.tag,description:row.description,admission:row.admission,createdAt:row.created_at,memberCount:members.results.length,members:members.results.map(p=>({pilot:'Piloto #'+p.account_id.replaceAll('-','').slice(-6),role:p.role,joinedAt:p.joined_at}))};
+}
