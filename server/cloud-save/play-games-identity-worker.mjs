@@ -68,6 +68,7 @@ export default {
     playerId=linked?.player_id;
    }
    if(!playerId)return reply({error:'identity_unavailable'},503,origin);
+   await env.DB.prepare('UPDATE players SET display_name=? WHERE id=?').bind(String(profile.displayName||'').slice(0,100),playerId).run();
    // A short-lived signed session authorizes save access; never trust client-supplied player IDs.
    const grants=(await env.DB.prepare('SELECT ship_id FROM account_ship_grants WHERE player_id=?').bind(playerId).all()).results.map(r=>r.ship_id);
    return reply({authenticated:true,grants,displayName:String(profile.displayName||'').slice(0,100),playerId,sessionToken:await createSession(env.SESSION_SIGNING_KEY,playerId),expiresIn:86400},200,origin);

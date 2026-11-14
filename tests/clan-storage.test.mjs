@@ -8,7 +8,7 @@ import {clanAccountState,clanPermissions,CLAN_RULES,searchClans,publicClan,clanB
 import {clanRoute} from '../server/clans/route.mjs';
 const schema=readFileSync(new URL('../server/clans/migrations/0001-clans.sql',import.meta.url),'utf8');
 function database(path=':memory:'){
- const sql=new DatabaseSync(path);sql.exec('PRAGMA foreign_keys=ON');sql.exec(schema);
+ const sql=new DatabaseSync(path);sql.exec('PRAGMA foreign_keys=ON');sql.exec(schema);sql.exec('CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY,display_name TEXT)');
  const db={prepare(query){return {bind(...args){return {query,args,async all(){return {results:sql.prepare(query).all(...args)}}}}}},async batch(statements){sql.exec('BEGIN');try{const result=statements.map(s=>({results:sql.prepare(s.query).all(...s.args)}));sql.exec('COMMIT');return result}catch(e){sql.exec('ROLLBACK');throw e}}};
  const clan=(id,realm='normal')=>sql.prepare('INSERT INTO clans(realm,id,name,name_key,tag,created_at) VALUES(?,?,?,?,?,?)').run(realm,id,'Clan '+id,('clan '+id).toLowerCase(),id.toUpperCase(),1);
  const member=(id,clanId,role='member',realm='normal')=>sql.prepare('INSERT INTO clan_members VALUES(?,?,?,?,?)').run(realm,id,clanId,role,1);
@@ -45,10 +45,12 @@ test('requests are visible to their account and clan officers; expired invitatio
 test('clan reads require Google identity, ignore forged account/role and reject mutation routes',async()=>{
  const f=database();try{f.clan('COS');f.member('verified','COS','leader');const id='12345678-1234-1234-1234-123456789abc';
  f.sql.prepare('UPDATE clan_members SET account_id=?').run(id);
+ f.sql.prepare('INSERT INTO players VALUES(?,?)').run(id,'yairulbosss');
  const env={CLANS_DB:f.db,PLAY_IDENTITY:{fetch:async()=>Response.json({authenticated:true,playerId:id})}};
  const req=(url='/clans/me',method='GET',auth='Bearer valid-session-123')=>new Request('https://test'+url,{method,headers:auth?{Authorization:auth}:{}});
  assert.equal((await clanRoute(req('/clans/me','GET',''),env)).status,401);
- const result=await clanRoute(req('/clans/me?accountId=forged&role=member'),env);assert.equal(result.body.clan.role,'leader');
+ const result=await clanRoute(req('/clans/me?accountId=forged&role=member'),env);assert.equal(result.body.clan.role,'leader');assert.equal(result.body.clan.members[0].pilot,'yairulbosss');
+ const detail=await clanRoute(req('/clans/detail?id=COS'),env);assert.equal(detail.body.clan.members[0].pilot,'yairulbosss');assert.equal(detail.body.clan.members[0].account_id,undefined);
  assert.equal((await clanRoute(req('/clans/me?realm=other'),env)).status,400);
  assert.equal((await clanRoute(req('/clans/me','POST'),env)).status,405);
  assert.equal((await clanRoute(req('/clans/create','POST'),env)).status,400);

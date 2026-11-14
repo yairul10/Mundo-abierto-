@@ -31,7 +31,7 @@ export function startSharedSession(bridge){
  let transferConfirmed=false,localDeathId='',identity=null,ws=null,state=null,me=null,seq=0,pending=[],lastSend=0,lastPing=0,lastReceived=performance.now(),retryAt=0,attempts=0,busy=false,closed=false,selected='',clockOffset=0,lastRevision=-1,portalTime=0,lastFrame=performance.now(),firstState=true,hangarRequested=false,hangarRequestAt=0,lastLuck=0,pingMs=null,messageUntil=0;
  const clanBadges=createClanBadges({getToken:pvpAccountToken,realm,onChange:()=>bridge.clanBadges?.(clanBadges)});addEventListener('cosmos:clans-changed',()=>clanBadges.invalidate());
  const seenEvents=new Set(),$=id=>document.getElementById(id);
- if(ARENA_MODE){const arenaStyle=document.createElement('link');arenaStyle.rel='stylesheet';arenaStyle.href='./css/pvp-match.css?v=471';document.head.append(arenaStyle)}
+ if(ARENA_MODE){const arenaStyle=document.createElement('link');arenaStyle.rel='stylesheet';arenaStyle.href='./css/pvp-match.css?v=473';document.head.append(arenaStyle)}
  const style=document.createElement('link');
  const mountControls=()=>mountPvpControlEditor({realm,isHangarOpen:bridge.isHangarOpen});
  style.addEventListener('load',mountControls,{once:true});

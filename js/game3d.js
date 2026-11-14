@@ -1,6 +1,6 @@
 import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=472';
 import {createCoopFarmPilot} from './coop-farm-pilot.js?v=472';
-import {mountClans} from './clans-ui.js?v=472';
+import {mountClans} from './clans-ui.js?v=473';
 import {missileLaunches} from './missile-launch.js?v=454';
 import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=472';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';

@@ -4,7 +4,7 @@ const admissions={open:'Ingreso libre',request:'Por solicitud',invite:'Solo invi
 export function mountClans({button,getToken,createClan,hasPendingCreation=()=>false,realm='normal'}){
  let dialog=null,controller=null,epoch=0,busy=false,accountState=null;
  const element=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
- const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=472';document.head.append(style);
+ const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=473';document.head.append(style);
  button.onclick=()=>{
   if(dialog)return;
   dialog=element('dialog');dialog.className='clan-dialog';dialog.setAttribute('aria-label','Clanes');
@@ -47,9 +47,9 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
    for(const request of data.requests||[]){const row=element('article');row.append(element('p','Solicitud pendiente: ['+request.tag+'] '+request.name),actionButton('Cancelar solicitud','cancelRequest',request.clan_id));content.append(row)}
    if(!data.clan||!data.permissions?.manageAdmissions)return;
    const form=element('form'),input=element('input'),submit=element('button','Invitar piloto');input.placeholder='ID completo del piloto';input.setAttribute('aria-label','ID del piloto a invitar');input.required=true;input.maxLength=36;submit.type='submit';form.append(input,submit);form.onsubmit=e=>{e.preventDefault();return membership('invite',data.clan.id,input.value.trim(),form)};content.append(element('h3','Invitaciones · duran 7 días'),form);
-   for(const invite of data.outgoingInvitations||[]){const row=element('article');row.append(element('p','Invitado: Piloto #'+invite.account_id.replaceAll('-','').slice(-6)),actionButton('Cancelar invitación','cancelInvite',data.clan.id,invite.account_id));content.append(row)}
+   for(const invite of data.outgoingInvitations||[]){const row=element('article');row.append(element('p','Invitado: '+(invite.pilot||'Nombre no disponible')),actionButton('Cancelar invitación','cancelInvite',data.clan.id,invite.account_id));content.append(row)}
    if(data.pendingRequests?.length)content.append(element('h3','Solicitudes de ingreso'));
-   for(const request of data.pendingRequests||[]){const row=element('article');row.append(element('p','Piloto #'+request.account_id.replaceAll('-','').slice(-6)),actionButton('Aprobar ingreso','approve',data.clan.id,request.account_id),actionButton('Rechazar solicitud','reject',data.clan.id,request.account_id));content.append(row)}
+   for(const request of data.pendingRequests||[]){const row=element('article');row.append(element('p',request.pilot||'Nombre no disponible'),actionButton('Aprobar ingreso','approve',data.clan.id,request.account_id),actionButton('Rechazar solicitud','reject',data.clan.id,request.account_id));content.append(row)}
   }
   function adminButton(label,action,clan,member){
    const button=element('button',label);button.type='button';const operationId=()=>crypto.randomUUID();
@@ -60,7 +60,7 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
     pending||=operationId();
     if(action==='promote'||action==='demote')return execute(pending);
     const box=element('section');box.className='clan-confirm';
-    const pilot=member?.pilot||'Piloto #'+String(member?.account_id||'').replaceAll('-','').slice(-6);
+    const pilot=member?.pilot||'Nombre no disponible';
     box.append(element('h3',label),element('p',action==='transfer'?'El nuevo líder será '+pilot+'. Tú pasarás a ser oficial.':action==='kick'?'Se expulsará a '+pilot+' del clan.':'Se eliminarán el clan, sus membresías, solicitudes e invitaciones. No se devuelven los 200.000 créditos de creación.'));
     let tag;if(action==='disband'){tag=element('input');tag.placeholder='Escribe '+clan.tag+' para confirmar';tag.setAttribute('aria-label','Etiqueta del clan para confirmar disolución');box.append(tag)}
     const confirm=element('button','Confirmar '+(action==='transfer'?'transferencia':action==='kick'?'expulsión':'disolución')),cancel=element('button','Cancelar');confirm.type=cancel.type='button';confirm.onclick=()=>{if(tag&&tag.value.trim().toUpperCase()!==clan.tag){status.textContent='Escribe la etiqueta exacta del clan para confirmar.';return}return execute(pending)};cancel.onclick=()=>{if(!busy){box.remove();pending=null;button.disabled=false}};box.append(confirm,cancel);content.append(box);button.disabled=true;
@@ -69,7 +69,7 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
   function showClan(clan){
    title.textContent='['+clan.tag+'] '+clan.name;
    const summary=element('p',(clan.memberCount??clan.members?.length??0)+'/20 miembros · '+(admissions[clan.admission]||'')),description=element('p',clan.description||'Sin descripción.'),heading=element('h3','Miembros'),list=element('ul');list.className='clan-members';
-   for(const member of clan.members||[]){const row=element('li'),name=element('span',member.pilot||'Piloto #'+String(member.account_id||'').replaceAll('-','').slice(-6)),role=element('strong',roles[member.role]||'Miembro');row.append(name,role);if(clan.role&&member.account_id&&member.account_id!==accountState?.pilotId&&member.role!=='leader'){const actions=element('div');actions.className='clan-member-actions';if(clan.role==='leader'){actions.append(adminButton(member.role==='officer'?'Quitar cargo de oficial':'Ascender a oficial',member.role==='officer'?'demote':'promote',clan,member),adminButton('Transferir liderazgo','transfer',clan,member));}if(clan.role==='leader'||clan.role==='officer'&&member.role==='member')actions.append(adminButton('Expulsar','kick',clan,member));row.append(actions);}list.append(row)}
+   for(const member of clan.members||[]){const row=element('li'),name=element('span',member.pilot||'Nombre no disponible'),role=element('strong',roles[member.role]||'Miembro');row.append(name,role);if(clan.role&&member.account_id&&member.account_id!==accountState?.pilotId&&member.role!=='leader'){const actions=element('div');actions.className='clan-member-actions';if(clan.role==='leader'){actions.append(adminButton(member.role==='officer'?'Quitar cargo de oficial':'Ascender a oficial',member.role==='officer'?'demote':'promote',clan,member),adminButton('Transferir liderazgo','transfer',clan,member));}if(clan.role==='leader'||clan.role==='officer'&&member.role==='member')actions.append(adminButton('Expulsar','kick',clan,member));row.append(actions);}list.append(row)}
    if(!list.children.length)list.append(element('li','No hay miembros para mostrar.'));
    content.append(summary,description,heading,list);if(!clan.role&&!accountState?.clan){if(clan.admission==='open')content.append(actionButton('Unirme al clan','join',clan.id));else if(clan.admission==='request')content.append(actionButton('Solicitar ingreso','request',clan.id));else content.append(element('p','Este clan requiere una invitación.'));}
    if(clan.role&&clan.role!=='leader'){const leave=element('button','Salir del clan');leave.onclick=()=>{content.append(element('p','¿Confirmas que quieres salir de este clan?'),actionButton('Confirmar salida','leave',clan.id));leave.disabled=true;};content.append(leave);}
