@@ -51,7 +51,7 @@ export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
  document.addEventListener('pointerdown',e=>{if(!ranks.hidden&&!root.contains(e.target))ranks.hidden=true});
  for(const event of ['pointerdown','touchstart','keydown','keyup'])root.addEventListener(event,e=>e.stopPropagation());
  function showRanks(){table.replaceChildren();for(const [key,title]of [['kills','Bajas válidas'],['xp','XP obtenida en PvP']]){const section=document.createElement('section'),h=document.createElement('h4');h.textContent=title;section.append(h);const data=result[key];if(!data.top.length)section.append('Aún no hay resultados.');for(const row of data.top){const p=document.createElement('p');if(key==='kills')rankedName(p,row.position+'. '+row.name+' · '+Number(row[key]).toLocaleString('es-CL'),row,{title:true});else p.textContent=row.position+'. '+row.name+' · '+Number(row[key]).toLocaleString('es-CL');section.append(p)}const own=document.createElement('strong');own.textContent=data.mine?'Tu posición: '+data.mine.position+' · '+data.mine[key]:'Todavía no tienes bajas válidas.';if(key==='kills'){const stats=data.mine||{};own.prepend(rankBadge(stats));own.append(' · '+pvpRank(stats).name)}section.append(own);table.append(section)}mine.textContent='La XP de misiones y enemigos no cuenta en esta clasificación.'}
- return {receive(m){if(m.type!=='rankings')return false;result=m;showRanks();return true},update(){const {state,me,selected}=getState();if(!state||!me)return;updateGroup(state,me);
+ return {receive(m){if(m.type!=='rankings')return false;result=m;showRanks();return true},update(){const {state,me,selected}=getState();if(state?.match){root.hidden=true;toggle.hidden=true;closeMenu();return}if(!state||!me)return;updateGroup(state,me);
  const cooperative=state.rules?.cooperative===true;
  root.querySelector('[data-top]').hidden=cooperative;root.querySelector('[data-requests]').hidden=cooperative;
  groupOpen.textContent=cooperative?'Grupo cooperativo':'Grupo PvP';
@@ -63,5 +63,6 @@ const now=state.serverTime,request=state.invites?.find(i=>i.to===me.id&&i.expire
  else {const p=document.createElement('p');p.textContent=other.name+' · Duelo voluntario, sin premios ni pérdidas.';duel.append(p,button('Solicitar duelo',()=>send({type:'invite',target:other.id})))}
  },enableRequests(){storage.removeItem('cosmos.duelRequestsOff');send({type:'duelBlock',block:false})}};
 }
+
 
 

@@ -1,3 +1,4 @@
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=451';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -26,7 +27,7 @@ import {ENEMY_BASELINES} from './enemy-balance.js?v=343';
 import {updateProAuras} from './pro-aura.js?v=342';
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
-import {mountPvpZones} from './pvp-zones.js?v=2';
+import {mountPvpZones,mountPvpArena} from './pvp-zones.js?v=451';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
 import {createArenaEnemyView} from './pvp-enemies.js?v=437';
 import {correctionStep} from './pvp-prediction.js?v=324';
@@ -53,14 +54,15 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=450';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=450';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=451';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=450';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_MODE=sharedRequested();
-const COOP_MODE=PVP_MODE;
+const ARENA_MODE=arenaRequested();
+const COOP_MODE=PVP_MODE&&!ARENA_MODE;
 if(!PVP_MODE){const key=window.MUNDO_PLAY_MODE?.mode==='test'?'mundoAbierto.qaPlayer':'mundoAbierto.player';let pending=false;try{finishPvpTransfer(localStorage,key,true);pending=!!JSON.parse(localStorage.getItem(key)||'{}').pendingPvpDeath}catch{}if(pending){const url=new URL(location.href);url.searchParams.set('pvp','1');location.replace(url.href);await new Promise(()=>{});}}
 let pvpBoostersKnown=false;
 let pvpSession=null,pvpHangar=null,pvpCorrection=[0,0,0];
@@ -1941,7 +1943,7 @@ const UPGRADES=[
 player.upgrades=player.upgrades&&typeof player.upgrades==='object'?player.upgrades:{};
 function upgradeLevel(id){return Math.max(0,Math.min(10,Math.floor(Number(player.upgrades[id])||0)))}
 function upgradeBonus(stat){return UPGRADES.filter(u=>u.stat===stat).reduce((n,u)=>n+upgradeLevel(u.id)*u.amount,0)}
-function canUseShop(){return !PVP_MODE||!!pvpHangar||!!pvpSession?.active&&player.hp>0&&!recoveryPending}
+function canUseShop(){if(PVP_MODE&&pvpSession?.arenaMode)return false;return !PVP_MODE||!!pvpHangar||!!pvpSession?.active&&player.hp>0&&!recoveryPending}
 function renderDrones(){
  const containers=[$('hangarDroneShop')].filter(Boolean);if(!containers.length)return;
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
@@ -2592,7 +2594,7 @@ function skill(){if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)re
 const SAFE_ZONE_RADIUS=760;
 function inSafeZone(position){if(PVP_MODE)return !pvpSession?.canFight;return position.distanceTo(currentStation().position)<SAFE_ZONE_RADIUS}
 let lastZoneLabel='';
-function updateZone(){if(PVP_MODE){if(COOP_MODE){$('targetInfo').textContent=pvpSession?.zone==='base'?'BASE · Protegido':'EXPEDICIÓN COOPERATIVA';return inSafeZone(playerMesh.position)}$('targetInfo').textContent=pvpSession?.inDuel?'DUELO · Sin protección de base':pvpSession?.zone==='pve'?'ZONA PvE · Combate contra enemigos':pvpSession?.zone==='hostile'?'ZONA HOSTIL · PvP libre':'BASE COOPERATIVA · Protegido';return inSafeZone(playerMesh.position)}
+function updateZone(){if(ARENA_MODE){$('targetInfo').textContent='ARENA PvP · 1v1';return !pvpSession?.canFight}if(PVP_MODE){if(COOP_MODE){$('targetInfo').textContent=pvpSession?.zone==='base'?'BASE · Protegido':'EXPEDICIÓN COOPERATIVA';return inSafeZone(playerMesh.position)}$('targetInfo').textContent=pvpSession?.inDuel?'DUELO · Sin protección de base':pvpSession?.zone==='pve'?'ZONA PvE · Combate contra enemigos':pvpSession?.zone==='hostile'?'ZONA HOSTIL · PvP libre':'BASE COOPERATIVA · Protegido';return inSafeZone(playerMesh.position)}
  const safe=inSafeZone(playerMesh.position);
  const label=safe?currentStationName().toLocaleUpperCase('es')+'|Zona segura':activeSector==='graveyard'?'CEMENTERIO DE NAVES|Sector de nivel 40+':activeSector==='ember'?'ASCUAS|Sector de nivel 30+':activeSector==='belt'?'CINTURÓN PERDIDO|Sector de nivel 10+':'SECTOR AURORA|Espacio abierto';
  if(label!==lastZoneLabel){
@@ -2647,7 +2649,7 @@ function drawRadar(dt){
  ctx.fillStyle='#fff7a1';ctx.beginPath();ctx.moveTo(78,68);ctx.lineTo(71,87);ctx.lineTo(78,83);ctx.lineTo(85,87);ctx.closePath();ctx.fill();
  ctx.strokeStyle='#5bb9e4aa';ctx.lineWidth=2;ctx.beginPath();ctx.arc(78,78,72,0,Math.PI*2);ctx.stroke();
  const distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
- radarDistance.textContent=PVP_MODE?'Base cooperativa · '+Math.round(playerMesh.position.length())+' m':currentSectorName()+' · '+Math.round(distance)+' m';
+ radarDistance.textContent=ARENA_MODE?'Arena PvP · 1v1':PVP_MODE?'Base cooperativa · '+Math.round(playerMesh.position.length())+' m':currentSectorName()+' · '+Math.round(distance)+' m';
 }
 // Paso 14: atraque asistido y hangar sin cambiar de escena ni perder progreso.
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
@@ -3229,6 +3231,7 @@ $('journalBtn').onclick=()=>activityJournal.open();$('hangarJournal').onclick=()
 addEventListener('mundo:open-journal',()=>activityJournal.open());
 const qaSwitch=$('qaSwitch'),qaTools=$('qaTools');
 qaSwitch.textContent='Cambiar de partida';
+const arenaEntry=$('arenaEntry');arenaEntry.hidden=PVP_MODE;arenaEntry.onclick=async()=>{if(player.hp<=0)return;try{await checkPvpVersion();const choice=await choosePvpMatch();if(!choice)return;if(!save())return;saveArenaChoice(choice);location.href='./index.html?pvp=1&arena=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}catch(error){if(error.updateRequired)showPvpUpdate();else window.alert(error.message)}};
 $('qaPanel').classList.toggle('hidden',!window.MUNDO_PLAY_MODE?.testEnabled&&!qaActive);
 qaTools.classList.add('hidden');
 qaSwitch.onclick=()=>{if(!save())return;window.MUNDO_PLAY_MODE.choose()};
@@ -3568,14 +3571,14 @@ if(PVP_MODE){
   returnPortal=clonePortalVisual();returnModelReady=!!portalMesh.userData.portalModel;returnPortal.position.set(0,120,850);returnPortal.rotation.y=Math.PI;returnPortal.getObjectByName('stoneDestinationLabel').userData.drawDestination(readOfflinePilot(localStorage).sector||'graveyard');returnPortal.getObjectByName('portalCharge').visible=false;scene.add(returnPortal);
  }
  mountReturnPortal();
- function keepArena(){if(!returnModelReady&&portalMesh.userData.portalModel)mountReturnPortal();graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraStation.visible=true;auroraStation.position.set(0,-180,0);auroraStation.scale.setScalar(.65);auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';asteroidField.visible=false;}
+ function keepArena(){if(!returnModelReady&&portalMesh.userData.portalModel)mountReturnPortal();graveyard.station.visible=graveyard.environment.visible=false;for(const light of emberSectorLights)light.visible=false;beltStation.visible=emberStation.visible=carrierMesh.visible=false;auroraStation.visible=!ARENA_MODE;returnPortal.visible=!ARENA_MODE;auroraStation.position.set(0,-180,0);auroraStation.scale.setScalar(.65);auroraPlanetPivot.visible=emberMoonPivot.visible=emberMoonLight.visible=emberMoonFill.visible=false;portalMesh.visible=secondaryPortal.visible=false;portalMessage.style.display=sectorNotice.style.display='none';asteroidField.visible=false;}
  function clearFight(){resetDockControls();clearCombatShots();lockedEnemy=null;fireCd=skillCd=classAbilityTime=classAbilityCd=0;}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
  for(const id of ['questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene,{budget:()=>effectBudget(graphics.level)}):null;
  if(COOP_MODE)scene.fog=new THREE.Fog(0x52617c,1000,2900);
- if(!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=COOP_MODE?'Mapa cooperativo':'Mapa PvP';
- pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>playerMesh.position.distanceTo(returnPortal.position)<=100,
+ if(ARENA_MODE)mountPvpArena(THREE,scene);else if(!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=ARENA_MODE?'Arena PvP · 1v1':COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=ARENA_MODE?'Arena PvP · 1v1':COOP_MODE?'Mapa cooperativo':'Mapa PvP';
+ pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>!ARENA_MODE&&playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
   cooperativeClouds?.update(dt);
   updateBossVisual(dt);arenaView.update(dt);
@@ -3692,6 +3695,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 

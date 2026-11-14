@@ -6,3 +6,10 @@ export function mountPvpZones(T,scene){
  }
  return root;
 }
+
+
+export function mountPvpArena(T,scene){
+ const root=new T.Group();scene.add(root);
+ for(const y of [-900,0,900]){const points=Array.from({length:128},(_,i)=>{const a=i/128*Math.PI*2;return new T.Vector3(Math.cos(a)*2200,y,Math.sin(a)*2200)});root.add(new T.LineLoop(new T.BufferGeometry().setFromPoints(points),new T.LineBasicMaterial({color:y?0x8368f5:0x54dfff,transparent:true,opacity:y?.12:.35})))}
+ const wall=new T.Mesh(new T.CylinderGeometry(2200,2200,1800,96,1,true),new T.MeshBasicMaterial({color:0x6864e6,transparent:true,opacity:.035,side:T.DoubleSide,depthWrite:false}));root.add(wall);return root;
+}
