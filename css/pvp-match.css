@@ -3,3 +3,7 @@
 @media(max-height:450px){#pvpPreparation{top:20%;max-height:68vh;padding:10px;font-size:12px}#pvpPreparation select{padding:6px;margin:3px 0}#pvpPreparation fieldset small{margin:2px 0 6px}}
 
 #pvpTeamControls{display:flex;gap:8px;margin:8px 0}#pvpTeamControls[hidden],#pvpTeamRoster[hidden],#pvpTeamSwap[hidden]{display:none!important}#pvpTeamControls button{width:auto;flex:1;padding:8px;border-color:#73b7ff;background:#153455}#pvpTeamControls button[aria-pressed="true"]{background:#176147;border-color:#7dffc2}#pvpTeamControls button:disabled{opacity:.45}#pvpTeamRoster{font-size:12px;line-height:1.5}#pvpTeamSwap{border:1px solid #49617f;border-radius:8px;margin:8px 0;padding:8px;font-size:12px}.world-nameplate.ally{color:#70ffba}.world-nameplate.pvp-enemy{color:#ff7979}
+
+body.pvp-spectating #combatControls,body.pvp-spectating #pvpSkills,body.pvp-spectating #joystick,body.pvp-spectating #lookZone,body.pvp-spectating #aimReticle,body.pvp-spectating #targetLock{display:none!important}
+#pvpSpectator[hidden]{display:none!important}
+#pvpSpectator button{padding:9px 12px;margin:5px 3px;border-radius:9px;touch-action:manipulation}
