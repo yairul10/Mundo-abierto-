@@ -50,3 +50,14 @@ Las invitaciones duran 7 días y requieren que el invitador siga siendo líder/o
 El menú muestra el ID completo propio para compartirlo, solicitudes e invitaciones.
 La salida del líder queda bloqueada hasta implementar la transferencia del paso 6.
 0003-clan-membership.sql es una migración aditiva e idempotente.
+
+Paso 6: POST /clans/admin admite promote/demote/kick/transfer/disband. Solo el
+líder cambia cargos, transfiere o disuelve. Un oficial solo expulsa miembros
+normales; ningún actor puede expulsarse a sí mismo ni expulsar al líder.
+0004-clan-administration.sql valida permisos y aplica la acción dentro de un
+único INSERT con triggers atómicos. Transferir degrada al líder anterior a oficial
+y asciende al destinatario sin exponer un estado sin líder entre peticiones.
+operationId conserva recibos incluso tras disolver, para que un reintento no
+repita la acción. La disolución elimina las membresías y pendientes por cascada;
+conserva los recibos de pago y no devuelve créditos. El menú confirma expulsión
+y transferencia; disolver exige escribir la etiqueta del clan.

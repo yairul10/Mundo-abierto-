@@ -1,7 +1,7 @@
-import {createCoopFarmPilot} from './coop-farm-pilot.js?v=469';
-import {mountClans} from './clans-ui.js?v=469';
+import {createCoopFarmPilot} from './coop-farm-pilot.js?v=470';
+import {mountClans} from './clans-ui.js?v=470';
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=469';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=470';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -10,7 +10,7 @@ import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
 import {createInfernoCombat} from './inferno.js?v=441';
-import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=469';
+import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=470';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=440';
@@ -32,9 +32,9 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
 import {mountPvpZones,mountPvpArena} from './pvp-zones.js?v=451';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
-import {createArenaEnemyView} from './pvp-enemies.js?v=469';
+import {createArenaEnemyView} from './pvp-enemies.js?v=470';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=469';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=470';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -53,13 +53,13 @@ import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,cr
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
-import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=469';
-import {mountHangarUI} from './hangar-ui.js?v=469';
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=470';
+import {mountHangarUI} from './hangar-ui.js?v=470';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=469';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=469';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=469';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=470';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=470';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=470';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -285,7 +285,7 @@ function createAuroraPlanet(){
  const ocean=ctx.createLinearGradient(0,0,0,256);
  ocean.addColorStop(0,'#081c48');ocean.addColorStop(.28,'#175a99');ocean.addColorStop(.52,'#1c8bba');ocean.addColorStop(.78,'#123c78');ocean.addColorStop(1,'#061634');
  ctx.fillStyle=ocean;ctx.fillRect(0,0,512,256);
- let seed=46923;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ let seed=47023;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
  for(let i=0;i<80;i++){
   const y=rnd()*256,w=100+rnd()*260;
   ctx.fillStyle=i%3===0?'rgba(150,220,242,.09)':'rgba(9,30,88,.14)';
@@ -586,7 +586,7 @@ for(const x of [-19,19]){
  trail.rotation.x=Math.PI/2;trail.position.set(x,y,z+23);playerMesh.add(trail);engineTrails.push(trail);
 }
 // Planeta y luna provisionales eliminados: ahora solo existe planeta_aurora.glb.
-function station(){const g=new THREE.Group(),metal=mat(0x33469c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
+function station(){const g=new THREE.Group(),metal=mat(0x33470c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
 let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
 
@@ -795,7 +795,7 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
   const port=stationConnector(hub,direction);
   const pad=fitted(padSource,360);
   const rim=stationConnector(pad,direction.clone().negate(),18,25);
-  pad.position.copy(direction).multiplyScalar(469);
+  pad.position.copy(direction).multiplyScalar(470);
   pad.position.y=port.center.y-rim.center.y;
   pad.position[port.side]=port.center[port.side]-rim.center[port.side];
   pad.userData.landingRadius=216;pad.name='Plataforma Ascuas';
@@ -1797,7 +1797,7 @@ const carrierMissileGeometry=new THREE.CylinderGeometry(7,10,40,12),carrierMissi
 function decorateCarrierMissile(mesh){
  const tip=new THREE.Mesh(new THREE.ConeGeometry(7,16,12),new THREE.MeshStandardMaterial({color:0xf27832,metalness:.65,roughness:.4}));
  tip.position.y=28;mesh.add(tip);
- const finMat=new THREE.MeshStandardMaterial({color:0x33469b,metalness:.8,roughness:.38,side:THREE.DoubleSide});
+ const finMat=new THREE.MeshStandardMaterial({color:0x33470b,metalness:.8,roughness:.38,side:THREE.DoubleSide});
  for(let i=0;i<4;i++){
   const fin=new THREE.Mesh(new THREE.BoxGeometry(2.5,14,19),finMat);
   fin.position.set(Math.cos(i*Math.PI/2)*11,-12,Math.sin(i*Math.PI/2)*11);

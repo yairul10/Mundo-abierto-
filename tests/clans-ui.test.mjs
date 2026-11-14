@@ -39,3 +39,12 @@ test('membership controls send the selected clan and action with the verified se
  await nodes.filter(n=>n.textContent==='Cancelar solicitud').at(-1).onclick();await flush();assert.equal(sent[1].action,'cancelRequest');
  nodes.find(n=>n.textContent==='Buscar clanes').onclick();await flush();nodes.filter(n=>n.className==='clan-card').at(-1).onclick();await flush();await nodes.find(n=>n.textContent==='Unirme al clan').onclick();await flush();assert.equal(sent.at(-1).action,'join');assert.equal(sent.at(-1).clanId,'open');nodes.find(n=>n.textContent==='Cerrar').onclick();
 });
+
+test('leader administration asks confirmation and requires the clan tag before dissolution',async()=>{
+ const nodes=[];class Element{constructor(tag){this.tag=tag;this.value='';this.children=[];nodes.push(this)}append(...x){this.children.push(...x)}replaceChildren(...x){this.children=x}setAttribute(k,v){this[k]=v}addEventListener(){}showModal(){}close(){}remove(){}focus(){}}
+ const document={createElement:t=>new Element(t),head:new Element('head'),body:new Element('body')},button=new Element('button'),sent=[];
+ const fetch=async(url,o)=>{if(o.method==='POST')sent.push(JSON.parse(o.body));return {ok:true,json:async()=>url.includes('/admin')?{completed:true}:{pilotId:'owner',clan:{id:'one',tag:'UNO',name:'Clan Uno',role:'leader',admission:'request',members:[{account_id:'owner',role:'leader'},{account_id:'member',role:'member'}]}}}};
+ const mount=new Function('document','fetch','AbortController','setTimeout','clearTimeout',source+';return mountClans')(document,fetch,AbortController,setTimeout,clearTimeout);mount({button,getToken:async()=> 'session'});button.onclick();await flush();
+ nodes.find(n=>n.textContent==='Transferir liderazgo').onclick();assert.equal(sent.length,0);await nodes.find(n=>n.textContent==='Confirmar transferencia').onclick();await flush();assert.equal(sent[0].action,'transfer');assert.equal(sent[0].targetId,'member');
+ nodes.filter(n=>n.textContent==='Disolver clan').at(-1).onclick();const input=nodes.find(n=>n.placeholder==='Escribe UNO para confirmar'),confirm=nodes.find(n=>n.textContent==='Confirmar disolución');input.value='wrong';await confirm.onclick();assert.equal(sent.length,1);input.value='UNO';await confirm.onclick();await flush();assert.equal(sent[1].action,'disband');assert.match(sent[1].operationId,/^[a-f0-9-]{36}$/);nodes.find(n=>n.textContent==='Cerrar').onclick();
+});

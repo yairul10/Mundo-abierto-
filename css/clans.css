@@ -3,3 +3,5 @@
 .clan-dialog .clan-form{display:flex;flex-direction:column;gap:14px}.clan-form label{display:flex;flex-direction:column;gap:6px}.clan-form textarea,.clan-form select{box-sizing:border-box;width:100%;font:inherit;padding:10px;border:1px solid #6298be;border-radius:10px;background:#071120;color:#fff}.clan-form textarea{min-height:80px;resize:vertical}.clan-dialog button:disabled{opacity:.55;cursor:wait}
 
 .clan-dialog section>label{display:flex;flex-direction:column;gap:6px;margin-top:18px}.clan-dialog section>label input{width:100%;box-sizing:border-box}.clan-dialog article{border-top:1px solid #24425b;margin-top:14px;padding-top:8px}.clan-dialog article button{margin:4px 6px 4px 0}
+
+.clan-members li{flex-wrap:wrap}.clan-member-actions{display:flex;flex-wrap:wrap;gap:6px;width:100%}.clan-member-actions button{font-size:13px;padding:8px}.clan-confirm{margin-top:16px;padding:14px;border:1px solid #e3ac6e;border-radius:12px}.clan-confirm button{margin:8px 6px 0 0}
