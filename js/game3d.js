@@ -1,5 +1,5 @@
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=460';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=461';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -55,7 +55,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=450';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=460';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=461';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=450';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -793,7 +793,7 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
   const port=stationConnector(hub,direction);
   const pad=fitted(padSource,360);
   const rim=stationConnector(pad,direction.clone().negate(),18,25);
-  pad.position.copy(direction).multiplyScalar(460);
+  pad.position.copy(direction).multiplyScalar(461);
   pad.position.y=port.center.y-rim.center.y;
   pad.position[port.side]=port.center[port.side]-rim.center[port.side];
   pad.userData.landingRadius=216;pad.name='Plataforma Ascuas';

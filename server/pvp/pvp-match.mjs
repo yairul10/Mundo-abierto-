@@ -15,6 +15,28 @@ export function finishPvp(s,now,winner=null,reason='destroyed'){
  Object.assign(m,{status:'finished',finishedAt:now,winner,winnerTeam:s.players.find(p=>p.id===winner)?.team||null,reason,paused:false});s.bullets=[];s.critical=true;
  recordEliminations(s,now);for(const p of s.players)p.firing=false;
 }
+// Bounded approximation for unattended practice only. No world rewards or wallet writes.
+export function simulatePracticeRemainder(s,now,random=Math.random){
+ const m=s.pvpMatch,human=s.players.find(p=>!p.isBot);
+ if(!m.bot||m.status!=='active'||!human||human.hp>0||s.players.some(p=>p!==human&&!p.isBot))return false;
+ const alive=()=>s.players.filter(p=>p.isBot&&p.hp>0&&!p.exiting);
+ let survivors=alive(),seconds=0;
+ const limit=Math.max(0,Math.min(300,Math.ceil((m.deadline-now)/1000)));
+ while(new Set(survivors.map(p=>p.team)).size>1&&seconds<limit){
+  const damage=new Map();
+  for(const bot of survivors){
+   const rivals=survivors.filter(p=>opponents(bot,p));if(!rivals.length)continue;
+   const target=rivals[Math.min(rivals.length-1,Math.floor(random()*rivals.length))];
+   const attack=Math.max(1,Number(bot.profile.attack)||1),drones=Math.max(0,Math.min(8,Number(bot.profile.droneCount)||0));
+   const dps=attack*(.5/.68+.2*drones/.68+3/7);
+   damage.set(target,(damage.get(target)||0)+Math.max(1,dps*.85-(Number(target.profile.defense)||0)*.25));
+  }
+  for(const [target,amount]of damage){const shield=Math.max(0,Number(target.shield)||0),absorbed=Math.min(shield,amount);target.shield=shield-absorbed;target.hp=Math.max(0,target.hp-(amount-absorbed));}
+  seconds++;survivors=alive();
+ }
+ m.simulated=true;m.simulatedSeconds=seconds;
+ finishPvp(s,now,new Set(survivors.map(p=>p.team)).size===1?survivors[0]?.id||null:null,'simulated');return true;
+}
 function placePlayer(s,p,slot){p.slot=slot;p.team=teamForSlot(slot,s.pvpMatch);p.spawn=spawnForSlot(slot,s.pvpMatch);p.pos=[...p.spawn];p.aim=[p.team==='a'?0:Math.PI,0];p.ready=false;p.revision++;s.critical=true}
 export function swapTeams(s,p,ids){
  if(modeRules(s.pvpMatch).freeForAll)return 'invalid_team';
@@ -47,6 +69,7 @@ export function advancePvp(s,now){
  if(m.bot){
   const human=s.players.find(p=>!p.isBot);for(const bot of s.players.filter(p=>p.isBot)){bot.connected=true;bot.ready=true;bot.lastSeen=now}
   if(human&&!human.connected&&(human.exiting||now-human.lastSeen>=20000)){finishPvp(s,now,null,'abandoned');return}
+  if(simulatePracticeRemainder(s,now))return;
   if(human?.practicePaused){m.paused=true;freezePracticeClocks(s,dt,now);if(m.status==='active')m.deadline+=dt;if(m.status==='countdown'){m.startsAt+=dt;for(const p of s.players)p.duelStartsAt=m.startsAt}return}m.paused=false;
  }
  const present=s.players.filter(p=>p.connected&&!p.exiting);
@@ -72,6 +95,7 @@ export function advancePvp(s,now){
  const combat={status:'active',simTime:s.simTime,players:s.players,bullets:s.bullets||[],canDamage:(a,b)=>canDamage(s,a,b)};
  for(const p of s.players){p.boostersPaused=p.clientBoostersPaused===true;p.boosterTickAt??=now}
  stepCombat(combat,now);s.simTime=combat.simTime;s.bullets=combat.bullets;recordEliminations(s,now);
+ if(simulatePracticeRemainder(s,now))return;
  const survivors=s.players.filter(p=>p.hp>0&&!p.exiting);if(new Set(survivors.map(p=>p.team)).size<2)finishPvp(s,now,survivors[0]?.id||null,'destroyed');
 }
 export async function enterPvp(world,s,body,id,now){
@@ -100,7 +124,7 @@ export async function enterPvp(world,s,body,id,now){
 }
 export function pvpSnapshot(s,now){
  const m=s.pvpMatch,protectedNow=!active(s),waiting=m.status==='waiting';
- return {type:'world',serverTime:now,match:{code:m.code,hostId:m.hostId||null,mode:m.mode||'1v1',capacity:modeRules(m).capacity,teamSize:modeRules(m).teamSize,freeForAll:!!modeRules(m).freeForAll,winnerTeam:m.winnerTeam||null,practice:!!m.bot,visibility:m.visibility,status:m.status,startsAt:m.startsAt||0,deadline:m.deadline||0,paused:!!m.paused,pauseReason:m.paused&&s.players.some(p=>!p.isBot&&p.practicePaused)?'window':null,winner:m.winner||null,reason:m.reason||null},room:null,boss:null,enemies:[],rules:{...WORLD,cooperative:false,pvpSkills:true,skills:PVP_SKILLS,openCombat:true,formationSwitch:true,radius:arenaRadius(m),safeRadius:0,capacity:modeRules(m).capacity,portalImmunity:false},players:s.players.map(p=>({id:p.id,team:p.team,eliminated:!!p.eliminated,name:p.name,profile:p.profile,hp:p.hp,energy:p.energy,shield:p.shield,pos:p.pos,aim:p.aim,seq:p.seq,revision:p.revision,connected:p.connected,isBot:!!p.isBot,ready:!!p.ready,duelId:m.code,duelStartsAt:m.startsAt||Number.MAX_SAFE_INTEGER,protected:protectedNow,zone:'arena',death:null,hangar:false,exiting:!!p.exiting,abilityUntil:p.abilityUntil||0,abilityReadyAt:p.abilityReadyAt||0,paralyzedUntil:p.paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:p.skillUntil||{},skillReadyAt:p.skillReadyAt||{},adminShipAllowed:false})),duels:[],invites:[],groups:[],groupInvites:[],events:s.events||[]};
+ return {type:'world',serverTime:now,match:{code:m.code,hostId:m.hostId||null,mode:m.mode||'1v1',capacity:modeRules(m).capacity,teamSize:modeRules(m).teamSize,freeForAll:!!modeRules(m).freeForAll,winnerTeam:m.winnerTeam||null,practice:!!m.bot,simulated:!!m.simulated,simulatedSeconds:m.simulatedSeconds||0,visibility:m.visibility,status:m.status,startsAt:m.startsAt||0,deadline:m.deadline||0,paused:!!m.paused,pauseReason:m.paused&&s.players.some(p=>!p.isBot&&p.practicePaused)?'window':null,winner:m.winner||null,reason:m.reason||null},room:null,boss:null,enemies:[],rules:{...WORLD,cooperative:false,pvpSkills:true,skills:PVP_SKILLS,openCombat:true,formationSwitch:true,radius:arenaRadius(m),safeRadius:0,capacity:modeRules(m).capacity,portalImmunity:false},players:s.players.map(p=>({id:p.id,team:p.team,eliminated:!!p.eliminated,name:p.name,profile:p.profile,hp:p.hp,energy:p.energy,shield:p.shield,pos:p.pos,aim:p.aim,seq:p.seq,revision:p.revision,connected:p.connected,isBot:!!p.isBot,ready:!!p.ready,duelId:m.code,duelStartsAt:m.startsAt||Number.MAX_SAFE_INTEGER,protected:protectedNow,zone:'arena',death:null,hangar:false,exiting:!!p.exiting,abilityUntil:p.abilityUntil||0,abilityReadyAt:p.abilityReadyAt||0,paralyzedUntil:p.paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:p.skillUntil||{},skillReadyAt:p.skillReadyAt||{},adminShipAllowed:false})),duels:[],invites:[],groups:[],groupInvites:[],events:s.events||[]};
 }
 export async function pvpMessage(world,s,p,m,ws,now){
  if(m.type==='practicePause'&&s.pvpMatch.bot){const paused=m.paused===true;if(p.practicePaused&&!paused)advancePvp(s,now);if(!p.practicePaused&&paused){s.pvpMatch.tickAt=now;s.simTime=now}p.practicePaused=paused;s.critical=true}

@@ -102,3 +102,20 @@ test('Arena 20 practice creates nineteen rival bots and enforces the expanded mo
  await pvpMessage(f.world,f.s,p,{type:'input',seq:1,move:[1,0,0],aim:[0,0]},f.ws,14100);
  assert.ok(Math.abs(Math.hypot(p.pos[0],p.pos[2])-4000)<.01);
 });
+
+test('every practice mode resolves immediately when its human dies, including a paused practice',async()=>{
+ for(const mode of ['1v1','2v2','5v5','arena20']){
+  const f=await fixture(true,mode);await start(f);const human=f.s.players[0];human.hp=0;human.practicePaused=true;
+  advancePvp(f.s,13100);assert.equal(f.s.pvpMatch.status,'finished');assert.equal(f.s.pvpMatch.simulated,true);assert.equal(f.s.pvpMatch.paused,false);
+  assert.ok(f.s.pvpMatch.simulatedSeconds<=300);assert.equal(f.s.bullets.length,0);
+  assert.equal(pvpSnapshot(f.s,13100).match.simulated,true);
+  const {winner,finishedAt,simulatedSeconds}=f.s.pvpMatch;advancePvp(f.s,15000);assert.equal(f.s.pvpMatch.winner,winner);assert.equal(f.s.pvpMatch.finishedAt,finishedAt);assert.equal(f.s.pvpMatch.simulatedSeconds,simulatedSeconds);
+ }
+});
+test('practice simulation can award victory to surviving allies and never runs in human PvP',async()=>{
+ const f=await fixture(true,'5v5');await start(f);
+ for(const bot of f.s.players.filter(p=>p.isBot)){if(bot.team==='a'){bot.hp=100000;bot.profile.attack=10000}else{bot.hp=1;bot.shield=0;bot.profile.attack=1}}
+ f.s.players[0].hp=0;advancePvp(f.s,13100);assert.equal(f.s.pvpMatch.winnerTeam,'a');assert.equal(f.s.bossRewards,undefined);
+ const human=await fixture(false,'5v5');await start(human);human.s.players[0].hp=0;advancePvp(human.s,13100);
+ assert.equal(human.s.pvpMatch.status,'active');assert.notEqual(human.s.pvpMatch.simulated,true);
+});

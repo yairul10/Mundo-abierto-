@@ -1,5 +1,5 @@
-import {spectatorPilot,nextSpectatorPilot,arenaDeathMessage} from './pvp-spectator.js?v=460';
-import {arenaRequested,choosePvpMatch,readArenaChoice,saveArenaChoice,showPvpResult} from './pvp-match-ui.js?v=460';
+import {spectatorPilot,nextSpectatorPilot,arenaDeathMessage} from './pvp-spectator.js?v=461';
+import {arenaRequested,choosePvpMatch,readArenaChoice,saveArenaChoice,showPvpResult} from './pvp-match-ui.js?v=461';
 import {chooseCoopRoom,readCoopChoice,saveCoopChoice,showExpeditionEnd} from './coop-room-ui.js?v=449';
 import {restoreWorldSnapshot} from './world-snapshot.js?v=1';
 import {rankedName} from './pvp-ranks.js?v=347';
@@ -29,7 +29,7 @@ export function startSharedSession(bridge){
  let roomChoice=ARENA_MODE?readArenaChoice():readCoopChoice(),roomEnding=false,rewardSaveFailed=false;
  let transferConfirmed=false,localDeathId='',identity=null,ws=null,state=null,me=null,seq=0,pending=[],lastSend=0,lastPing=0,lastReceived=performance.now(),retryAt=0,attempts=0,busy=false,closed=false,selected='',clockOffset=0,lastRevision=-1,portalTime=0,lastFrame=performance.now(),firstState=true,hangarRequested=false,hangarRequestAt=0,lastLuck=0,pingMs=null,messageUntil=0;
  const seenEvents=new Set(),$=id=>document.getElementById(id);
- if(ARENA_MODE){const arenaStyle=document.createElement('link');arenaStyle.rel='stylesheet';arenaStyle.href='./css/pvp-match.css?v=460';document.head.append(arenaStyle)}
+ if(ARENA_MODE){const arenaStyle=document.createElement('link');arenaStyle.rel='stylesheet';arenaStyle.href='./css/pvp-match.css?v=461';document.head.append(arenaStyle)}
  const style=document.createElement('link');
  const mountControls=()=>mountPvpControlEditor({realm,isHangarOpen:bridge.isHangarOpen});
  style.addEventListener('load',mountControls,{once:true});
