@@ -1,10 +1,10 @@
-import {activeDamageBooster} from './damage-boosters.js?v=401';
+import {activeDamageBooster} from './damage-boosters.js?v=462';
 import {shieldCapacity} from './shield-system.js?v=364';
-import {pvpMultipliers,pveMultipliers,cooperativeMultipliers} from './pvp-loadout.js?v=450';
+import {pvpMultipliers,pveMultipliers,cooperativeMultipliers} from './pvp-loadout.js?v=462';
 import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=440';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=450';
-import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=401';
+import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=462';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
 const MATERIALS=[['chatarra','Chatarra espacial','#bac9d7'],['aleacion','Aleación reforzada','#55c6ff'],['nucleo','Núcleo de energía','#c783ff'],['reliquia','Componente ancestral','#ffca58']];
 const duration=n=>Math.ceil(Math.max(0,n)/60)+' min';

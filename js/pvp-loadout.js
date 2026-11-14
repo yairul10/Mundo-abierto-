@@ -1,4 +1,4 @@
-import {damageBoosterTimers} from './damage-boosters.js?v=401';
+import {combatBoosterTimers as damageBoosterTimers} from './damage-boosters.js?v=462';
 import {shieldCapacity,shieldLevel} from './shield-system.js?v=364';
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=450';
 import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=450';

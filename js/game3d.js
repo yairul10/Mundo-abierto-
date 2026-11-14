@@ -1,5 +1,5 @@
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=461';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=462';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -8,7 +8,7 @@ import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
 import {createInfernoCombat} from './inferno.js?v=441';
-import {damageBoosterTimers,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=401';
+import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=462';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=440';
@@ -51,13 +51,13 @@ import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,cr
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
-import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=401';
-import {mountHangarUI} from './hangar-ui.js?v=450';
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=462';
+import {mountHangarUI} from './hangar-ui.js?v=462';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=461';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=450';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=462';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=462';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=462';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -793,7 +793,7 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
   const port=stationConnector(hub,direction);
   const pad=fitted(padSource,360);
   const rim=stationConnector(pad,direction.clone().negate(),18,25);
-  pad.position.copy(direction).multiplyScalar(461);
+  pad.position.copy(direction).multiplyScalar(462);
   pad.position.y=port.center.y-rim.center.y;
   pad.position[port.side]=port.center[port.side]-rim.center[port.side];
   pad.userData.landingRadius=216;pad.name='Plataforma Ascuas';
@@ -1623,7 +1623,7 @@ function updateExplorerCombat(dt){
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
  const bolt=new THREE.Mesh(laserGeometry,supportLaserMaterial);
  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
- shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150),life:2.1,damage:player.attack*.6*activeBooster('damage')});
+ shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:2.1,damage:player.attack*.6*activeBooster('damage')});
  if(pvpSession)pvpSession.shots('explorer',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1,target.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  explorerMesh.lookAt(target.mesh.position);explorerFireCd=.68;
 }
@@ -1755,7 +1755,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
   const range=supportRange();
-  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150),life:range/1150+.35,range,damage:player.attack*.6*equippedBonus().damage*activeLaserBooster()});
+  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:range/1150+.35,range,damage:player.attack*.6*equippedBonus().damage*activeLaserBooster()});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
@@ -1914,7 +1914,7 @@ function fire(mult=1,count=1){if(portalTransitProtected()||PVP_MODE&&!pvpSession
   const mesh=new THREE.Mesh(laserGeometry,laserMaterial);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)),life:1.65,damage:player.attack*mult*1.5*classDamageMultiplier()*classCritMultiplier()*activeLaserBooster()});
+  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)*projectileMultiplier(player.boosters)),life:1.65,damage:player.attack*mult*1.5*classDamageMultiplier()*classCritMultiplier()*activeLaserBooster()});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId,pvpFarmRunning);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -2577,13 +2577,13 @@ function skill(){if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)re
  const count=missileCount();
  for(const launch of missileLaunches(playerMesh.position.toArray(),forward.toArray(),aim.toArray(),count)){
   const start=playerMesh.position.clone().add(new THREE.Vector3(...launch.offset));
-  const launchDir=new THREE.Vector3(...launch.direction),missileSpeed=launch.speed,missileGuideDelay=launch.delay;
+  const launchDir=new THREE.Vector3(...launch.direction),missileBaseSpeed=launch.speed,missileSpeed=missileBaseSpeed*projectileMultiplier(player.boosters,true),missileGuideDelay=launch.delay;
   const mesh=createMissileMesh();
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),launchDir);
   mesh.position.copy(start);scene.add(mesh);
   const missileEffects=addMissileEffects(mesh);
   shots.push({mesh,vel:launchDir.multiplyScalar(missileSpeed),life:5,damage:player.attack*2.4*activeBooster('damage'),missile:true,target,
-   missileAim:target?null:aim.clone(),missileAge:0,missileSpeed,missileGuideDelay,missileEffects});
+   missileAim:target?null:aim.clone(),missileAge:0,missileBaseSpeed,missileSpeed,missileGuideDelay,missileEffects});
  }
  if(pvpSession)pvpSession.shots('missile',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1,shots.find(p=>!p.pvpSent&&!p.pvpRemote&&p.target?.playerId)?.target.playerId||lockedEnemy?.playerId,pvpFarmRunning);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  skillCd=7;
@@ -3253,9 +3253,9 @@ let boosterStatusSecond=-1;
 function updateBoosterStatus(){
  const second=Math.floor(performance.now()/1000);if(second===boosterStatusSecond)return;boosterStatusSecond=second;
  const selected=activeDamageBooster(player.boosters);
- const active=Object.entries(player.boosters).filter(([id,seconds])=>seconds>0&&(id!=='damage2'&&id!=='damage3'||id===selected?.id)&&(!PVP_MODE||id===selected?.id));
+ const active=Object.entries(player.boosters).filter(([id,seconds])=>seconds>0&&(id!=='damage2'&&id!=='damage3'||id===selected?.id)&&(!PVP_MODE||id===selected?.id||id==='precision'));
  const el=$('boosterStatus');el.classList.toggle('hidden',!active.length);
- const labels={damage:'⚡',damage2:'X2',damage3:'X3',resistance:'🛡',xp:'⭐'};
+ const labels={precision:'🎯',damage:'⚡',damage2:'X2',damage3:'X3',resistance:'🛡',xp:'⭐'};
  el.textContent=active.map(([id,seconds])=>labels[id]+' '+Math.floor(Math.ceil(seconds)/60)+':'+String(Math.ceil(seconds)%60).padStart(2,'0')).join(' · ');
 }
 let graphicsDetailAt=0;

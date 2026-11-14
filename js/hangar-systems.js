@@ -1,4 +1,4 @@
-import {DAMAGE_BOOSTERS,damageBoosterMultiplier,tickDamageBoosters} from './damage-boosters.js?v=401';
+import {PRECISION_BOOSTER,DAMAGE_BOOSTERS,damageBoosterMultiplier,tickDamageBoosters} from './damage-boosters.js?v=462';
 export const RECIPE=Object.freeze({credits:20000,chatarra:200,aleacion:70,nucleo:25,reliquia:8});
 export const FORMATIONS=Object.freeze([
  {id:'fan',name:'Abanico',icon:'↗',color:'#78dbff',benefit:'Gratis · Formación inicial',description:'Parejas abiertas a ambos lados de la nave.'},
@@ -10,7 +10,7 @@ export const FORMATIONS=Object.freeze([
  {id:'recovery',name:'Recuperación',icon:'✧',color:'#84ffaf',benefit:'+25 % de reparación del robot',description:'Dos arcos de drones a los costados del casco. Requiere robot reparador para la ventaja.'}
 ]);
 export const BOOSTERS=Object.freeze([
- ...DAMAGE_BOOSTERS,
+ ...DAMAGE_BOOSTERS,PRECISION_BOOSTER,
  {id:'damage',retired:true,name:'Potencia de combate',icon:'⚡',price:10000,benefit:'+15 % de daño',seconds:900},
  {id:'resistance',name:'Protección reforzada',icon:'🛡',price:10000,benefit:'−15 % de daño recibido',seconds:900},
  {id:'xp',name:'Aprendizaje acelerado',icon:'⭐',price:15000,benefit:'+25 % de XP',seconds:900}
