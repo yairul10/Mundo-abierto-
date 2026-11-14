@@ -7,7 +7,7 @@ import {verifiedPvpAccount} from './account.mjs';
 import {DurableObject} from 'cloudflare:workers';
 import {SharedWorld} from './shared-world.mjs';
 import {testServerEnabled,realmName} from './test-config.mjs';
-const VERSION='0.10.1';
+const VERSION='0.10.2';
 const ORIGINS=new Set(['https://yairul10.github.io','https://localhost','http://localhost','capacitor://localhost']);
 const json=(data,status=200,origin='')=>Response.json(data,{status,headers:{'Cache-Control':'no-store',...(ORIGINS.has(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{})}});
 async function readBody(request){
@@ -39,5 +39,6 @@ export default {
 // Preserve existing namespace bindings; the old room/queue endpoints are retired.
 export class ArenaRoom extends SharedWorld {}
 export class ArenaLobby extends CoopLobby {}
+
 
 

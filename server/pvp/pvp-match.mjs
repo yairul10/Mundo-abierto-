@@ -11,10 +11,19 @@ export function finishPvp(s,now,winner=null,reason='destroyed'){
  Object.assign(m,{status:'finished',finishedAt:now,winner,reason,paused:false});s.bullets=[];s.critical=true;
  for(const p of s.players){p.firing=false;if(reason==='destroyed'&&p.hp<=0)s.events.push({id:crypto.randomUUID(),type:'destroyed',victim:p.id,winner,time:now})}
 }
+function freezePracticeClocks(s,dt,now){
+ for(const p of s.players){
+  for(const key of ['abilityUntil','abilityReadyAt','paralyzedUntil','last_laser','last_missile','last_explorer','lastHit','lastAttack','lastIncoming','shieldLastHit'])if(Number.isFinite(p[key])&&p[key]>0)p[key]+=dt;
+  for(const field of ['skillUntil','skillReadyAt'])for(const key of Object.keys(p[field]||{}))if(p[field][key]>0)p[field][key]+=dt;
+  if(p.botBrain){for(const key of ['engageAt','nextThinkAt','nextStrafeAt'])if(p.botBrain[key]>0)p.botBrain[key]+=dt;p.botBrain.tickAt=now}
+  p.boosterTickAt=now;
+ }
+ s.simTime=now;
+}
 export function advancePvp(s,now){
  const m=s.pvpMatch,dt=Math.max(0,now-(m.tickAt||now));m.tickAt=now;
  if(m.status==='finished')return;
- if(m.bot){const human=s.players.find(p=>!p.isBot),bot=s.players.find(p=>p.isBot);if(bot){bot.connected=true;bot.ready=true;bot.lastSeen=now}if(human&&!human.connected&&(human.exiting||now-human.lastSeen>=20000)){finishPvp(s,now,null,'abandoned');return}}
+ if(m.bot){const human=s.players.find(p=>!p.isBot),bot=s.players.find(p=>p.isBot);if(bot){bot.connected=true;bot.ready=true;bot.lastSeen=now}if(human&&!human.connected&&(human.exiting||now-human.lastSeen>=20000)){finishPvp(s,now,null,'abandoned');return}if(human?.practicePaused){m.paused=true;freezePracticeClocks(s,dt,now);if(m.status==='active')m.deadline+=dt;if(m.status==='countdown'){m.startsAt+=dt;for(const p of s.players)p.duelStartsAt=m.startsAt}return}m.paused=false}
  const present=s.players.filter(p=>p.connected&&!p.exiting);
  if(m.status==='waiting'){
   if(!present.length&&now-m.createdAt>120000){finishPvp(s,now,null,'abandoned');return}
@@ -67,12 +76,14 @@ export async function enterPvp(world,s,body,id,now){
 }
 export function pvpSnapshot(s,now){
  const m=s.pvpMatch,protectedNow=!active(s),waiting=m.status==='waiting';
- return {type:'world',serverTime:now,match:{code:m.code,practice:!!m.bot,visibility:m.visibility,status:m.status,startsAt:m.startsAt||0,deadline:m.deadline||0,paused:!!m.paused,winner:m.winner||null,reason:m.reason||null},room:null,boss:null,enemies:[],rules:{...WORLD,cooperative:false,pvpSkills:true,skills:PVP_SKILLS,openCombat:true,formationSwitch:true,radius:PVP_RADIUS,safeRadius:0,capacity:2,portalImmunity:false},players:s.players.map(p=>({id:p.id,name:p.name,profile:p.profile,hp:p.hp,energy:p.energy,shield:p.shield,pos:p.pos,aim:p.aim,seq:p.seq,revision:p.revision,connected:p.connected,isBot:!!p.isBot,ready:!!p.ready,duelId:m.code,duelStartsAt:m.startsAt||Number.MAX_SAFE_INTEGER,protected:protectedNow,zone:'arena',death:null,hangar:false,exiting:!!p.exiting,abilityUntil:p.abilityUntil||0,abilityReadyAt:p.abilityReadyAt||0,paralyzedUntil:p.paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:p.skillUntil||{},skillReadyAt:p.skillReadyAt||{},adminShipAllowed:false})),duels:[],invites:[],groups:[],groupInvites:[],events:s.events||[]};
+ return {type:'world',serverTime:now,match:{code:m.code,practice:!!m.bot,visibility:m.visibility,status:m.status,startsAt:m.startsAt||0,deadline:m.deadline||0,paused:!!m.paused,pauseReason:m.paused&&s.players.some(p=>!p.isBot&&p.practicePaused)?'window':null,winner:m.winner||null,reason:m.reason||null},room:null,boss:null,enemies:[],rules:{...WORLD,cooperative:false,pvpSkills:true,skills:PVP_SKILLS,openCombat:true,formationSwitch:true,radius:PVP_RADIUS,safeRadius:0,capacity:2,portalImmunity:false},players:s.players.map(p=>({id:p.id,name:p.name,profile:p.profile,hp:p.hp,energy:p.energy,shield:p.shield,pos:p.pos,aim:p.aim,seq:p.seq,revision:p.revision,connected:p.connected,isBot:!!p.isBot,ready:!!p.ready,duelId:m.code,duelStartsAt:m.startsAt||Number.MAX_SAFE_INTEGER,protected:protectedNow,zone:'arena',death:null,hangar:false,exiting:!!p.exiting,abilityUntil:p.abilityUntil||0,abilityReadyAt:p.abilityReadyAt||0,paralyzedUntil:p.paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:p.skillUntil||{},skillReadyAt:p.skillReadyAt||{},adminShipAllowed:false})),duels:[],invites:[],groups:[],groupInvites:[],events:s.events||[]};
 }
 export async function pvpMessage(world,s,p,m,ws,now){
+ if(m.type==='practicePause'&&s.pvpMatch.bot){const paused=m.paused===true;if(p.practicePaused&&!paused)advancePvp(s,now);if(!p.practicePaused&&paused){s.pvpMatch.tickAt=now;s.simTime=now}p.practicePaused=paused;s.critical=true}
  p.lastSeen=now;world.startSimulation(s);advancePvp(s,now);const match=s.pvpMatch;let error=null;
  if(m.type==='ping')ws.send(JSON.stringify({type:'pong',echo:m.time,serverTime:now}));
  else if(m.type==='leave'){p.exiting=true;p.ready=false;if(match.bot&&match.status!=='active')finishPvp(s,now,null,'abandoned');if(match.status==='active')finishPvp(s,now,s.players.find(q=>q.id!==p.id)?.id||null,'surrender');await world.worldDisconnect(ws);ws.close(1000,'leave');return}
+ else if(m.type==='practicePause'){if(!match.bot)return}
  else if(m.type==='ready'){if(match.status!=='waiting')error='match_started';else {p.ready=m.ready===true;s.critical=true;advancePvp(s,now)}}
  else if(m.type==='skills'){if(match.status!=='waiting')error='match_started';else if(!validSkills(m.skills))error='invalid_skills';else {p.equippedSkills=[...m.skills];p.ready=false;s.critical=true}}
  else if(m.type==='boosterPause')p.clientBoostersPaused=m.paused===true;
@@ -94,5 +105,6 @@ export async function pvpMessage(world,s,p,m,ws,now){
    if(shots){const data=JSON.stringify({type:'volley',owner:p.id,shots,serverTime:now});for(const peer of world.ctx.getWebSockets())try{peer.send(data)}catch{}}
   }
  }else return;
- world.worldSave(s,['ready','skills','leave'].includes(m.type));if(error)ws.send(JSON.stringify({type:'error',error}));world.worldBroadcast(s);
+ world.worldSave(s,['ready','skills','leave','practicePause'].includes(m.type));if(error)ws.send(JSON.stringify({type:'error',error}));world.worldBroadcast(s);
 }
+

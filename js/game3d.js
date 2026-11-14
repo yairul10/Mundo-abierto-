@@ -1,3 +1,4 @@
+import {missileLaunches} from './missile-launch.js?v=454';
 import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=453';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
@@ -54,7 +55,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=450';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=453';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=454';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=450';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -2560,26 +2561,10 @@ function skill(){if(portalTransitProtected()||PVP_MODE&&!pvpSession?.canFight)re
  const cameraDir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
  const target=lockedEnemy;markExplorerAttack(target);
  const aim=target?target.mesh.position.clone():camera.position.clone().addScaledVector(cameraDir,1700);
- const right=new THREE.Vector3().crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
- if(right.lengthSq()<.1)right.set(1,0,0);
  const count=missileCount();
- for(let i=0;i<count;i++){
-  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
-  // Salva irregular: posición, rumbo, velocidad y guiado independientes.
-  // Distribución angular sin parejas espejo y con variación en cada lanzamiento.
-  const angle=(i*2.399963229728653+Math.random()*.95)%(Math.PI*2);
-  const spread=.95+Math.random()*.85;
-  const lateral=Math.cos(angle),vertical=Math.sin(angle);
-  const start=playerMesh.position.clone().addScaledVector(forward,30+Math.random()*35)
-   .addScaledVector(right,lateral*(45+Math.random()*55))
-   .addScaledVector(up,vertical*(35+Math.random()*65));
-  const dir=aim.clone().sub(start).normalize();
-  const launchDir=dir.clone().multiplyScalar(.32)
-   .addScaledVector(right,lateral*spread)
-   .addScaledVector(up,vertical*spread*.85)
-   .addScaledVector(forward,.28+Math.random()*.45).normalize();
-  const missileSpeed=440+Math.random()*410;
-  const missileGuideDelay=.42+Math.random()*.8;
+ for(const launch of missileLaunches(playerMesh.position.toArray(),forward.toArray(),aim.toArray(),count)){
+  const start=playerMesh.position.clone().add(new THREE.Vector3(...launch.offset));
+  const launchDir=new THREE.Vector3(...launch.direction),missileSpeed=launch.speed,missileGuideDelay=launch.delay;
   const mesh=createMissileMesh();
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),launchDir);
   mesh.position.copy(start);scene.add(mesh);
@@ -3578,7 +3563,7 @@ if(PVP_MODE){
  const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene,{budget:()=>effectBudget(graphics.level)}):null;
  if(COOP_MODE)scene.fog=new THREE.Fog(0x52617c,1000,2900);
  if(ARENA_MODE)mountPvpArena(THREE,scene);else if(!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=ARENA_MODE?'Arena PvP · 1v1':COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=ARENA_MODE?'Arena PvP · 1v1':COOP_MODE?'Mapa cooperativo':'Mapa PvP';
- pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,nearPortal:()=>!ARENA_MODE&&playerMesh.position.distanceTo(returnPortal.position)<=100,
+ pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,practiceBlocked:()=>document.hidden||!document.hasFocus()||!!document.querySelector('dialog[open]')||!panel.classList.contains('hidden')||!$('shopPanel').classList.contains('hidden')||systemMap.open||document.body.matches('.journal-open,.portrait-blocked'),nearPortal:()=>!ARENA_MODE&&playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
   cooperativeClouds?.update(dt);
   updateBossVisual(dt);arenaView.update(dt);
@@ -3695,6 +3680,7 @@ window.cosmosModelsReady=new Promise(resolve=>{
  };
  setTimeout(poll,120);
 });
+
 
 
 

@@ -1,3 +1,4 @@
+import {missileLaunches} from '../../js/missile-launch.js';
 import {equip,reset} from './world-rules.mjs';
 import {volley,ability} from './combat.mjs';
 import {activateSkill,skillActive} from './skills.mjs';
@@ -42,7 +43,9 @@ export function advancePracticeBot(s,now,canDamage,random=Math.random){
  const combat={players:s.players,bullets:s.bullets||[],canDamage};
  const fire=(weapon,shots)=>{const fired=volley(combat,bot,{weapon,targetId:target.id,shots},now);if(fired?.length){s.botVolleys||=[];s.botVolleys.push({owner:bot.id,shots:fired,serverTime:now});s.botVolleys=s.botVolleys.slice(-6)}};
  const lasers=[shot([-12,0,0],'laser'),shot([12,0,0],'laser')];for(let i=0;i<bot.profile.droneCount;i++)lasers.push(shot([(i%2?1:-1)*(55+Math.floor(i/2)*18),12,20],'drone'));
- fire('laser',lasers);fire('missile',Array.from({length:bot.profile.missiles},(_,i)=>shot([(i-(bot.profile.missiles-1)/2)*12,-8,0],'missile')));
+ fire('laser',lasers);
+ if(now-(bot.last_missile||0)>=6980){const [yaw,pitch]=bot.aim,forward=[-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];fire('missile',missileLaunches(bot.pos,forward,target.pos,bot.profile.missiles,random).map(launch=>({...launch,kind:'missile',locked:true})));}
  if(bot.profile.explorerDrone)fire('explorer',[shot([65,25,60],'explorer')]);
  s.bullets=combat.bullets;bot.firing=true;
 }
+
