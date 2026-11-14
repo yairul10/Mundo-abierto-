@@ -7,3 +7,5 @@
 body.pvp-spectating #combatControls,body.pvp-spectating #pvpSkills,body.pvp-spectating #joystick,body.pvp-spectating #lookZone,body.pvp-spectating #aimReticle,body.pvp-spectating #targetLock{display:none!important}
 #pvpSpectator[hidden]{display:none!important}
 #pvpSpectator button{padding:9px 12px;margin:5px 3px;border-radius:9px;touch-action:manipulation}
+
+#pvpSkills button[hidden]{display:none!important}

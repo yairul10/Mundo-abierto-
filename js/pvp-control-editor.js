@@ -10,7 +10,7 @@ const cockpitIcons={
 };
 export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  const upperIds=pve?cockpitIds:pvpCockpitIds;
- const ids=pve?['fireBtn','skillBtn','classAbilityBtn','joystick','formationBtn','questToggle','characterBtn','zoomIn','zoomOut','farmAutoBtn','companionModeBtn']:['fireBtn','skillBtn','classAbilityBtn','pvpSkillButton0','pvpSkillButton1','joystick',...upperIds];
+ const ids=pve?['fireBtn','skillBtn','classAbilityBtn','joystick','formationBtn','questToggle','characterBtn','zoomIn','zoomOut','farmAutoBtn','companionModeBtn']:['fireBtn','skillBtn','classAbilityBtn','pvpSkillButton0','pvpSkillButton1','joystick',...upperIds,'pvpSkillButton2'];
  const joystickRect=document.getElementById('joystick')?.getBoundingClientRect();
  const joystickDefault=joystickRect?.width?[(joystickRect.left+joystickRect.width/2)/innerWidth*100,(joystickRect.top+joystickRect.height/2)/innerHeight*100]:[12,78];
  const companion=document.getElementById('companionModeBtn');
@@ -18,7 +18,7 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  // Measure the default row with room for the companion even before it is equipped.
  if(companion?.hidden){companion.hidden=false;companion.style.display=''}
  const measure=id=>{const r=document.getElementById(id)?.getBoundingClientRect();return r?.width?[(r.left+r.width/2)/innerWidth*100,(r.top+r.height/2)/innerHeight*100]:[50,50]};
- const defaults=pve?ids.map(measure):[[92,84],[82,91],[93,63],[79,66],[69,72],joystickDefault,...upperIds.map(measure)];
+ const defaults=pve?ids.map(measure):[[92,84],[82,91],[93,63],[79,66],[69,72],joystickDefault,...upperIds.map(measure),[59,66]];
  if(companionDisplay==='none'){companion.hidden=true;companion.style.display=companionDisplay}
  upperIds.forEach(id=>{
   const button=document.getElementById(id);if(!button)return;

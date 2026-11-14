@@ -11,7 +11,7 @@ async function fixture(){
 test('practice mirrors the player and starts after only the human is ready',async()=>{
  const {s,human,bot}=await fixture();assert.equal(s.pvpMatch.status,'active');assert.equal(bot.isBot,true);assert.match(bot.name,/BOT/);assert.equal(bot.accountId,undefined);
  for(const key of ['maxHp','attack','defense','speed','droneCount','missiles'])assert.equal(bot.profile[key],human.profile[key]);
- assert.equal(bot.hp,human.hp);assert.deepEqual(bot.equippedSkills,['instantShield','fury']);assert.notEqual(bot.roster,human.roster);
+ assert.equal(bot.hp,human.hp);assert.deepEqual(bot.equippedSkills,['instantShield','fury','interference']);assert.notEqual(bot.roster,human.roster);
 });
 test('normal aim targets the current ship position exactly and uses player projectile speeds and cadence',async()=>{
  const {s,human,bot}=await fixture();human.pos=[100,40,-400];bot.pos=[0,40,-700];bot.botBrain={tickAt:14000,engageAt:13000,nextThinkAt:Number.MAX_SAFE_INTEGER,side:1,move:[0,0,0],phase:0};
@@ -29,11 +29,11 @@ test('movement respects ship speed and paralysis; disconnected players pause the
  advancePvp(s,34000);assert.equal(s.pvpMatch.status,'finished');assert.equal(s.pvpMatch.reason,'abandoned');
 });
 test('defeating a bot finishes without currency, NPC awards or respawn',async()=>{
- const {s,human,bot}=await fixture();bot.hp=0;advancePvp(s,14000);assert.equal(s.pvpMatch.winner,human.id);assert.equal(s.pvpMatch.status,'finished');assert.equal(s.bossRewards,undefined);assert.equal(bot.hp,0);advancePvp(s,20000);assert.equal(bot.hp,0);
+ const {s,human,bot}=await fixture();bot.hp=0;advancePvp(s,14000);assert.equal(s.pvpMatch.score.a,1);advancePvp(s,18000);bot.hp=0;advancePvp(s,18100);assert.equal(s.pvpMatch.winner,human.id);assert.equal(s.pvpMatch.status,'finished');assert.equal(s.bossRewards,undefined);assert.equal(bot.hp,0);advancePvp(s,20000);assert.equal(bot.hp,0);
 });
 
 test('the bot damages and can defeat a stationary opponent through ordinary combat',async()=>{
  const {s,human,bot}=await fixture();const initial=human.hp;
  for(let now=13100;now<103000&&s.pvpMatch.status!=='finished';now+=100)advancePvp(s,now);
- assert.ok(human.hp<initial);assert.equal(s.pvpMatch.status,'finished');assert.equal(s.pvpMatch.winner,bot.id);assert.equal(s.bossRewards,undefined);
+ assert.ok(human.hp<initial);assert.equal(s.pvpMatch.status,'finished');assert.equal(s.pvpMatch.simulated,true);assert.ok(Object.values(s.pvpMatch.score).includes(2));assert.equal(s.bossRewards,undefined);
 });

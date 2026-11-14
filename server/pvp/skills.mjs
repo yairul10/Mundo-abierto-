@@ -8,8 +8,8 @@ export const PVP_SKILLS = Object.freeze({
  transfer:{name:'Transferencia',icon:'💚',duration:5000,cooldown:30000,description:'Recupera como vida el 50 % del daño real causado durante 5 s, sin superar el casco máximo.'},
 });
 export const DEFAULT_SKILLS = ['interference','instantShield'];
-export function validSkills(ids){return Array.isArray(ids)&&ids.length===2&&new Set(ids).size===2&&ids.every(id=>typeof id==='string'&&Object.hasOwn(PVP_SKILLS,id));}
-export function equippedSkills(p){return validSkills(p.equippedSkills)?p.equippedSkills:[...DEFAULT_SKILLS];}
+export function validSkills(ids,count=2){return Array.isArray(ids)&&ids.length===count&&new Set(ids).size===count&&ids.every(id=>typeof id==='string'&&Object.hasOwn(PVP_SKILLS,id));}
+export function equippedSkills(p){const count=p.skillSlots||2,ids=p.equippedSkills;if(validSkills(ids,count))return ids;if(count===3&&validSkills(ids))return [...ids,Object.keys(PVP_SKILLS).find(id=>!ids.includes(id))];return [...DEFAULT_SKILLS,...(count===3?['fury']:[])];}
 export function clearSkills(p){p.skillUntil={};p.skillReadyAt={};p.paralyzedUntil=0;}
 export const skillActive=(p,id,now)=>(p?.skillUntil?.[id]||0)>now;
 export function activateSkill(p,id,now){

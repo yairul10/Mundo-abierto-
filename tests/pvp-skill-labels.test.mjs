@@ -10,8 +10,8 @@ const home=new Element('section');globalThis.document={getElementById:()=>home,c
 const rules={fury:{name:'Furia',description:'Daño doble',cooldown:30000,icon:'🔥'},instantShield:{name:'Escudo instantáneo',description:'Protección',cooldown:30000,icon:'🛡'}};
 const me={equippedSkills:['fury','instantShield'],pos:[800,0,0],hp:100,skillReadyAt:{},skillUntil:{}};let now=1000;
 const ui=mountPvpSkills({tools:home,getState:()=>({state:{rules:{skills:rules,safeRadius:650}},me,now}),canUse:()=>true,send:()=>{},isHangarOpen:()=>false,storage:{getItem:()=>null,setItem(){}},key:'test'});ui.update();
-const buttons=nodes.filter(n=>/^pvpSkillButton/.test(n.id||''));assert.equal(buttons.length,2);
-for(const b of buttons){const timer=b.children.find(c=>c.className==='combat-timer');assert.equal(timer.textContent,'');assert.equal(timer.style.display,'none');assert(b['aria-label'].endsWith(' · Lista'))}
+const buttons=nodes.filter(n=>/^pvpSkillButton/.test(n.id||''));assert.equal(buttons.length,3);
+assert.equal(buttons[2].hidden,true);for(const b of buttons.slice(0,2)){const timer=b.children.find(c=>c.className==='combat-timer');assert.equal(timer.textContent,'');assert.equal(timer.style.display,'none');assert(b['aria-label'].endsWith(' · Lista'))}
 assert.notEqual(buttons[0].dataset.combatArt,shipCombatArtwork('espectro'));assert.notEqual(buttons[1].dataset.combatArt,shipCombatArtwork('titan'));
 me.skillReadyAt.fury=6000;ui.update();const timer=buttons[0].children.find(c=>c.className==='combat-timer');assert.equal(timer.textContent,'5 s');assert.equal(timer.style.display,'');
 me.skillUntil.fury=3000;ui.update();assert.equal(timer.textContent,'Activa 2 s');assert.equal(timer.style.display,'');

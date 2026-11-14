@@ -5,7 +5,7 @@ import {volley,ability} from './combat.mjs';
 import {activateSkill,skillActive} from './skills.mjs';
 export function createPracticeBot(human,match,now,slot=1){
  const bot={id:'bot-'+match.code+(modeRules(match).capacity>2?'-'+slot:''),slot,team:teamForSlot(slot,match),name:modeRules(match).capacity===2?'Piloto de práctica · BOT':teamForSlot(slot,match)===human.team?'Aliado de práctica · BOT':'Rival '+slot+' · BOT',isBot:true,connected:true,ready:true,revision:0,clientVersion:5,realm:human.realm,roster:JSON.parse(JSON.stringify(human.roster)),spawn:spawnForSlot(slot,match),aim:[modeRules(match).freeForAll?slot*Math.PI/10:teamForSlot(slot,match)==='a'?0:Math.PI,0],lastSeen:now,lastInput:now,seq:-1};
- delete bot.roster.adminpod;equip(bot,human.profile.shipId);reset(bot,true);bot.duelId=match.code;bot.duelStartsAt=Number.MAX_SAFE_INTEGER;bot.equippedSkills=['instantShield','fury'];
+ delete bot.roster.adminpod;equip(bot,human.profile.shipId);reset(bot,true);bot.duelId=match.code;bot.duelStartsAt=Number.MAX_SAFE_INTEGER;bot.skillSlots=match.mode==='1v1'?3:2;bot.equippedSkills=['instantShield','fury',...(bot.skillSlots===3?['interference']:[])];
  return bot;
 }
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
