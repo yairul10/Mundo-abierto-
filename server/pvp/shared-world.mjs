@@ -26,7 +26,7 @@ export class SharedWorld extends DurableObject {
   const s=row?JSON.parse(row.data):{players:[],duels:[],invites:[],events:[]};
   // A restart may discard sockets; never retain disconnected pilots as live slots.
   const connected=new Set(this.ctx.getWebSockets().filter(ws=>ws.readyState===1).map(ws=>ws.deserializeAttachment()?.id));
-  for(const p of s.players)p.connected=connected.has(p.id);
+  for(const p of s.players)p.connected=p.isBot===true||connected.has(p.id);
   s.cooperative=!s.pvpMatch;this.memory=s;return s;
  }
  advanceRoom(s,now){if(s.pvpMatch){advancePvp(s,now);return}advance(s,now);advanceExpedition(s,now,reset)}
@@ -37,7 +37,7 @@ export class SharedWorld extends DurableObject {
   if(!force&&!s.critical&&!pending.length&&now-this.lastCheckpoint<5000)return;
   this.ctx.storage.transactionSync(()=>{
    persistResults(this.ctx,s);for(const r of pending)this.ctx.storage.sql.exec('INSERT OR IGNORE INTO boss_rewards(id,player_id,amount,damage,total_damage,boss_id,materials,xp,enemy_kind) VALUES(?,?,?,?,?,?,?,?,?)',r.id,r.playerId,r.amount,r.damage,r.totalDamage,r.bossId,JSON.stringify(r.materials||{}),Math.max(0,Math.min(15000000,Math.floor(Number(r.xp)||0))),['colossusPro','granTitanPro','infernoPro','nexo','raider','sentinel','destroyer','catapult','harpooner','stalker'].includes(r.enemyKind)?r.enemyKind:'');
-   this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify({...s,bossRewards:[],pendingKills:[],critical:false}));
+   this.ctx.storage.sql.exec('INSERT INTO shared_world(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',JSON.stringify({...s,botVolleys:[],bossRewards:[],pendingKills:[],critical:false}));
   });
   // Clear receipts only after commit, so an exception cannot discard pending awards.
   s.bossRewards=[];s.pendingKills=[];s.critical=false;this.lastCheckpoint=now;
@@ -76,6 +76,7 @@ export class SharedWorld extends DurableObject {
  worldBroadcast(s){
   if(Date.now()-this.lastBroadcast<100)return;
   this.lastBroadcast=Date.now();
+  for(const volley of s.botVolleys||[]){const message=JSON.stringify({type:'volley',...volley});for(const peer of this.ctx.getWebSockets())try{peer.send(message)}catch{}}s.botVolleys=[];
   if(s.room)for(const peer of this.ctx.getWebSockets())try{this.sendRewards(peer,peer.deserializeAttachment()?.id)}catch{};const snapshot=this.worldSnapshot(s),previous=this.broadcastState,frames=snapshotFrames(snapshot,previous);
   this.broadcastState=frames.state;
   this.sentSnapshots??=new WeakMap();
