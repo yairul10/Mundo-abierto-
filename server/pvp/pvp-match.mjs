@@ -1,3 +1,4 @@
+import {applyArenaHull,practiceDamageScale} from './arena-balance.mjs';
 import {arenaRadius,modeRules,validPvpMode,teamForSlot,spawnForSlot,opponents,pvpRoomName} from './pvp-teams.mjs';
 export {pvpRoomName} from './pvp-teams.mjs';
 import {createPracticeBot,advancePracticeBot} from './practice-bot.mjs';
@@ -33,7 +34,7 @@ export function simulatePracticeRemainder(s,now,random=Math.random){
  if(m.mode==='1v1'&&m.bestOf===3){
   m.score||={a:0,b:0};const bot=s.players.find(p=>p.isBot),team=bot?.team;if(team)m.score[team]++;
   // Remaining practice rounds are resolved statistically after the pilot falls.
-  const strength=p=>Math.max(1,p.profile.attack)*Math.max(1,p.profile.maxHp+(p.profile.maxShield||0));
+  const strength=p=>Math.max(1,p.profile.attack)*practiceDamageScale(p)*Math.max(1,p.profile.maxHp+(p.profile.maxShield||0));
   while(bot&&Math.max(m.score.a,m.score.b)<2){const winner=random()<strength(human)/(strength(human)+strength(bot))?human:bot;m.score[winner.team]++;}
   const winner=s.players.find(p=>m.score[p.team]>=2);m.simulated=true;m.simulatedSeconds=0;
   finishPvp(s,now,winner?.id||null,'simulated');return true;
@@ -47,7 +48,7 @@ export function simulatePracticeRemainder(s,now,random=Math.random){
    const rivals=survivors.filter(p=>opponents(bot,p));if(!rivals.length)continue;
    const target=rivals[Math.min(rivals.length-1,Math.floor(random()*rivals.length))];
    const attack=Math.max(1,Number(bot.profile.attack)||1),drones=Math.max(0,Math.min(8,Number(bot.profile.droneCount)||0));
-   const dps=attack*(.5/.68+.2*drones/.68+3/7);
+   const dps=attack*practiceDamageScale(bot)*(.5/.68+.2*drones/.68+3/7);
    damage.set(target,(damage.get(target)||0)+Math.max(1,dps*.85-(Number(target.profile.defense)||0)*.25));
   }
   for(const [target,amount]of damage){const shield=Math.max(0,Number(target.shield)||0),absorbed=Math.min(shield,amount);target.shield=shield-absorbed;target.hp=Math.max(0,target.hp-(amount-absorbed));}
@@ -132,7 +133,7 @@ export async function enterPvp(world,s,body,id,now){
   if(s.players.length>=modeRules(m).capacity)return {error:'world_full'};
   const roster=importRoster(body.roster);delete roster.adminpod;
   p={id,accountId:body.accountId,testGuest:false,realm:body.realm==='test'?'test':'normal',name:String(body.name||'Piloto').trim().slice(0,20),roster,connected:false,revision:0,clientVersion:body.clientVersion,snapshotDelta:body.snapshotDelta===1?1:0};
-  if(!equip(p,body.shipId)||!p.profile)return {error:'invalid_ship'};
+  if(!equip(p,body.shipId)||!p.profile)return {error:'invalid_ship'};applyArenaHull(p);
   p.slot=Array.from({length:modeRules(m).capacity},(_,i)=>i).find(i=>!s.players.some(q=>q.slot===i));p.team=teamForSlot(p.slot,s.pvpMatch);p.spawn=spawnForSlot(p.slot,m);p.aim=[modeRules(m).freeForAll?Math.atan2(p.spawn[0],p.spawn[2]):p.team==='a'?0:Math.PI,0];reset(p,true);p.duelId=m.code;p.duelStartsAt=Number.MAX_SAFE_INTEGER;
   p.skillSlots=m.mode==='1v1'?3:2;const requested=Array.isArray(body.skills)?[...new Set(body.skills.filter(id=>Object.hasOwn(PVP_SKILLS,id)))]:[];p.equippedSkills=[...requested,...Object.keys(PVP_SKILLS).filter(id=>!requested.includes(id))].slice(0,p.skillSlots);s.players.push(p);
  }

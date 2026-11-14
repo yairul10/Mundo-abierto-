@@ -18,7 +18,7 @@ test('normal aim targets the current ship position exactly and uses player proje
  const canDamage=(a,b)=>a.connected&&a.hp>0&&(!b||b.connected&&b.hp>0&&b!==a);
  advancePracticeBot(s,14000,canDamage,()=>.5);const first=s.botVolleys.filter(v=>v.shots[0].missile===false)[0];assert.ok(first);assert.equal(first.shots.length,4);
  for(const b of first.shots){const delta=human.pos.map((v,i)=>v-b.pos[i]),len=Math.hypot(...delta),speed=Math.hypot(...b.vel);for(let i=0;i<3;i++)assert.ok(Math.abs(b.vel[i]/speed-delta[i]/len)<1e-10);assert.ok(Math.abs(speed-4000)<1e-6||Math.abs(speed-1150)<1e-6)}
- assert.equal(first.shots[0].damage,150);const count=s.botVolleys.length;advancePracticeBot(s,14100,canDamage,()=>.5);assert.equal(s.botVolleys.length,count);
+ assert.equal(first.shots[0].damage,120);const count=s.botVolleys.length;advancePracticeBot(s,14100,canDamage,()=>.5);assert.equal(s.botVolleys.length,count);
  human.pos=[-100,80,-300];advancePracticeBot(s,14700,canDamage,()=>.5);assert.equal(s.botVolleys.length,count+1);
  const next=s.botVolleys.at(-1).shots[0],delta=human.pos.map((v,i)=>v-next.pos[i]),len=Math.hypot(...delta),speed=Math.hypot(...next.vel);for(let i=0;i<3;i++)assert.ok(Math.abs(next.vel[i]/speed-delta[i]/len)<1e-10);
 });

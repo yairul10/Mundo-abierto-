@@ -1,7 +1,7 @@
 // PvP powers: the server owns equipment, expiry and cooldown timestamps.
 export const PVP_SKILLS = Object.freeze({
- interference:{name:'Interferencia',icon:'📡',duration:3000,cooldown:30000,description:'Impide la fijación automática y rompe el guiado de misiles durante 3 s. Los disparos manuales pueden acertar.'},
- instantShield:{name:'Escudo instantáneo',icon:'🛡️',duration:3000,cooldown:30000,description:'Reduce a la mitad el daño recibido durante 3 s.'},
+ interference:{name:'Interferencia',icon:'📡',duration:3000,cooldown:30000,description:'Durante 3 s impide que te fijen automáticamente y corta el seguimiento de los misiles enemigos. No bloquea disparos manuales.'},
+ instantShield:{name:'Escudo instantáneo',icon:'🛡️',duration:3000,cooldown:30000,description:'Bloquea el 100 % del daño recibido durante 3 s.'},
  fury:{name:'Furia',icon:'🔥',duration:3000,cooldown:30000,description:'Duplica el daño causado durante 3 s.'},
  paralyze:{name:'Paralizado',icon:'⚡',duration:3000,cooldown:30000,description:'Inmoviliza al objetivo seleccionado durante 3 s a un máximo de 1200 m. Puede seguir disparando.'},
  luck:{name:'Suerte',icon:'🍀',duration:0,cooldown:30000,description:'Dispara de nuevo una ráfaga de misiles, aunque estuvieran recargando.'},

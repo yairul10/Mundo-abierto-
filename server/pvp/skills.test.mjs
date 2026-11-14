@@ -18,8 +18,8 @@ assert.equal(Object.keys(PVP_SKILLS).length,6);assert(!validSkills(['fury','fury
  reset(a);assert.deepEqual(a.skillUntil,{});assert.deepEqual(a.skillReadyAt,{});assert.deepEqual(a.equippedSkills,['fury','transfer']);
 }
 {
- const {s,a,b}=setup();setSkills(s,a,['fury','transfer']);setSkills(s,b,['instantShield','interference']);duel(s,a,b);a.hp=400;usePvpSkill(s,a,'transfer',t+3000);usePvpSkill(s,b,'instantShield',t+3000);hit(a,b,t+3100);assert.equal(b.hp,3950);assert.equal(a.hp,425,'Transfer uses damage after shields');
- b.hp=10;hit(a,b,t+3200,5000);assert.equal(a.hp,430,'Overkill cannot heal more than actual hull lost');b.hp=1000;a.hp=a.profile.maxHp-1;hit(a,b,t+3300);assert.equal(a.hp,a.profile.maxHp,'No overheal');a.hp=400;hit(a,b,t+8000);assert.equal(a.hp,400,'Transfer expires after 5 seconds');assert.equal(defenseDamage(b,100,t+6000,()=>1),100,'Shield expires');
+ const {s,a,b}=setup();setSkills(s,a,['fury','transfer']);setSkills(s,b,['instantShield','interference']);duel(s,a,b);a.hp=400;usePvpSkill(s,a,'transfer',t+3000);usePvpSkill(s,b,'instantShield',t+3000);hit(a,b,t+3100);assert.equal(b.hp,4000);assert.equal(a.hp,400,'Blocked damage cannot heal the attacker');b.skillUntil.instantShield=0;
+ b.hp=10;hit(a,b,t+3200,5000);assert.equal(a.hp,405,'Overkill cannot heal more than actual hull lost');b.hp=1000;a.hp=a.profile.maxHp-1;hit(a,b,t+3300);assert.equal(a.hp,a.profile.maxHp,'No overheal');a.hp=400;hit(a,b,t+8000);assert.equal(a.hp,400,'Transfer expires after 5 seconds');assert.equal(defenseDamage(b,100,t+6000,()=>1),100,'Shield expires');
 }
 {
  const {s,a,b}=setup();setSkills(s,b,['interference','paralyze']);duel(s,a,b);const shot={offset:[0,0,0],direction:[1,0,0],locked:true,speed:650};const missiles=attack(s,a,{targetId:b.id,weapon:'missile',shots:[shot]},t+3000);assert.equal(missiles[0].target,'b');usePvpSkill(s,b,'interference',t+3001);assert.equal(missiles[0].target,null,'In-flight missiles lose their target');assert.equal(attack(s,a,{targetId:b.id,weapon:'explorer',shots:[shot]},t+3002),null,'Automatic pet cannot acquire a jammed target');

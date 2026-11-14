@@ -31,7 +31,7 @@ try{
  assert.equal((await enter(13,{action:'create'},{shipId:'adminpod'})).error,'admin_ship_disabled');
  const a=await socket(host),b=await socket(friend);await delay(120);
  a.ws.send(JSON.stringify({type:'ready',ready:true}));b.ws.send(JSON.stringify({type:'ready',ready:true}));await delay(150);
- let snap=await fixture(host.arena.code,'start');assert.equal(snap.match.status,'active');assert.equal(snap.rules.pvpSkills,true);assert.equal(snap.rules.cooperative,false);assert.deepEqual(snap.enemies,[]);
+ let snap=await fixture(host.arena.code,'start');assert.equal(snap.match.status,'active');assert.equal(snap.players[0].profile.maxHp,40000);assert.equal(snap.rules.pvpSkills,true);assert.equal(snap.rules.cooperative,false);assert.deepEqual(snap.enemies,[]);
  a.ws.send(JSON.stringify({type:'pvpSkill',skill:'fury'}));await delay(150);snap=await fixture(host.arena.code,'injure');assert.equal(snap.players[0].hp,1234);assert.ok(snap.players[0].skillReadyAt.fury>Date.now());
  a.ws.close();b.ws.close();await delay(100);await mf.dispose();mf=new Miniflare(options);
  const resumed=await enter(10,{action:'resume',code:host.arena.code}),resumedFriend=await enter(11,{action:'resume',code:host.arena.code});assert.equal(resumed.status,200);assert.equal(resumedFriend.status,200);await socket(resumed);await socket(resumedFriend);await delay(120);
