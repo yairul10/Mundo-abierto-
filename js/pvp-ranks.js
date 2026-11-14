@@ -1,3 +1,4 @@
+import {clanTagNode,validClanTag} from './clan-badges.js?v=471';
 // Titles follow the current server-confirmed kills leaderboard, not offline XP.
 export const PVP_RANKS=Object.freeze([
  {id:'emperor',name:'Emperador',max:1},
@@ -21,7 +22,7 @@ export function rankBadge(stats){
  badge.style.backgroundPosition=((i%4)*100/3)+'% '+(i<4?0:100)+'%';return badge;
 }
 // Avoid rebuilding DOM and reloading images on every world tick.
-export function rankedName(element,name,stats,{title=false}={}){
- const rank=pvpRank(stats),stamp=JSON.stringify([name,rank.id,title]);if(element.dataset.rankStamp===stamp)return;
- element.dataset.rankStamp=stamp;element.replaceChildren(rankBadge(stats),document.createTextNode((title?rank.name+' · ':'')+name));
+export function rankedName(element,name,stats,{title=false,clanTag=null}={}){
+ const rank=pvpRank(stats),stamp=JSON.stringify([name,rank.id,title,validClanTag(clanTag)?clanTag:null]);if(element.dataset.rankStamp===stamp)return;
+ element.dataset.rankStamp=stamp;const badge=clanTagNode(clanTag);element.replaceChildren(rankBadge(stats),...(badge?[badge]:[]),document.createTextNode((title?rank.name+' · ':'')+name));
 }

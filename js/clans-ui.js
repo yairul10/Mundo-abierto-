@@ -4,7 +4,7 @@ const admissions={open:'Ingreso libre',request:'Por solicitud',invite:'Solo invi
 export function mountClans({button,getToken,createClan,hasPendingCreation=()=>false,realm='normal'}){
  let dialog=null,controller=null,epoch=0,busy=false,accountState=null;
  const element=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
- const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=470';document.head.append(style);
+ const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=471';document.head.append(style);
  button.onclick=()=>{
   if(dialog)return;
   dialog=element('dialog');dialog.className='clan-dialog';dialog.setAttribute('aria-label','Clanes');
@@ -35,7 +35,7 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
     else{const token=await getToken(),response=await fetch(API+'/clans/edit?realm='+encodeURIComponent(realm),{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({...values,id:clan.id,revision:clan.revision}),signal:AbortSignal.timeout(12000)}),result=await response.json();if(!response.ok)throw Error(result.error==='clan_edit_conflict'?'El clan cambió o no tienes permisos. Vuelve a abrir Mi clan.':'No se pudieron guardar los cambios.')}
    },form)};content.append(form);
   }
-  async function write(action,form){if(busy)return;busy=true;close.disabled=mine.disabled=searchTab.disabled=true;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=true;status.textContent='Guardando…';try{await action();busy=false;mine.onclick()}catch(error){status.textContent=error.message}finally{busy=false;close.disabled=mine.disabled=searchTab.disabled=false;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=false}}
+  async function write(action,form){if(busy)return;busy=true;close.disabled=mine.disabled=searchTab.disabled=true;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=true;status.textContent='Guardando…';try{await action();busy=false;globalThis.dispatchEvent?.(new Event('cosmos:clans-changed'));mine.onclick()}catch(error){status.textContent=error.message}finally{busy=false;close.disabled=mine.disabled=searchTab.disabled=false;for(const node of form?.querySelectorAll?.('input,textarea,select,button')||[])node.disabled=false}}
   function actionButton(label,action,clanId,targetId){const button=element('button',label);button.type='button';button.onclick=()=>membership(action,clanId,targetId);return button}
   function membership(action,clanId,targetId,form){return write(async()=>{
    const token=await getToken(),response=await fetch(API+'/clans/membership?realm='+encodeURIComponent(realm),{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action,clanId,targetId}),signal:AbortSignal.timeout(12000)}),result=await response.json();
@@ -77,7 +77,7 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
    if(clan.role==='leader'){const edit=element('button','Administrar clan');edit.onclick=()=>fieldsForm(clan);content.append(edit);}
   }
   mine.onclick=()=>{title.textContent='Mi clan';load('/clans/me',data=>{
-   accountState=data;if(data.clan)showClan(data.clan);else{content.append(element('h3','Todavía no perteneces a un clan'));const create=element('button','Crear clan · 200.000 créditos');create.onclick=()=>fieldsForm();const search=element('button','Buscar clanes');search.onclick=()=>searchTab.onclick();content.append(create,search)}
+   accountState=data;globalThis.dispatchEvent?.(new CustomEvent('cosmos:clans-changed',{detail:{pilotId:data.pilotId}}));if(data.clan)showClan(data.clan);else{content.append(element('h3','Todavía no perteneces a un clan'));const create=element('button','Crear clan · 200.000 créditos');create.onclick=()=>fieldsForm();const search=element('button','Buscar clanes');search.onclick=()=>searchTab.onclick();content.append(create,search)}
    membershipLists(data);
    if(hasPendingCreation()){const recover=element('button','Comprobar creación pendiente');recover.onclick=()=>write(()=>createClan({}));content.append(element('p','Hay una creación pendiente de confirmar. Compruébala antes de volver a crear.'),recover);}
   })};

@@ -61,3 +61,9 @@ operationId conserva recibos incluso tras disolver, para que un reintento no
 repita la acción. La disolución elimina las membresías y pendientes por cascada;
 conserva los recibos de pago y no devuelve créditos. El menú confirma expulsión
 y transferencia; disolver exige escribir la etiqueta del clan.
+
+Paso 7: POST /clans/badges consulta etiquetas por lotes de hasta 24 pilotos.
+Requiere sesión verificada, separa los entornos y obtiene la pertenencia desde D1.
+HUD, naves, selección y grupos muestran [TAG] Nombre sin cambiar el nombre guardado.
+El cliente actualiza cada 30 segundos y fuerza la consulta tras cambios propios.
+No se agregan lecturas D1 a cada fotograma ni a cada disparo del servidor de combate.

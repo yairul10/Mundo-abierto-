@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {clanAccountState,clanPermissions,CLAN_RULES,searchClans,publicClan} from '../server/clans/store.mjs';
+import {clanAccountState,clanPermissions,CLAN_RULES,searchClans,publicClan,clanBadges} from '../server/clans/store.mjs';
 import {clanRoute} from '../server/clans/route.mjs';
 const schema=readFileSync(new URL('../server/clans/migrations/0001-clans.sql',import.meta.url),'utf8');
 function database(path=':memory:'){
@@ -70,5 +70,13 @@ test('clan directory searches names and tags literally, isolates realms and hide
  assert.equal((await clanRoute(req('/clans/detail?id=missing'),env)).status,404);
  assert.equal((await clanRoute(req('/clans/search?q='+'x'.repeat(41)),env)).status,400);
  assert.equal((await clanRoute(req('/clans/detail?id=../COS'),env)).status,400);
+ }finally{f.sql.close()}
+});
+
+test('clan badges are server-owned, isolated by realm and disappear after leaving',async()=>{
+ const f=database(),id='12345678-1234-1234-1234-123456789abc';try{f.clan('COS');f.clan('DOS');f.clan('TEST','test');f.member(id,'COS','member');f.member(id,'TEST','member','test');
+ assert.equal((await clanBadges(f.db,'normal',[id])).badges[id].tag,'COS');assert.equal((await clanBadges(f.db,'test',[id])).badges[id].tag,'TEST');
+ f.sql.prepare("UPDATE clan_members SET clan_id='DOS' WHERE realm='normal' AND account_id=?").run(id);assert.equal((await clanBadges(f.db,'normal',[id])).badges[id].tag,'DOS');
+ f.sql.prepare("DELETE FROM clan_members WHERE realm='normal' AND account_id=?").run(id);assert.deepEqual((await clanBadges(f.db,'normal',[id])).badges,{});await assert.rejects(clanBadges(f.db,'normal',Array(25).fill(id)));await assert.rejects(clanBadges(f.db,'normal',['not-an-id']));
  }finally{f.sql.close()}
 });

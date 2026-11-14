@@ -1,5 +1,6 @@
-import {rankedName,rankBadge,pvpRank} from './pvp-ranks.js?v=347';
-export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
+import {clanPilotName} from './clan-badges.js?v=471';
+import {rankedName,rankBadge,pvpRank} from './pvp-ranks.js?v=471';
+export function mountPvpSocialUI({send,getState,onTarget,clanTag=()=>null,storage=localStorage}){
  const root=document.createElement('section');root.id='pvpSocial';
  root.innerHTML='<button type="button" id="pvpSocialToggle" class="cockpit-control cockpit-tertiary" data-social-toggle aria-expanded="false" aria-controls="pvpSocialMenu" aria-label="Abrir clasificaciones, grupos y duelos" title="Clasificaciones, grupos y duelos"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4h8v6a4 4 0 0 1-8 0zM8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v5m-4 1h8"/></svg></button><div id="pvpSocialMenu" hidden><button data-top>Clasificaciones</button><button data-group-open hidden>Grupo PvP</button><button data-requests>Solicitudes de duelo</button></div><div class="pvp-social-card" data-group hidden></div><div class="pvp-social-card" data-duel hidden></div><div class="pvp-social-card" data-ranks hidden><button data-close>Cerrar</button><h3>Clasificaciones PvP</h3><p>Solo bajas válidas de la zona hostil. Sin límite diario. Hasta 3 por rival cada 5 horas.</p><div data-table></div><p data-mine></p></div>';document.body.append(root);
  const toggle=root.querySelector('[data-social-toggle]'),menu=root.querySelector('#pvpSocialMenu');
@@ -26,11 +27,11 @@ export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
   const grouped=new Set(state.groups.flatMap(g=>g.members));
   const available=state.players.filter(p=>p.id!==me.id&&!grouped.has(p.id));
   const waiting=state.groupInvites.find(i=>i.from===me.id&&i.expiresAt>state.serverTime);
-  const next=JSON.stringify([own,request,waiting,state.players.map(p=>[p.id,p.name])]);
+  const next=JSON.stringify([own,request,waiting,state.players.map(p=>[p.id,p.name,clanTag(p.id)])]);
   if(next===groupStamp)return;
   groupStamp=next;
   const heading=document.createElement('h3');heading.textContent=getState().state?.rules?.cooperative?'Grupo cooperativo':'Grupo PvP';
-  const pilotName=id=>state.players.find(p=>p.id===id)?.name||'Piloto';
+  const pilotName=id=>clanPilotName(state.players.find(p=>p.id===id)?.name||'Piloto',clanTag(id));
   groupPanel.replaceChildren(button('Cerrar',closeGroup),heading);
   if(own){
    const members=document.createElement('p');members.textContent='Pilotos ('+own.members.length+'/4) · '+own.members.map(pilotName).join(', ');
@@ -43,7 +44,7 @@ export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
   if(waiting)groupPanel.append('Invitación enviada a '+pilotName(waiting.to)+'.');
   else if(!own||own.members.length<4){
    if(!available.length)groupPanel.append('No hay pilotos disponibles para invitar.');
-   for(const pilot of available)groupPanel.append(button('Invitar a '+pilot.name,()=>send({type:'groupInvite',target:pilot.id})));
+   for(const pilot of available)groupPanel.append(button('Invitar a '+clanPilotName(pilot.name,clanTag(pilot.id)),()=>send({type:'groupInvite',target:pilot.id})));
   }
  }
  groupOpen.onclick=()=>{closeMenu();groupShown=true;const {state,me}=getState();if(state&&me)updateGroup(state,me)};
@@ -57,10 +58,10 @@ export function mountPvpSocialUI({send,getState,onTarget,storage=localStorage}){
  groupOpen.textContent=cooperative?'Grupo cooperativo':'Grupo PvP';
  toggle.setAttribute('aria-label',cooperative?'Abrir grupo cooperativo':'Abrir clasificaciones, grupos y duelos');toggle.title=cooperative?'Grupo cooperativo':'Clasificaciones, grupos y duelos';
  if(cooperative){ranks.hidden=true;duel.hidden=true;return}
-const now=state.serverTime,request=state.invites?.find(i=>i.to===me.id&&i.expiresAt>now),own=state.duels?.find(d=>d.id===me.duelId),other=state.players.find(p=>p.id===selected&&p.id!==me.id);const next=JSON.stringify([request,own,other?.id,other?.zone,other?.death,other?.duelId,me.zone,me.death,me.hangar,Math.ceil(((own?.startsAt||0)-now)/1000)]);if(next===stamp)return;stamp=next;duel.replaceChildren();duel.hidden=!request&&!own&&!(other&&me.zone==='pve'&&other.zone==='pve');if(duel.hidden)return;
- if(request){const from=state.players.find(p=>p.id===request.from),p=document.createElement('p');p.textContent=(from?.name||'Piloto')+' te invita a un duelo sin pérdidas.';duel.append(p,button('Aceptar',()=>send({type:'reply',id:request.id,accept:true})),button('Rechazar',()=>send({type:'reply',id:request.id,accept:false})),button('Bloquear solicitudes',()=>{storage.setItem('cosmos.duelRequestsOff','1');send({type:'duelBlock',block:true});syncRequests()}))}
+const now=state.serverTime,request=state.invites?.find(i=>i.to===me.id&&i.expiresAt>now),own=state.duels?.find(d=>d.id===me.duelId),other=state.players.find(p=>p.id===selected&&p.id!==me.id);const next=JSON.stringify([request,own,other?.id,other?.zone,other?.death,other?.duelId,clanTag(other?.id),clanTag(request?.from),me.zone,me.death,me.hangar,Math.ceil(((own?.startsAt||0)-now)/1000)]);if(next===stamp)return;stamp=next;duel.replaceChildren();duel.hidden=!request&&!own&&!(other&&me.zone==='pve'&&other.zone==='pve');if(duel.hidden)return;
+ if(request){const from=state.players.find(p=>p.id===request.from),p=document.createElement('p');p.textContent=clanPilotName(from?.name||'Piloto',clanTag(from?.id))+' te invita a un duelo sin pérdidas.';duel.append(p,button('Aceptar',()=>send({type:'reply',id:request.id,accept:true})),button('Rechazar',()=>send({type:'reply',id:request.id,accept:false})),button('Bloquear solicitudes',()=>{storage.setItem('cosmos.duelRequestsOff','1');send({type:'duelBlock',block:true});syncRequests()}))}
  else if(own){const remaining=Math.ceil((own.startsAt-now)/1000),p=document.createElement('p');p.textContent=remaining>0?'El duelo comienza en '+remaining+'…':'Duelo activo · La base no te protege del rival';duel.append(p,button('Rendirse',()=>{if(confirm('¿Terminar el duelo y volver a la base sin coste?'))send({type:'surrender'})}))}
- else {const p=document.createElement('p');p.textContent=other.name+' · Duelo voluntario, sin premios ni pérdidas.';duel.append(p,button('Solicitar duelo',()=>send({type:'invite',target:other.id})))}
+ else {const p=document.createElement('p');p.textContent=clanPilotName(other.name,clanTag(other.id))+' · Duelo voluntario, sin premios ni pérdidas.';duel.append(p,button('Solicitar duelo',()=>send({type:'invite',target:other.id})))}
  },enableRequests(){storage.removeItem('cosmos.duelRequestsOff');send({type:'duelBlock',block:false})}};
 }
 

@@ -16,6 +16,10 @@ try{
  let response=await read();assert.equal(response.status,200);assert.equal((await response.json()).clan,null);
  await db.batch([db.prepare("INSERT INTO clans(realm,id,name,name_key,tag,created_at) VALUES('normal','one','Clan Uno','clan uno','UNO',1)"),db.prepare("INSERT INTO clan_members VALUES('normal',?,'one','leader',1)").bind(id)]);
  const headers={Authorization:'Bearer fixture-session-123'};const search=await mf.dispatchFetch('https://test/clans/search?q=UNO',{headers});assert.equal(search.status,200);assert.equal((await search.json()).clans[0].memberCount,1);const detail=await mf.dispatchFetch('https://test/clans/detail?id=one',{headers});assert.equal(detail.status,200);assert.equal((await detail.json()).clan.members[0].role,'leader');
+ const badges=()=>mf.dispatchFetch('https://test/clans/badges',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({ids:[id]})});
+ let badgeResponse=await badges();assert.equal(badgeResponse.status,200);assert.equal((await badgeResponse.json()).badges[id].tag,'UNO');
+ await db.prepare("UPDATE clans SET tag='DOS' WHERE id='one'").run();assert.equal((await (await badges()).json()).badges[id].tag,'DOS');
+ await db.prepare("UPDATE clans SET tag='UNO' WHERE id='one'").run();
  await mf.dispose();mf=new Miniflare(options);
  response=await read();assert.equal(response.status,200);const data=await response.json();assert.equal(data.clan.id,'one');assert.equal(data.permissions.editClan,true);assert.equal(data.rules.creationCost,200000);
  console.log('PASS Worker identity + real D1: migration, unauthenticated denial, verified account read and membership persistence after restart.');

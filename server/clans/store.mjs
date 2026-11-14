@@ -35,3 +35,11 @@ export async function publicClan(db,realm,id){
  const row=clans.results[0];if(!row)return null;
  return {id:row.id,name:row.name,tag:row.tag,description:row.description,admission:row.admission,createdAt:row.created_at,memberCount:members.results.length,members:members.results.map(p=>({pilot:'Piloto #'+p.account_id.replaceAll('-','').slice(-6),role:p.role,joinedAt:p.joined_at}))};
 }
+
+export async function clanBadges(db,realm,ids){
+ if(!Array.isArray(ids)||ids.length>24||ids.some(id=>typeof id!=='string'||!/^[a-f0-9-]{36}$/i.test(id)))throw Object.assign(Error('invalid_pilots'),{code:'invalid_pilots',status:400});
+ const unique=[...new Set(ids)];if(!unique.length)return {badges:{}};
+ db=db.withSession?db.withSession('first-primary'):db;
+ const rows=await db.prepare('SELECT m.account_id,c.id,c.name,c.tag FROM clan_members m JOIN clans c ON c.realm=m.realm AND c.id=m.clan_id WHERE m.realm=? AND m.account_id IN ('+unique.map(()=>'?').join(',')+')').bind(realm,...unique).all();
+ return {badges:Object.fromEntries(rows.results.map(row=>[row.account_id,{id:row.id,name:row.name,tag:row.tag}]))};
+}

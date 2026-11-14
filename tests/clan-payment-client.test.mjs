@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-const source=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8'),start=source.indexOf('async function createPlayerClan('),end=source.indexOf('const clansEntry=',start),body=source.slice(start,end);
+const source=readFileSync(new URL('../js/game3d.js',import.meta.url),'utf8'),start=source.indexOf('async function createPlayerClan('),end=source.indexOf('const offlineClanBadges=',start),body=source.slice(start,end);
 function fixture(){const player={gold:500000},data=new Map(),options=[],requests=[];const storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)},owner='play:pilot',key='cosmos.clanCreation.pending.'+owner;let lost=true,revision=2;
  const payment={prepare:async option=>{options.push(option);return {revision:1}},release(){},finish(){}};
  const fetch=async(url,o)=>{const req=JSON.parse(o.body);requests.push(req);if(lost){lost=false;throw Error('connection lost')}return {ok:true,json:async()=>({created:true,operationId:req.operationId,cost:200000,revision:2,currentRevision:revision})}};
