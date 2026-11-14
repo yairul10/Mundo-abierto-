@@ -6,7 +6,7 @@ function ui(){class Element{constructor(tag){this.tag=tag;this.children=[];this.
  return {document,api:new Function('document',source+';return {choosePvpMatch,showPvpResult}')(document)};
 }
 test('the mode picker carries 2v2 into practice and private-room code requests',async()=>{
- for(const mode of ['2v2','5v5'])for(const action of ['bot','find','create','join']){const {document,api}=ui(),pending=api.choosePvpMatch(),dialog=document.body.children.at(-1),actions=dialog.children[2];actions.children.find(b=>b.textContent===mode).onclick();assert.match(dialog.children[0].textContent,new RegExp(mode));
+ for(const mode of ['2v2','5v5','arena20'])for(const action of ['bot','find','create','join']){const {document,api}=ui(),pending=api.choosePvpMatch(),dialog=document.body.children.at(-1),actions=dialog.children[2];actions.children.find(b=>b.textContent===(mode==='arena20'?'Arena · 20 jugadores':mode)).onclick();assert.match(dialog.children[0].textContent,new RegExp(mode==='arena20'?'Arena 20':mode));
   if(action!=='join')actions.children.find(b=>b.textContent===({bot:'Practicar con bots',find:'Buscar partida',create:'Crear sala privada'}[action])).onclick();else{actions.children.find(b=>b.textContent==='Unirme con código').onclick();const form=actions.children[0];form.children[0].value='abcdef';form.onsubmit({preventDefault(){}})}
   assert.deepEqual(await pending,action==='join'?{action,mode,code:'ABCDEF'}:{action,mode});
  }
@@ -20,4 +20,9 @@ test('the actual client target gate refuses allied pilots',()=>{
  const me={id:'me',team:'a',hp:100,protected:false,zone:'arena',duelId:'room',duelStartsAt:0},other={id:'other',team:'a',hp:100,protected:false,zone:'arena',duelId:'room'},state={match:{mode:'2v2'},players:[me,other],rules:{cooperative:false}},ws={readyState:1};
  const gate=new Function('me','state','ws','WebSocket','performance','lastReceived','selected','bridge','clockOffset','const roomEnding=false;'+code+';return canTarget')(me,state,ws,{OPEN:1},{now:()=>100},100,'other',{},0);
  assert.equal(gate('other'),false);other.team='b';assert.equal(gate('other'),true);
+});
+
+test('Arena result names an individual winner',()=>{
+ const {document,api}=ui();api.showPvpResult({mode:'arena20',winner:'me',winnerTeam:'pilot-0'},'me',()=>{},'pilot-0');
+ assert.equal(document.body.children.at(-1).children[0].textContent,'¡Victoria!');
 });

@@ -1,4 +1,4 @@
-import {modeRules,validPvpMode,teamForSlot,spawnForSlot,opponents,pvpRoomName} from './pvp-teams.mjs';
+import {arenaRadius,modeRules,validPvpMode,teamForSlot,spawnForSlot,opponents,pvpRoomName} from './pvp-teams.mjs';
 export {pvpRoomName} from './pvp-teams.mjs';
 import {createPracticeBot,advancePracticeBot} from './practice-bot.mjs';
 import {WORLD,equip,reset,importRoster,changeFormation} from './world-rules.mjs';
@@ -15,13 +15,15 @@ export function finishPvp(s,now,winner=null,reason='destroyed'){
  Object.assign(m,{status:'finished',finishedAt:now,winner,winnerTeam:s.players.find(p=>p.id===winner)?.team||null,reason,paused:false});s.bullets=[];s.critical=true;
  recordEliminations(s,now);for(const p of s.players)p.firing=false;
 }
-function placePlayer(s,p,slot){p.slot=slot;p.team=teamForSlot(slot);p.spawn=spawnForSlot(slot,s.pvpMatch);p.pos=[...p.spawn];p.aim=[p.team==='a'?0:Math.PI,0];p.ready=false;p.revision++;s.critical=true}
+function placePlayer(s,p,slot){p.slot=slot;p.team=teamForSlot(slot,s.pvpMatch);p.spawn=spawnForSlot(slot,s.pvpMatch);p.pos=[...p.spawn];p.aim=[p.team==='a'?0:Math.PI,0];p.ready=false;p.revision++;s.critical=true}
 export function swapTeams(s,p,ids){
+ if(modeRules(s.pvpMatch).freeForAll)return 'invalid_team';
  if(s.pvpMatch.status!=='waiting'||s.pvpMatch.visibility!=='private'||s.pvpMatch.hostId!==p.id)return 'host_only';
  if(!Array.isArray(ids)||ids.length!==2)return 'invalid_team';const [a,b]=ids.map(id=>s.players.find(q=>q.id===id&&!q.exiting&&!q.isBot));
  if(!a||!b||a.team===b.team)return 'invalid_team';const slot=a.slot;placePlayer(s,a,b.slot);placePlayer(s,b,slot);return null;
 }
 export function changeTeam(s,p,team){
+ if(modeRules(s.pvpMatch).freeForAll)return 'invalid_team';
  if(s.pvpMatch.status!=='waiting'||s.pvpMatch.bot)return 'match_started';
  if(!['a','b'].includes(team))return 'invalid_team';if(p.team===team)return null;
  const used=new Set(s.players.filter(q=>q.id!==p.id&&!q.exiting).map(q=>q.slot));
@@ -41,7 +43,7 @@ export function advancePvp(s,now){
  const m=s.pvpMatch,dt=Math.max(0,now-(m.tickAt||now)),capacity=modeRules(m).capacity;m.tickAt=now;
  if(m.status==='finished')return;
  if(m.status==='waiting'&&!s.players.some(p=>p.id===m.hostId&&!p.exiting))m.hostId=s.players.find(p=>!p.isBot&&!p.exiting)?.id||null;
- for(let i=0;i<s.players.length;i++){const p=s.players[i];p.slot??=i;p.team??=teamForSlot(p.slot)}
+ for(let i=0;i<s.players.length;i++){const p=s.players[i];p.slot??=i;p.team??=teamForSlot(p.slot,s.pvpMatch)}
  if(m.bot){
   const human=s.players.find(p=>!p.isBot);for(const bot of s.players.filter(p=>p.isBot)){bot.connected=true;bot.ready=true;bot.lastSeen=now}
   if(human&&!human.connected&&(human.exiting||now-human.lastSeen>=20000)){finishPvp(s,now,null,'abandoned');return}
@@ -87,7 +89,7 @@ export async function enterPvp(world,s,body,id,now){
   const roster=importRoster(body.roster);delete roster.adminpod;
   p={id,accountId:body.accountId,testGuest:false,realm:body.realm==='test'?'test':'normal',name:String(body.name||'Piloto').trim().slice(0,20),roster,connected:false,revision:0,clientVersion:body.clientVersion,snapshotDelta:body.snapshotDelta===1?1:0};
   if(!equip(p,body.shipId)||!p.profile)return {error:'invalid_ship'};
-  p.slot=Array.from({length:modeRules(m).capacity},(_,i)=>i).find(i=>!s.players.some(q=>q.slot===i));p.team=teamForSlot(p.slot);p.spawn=spawnForSlot(p.slot,m);p.aim=[p.team==='a'?0:Math.PI,0];reset(p,true);p.duelId=m.code;p.duelStartsAt=Number.MAX_SAFE_INTEGER;
+  p.slot=Array.from({length:modeRules(m).capacity},(_,i)=>i).find(i=>!s.players.some(q=>q.slot===i));p.team=teamForSlot(p.slot,s.pvpMatch);p.spawn=spawnForSlot(p.slot,m);p.aim=[modeRules(m).freeForAll?Math.atan2(p.spawn[0],p.spawn[2]):p.team==='a'?0:Math.PI,0];reset(p,true);p.duelId=m.code;p.duelStartsAt=Number.MAX_SAFE_INTEGER;
   p.equippedSkills=validSkills(body.skills)?[...body.skills]:equippedSkills(p);s.players.push(p);
  }
  m.hostId||=p.id;
@@ -98,7 +100,7 @@ export async function enterPvp(world,s,body,id,now){
 }
 export function pvpSnapshot(s,now){
  const m=s.pvpMatch,protectedNow=!active(s),waiting=m.status==='waiting';
- return {type:'world',serverTime:now,match:{code:m.code,hostId:m.hostId||null,mode:m.mode||'1v1',capacity:modeRules(m).capacity,teamSize:modeRules(m).teamSize,winnerTeam:m.winnerTeam||null,practice:!!m.bot,visibility:m.visibility,status:m.status,startsAt:m.startsAt||0,deadline:m.deadline||0,paused:!!m.paused,pauseReason:m.paused&&s.players.some(p=>!p.isBot&&p.practicePaused)?'window':null,winner:m.winner||null,reason:m.reason||null},room:null,boss:null,enemies:[],rules:{...WORLD,cooperative:false,pvpSkills:true,skills:PVP_SKILLS,openCombat:true,formationSwitch:true,radius:PVP_RADIUS,safeRadius:0,capacity:modeRules(m).capacity,portalImmunity:false},players:s.players.map(p=>({id:p.id,team:p.team,eliminated:!!p.eliminated,name:p.name,profile:p.profile,hp:p.hp,energy:p.energy,shield:p.shield,pos:p.pos,aim:p.aim,seq:p.seq,revision:p.revision,connected:p.connected,isBot:!!p.isBot,ready:!!p.ready,duelId:m.code,duelStartsAt:m.startsAt||Number.MAX_SAFE_INTEGER,protected:protectedNow,zone:'arena',death:null,hangar:false,exiting:!!p.exiting,abilityUntil:p.abilityUntil||0,abilityReadyAt:p.abilityReadyAt||0,paralyzedUntil:p.paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:p.skillUntil||{},skillReadyAt:p.skillReadyAt||{},adminShipAllowed:false})),duels:[],invites:[],groups:[],groupInvites:[],events:s.events||[]};
+ return {type:'world',serverTime:now,match:{code:m.code,hostId:m.hostId||null,mode:m.mode||'1v1',capacity:modeRules(m).capacity,teamSize:modeRules(m).teamSize,freeForAll:!!modeRules(m).freeForAll,winnerTeam:m.winnerTeam||null,practice:!!m.bot,visibility:m.visibility,status:m.status,startsAt:m.startsAt||0,deadline:m.deadline||0,paused:!!m.paused,pauseReason:m.paused&&s.players.some(p=>!p.isBot&&p.practicePaused)?'window':null,winner:m.winner||null,reason:m.reason||null},room:null,boss:null,enemies:[],rules:{...WORLD,cooperative:false,pvpSkills:true,skills:PVP_SKILLS,openCombat:true,formationSwitch:true,radius:arenaRadius(m),safeRadius:0,capacity:modeRules(m).capacity,portalImmunity:false},players:s.players.map(p=>({id:p.id,team:p.team,eliminated:!!p.eliminated,name:p.name,profile:p.profile,hp:p.hp,energy:p.energy,shield:p.shield,pos:p.pos,aim:p.aim,seq:p.seq,revision:p.revision,connected:p.connected,isBot:!!p.isBot,ready:!!p.ready,duelId:m.code,duelStartsAt:m.startsAt||Number.MAX_SAFE_INTEGER,protected:protectedNow,zone:'arena',death:null,hangar:false,exiting:!!p.exiting,abilityUntil:p.abilityUntil||0,abilityReadyAt:p.abilityReadyAt||0,paralyzedUntil:p.paralyzedUntil||0,equippedSkills:equippedSkills(p),skillUntil:p.skillUntil||{},skillReadyAt:p.skillReadyAt||{},adminShipAllowed:false})),duels:[],invites:[],groups:[],groupInvites:[],events:s.events||[]};
 }
 export async function pvpMessage(world,s,p,m,ws,now){
  if(m.type==='practicePause'&&s.pvpMatch.bot){const paused=m.paused===true;if(p.practicePaused&&!paused)advancePvp(s,now);if(!p.practicePaused&&paused){s.pvpMatch.tickAt=now;s.simTime=now}p.practicePaused=paused;s.critical=true}
@@ -115,7 +117,7 @@ export async function pvpMessage(world,s,p,m,ws,now){
   if(!Number.isSafeInteger(m.seq)||m.seq<=p.seq||!Array.isArray(m.move)||m.move.length!==3||!m.move.every(Number.isFinite)||Math.hypot(...m.move)>1.001)return;
   const dt=Math.max(0,Math.min(.15,(now-p.lastInput)/1000));p.lastInput=now;p.seq=m.seq;p.clientBoostersPaused=m.boostersPaused===true;p.firing=active(s)&&p.hp>0&&!!m.firing;
   if(Array.isArray(m.aim)&&m.aim.length===2&&m.aim.every(Number.isFinite))p.aim=[Math.max(-1000,Math.min(1000,m.aim[0])),Math.max(-1.15,Math.min(1.15,m.aim[1]))];
-  if(active(s)&&p.hp>0&&(p.paralyzedUntil||0)<=now){p.pos=p.pos.map((v,i)=>v+m.move[i]*p.profile.speed*dt);const d=Math.hypot(p.pos[0],p.pos[2]);if(d>PVP_RADIUS){p.pos[0]*=PVP_RADIUS/d;p.pos[2]*=PVP_RADIUS/d}p.pos[1]=Math.max(-900,Math.min(900,p.pos[1]));}
+  if(active(s)&&p.hp>0&&(p.paralyzedUntil||0)<=now){p.pos=p.pos.map((v,i)=>v+m.move[i]*p.profile.speed*dt);const d=Math.hypot(p.pos[0],p.pos[2]);if(d>arenaRadius(match)){p.pos[0]*=arenaRadius(match)/d;p.pos[2]*=arenaRadius(match)/d}p.pos[1]=Math.max(-900,Math.min(900,p.pos[1]));}
  }else if(m.type==='formation'){if(active(s))error=changeFormation(p,m.formation);else error='match_not_active'}
  else if(m.type==='ability'){if(!canDamage(s,p,null)||!ability(p,now))error='match_not_active';else if(['centella','vertigo'].includes(p.profile.shipId))p.paralyzedUntil=0}
  else if(m.type==='pvpSkill'){

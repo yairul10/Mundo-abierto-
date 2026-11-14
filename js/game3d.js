@@ -1,5 +1,5 @@
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=458';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=459';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -55,7 +55,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=450';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=458';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=459';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=450';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=401';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -2622,7 +2622,7 @@ function drawRadar(dt){
  for(const rad of [22,44,66]){ctx.beginPath();ctx.arc(78,78,rad,0,Math.PI*2);ctx.stroke()}
  ctx.beginPath();ctx.moveTo(78,12);ctx.lineTo(78,144);ctx.moveTo(12,78);ctx.lineTo(144,78);ctx.stroke();
  if(COOP_MODE){ctx.strokeStyle='#a393ff';ctx.beginPath();for(const x of [-1600,1600]){const a=radarPoint(x,1200),b=radarPoint(x,-12500);ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)}ctx.stroke()}
- if(PVP_MODE&&!COOP_MODE){const center=radarPoint(0,0);for(const [radius,color]of (ARENA_MODE?[[2200,'#8e91f5']]:[[650,'#72dfff'],[3275,'#71f5a4'],[5900,'#ff6c79']])){ctx.strokeStyle=color;ctx.beginPath();ctx.arc(center.x,center.y,radius*RADAR_RADIUS/RADAR_RANGE,0,Math.PI*2);ctx.stroke()}}
+ if(PVP_MODE&&!COOP_MODE){const center=radarPoint(0,0);for(const [radius,color]of (ARENA_MODE?[[pvpSession?.radius||2200,'#8e91f5']]:[[650,'#72dfff'],[3275,'#71f5a4'],[5900,'#ff6c79']])){ctx.strokeStyle=color;ctx.beginPath();ctx.arc(center.x,center.y,radius*RADAR_RADIUS/RADAR_RANGE,0,Math.PI*2);ctx.stroke()}}
  const dot=(x,y,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()};
  for(const e of enemies){if(e.dead||!e.mesh.visible)continue;const p=radarPoint(e.mesh.position.x,e.mesh.position.z);if(p.inside)dot(p.x,p.y,ARENA_MODE&&e.pvpRemote&&e.team?(e.team===pvpSession?.myTeam?'#70ffba':'#ff7979'):e.pvpRemote&&!pvpSession?.canTarget(e.playerId)?'#68e6ff':e.pro?'#ffce60':'#ff6a6a',3)}
  for(const d of drops){const p=radarPoint(d.mesh.position.x,d.mesh.position.z);if(p.inside)dot(p.x,p.y,'#e8b5ff',2.8)}

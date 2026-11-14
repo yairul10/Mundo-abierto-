@@ -4,7 +4,7 @@ import {enterPvp,advancePvp,pvpMessage,pvpSnapshot,changeTeam,swapTeams} from '.
 import {pvpRoomName} from '../server/pvp/pvp-teams.mjs';
 const body=(id,bot=false)=>({accountId:id,name:id,clientVersion:5,realm:'normal',shipId:'aurora',skills:['fury','paralyze'],pvpRoom:{mode:'2v2',code:'ABCDEF',visibility:bot?'practice':'private',bot},roster:{aurora:{maxHp:1000,attack:100,defense:0,speed:220,maxEnergy:100}}});
 async function fixture(bot=false,mode='2v2'){const s={players:[],events:[],duels:[],invites:[]},sent=[],ws={send:m=>sent.push(JSON.parse(m)),close(){}},world={ctx:{storage:{setAlarm:async()=>{}},getWebSockets:()=>[]},worldSave(){},worldBroadcast(){},startSimulation(){},worldDisconnect:async()=>{}};
- for(let i=0;i<(bot?1:mode==='5v5'?10:4);i++){await enterPvp(world,s,{...body('p'+i,bot),pvpRoom:{...body('p'+i,bot).pvpRoom,mode}},'p'+i,10000);s.players.find(p=>p.id==='p'+i).connected=true}return {s,world,ws,sent};}
+ for(let i=0;i<(bot?1:mode==='arena20'?20:mode==='5v5'?10:4);i++){await enterPvp(world,s,{...body('p'+i,bot),pvpRoom:{...body('p'+i,bot).pvpRoom,mode}},'p'+i,10000);s.players.find(p=>p.id==='p'+i).connected=true}return {s,world,ws,sent};}
 async function start(f){for(const p of f.s.players.filter(p=>!p.isBot))await pvpMessage(f.world,f.s,p,{type:'ready',ready:true},f.ws,10000);assert.equal(f.s.pvpMatch.status,'countdown');advancePvp(f.s,13000);assert.equal(f.s.pvpMatch.status,'active')}
 test('2v2 has isolated room identities, four reserved slots, balanced teams and four ready checks',async()=>{
  assert.notEqual(pvpRoomName('normal','ABCDEF','1v1'),pvpRoomName('normal','ABCDEF','2v2'));
@@ -72,4 +72,33 @@ test('5v5 practice creates four allies and five rivals and ends when the human l
  }
  await pvpMessage(f.world,f.s,f.s.players[0],{type:'leave'},f.ws,15100);
  assert.equal(f.s.pvpMatch.status,'finished');assert.equal(f.s.pvpMatch.reason,'abandoned');
+});
+
+test('Arena 20 has twenty opponents and circular spawns inside a larger boundary',async()=>{
+ const f=await fixture(false,'arena20'),{s,world,ws}=f;
+ assert.equal(s.players.length,20);assert.equal(new Set(s.players.map(p=>p.team)).size,20);
+ assert.equal(new Set(s.players.map(p=>JSON.stringify(p.spawn))).size,20);
+ for(const p of s.players)assert.ok(Math.abs(Math.hypot(p.pos[0],p.pos[2])-2400)<.01);
+ assert.equal(changeTeam(s,s.players[0],'a'),'invalid_team');
+ assert.equal(swapTeams(s,s.players[0],[s.players[1].id,s.players[2].id]),'invalid_team');
+ await start(f);const snap=pvpSnapshot(s,13000);
+ assert.equal(snap.match.freeForAll,true);assert.equal(snap.rules.radius,4000);
+ const a=s.players[0],b=s.players[2];a.pos=[0,120,100];b.pos=[0,120,0];
+ await pvpMessage(world,s,a,{type:'pvpSkill',skill:'paralyze',targetId:b.id},ws,13100);
+ assert.equal(b.paralyzedUntil,16100);
+ for(const p of s.players.slice(2))p.hp=0;advancePvp(s,13200);assert.equal(s.pvpMatch.status,'active');
+ s.players[1].hp=0;advancePvp(s,13300);assert.equal(s.pvpMatch.winner,a.id);
+ assert.notEqual(pvpRoomName('normal','ABCDEF','arena20'),pvpRoomName('normal','ABCDEF','5v5'));
+});
+test('Arena 20 practice creates nineteen rival bots and enforces the expanded movement limit',async()=>{
+ const f=await fixture(true,'arena20');await start(f);
+ assert.equal(f.s.players.filter(p=>p.isBot).length,19);
+ for(let now=13100;now<=14000;now+=100)advancePvp(f.s,now);
+ for(const bot of f.s.players.filter(p=>p.isBot)){
+  assert.ok(bot.botBrain?.targetId);assert.notEqual(bot.botBrain.targetId,bot.id);
+  assert.ok(Math.hypot(bot.pos[0],bot.pos[2])>2200);
+ }
+ const p=f.s.players[0];p.pos=[5000,120,0];p.lastInput=14000;
+ await pvpMessage(f.world,f.s,p,{type:'input',seq:1,move:[1,0,0],aim:[0,0]},f.ws,14100);
+ assert.ok(Math.abs(Math.hypot(p.pos[0],p.pos[2])-4000)<.01);
 });

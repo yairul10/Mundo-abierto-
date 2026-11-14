@@ -1,10 +1,10 @@
-import {modeRules,teamForSlot,spawnForSlot} from './pvp-teams.mjs';
+import {arenaRadius,modeRules,teamForSlot,spawnForSlot} from './pvp-teams.mjs';
 import {missileLaunches} from '../../js/missile-launch.js';
 import {equip,reset} from './world-rules.mjs';
 import {volley,ability} from './combat.mjs';
 import {activateSkill,skillActive} from './skills.mjs';
 export function createPracticeBot(human,match,now,slot=1){
- const bot={id:'bot-'+match.code+(modeRules(match).capacity>2?'-'+slot:''),slot,team:teamForSlot(slot),name:modeRules(match).capacity===2?'Piloto de práctica · BOT':teamForSlot(slot)===human.team?'Aliado de práctica · BOT':'Rival '+slot+' · BOT',isBot:true,connected:true,ready:true,revision:0,clientVersion:5,realm:human.realm,roster:JSON.parse(JSON.stringify(human.roster)),spawn:spawnForSlot(slot,match),aim:[teamForSlot(slot)==='a'?0:Math.PI,0],lastSeen:now,lastInput:now,seq:-1};
+ const bot={id:'bot-'+match.code+(modeRules(match).capacity>2?'-'+slot:''),slot,team:teamForSlot(slot,match),name:modeRules(match).capacity===2?'Piloto de práctica · BOT':teamForSlot(slot,match)===human.team?'Aliado de práctica · BOT':'Rival '+slot+' · BOT',isBot:true,connected:true,ready:true,revision:0,clientVersion:5,realm:human.realm,roster:JSON.parse(JSON.stringify(human.roster)),spawn:spawnForSlot(slot,match),aim:[modeRules(match).freeForAll?slot*Math.PI/10:teamForSlot(slot,match)==='a'?0:Math.PI,0],lastSeen:now,lastInput:now,seq:-1};
  delete bot.roster.adminpod;equip(bot,human.profile.shipId);reset(bot,true);bot.duelId=match.code;bot.duelStartsAt=Number.MAX_SAFE_INTEGER;bot.equippedSkills=['instantShield','fury'];
  return bot;
 }
@@ -34,7 +34,7 @@ function advanceOneBot(s,bot,target,now,canDamage,random){
   const retreat=bot.hp/bot.profile.maxHp<.3,forward=distance>(retreat?1000:850)?1:distance<(retreat?750:450)?-1:0;
   const lateral=unit([-toward[2],0,toward[0]]),movement=toward.map((v,i)=>v*forward*.8+lateral[i]*brain.side*(nearby?.9:.65));
   movement[1]+=.22*Math.sin(now*.0015+brain.phase);
-  const radius=Math.hypot(bot.pos[0],bot.pos[2]);if(radius>1750){movement[0]-=bot.pos[0]/radius*.8;movement[2]-=bot.pos[2]/radius*.8}
+  const radius=Math.hypot(bot.pos[0],bot.pos[2]);if(radius>arenaRadius(s.pvpMatch)*.8){movement[0]-=bot.pos[0]/radius*.8;movement[2]-=bot.pos[2]/radius*.8}
   if(Math.abs(bot.pos[1])>650)movement[1]-=Math.sign(bot.pos[1])*.5;
   const speed=Math.max(1,length(movement));brain.move=movement.map(v=>v/speed);
   if(now>=brain.engageAt){
@@ -44,7 +44,7 @@ function advanceOneBot(s,bot,target,now,canDamage,random){
   }
  }
  if((bot.paralyzedUntil||0)<=now)bot.pos=bot.pos.map((v,i)=>v+brain.move[i]*bot.profile.speed*dt);
- const radius=Math.hypot(bot.pos[0],bot.pos[2]);if(radius>2200){bot.pos[0]*=2200/radius;bot.pos[2]*=2200/radius}bot.pos[1]=clamp(bot.pos[1],-900,900);
+ const radius=Math.hypot(bot.pos[0],bot.pos[2]);if(radius>arenaRadius(s.pvpMatch)){bot.pos[0]*=arenaRadius(s.pvpMatch)/radius;bot.pos[2]*=arenaRadius(s.pvpMatch)/radius}bot.pos[1]=clamp(bot.pos[1],-900,900);
  const aim=target.pos.map((v,i)=>v-bot.pos[i]);bot.aim=[Math.atan2(-aim[0],-aim[2]),clamp(Math.atan2(aim[1],Math.hypot(aim[0],aim[2])),-1.15,1.15)];
  if(now<brain.engageAt||length(aim)>1200)return;
  const shot=(offset,kind)=>({offset,kind,direction:unit(target.pos.map((v,i)=>v-bot.pos[i]-offset[i])),speed:650,delay:.55,locked:true,crit:random()<.15+(bot.profile.special.crit||0)*.01});
