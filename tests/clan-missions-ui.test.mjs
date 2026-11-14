@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const source=readFileSync(new URL('../js/clans-ui.js',import.meta.url),'utf8').replace('export function','function'),flush=()=>new Promise(r=>setImmediate(r));
+const source=readFileSync(new URL('../js/clans-ui.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export function','function'),flush=()=>new Promise(r=>setImmediate(r));
 test('clan missions and ranking render verified names and progress through authenticated read-only tabs',async()=>{
  const nodes=[],requests=[];class Element{constructor(tag){this.tag=tag;this.children=[];nodes.push(this)}append(...x){this.children.push(...x)}replaceChildren(...x){this.children=x}setAttribute(k,v){this[k]=v}addEventListener(){}showModal(){}close(){}remove(){}focus(){}}
  const document={createElement:t=>new Element(t),head:new Element('head'),body:new Element('body')},button=new Element('button');let member=true;

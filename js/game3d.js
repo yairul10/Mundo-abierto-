@@ -1,6 +1,7 @@
+import {mountClanWarWatch} from './clan-wars.js?v=475';
 import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=472';
 import {createCoopFarmPilot} from './coop-farm-pilot.js?v=472';
-import {mountClans} from './clans-ui.js?v=474';
+import {mountClans} from './clans-ui.js?v=475';
 import {missileLaunches} from './missile-launch.js?v=454';
 import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=472';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
@@ -58,7 +59,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=472';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=472';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=475';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3072,6 +3073,7 @@ async function switchSector(route){
  if(!route||player.level<route.level)return;
  combatAudio.play('portalTravel');
  if(route.to==='pvp'){
+  if(clanWarWatch.reserved){lootToast('Tu guerra comienza pronto. Espera el traslado automático.');return}
   if(checkingPvpVersion)return;checkingPvpVersion=true;
   try{
    await checkPvpVersion();const choice=await chooseCoopRoom();if(!choice){portalCountdown=0;return}saveCoopChoice(choice);
@@ -3255,7 +3257,12 @@ let offlineClanPilotId=window.cosmosAccountSession?.()?.playerId||null;
 const refreshOwnClan=()=>{if(!PVP_MODE&&offlineClanPilotId)void offlineClanBadges.update([offlineClanPilotId]);};
 if(!PVP_MODE){refreshOwnClan();setInterval(refreshOwnClan,30000);addEventListener('cosmos:clans-changed',event=>{offlineClanPilotId=event.detail?.pilotId||offlineClanPilotId||window.cosmosAccountSession?.()?.playerId;offlineClanBadges.invalidate();refreshOwnClan();});}
 const clansEntry=document.createElement('button');clansEntry.id='clansEntry';clansEntry.type='button';clansEntry.textContent='Clanes';clansEntry.hidden=PVP_MODE;$('arenaEntry').before(clansEntry);mountClans({button:clansEntry,getToken:pvpAccountToken,createClan:createPlayerClan,hasPendingCreation:()=>!!localStorage.getItem('cosmos.clanCreation.pending.'+activeProfile(localStorage)),realm:window.MUNDO_PLAY_MODE?.mode||'normal'});
-const arenaEntry=$('arenaEntry');arenaEntry.hidden=PVP_MODE;arenaEntry.onclick=async()=>{if(player.hp<=0)return;try{await checkPvpVersion();const choice=await choosePvpMatch();if(!choice)return;if(!save())return;saveArenaChoice(choice);location.href='./index.html?pvp=1&arena=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}catch(error){if(error.updateRequired)showPvpUpdate();else window.alert(error.message)}};
+const clanWarWatch=mountClanWarWatch({getToken:pvpAccountToken,realm:window.MUNDO_PLAY_MODE?.mode||'normal',hasAccount:()=>PVP_MODE||!!window.cosmosAccountSession?.()?.playerId,notice:message=>lootToast(message),transfer:async assignment=>{
+ if(!save())throw Error('No se pudo guardar tu progreso antes de la guerra. Reintentando…');
+ sessionStorage.setItem('cosmos.clanWar.return',location.href);sessionStorage.setItem('cosmos.clanWar.assignment',JSON.stringify({...assignment,action:'resume'}));pvpSession?.leaveForClanWar();
+ location.href='./index.html?pvp=1&arena=1&clanWar='+encodeURIComponent(assignment.eventId)+'&v='+encodeURIComponent(window.COSMOS_GAME_BUILD);
+}});
+const arenaEntry=$('arenaEntry');arenaEntry.hidden=PVP_MODE;arenaEntry.onclick=async()=>{if(clanWarWatch.reserved){lootToast('Tu guerra comienza pronto. Espera el traslado automático.');return}if(player.hp<=0)return;try{await checkPvpVersion();const choice=await choosePvpMatch();if(!choice)return;if(!save())return;saveArenaChoice(choice);location.href='./index.html?pvp=1&arena=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}catch(error){if(error.updateRequired)showPvpUpdate();else window.alert(error.message)}};
 $('qaPanel').classList.toggle('hidden',!window.MUNDO_PLAY_MODE?.testEnabled&&!qaActive);
 qaTools.classList.add('hidden');
 qaSwitch.onclick=()=>{if(!save())return;window.MUNDO_PLAY_MODE.choose()};

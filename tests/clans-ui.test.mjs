@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const source=readFileSync(new URL('../js/clans-ui.js',import.meta.url),'utf8').replace('export function','function');
+const source=readFileSync(new URL('../js/clans-ui.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export function','function');
 const flush=()=>new Promise(r=>setImmediate(r));
 test('clan menu reads own clan, searches and opens details with safe text and no mutation requests',async()=>{
  const nodes=[];class Element{constructor(tag){this.tag=tag;this.value='';this.children=[];nodes.push(this)}append(...x){this.children.push(...x)}replaceChildren(...x){this.children=x}setAttribute(k,v){this[k]=v}addEventListener(){}showModal(){}close(){}remove(){}focus(){}}

@@ -1,5 +1,5 @@
 import {initClanMissionOutbox,queueClanMissionEvents,flushClanMissionOutbox} from '../clans/mission-outbox.mjs';
-import {advancePvp,enterPvp,pvpSnapshot,pvpMessage} from './pvp-match.mjs';
+import {advancePvp,enterPvp,pvpSnapshot,pvpMessage,finishPvp} from './pvp-match.mjs';
 import {advanceExpedition,roomMembers,EXPEDITION_CAPACITY} from './expedition.mjs';
 import {snapshotFrames} from './snapshot-delta.mjs';
 import {groupAction,updateGroups} from './groups.mjs';
@@ -99,6 +99,13 @@ export class SharedWorld extends DurableObject {
    }catch{this.sentSnapshots.delete(ws)}
   }
  }
+ async configureClanWar(spec){
+  const s=this.worldLoad();if(s.pvpMatch)return {ok:s.pvpMatch.clanWar?.eventId===spec.eventId&&JSON.stringify(s.pvpMatch.clanWar.roster)===JSON.stringify(spec.roster)};
+  s.realm=spec.realm;s.cooperative=false;s.arenaEnemies=[];s.boss=null;s.groups=[];s.groupInvites=[];s.duels=[];s.invites=[];s.bullets=[];
+  s.pvpMatch={code:spec.code,mode:spec.mode,realm:spec.realm,visibility:'clan-war',status:'waiting',createdAt:Date.now(),bestOf:3,round:1,score:{a:0,b:0},clanWar:{eventId:spec.eventId,roster:spec.roster,joinDeadline:spec.joinDeadline,clans:spec.clans}};
+  this.worldSave(s,true);await this.ctx.storage.setAlarm(Date.now()+1000);return {ok:true};
+ }
+ async clanWarResult(eventId,force=false){const s=this.worldLoad(),m=s.pvpMatch;if(m?.clanWar?.eventId!==eventId)return null;this.advanceRoom(s,Date.now());this.worldSave(s,true);if(force&&m.status!=='finished'){finishPvp(s,Date.now(),null,'war_time_limit');this.worldSave(s,true);this.worldBroadcast(s)}return {status:m.status,winnerTeam:m.winnerTeam||null,reason:m.reason||null,score:m.score||null}}
  async enter(body){
   if(body.testGuest===true&&(body.realm!=='test'||!testServerEnabled(this.env)||this.env.TEST_GUEST_ACCESS!=='true'))return {error:'google_required'};
   if(typeof body.accountId!=='string'||!/^[a-f0-9-]{36}$/i.test(body.accountId))return {error:'google_required'};
@@ -171,7 +178,7 @@ export class SharedWorld extends DurableObject {
  async webSocketClose(ws){await this.worldDisconnect(ws)}
  async webSocketError(ws){await this.worldDisconnect(ws)}
  async alarm(){let missionPending=false;try{missionPending=await flushClanMissionOutbox(this.ctx,this.env.CLANS_DB)}catch{missionPending=true;console.error(JSON.stringify({event:'clan_mission_delivery_failed'}))}const s=this.worldLoad(),now=Date.now();for(const p of s.players)if(p.connected&&now-p.lastSeen>15000){p.connected=false;for(const ws of this.ctx.getWebSockets())if(ws.deserializeAttachment()?.id===p.id)try{ws.close(1001,'timeout')}catch{}}
-  this.startSimulation(s);this.advanceRoom(s,now);s.players=s.players.filter(p=>s.room||s.pvpMatch||p.connected||p.death||now-p.lastSeen<30000);this.worldSave(s,!s.players.some(p=>p.connected));if(!s.players.some(p=>p.connected))this.stopSimulation();this.worldBroadcast(s);missionPending||=this.ctx.storage.sql.exec('SELECT 1 FROM clan_mission_outbox LIMIT 1').toArray().length>0;if(missionPending||(s.pvpMatch?s.pvpMatch.status!=='finished'&&s.players.some(p=>p.connected||now-p.lastSeen<20000):s.players.some(p=>p.connected)||!s.room&&s.players.length))await this.ctx.storage.setAlarm(now+3000);
+  this.startSimulation(s);this.advanceRoom(s,now);s.players=s.players.filter(p=>s.room||s.pvpMatch||p.connected||p.death||now-p.lastSeen<30000);this.worldSave(s,!s.players.some(p=>p.connected));if(!s.players.some(p=>p.connected))this.stopSimulation();this.worldBroadcast(s);missionPending||=this.ctx.storage.sql.exec('SELECT 1 FROM clan_mission_outbox LIMIT 1').toArray().length>0;if(missionPending||s.pvpMatch?.clanWar&&s.pvpMatch.status==='waiting'||(s.pvpMatch?s.pvpMatch.status!=='finished'&&s.players.some(p=>p.connected||now-p.lastSeen<20000):s.players.some(p=>p.connected)||!s.room&&s.players.length))await this.ctx.storage.setAlarm(now+3000);
  }
 }
 
