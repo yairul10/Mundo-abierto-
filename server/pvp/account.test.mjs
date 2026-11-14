@@ -16,7 +16,7 @@ test('Google account verification rejects missing, forged and expired sessions a
  assert.deepEqual(await verifiedPvpAccount(request(token),{PLAY_IDENTITY:service}),{playerId});
 });
 test('Worker ignores claimed account IDs and never admits unauthenticated guests',async()=>{
- const source=readFileSync(new URL('./worker.mjs',import.meta.url),'utf8').replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {}').replace("import {CoopLobby} from './coop-lobby.mjs';",'class CoopLobby {}').replace("import {SharedWorld} from './shared-world.mjs';",'class SharedWorld {}').replace(/from '(\.\/[^']+)'/g,(_,p)=>`from '${new URL(p,import.meta.url).href}'`);
+ const source=readFileSync(new URL('./worker.mjs',import.meta.url),'utf8').replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {}').replace("import {CoopLobby} from './coop-lobby.mjs';",'class CoopLobby {}').replace("import {SharedWorld} from './shared-world.mjs';",'class SharedWorld {}').replace(/from '(\.\.?\/[^']+)'/g,(_,p)=>`from '${new URL(p,import.meta.url).href}'`);
  const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
  let calls=0,body;const bindings={PLAY_IDENTITY:service,API_LIMIT:{limit:async()=>({success:true})},ROOMS:{getByName:()=>({enter:async b=>{calls++;body=b;return {playerId:'verified'}}})}};
  const join=token=>new Request('https://pvp.test/world/join',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({clientVersion:3,accountId:'forged',guestKey:'a'.repeat(64),realm:'normal'})});
@@ -25,7 +25,7 @@ test('Worker ignores claimed account IDs and never admits unauthenticated guests
 });
 test('room identity stays stable across local key changes and rejects legacy guest entry',async()=>{
  const {DatabaseSync}=await import('node:sqlite');const db=new DatabaseSync(':memory:');
- const source=readFileSync(new URL('./shared-world.mjs',import.meta.url),'utf8').replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {constructor(ctx){this.ctx=ctx}}').replace(/from '(\.\/[^']+)'/g,(_,p)=>`from '${new URL(p,import.meta.url).href}'`);
+ const source=readFileSync(new URL('./shared-world.mjs',import.meta.url),'utf8').replace("import {DurableObject} from 'cloudflare:workers';",'class DurableObject {constructor(ctx){this.ctx=ctx}}').replace(/from '(\.\.?\/[^']+)'/g,(_,p)=>`from '${new URL(p,import.meta.url).href}'`);
  const {SharedWorld}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
  const ctx={getWebSockets:()=>[],blockConcurrencyWhile:fn=>fn(),storage:{setAlarm:async()=>{},sql:{exec(q,...args){const result=db.prepare(q).all(...args);return {toArray:()=>result}}},transactionSync(fn){db.exec('BEGIN');try{fn();db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}}}};
  try{

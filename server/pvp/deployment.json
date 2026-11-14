@@ -47,6 +47,11 @@
     {
       "type": "ai",
       "name": "AI"
+    },
+    {
+      "type": "d1",
+      "name": "CLANS_DB",
+      "id": "78acab78-e389-4ccf-8b30-3b1d2f1b67b5"
     }
   ],
   "exports": {
