@@ -1,7 +1,7 @@
 import {damageBoosterTimers} from './damage-boosters.js?v=401';
 import {shieldCapacity,shieldLevel} from './shield-system.js?v=364';
-import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=355';
-import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=443';
+import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=450';
+import {ASSEMBLED_SHIPS} from './assembled-ships.js?v=450';
 const SHIPS=Object.fromEntries(['agilbasica','aurora','titan','espectro',...Object.keys(ASSEMBLED_SHIPS)].map(id=>[id,{...ASSEMBLED_SHIPS[id]}]));
 const number=(value,fallback)=>Number.isFinite(Number(value))&&Number(value)>0?Number(value):fallback;
 export function readOfflinePilot(storage){try{const test=typeof window!=='undefined'&&window.MUNDO_PLAY_MODE?window.MUNDO_PLAY_MODE.mode==='test':storage.getItem('mundoAbierto.qaActive')==='1';const key=test?'mundoAbierto.qaPlayer':'mundoAbierto.player';return JSON.parse(storage.getItem(key)||'{}')||{}}catch{return {}}}
@@ -20,10 +20,10 @@ export function initialPvpPilot(source={}){
 // Build a transient arena roster from saved base stats; never persist arena modifiers.
 export function pvpMultipliers(id){return fleetMultipliers(id,'pvp')}
 
-export function pvpRoster(source={}){
+export function pvpRoster(source={},environment='pvp'){
  const roster=offlineRoster(source);
  for(const [id,q]of Object.entries(roster.profiles)){
-  const ship=pvpMultipliers(id),formation=q.droneFormation==='fortress'?1.15:1;
+  const ship=fleetMultipliers(id,environment),formation=q.droneFormation==='fortress'?1.15:1;
   for(const [key,mult]of Object.entries({maxHp:ship.hp,attack:ship.attack,defense:ship.defense,speed:ship.speed})){
    const base=Number(roster.base[key])||0;q[key]=Math.max(key==='defense'?0:1,base+Math.round(base*(mult-1)));
   }
@@ -37,3 +37,7 @@ export function pveMultipliers(id){return fleetMultipliers(id,'pve')}
 
 
 
+
+// Cooperative retains each existing ship balance; Obsidian uses its PvE profile.
+export const cooperativeMultipliers=id=>fleetMultipliers(id,'cooperative');
+export const cooperativeRoster=source=>pvpRoster(source,'cooperative');

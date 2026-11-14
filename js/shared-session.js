@@ -9,7 +9,7 @@ import {mountMapChat} from './map-chat.js?v=383';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=390';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=448';
-import {pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=401';
+import {cooperativeRoster as pvpRoster,readOfflinePilot} from './pvp-loadout.js?v=450';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
 const GUEST_KEY='mundoAbierto.guestKey',NAME_KEY='mundoAbierto.guestName',SHIP_KEY='mundoAbierto.guestShip';
 const NAMES={agilbasica:'Ágil básica',adminpod:'Hoverpod Admin',obsidian:'Obsidian',azote:'Azote',egida:'Égida',vertigo:'Vértigo',aurora:'Aurora',titan:'Titán',espectro:'Espectro',segadora:'Segadora',bastion:'Bastión',centella:'Centella'};

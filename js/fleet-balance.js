@@ -11,7 +11,8 @@ const keys=['hp','attack','defense','speed'];
 export const roundCoefficient=value=>Math.round((value+Number.EPSILON)*100)/100;
 export function fleetMultipliers(id,environment='pve'){
  const stats=HOME_STATS[id]||HOME_STATS.aurora;
- const away=id!=='adminpod'&&((environment==='pvp')!==PVP_SHIPS.has(id));
+ const usesPvpStats=environment==='pvp'||environment==='cooperative'&&id!=='obsidian';
+ const away=id!=='adminpod'&&(usesPvpStats!==PVP_SHIPS.has(id));
  return Object.fromEntries(keys.map((key,i)=>[key,key==='defense'?stats[i]:roundCoefficient(stats[i]*(away?.7:1))]));
 }
 // Only for recovering base stats in older saves that did not store them separately.
