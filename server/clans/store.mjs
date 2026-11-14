@@ -12,11 +12,12 @@ export async function clanAccountState(db,realm,accountId,now=Date.now()){
  if(!row)return {rules:CLAN_RULES,clan:null,permissions:clanPermissions(null),invitations:invites.results,requests:requests.results};
  const clan={id:row.id,name:row.name,tag:row.tag,description:row.description,admission:row.admission,createdAt:row.created_at,revision:row.revision,role:row.role};
  const permissions=clanPermissions(row.role);
- const [members,pending]=await db.batch([
+ const [members,pending,outgoing]=await db.batch([
   db.prepare('SELECT account_id,role,joined_at FROM clan_members WHERE realm=? AND clan_id=? ORDER BY joined_at,account_id LIMIT 20').bind(realm,row.id),
-  db.prepare("SELECT r.account_id,r.created_at FROM clan_requests r WHERE r.realm=? AND r.clan_id=? AND EXISTS(SELECT 1 FROM clan_members m WHERE m.realm=r.realm AND m.clan_id=r.clan_id AND m.account_id=? AND m.role IN ('leader','officer')) ORDER BY r.created_at LIMIT 100").bind(realm,row.id,accountId)
+  db.prepare("SELECT r.account_id,r.created_at FROM clan_requests r WHERE r.realm=? AND r.clan_id=? AND EXISTS(SELECT 1 FROM clan_members m WHERE m.realm=r.realm AND m.clan_id=r.clan_id AND m.account_id=? AND m.role IN ('leader','officer')) ORDER BY r.created_at LIMIT 100").bind(realm,row.id,accountId),
+  db.prepare("SELECT i.account_id,i.expires_at FROM clan_invitations i WHERE i.realm=? AND i.clan_id=? AND i.expires_at>? AND EXISTS(SELECT 1 FROM clan_members m WHERE m.realm=i.realm AND m.clan_id=i.clan_id AND m.account_id=? AND m.role IN ('leader','officer')) ORDER BY i.created_at LIMIT 50").bind(realm,row.id,now,accountId)
  ]);
- return {rules:CLAN_RULES,clan:{...clan,members:members.results},permissions,invitations:invites.results,requests:requests.results,pendingRequests:pending.results};
+ return {rules:CLAN_RULES,clan:{...clan,members:members.results},permissions,invitations:invites.results,requests:requests.results,pendingRequests:pending.results,outgoingInvitations:outgoing.results};
 }
 
 export async function searchClans(db,realm,query=''){

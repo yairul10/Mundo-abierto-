@@ -40,3 +40,13 @@ Las creaciones inciertas se conservan localmente para comprobar el mismo recibo.
 No se habilita creación de pago en el servidor de prueba (no comparte su economía
 con player_saves). POST /clans/edit permite al líder editar descripción y admisión
 con revisión optimista, sin un nuevo cobro. Las altas/bajas se implementan después.
+
+Paso 5: POST /clans/membership admite join/request/cancelRequest, approve/reject,
+invite/acceptInvite/declineInvite/cancelInvite y leave. El actor siempre se deriva
+de Google Play. Las escrituras vuelven a comprobar los permisos en SQL, los cupos
+se validan mediante triggers y cada cuenta conserva una sola membresía por realm.
+Las solicitudes pendientes (máximo 5 por cuenta) e invitaciones se limpian al ingresar.
+Las invitaciones duran 7 días y requieren que el invitador siga siendo líder/oficial.
+El menú muestra el ID completo propio para compartirlo, solicitudes e invitaciones.
+La salida del líder queda bloqueada hasta implementar la transferencia del paso 6.
+0003-clan-membership.sql es una migración aditiva e idempotente.

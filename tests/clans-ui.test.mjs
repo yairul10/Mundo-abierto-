@@ -29,3 +29,13 @@ test('create form submits one operation, displays the leader and offers settings
  nodes.find(n=>n.textContent==='Administrar clan').onclick();const edit=nodes.filter(n=>n.className==='clan-form').at(-1);await edit.onsubmit({preventDefault(){}});await flush();const request=calls.find(c=>c.url.includes('/edit'));assert.equal(request.options.method,'POST');assert.equal(JSON.parse(request.options.body).revision,1);
  nodes.find(n=>n.textContent==='Cerrar').onclick();
 });
+
+test('membership controls send the selected clan and action with the verified session',async()=>{
+ const nodes=[];class Element{constructor(tag){this.tag=tag;this.value='';this.children=[];nodes.push(this)}append(...x){this.children.push(...x)}replaceChildren(...x){this.children=x}setAttribute(k,v){this[k]=v}addEventListener(){}showModal(){}close(){}remove(){}focus(){}}
+ const document={createElement:t=>new Element(t),head:new Element('head'),body:new Element('body')},button=new Element('button'),sent=[];
+ const fetch=async(url,o)=>{if(o.method==='POST')sent.push(JSON.parse(o.body));return {ok:true,json:async()=>url.includes('/membership')?{joined:true}:url.includes('/search')?{clans:[{id:'open',name:'Abierto',tag:'AB',memberCount:1,admission:'open'}],limit:20}:url.includes('/detail')?{clan:{id:'open',name:'Abierto',tag:'AB',admission:'open',members:[]}}:{clan:null,pilotId:'pilot',invitations:[{clan_id:'private',name:'Privado',tag:'PR'}],requests:[{clan_id:'request',name:'Solicitud',tag:'SO'}]}}};
+ const mount=new Function('document','fetch','AbortController','setTimeout','clearTimeout',source+';return mountClans')(document,fetch,AbortController,setTimeout,clearTimeout);mount({button,getToken:async()=> 'session'});button.onclick();await flush();
+ await nodes.find(n=>n.textContent==='Aceptar invitación').onclick();await flush();assert.equal(sent[0].action,'acceptInvite');assert.equal(sent[0].clanId,'private');
+ await nodes.filter(n=>n.textContent==='Cancelar solicitud').at(-1).onclick();await flush();assert.equal(sent[1].action,'cancelRequest');
+ nodes.find(n=>n.textContent==='Buscar clanes').onclick();await flush();nodes.filter(n=>n.className==='clan-card').at(-1).onclick();await flush();await nodes.find(n=>n.textContent==='Unirme al clan').onclick();await flush();assert.equal(sent.at(-1).action,'join');assert.equal(sent.at(-1).clanId,'open');nodes.find(n=>n.textContent==='Cerrar').onclick();
+});
