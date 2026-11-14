@@ -38,3 +38,17 @@ test('An in-flight upload remains bound to the old account and cannot alter the 
  setup();select('a',71);const c=managed();await c.connect();localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(72)));const fetch=globalThis.fetch;let release,started=false;globalThis.fetch=async(url,o)=>{if(o?.method==='PUT'){started=true;await new Promise(r=>release=r)}return fetch(url,o)};
  const pending=c.sync();for(let i=0;i<30&&!started;i++)await new Promise(r=>setTimeout(r,1));assert(started);switchProfile(localStorage,playProfile('b'));localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(1)));checkpointProfile(localStorage);release();await assert.rejects(pending,/cuenta cambió/);assert.equal(remotes.get('a').progress.level,72);assert.equal(remotes.get('b').progress.level,1);assert.equal(JSON.parse(localStorage.getItem(WORKING_SAVE)).level,1);
 });
+
+test('clan payment pauses uploads, rebases the atomic debit and keeps its receipt after cloud synchronization',async()=>{
+ setup();select('a',5000);const c=managed();assert.equal((await c.connect()).status,'conflict');c.resolveConflict('local');
+ const prepared=await c.prepareClanPayment();assert.equal(prepared.revision,2);assert.equal((await c.sync()).status,'paused');
+ const paid=JSON.parse(JSON.stringify(remotes.get('a').progress));paid.gold-=200000;paid.clanPurchases={operation:1};remotes.set('a',{revision:3,progress:paid});
+ localStorage.setItem(WORKING_SAVE,JSON.stringify(paid));checkpointProfile(localStorage);
+ c.finishClanPayment({revision:3,currentRevision:3});assert.equal((await c.sync()).status,'stored');assert.equal(remotes.get('a').progress.gold,300000);assert.equal(remotes.get('a').progress.clanPurchases.operation,1);
+ const restored=managed();assert.equal((await restored.connect()).status,'ready');
+});
+test('uncertain clan payment can recover the same debit after a cloud revision conflict',async()=>{
+ setup();select('a',5000);const c=managed();await c.connect();c.resolveConflict('local');await c.prepareClanPayment();c.releaseClanPayment();
+ const paid={...remotes.get('a').progress,gold:300000,clanPurchases:{operation:1}};remotes.set('a',{revision:3,progress:paid});const changed=JSON.parse(localStorage.getItem(WORKING_SAVE));changed.xp++;localStorage.setItem(WORKING_SAVE,JSON.stringify(changed));await assert.rejects(c.sync(),/revision_conflict/);
+ await c.prepareClanPayment({resume:true});localStorage.setItem(WORKING_SAVE,JSON.stringify(paid));checkpointProfile(localStorage);c.finishClanPayment({revision:3,currentRevision:3});assert.equal((await c.sync()).status,'stored');assert.equal(remotes.get('a').progress.gold,300000);
+});

@@ -1,4 +1,4 @@
-import {createCloudSave} from './cloud-save-client.js?v=364';
+import {createCloudSave} from './cloud-save-client.js?v=467';
 import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 import {WORKING_SAVE,activeProfile,ensureProfiles,checkpointProfile,playProfile,profileKey,profileMeta,setProfileMeta,switchProfile,bindGuestProfile,guestProfile,newGuestProfile,storedProgress} from './account-storage.js?v=344';
 const CHOICE='cosmosLegacy.accountChoice.v1',FORCE='cosmosLegacy.forceAccountChoice.v2';
@@ -40,6 +40,7 @@ export async function startAccount({mode=window.MUNDO_PLAY_MODE?.mode}={}){
  };
  const client=isNativePlayGames()?createCloudSave({apiUrl:API,serverClientId:CLIENT,manageProfiles:true,onIdentity,onConflict:()=>window.dispatchEvent(new Event('cosmos:cloud-paused'))}):null;
  window.cosmosAccountSession=()=>client?.session||null;
+ window.cosmosClanPayment=client?{prepare:options=>client.prepareClanPayment(options),finish:result=>client.finishClanPayment(result),release:()=>client.releaseClanPayment()}:null;
  const complete=value=>{booting=false;finishLoading();mountAccountSettings();return value};
  const connect=async interactive=>{
   if(!client)throw Error('Google Play está disponible en la aplicación Android. Puedes jugar PvE como invitado.');
@@ -116,6 +117,7 @@ export async function startCloudSync(client){
  };
  let timer=setInterval(()=>void sync(),15000);await sync();
  const stop=()=>{stopped=true;clearInterval(timer)};
+ addEventListener('cosmos:clan-payment-confirmed',()=>{blocked=false;retryAt=0;conflictNotice=false;void sync()});
  addEventListener('online',()=>{retryAt=0;void sync()});addEventListener('visibilitychange',()=>{if(!document.hidden){retryAt=0;void sync()}else void sync()});
  addEventListener('pagehide',stop);addEventListener('cosmos:account-changing',stop);
  addEventListener('pageshow',event=>{if(event.persisted&&stopped){stopped=false;timer=setInterval(()=>void sync(),15000);retryAt=0;void sync()}});

@@ -30,3 +30,13 @@ Paso 3: menú Clanes en ☰ (mapa individual), Mi clan y búsqueda por nombre/et
 GET /clans/search?q= devuelve hasta 20 clanes. GET /clans/detail?id= devuelve
 la ficha y miembros con identificador corto de piloto, sin solicitudes ni invitaciones.
 Ambas rutas requieren Google Play y aíslan realm. Crear/ingresar se añade después.
+
+Paso 4: POST /clans/create (Servidor 1, Google Play) crea el clan y su líder.
+El cliente sincroniza primero el progreso y bloquea sus envíos durante la compra.
+0002-clan-payments.sql valida revisión y saldo en D1 y descuenta 200.000 créditos
+mediante triggers en el mismo batch que clan, membresía y recibo. operationId hace
+los reintentos idempotentes y clanPurchases viaja en el progreso de nube.
+Las creaciones inciertas se conservan localmente para comprobar el mismo recibo.
+No se habilita creación de pago en el servidor de prueba (no comparte su economía
+con player_saves). POST /clans/edit permite al líder editar descripción y admisión
+con revisión optimista, sin un nuevo cobro. Las altas/bajas se implementan después.

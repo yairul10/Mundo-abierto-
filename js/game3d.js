@@ -1,7 +1,7 @@
-import {createCoopFarmPilot} from './coop-farm-pilot.js?v=466';
-import {mountClans} from './clans-ui.js?v=466';
+import {createCoopFarmPilot} from './coop-farm-pilot.js?v=467';
+import {mountClans} from './clans-ui.js?v=467';
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=466';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=467';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -10,7 +10,7 @@ import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
 import {createInfernoCombat} from './inferno.js?v=441';
-import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=466';
+import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=467';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=440';
@@ -32,9 +32,9 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
 import {mountPvpZones,mountPvpArena} from './pvp-zones.js?v=451';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
-import {createArenaEnemyView} from './pvp-enemies.js?v=466';
+import {createArenaEnemyView} from './pvp-enemies.js?v=467';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=466';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=467';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -53,13 +53,13 @@ import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,cr
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
-import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=466';
-import {mountHangarUI} from './hangar-ui.js?v=466';
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=467';
+import {mountHangarUI} from './hangar-ui.js?v=467';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=466';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=466';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=466';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=467';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=467';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=467';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -586,7 +586,7 @@ for(const x of [-19,19]){
  trail.rotation.x=Math.PI/2;trail.position.set(x,y,z+23);playerMesh.add(trail);engineTrails.push(trail);
 }
 // Planeta y luna provisionales eliminados: ahora solo existe planeta_aurora.glb.
-function station(){const g=new THREE.Group(),metal=mat(0x33466c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
+function station(){const g=new THREE.Group(),metal=mat(0x33467c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
 let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
 
@@ -795,7 +795,7 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
   const port=stationConnector(hub,direction);
   const pad=fitted(padSource,360);
   const rim=stationConnector(pad,direction.clone().negate(),18,25);
-  pad.position.copy(direction).multiplyScalar(466);
+  pad.position.copy(direction).multiplyScalar(467);
   pad.position.y=port.center.y-rim.center.y;
   pad.position[port.side]=port.center[port.side]-rim.center[port.side];
   pad.userData.landingRadius=216;pad.name='Plataforma Ascuas';
@@ -1797,7 +1797,7 @@ const carrierMissileGeometry=new THREE.CylinderGeometry(7,10,40,12),carrierMissi
 function decorateCarrierMissile(mesh){
  const tip=new THREE.Mesh(new THREE.ConeGeometry(7,16,12),new THREE.MeshStandardMaterial({color:0xf27832,metalness:.65,roughness:.4}));
  tip.position.y=28;mesh.add(tip);
- const finMat=new THREE.MeshStandardMaterial({color:0x33466b,metalness:.8,roughness:.38,side:THREE.DoubleSide});
+ const finMat=new THREE.MeshStandardMaterial({color:0x33467b,metalness:.8,roughness:.38,side:THREE.DoubleSide});
  for(let i=0;i<4;i++){
   const fin=new THREE.Mesh(new THREE.BoxGeometry(2.5,14,19),finMat);
   fin.position.set(Math.cos(i*Math.PI/2)*11,-12,Math.sin(i*Math.PI/2)*11);
@@ -3231,7 +3231,25 @@ $('journalBtn').onclick=()=>activityJournal.open();$('hangarJournal').onclick=()
 addEventListener('mundo:open-journal',()=>activityJournal.open());
 const qaSwitch=$('qaSwitch'),qaTools=$('qaTools');
 qaSwitch.textContent='Cambiar de partida';
-const clansEntry=document.createElement('button');clansEntry.id='clansEntry';clansEntry.type='button';clansEntry.textContent='Clanes';clansEntry.hidden=PVP_MODE;$('arenaEntry').before(clansEntry);mountClans({button:clansEntry,getToken:pvpAccountToken,realm:window.MUNDO_PLAY_MODE?.mode||'normal'});
+async function createPlayerClan(fields){
+ if(PVP_MODE||window.MUNDO_PLAY_MODE?.mode==='test')throw Error('Crea tu clan desde Servidor 1 con tu cuenta de Google Play.');
+ const token=await pvpAccountToken(),owner=activeProfile(localStorage),key='cosmos.clanCreation.pending.'+owner,payment=window.cosmosClanPayment;
+ if(!payment)throw Error('Conecta Google Play y el respaldo de tu cuenta antes de crear el clan.');
+ if(!save())throw Error('No se pudo guardar tu partida.');
+ let pending;try{pending=JSON.parse(localStorage.getItem(key)||'null')}catch{throw Error('No se pudo recuperar la creación pendiente. Reinicia el juego.');}
+ const prepared=await payment.prepare({resume:!!pending});
+ try{
+  if(!pending){pending={...fields,operationId:crypto.randomUUID(),revision:prepared.revision};localStorage.setItem(key,JSON.stringify(pending));if(localStorage.getItem(key)!==JSON.stringify(pending))throw Error('No se pudo guardar la operación.');}
+  const response=await fetch('https://mundo-abierto-pvp.yairul17.workers.dev/clans/create?realm=normal',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(pending),signal:AbortSignal.timeout(12000)}),result=await response.json();
+  if(!response.ok){if(['invalid_clan_name','invalid_clan_tag','invalid_clan_description','invalid_admission','clan_name_taken','clan_tag_taken','already_in_clan','clan_insufficient_credits','clan_revision_conflict'].includes(result.error))localStorage.removeItem(key);throw Error(({clan_name_taken:'Ese nombre de clan ya existe.',clan_tag_taken:'Esa etiqueta ya está en uso.',already_in_clan:'Ya perteneces a un clan.',clan_insufficient_credits:'Necesitas 200.000 créditos para crear el clan.',clan_revision_conflict:'El respaldo cambió. Reinicia y sincroniza tu cuenta antes de crear el clan.',invalid_clan_name:'Usa un nombre de 3 a 24 letras, números o espacios.',invalid_clan_tag:'La etiqueta debe tener de 2 a 5 letras o números.'})[result.error]||'No se pudo crear el clan. Reintenta para comprobar la misma operación.');}
+  if(activeProfile(localStorage)!==owner)throw Error('La cuenta cambió. Reinicia el juego.');
+  if(result.currentRevision!==result.revision){if(player.clanPurchases?.[result.operationId]){localStorage.removeItem(key);return result;}throw Error('El clan ya fue creado. Reinicia y recupera la nube para sincronizar los créditos.');}
+  player.clanPurchases||={};if(!player.clanPurchases[result.operationId]){player.gold=Math.max(0,player.gold-result.cost);player.clanPurchases[result.operationId]=1;}
+  if(!save())throw Error('El clan se creó, pero falta guardar el cobro local. Reintenta esta misma operación.');
+  payment.finish(result);localStorage.removeItem(key);hud();dispatchEvent(new Event('cosmos:clan-payment-confirmed'));return result;
+ }finally{payment.release()}
+}
+const clansEntry=document.createElement('button');clansEntry.id='clansEntry';clansEntry.type='button';clansEntry.textContent='Clanes';clansEntry.hidden=PVP_MODE;$('arenaEntry').before(clansEntry);mountClans({button:clansEntry,getToken:pvpAccountToken,createClan:createPlayerClan,hasPendingCreation:()=>!!localStorage.getItem('cosmos.clanCreation.pending.'+activeProfile(localStorage)),realm:window.MUNDO_PLAY_MODE?.mode||'normal'});
 const arenaEntry=$('arenaEntry');arenaEntry.hidden=PVP_MODE;arenaEntry.onclick=async()=>{if(player.hp<=0)return;try{await checkPvpVersion();const choice=await choosePvpMatch();if(!choice)return;if(!save())return;saveArenaChoice(choice);location.href='./index.html?pvp=1&arena=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}catch(error){if(error.updateRequired)showPvpUpdate();else window.alert(error.message)}};
 $('qaPanel').classList.toggle('hidden',!window.MUNDO_PLAY_MODE?.testEnabled&&!qaActive);
 qaTools.classList.add('hidden');

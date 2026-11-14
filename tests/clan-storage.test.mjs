@@ -51,7 +51,7 @@ test('clan reads require Google identity, ignore forged account/role and reject 
  const result=await clanRoute(req('/clans/me?accountId=forged&role=member'),env);assert.equal(result.body.clan.role,'leader');
  assert.equal((await clanRoute(req('/clans/me?realm=other'),env)).status,400);
  assert.equal((await clanRoute(req('/clans/me','POST'),env)).status,405);
- assert.equal((await clanRoute(req('/clans/create','POST'),env)).status,404);
+ assert.equal((await clanRoute(req('/clans/create','POST'),env)).status,400);
  const guest={...env,TEST_GUEST_ACCESS:'true',TEST_SERVER_ENABLED:'true'};assert.equal((await clanRoute(req('/clans/me?realm=test','GET','Bearer test-guest-'+'a'.repeat(64)),guest)).status,403);
  }finally{f.sql.close()}
 });

@@ -3,12 +3,13 @@ import {activeProfile,playProfile,checkpointProfile,profileMeta,setProfileMeta} 
 // Cosmos Legacy cloud-save client. Does not run until configured by the Android boot path.
 // A server session is held in memory only. Do not persist OAuth codes or session tokens.
 import {playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode} from './play-games-auth.js';
-export const PERSISTENT_FIELDS=Object.freeze(['name','classId','level','xp','gold','loot','ownedShips','shipId','shipSpecializations','shipBaseStats','droneCount','explorerDrone','explorerRangeLevel','repairRobot','repairRobotLevel','upgrades','formations','droneFormation','boosters','quests','pvpBossReceipts','pvpRespawnReceipts','pendingPvpDeath','pendingPvpTransfer','maxHp','maxEnergy','attack','defense','speed']);
+export const PERSISTENT_FIELDS=Object.freeze(['name','classId','level','xp','gold','loot','ownedShips','shipId','shipSpecializations','shipBaseStats','droneCount','explorerDrone','explorerRangeLevel','repairRobot','repairRobotLevel','upgrades','formations','droneFormation','boosters','quests','pvpBossReceipts','pvpRespawnReceipts','pendingPvpDeath','pendingPvpTransfer','clanPurchases','maxHp','maxEnergy','attack','defense','speed']);
 const SAVE_KEY='mundoAbierto.player';
 function progressOf(save){const result={};for(const key of PERSISTENT_FIELDS)if(Object.hasOwn(save,key))result[key]=save[key];return result}
 function localSave(){try{const data=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return data&&typeof data==='object'&&!Array.isArray(data)?data:null}catch{return null}}
 export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,manageProfiles=true}={}){
  if(!/^https:\/\//.test(apiUrl||''))throw Error('Cloud save requiere una URL HTTPS');
+ let commerce=false,syncPromise=null;
  let token=null,revision=0,lastSent='',inFlight=false,active=false,pending=null,identity=null,owner=null,generation=0,expiresAt=0;
  const ordered=value=>Array.isArray(value)?value.map(ordered):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,ordered(value[key])])):value;
  const signature=progress=>JSON.stringify(ordered(progressOf(progress)));
@@ -81,7 +82,7 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
   if(manageProfiles){checkpointProfile(localStorage,owner);confirmed(pending.cloud)}
   pending=null;active=true;return {status:'ready'};
  }
- async function sync(){
+ async function syncOnce(){
   if(!active||!token||inFlight)return {status:'paused'};
   inFlight=true;const attempt=generation;
   try{
@@ -102,7 +103,17 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
   }catch(e){if(e.status===409||e.status===401||e.accountChanged){active=false;onConflict?.({reason:e.message,status:e.status,accountChanged:!!e.accountChanged})}throw e}
   finally{inFlight=false}
  }
- return {connect,sync,resolveConflict,get identity(){return identity},get session(){return active?{...identity,expiresAt}:null},get connected(){return Boolean(token)},get active(){return active}};
+ async function sync(){if(commerce)return {status:'paused'};if(syncPromise)return {status:'paused'};syncPromise=syncOnce();try{return await syncPromise}finally{syncPromise=null}}
+ async function prepareClanPayment({resume=false}={}){
+  if(commerce)throw Error('Ya hay una operación de clan en curso.');commerce=true;
+  try{if(syncPromise)await syncPromise;guard();if(!token)throw Error('Conecta tu cuenta de Google y su respaldo antes de crear el clan.');
+   if(!resume){if(!active)throw Error('Resuelve el respaldo en Cuenta y guardado antes de crear el clan.');const result=await syncOnce();if(!['stored','unchanged'].includes(result.status))throw Error('No se pudo confirmar el respaldo. Inténtalo de nuevo.');}
+   return {revision};
+  }catch(error){commerce=false;throw error}
+ }
+ function finishClanPayment(result){guard();if(!commerce||result.currentRevision!==result.revision)throw Error('El clan se creó, pero la partida cambió en otro dispositivo. Reinicia y carga la nube antes de continuar.');revision=result.revision;lastSent='';active=true;pending=null;confirmed(localSave());commerce=false;}
+ function releaseClanPayment(){commerce=false}
+ return {connect,sync,resolveConflict,prepareClanPayment,finishClanPayment,releaseClanPayment,get identity(){return identity},get session(){return active?{...identity,expiresAt}:null},get connected(){return Boolean(token)},get active(){return active}};
 }
 export function validateProgress(progress){
  if(!progress||typeof progress!=='object'||Array.isArray(progress))throw Error('Copia nube inválida');

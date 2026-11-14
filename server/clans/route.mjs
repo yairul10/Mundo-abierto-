@@ -1,3 +1,4 @@
+import {createClan,editClan} from './write.mjs';
 import {verifiedPvpAccount} from '../pvp/account.mjs';
 import {clanAccountState,searchClans,publicClan} from './store.mjs';
 export async function clanRoute(request,env){
@@ -7,13 +8,14 @@ export async function clanRoute(request,env){
  const actor=await verifiedPvpAccount(request,env,realm);
  if(actor.error)return {status:actor.status,body:{error:actor.error}};
  if(actor.testGuest)return {status:403,body:{error:'google_required'}};
- if(!['/clans/me','/clans/search','/clans/detail'].includes(url.pathname))return {status:404,body:{error:'not_found'}};
- if(request.method!=='GET')return {status:405,body:{error:'method_not_allowed'}};
+ if(!['/clans/me','/clans/search','/clans/detail','/clans/create','/clans/edit'].includes(url.pathname))return {status:404,body:{error:'not_found'}};
+ const mutation=['/clans/create','/clans/edit'].includes(url.pathname);if(request.method!==(mutation?'POST':'GET'))return {status:405,body:{error:'method_not_allowed'}};
  if(!env.CLANS_DB)return {status:503,body:{error:'clans_unavailable'}};
  try{
+  if(mutation){const reader=request.body?.getReader();if(!reader)return {status:400,body:{error:'invalid_request'}};let bytes=0,chunks=[];while(true){const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>4096){await reader.cancel();return {status:413,body:{error:'body_too_large'}}}chunks.push(value)}const buffer=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){buffer.set(chunk,offset);offset+=chunk.length}let raw;try{raw=JSON.parse(new TextDecoder().decode(buffer))}catch{return {status:400,body:{error:'invalid_request'}}}return {status:200,body:url.pathname==='/clans/create'?await createClan(env.CLANS_DB,realm,actor.playerId,raw):await editClan(env.CLANS_DB,realm,actor.playerId,raw)}}
   if(url.pathname==='/clans/search'){const q=url.searchParams.get('q')||'';if(q.length>40)return {status:400,body:{error:'invalid_search'}};return {status:200,body:await searchClans(env.CLANS_DB,realm,q)}}
   if(url.pathname==='/clans/detail'){const id=url.searchParams.get('id')||'';if(!/^[A-Za-z0-9_-]{1,64}$/.test(id))return {status:400,body:{error:'invalid_clan'}};const clan=await publicClan(env.CLANS_DB,realm,id);return clan?{status:200,body:{clan}}:{status:404,body:{error:'clan_not_found'}}}
   return {status:200,body:await clanAccountState(env.CLANS_DB,realm,actor.playerId)}
  }
- catch{console.error(JSON.stringify({event:'clan_read_failed',realm}));return {status:503,body:{error:'clans_unavailable'}}}
+ catch(error){if(error.status&&typeof error.code==='string')return {status:error.status||409,body:{error:error.code}};console.error(JSON.stringify({event:'clan_read_failed',realm}));return {status:503,body:{error:'clans_unavailable'}}}
 }
