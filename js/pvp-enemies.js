@@ -1,5 +1,5 @@
 import {createInfernoCombat} from './inferno.js?v=434';
-import {createNpcEffects} from './pvp-npc-effects.js?v=385';
+import {createNpcEffects} from './pvp-npc-effects.js?v=466';
 import {createCatapultRig} from './catapult-rig.js?v=339';
 import {createHarpoonRig} from './harpoon-rig.js?v=339';
 import {createGranTitan} from './gran-titan.js?v=326';
@@ -87,5 +87,5 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
  }
  npcFx.update(dt,entities);
  for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.time-=dt;if(e.projectile){e.age+=dt;if(e.missile){const goal=targetPosition(e.targetId)||e.goal,desired=goal.clone().sub(e.mesh.position);if(desired.length()<40)e.time=0;else e.velocity.lerp(desired.normalize().multiplyScalar(650),Math.min(1,dt*(e.age<.55?.12:3.7)))}e.mesh.position.addScaledVector(e.velocity,dt);e.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),e.velocity.clone().normalize())}else e.mesh.material.opacity=Math.max(0,e.time/.18);if(e.time<=0){scene.remove(e.mesh);if(!e.projectile||!e.missile||!makeMissile){e.mesh.geometry?.dispose();e.mesh.material?.dispose()}effects.splice(i,1)}}}
- return {entities,sync,update};
+ return {entities,sync,update,threats:()=>[...npcFx.threats(),...effects.filter(e=>e.projectile&&e.time>0).map(e=>({position:e.mesh.position,velocity:e.velocity}))]};
 }

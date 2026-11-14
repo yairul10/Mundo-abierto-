@@ -1,6 +1,7 @@
-import {mountClans} from './clans-ui.js?v=465';
+import {createCoopFarmPilot} from './coop-farm-pilot.js?v=466';
+import {mountClans} from './clans-ui.js?v=466';
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=465';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=466';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -9,7 +10,7 @@ import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
 import {createInfernoCombat} from './inferno.js?v=441';
-import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=465';
+import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=466';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=440';
@@ -31,9 +32,9 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
 import {mountPvpZones,mountPvpArena} from './pvp-zones.js?v=451';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
-import {createArenaEnemyView} from './pvp-enemies.js?v=437';
+import {createArenaEnemyView} from './pvp-enemies.js?v=466';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=465';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=466';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -52,13 +53,13 @@ import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,cr
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
-import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=465';
-import {mountHangarUI} from './hangar-ui.js?v=465';
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=466';
+import {mountHangarUI} from './hangar-ui.js?v=466';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=465';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=465';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=465';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=466';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=466';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=466';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -585,7 +586,7 @@ for(const x of [-19,19]){
  trail.rotation.x=Math.PI/2;trail.position.set(x,y,z+23);playerMesh.add(trail);engineTrails.push(trail);
 }
 // Planeta y luna provisionales eliminados: ahora solo existe planeta_aurora.glb.
-function station(){const g=new THREE.Group(),metal=mat(0x33465c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
+function station(){const g=new THREE.Group(),metal=mat(0x33466c),glow=mat(0x123d68,0x168cff);for(const r of[190,290,390,480,575]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,14,12,64),metal);ring.rotation.x=Math.PI/2;g.add(ring)}const hub=new THREE.Mesh(new THREE.CylinderGeometry(105,135,260,16),metal);g.add(hub);for(let i=0;i<8;i++){const a=i*Math.PI/4,t=new THREE.Mesh(new THREE.BoxGeometry(24,100+Math.random()*90,24),glow);t.position.set(Math.cos(a)*185,100,Math.sin(a)*185);g.add(t)}for(let i=0;i<4;i++){const arm=new THREE.Mesh(new THREE.BoxGeometry(620,16,32),metal);arm.rotation.y=i*Math.PI/2;g.add(arm)}const dock=new THREE.Mesh(new THREE.BoxGeometry(820,22,110),metal);dock.position.set(430,-35,0);g.add(dock);for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(720,5,8),glow);rail.position.set(430,-22,side*42);g.add(rail)}for(let i=0;i<12;i++){const a=i*Math.PI/6,windowLight=new THREE.Mesh(new THREE.BoxGeometry(16,8,5),new THREE.MeshBasicMaterial({color:0x55d7ff}));windowLight.position.set(Math.cos(a)*300,35,Math.sin(a)*300);windowLight.rotation.y=-a;g.add(windowLight)}const crown=new THREE.Mesh(new THREE.CylinderGeometry(38,75,220,10),glow);crown.position.y=210;g.add(crown);const beacon=new THREE.PointLight(0x27aaff,180,1200,2);beacon.position.set(0,100,0);g.add(beacon);g.position.set(0,0,-650);g.scale.setScalar(1.25);return g}const auroraStation=station();scene.add(auroraStation);
 let auroraModelReady=false,auroraLandingModel=null;
 let modularStationReady=false;
 
@@ -794,7 +795,7 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
   const port=stationConnector(hub,direction);
   const pad=fitted(padSource,360);
   const rim=stationConnector(pad,direction.clone().negate(),18,25);
-  pad.position.copy(direction).multiplyScalar(465);
+  pad.position.copy(direction).multiplyScalar(466);
   pad.position.y=port.center.y-rim.center.y;
   pad.position[port.side]=port.center[port.side]-rim.center[port.side];
   pad.userData.landingRadius=216;pad.name='Plataforma Ascuas';
@@ -1600,7 +1601,7 @@ function explorerEnemyValid(e){return (!PVP_MODE||pvpSession?.canFight&&pvpSessi
 function explorerTask(){
  const now=performance.now()/1000;
  for(const [enemy,time] of explorerThreats)if(now-time>4.5||!explorerEnemyValid(enemy))explorerThreats.delete(enemy);
- if(docked||landing||player.hp<=0)return {mode:'collect',target:null};
+ if(docked||landing||player.hp<=0||pvpFarmRunning&&coopFarmPilot.retreating)return {mode:'collect',target:null};
  return selectCompanionTask({manualActive:fireHeld||now<explorerManualUntil,manualTarget:explorerManualTarget,threats:explorerThreats,now,isValid:explorerEnemyValid,protectedZone:inSafeZone(playerMesh.position),mode:player.explorerMode});
 }
 function markExplorerAttack(target){
@@ -1796,7 +1797,7 @@ const carrierMissileGeometry=new THREE.CylinderGeometry(7,10,40,12),carrierMissi
 function decorateCarrierMissile(mesh){
  const tip=new THREE.Mesh(new THREE.ConeGeometry(7,16,12),new THREE.MeshStandardMaterial({color:0xf27832,metalness:.65,roughness:.4}));
  tip.position.y=28;mesh.add(tip);
- const finMat=new THREE.MeshStandardMaterial({color:0x33465b,metalness:.8,roughness:.38,side:THREE.DoubleSide});
+ const finMat=new THREE.MeshStandardMaterial({color:0x33466b,metalness:.8,roughness:.38,side:THREE.DoubleSide});
  for(let i=0;i<4;i++){
   const fin=new THREE.Mesh(new THREE.BoxGeometry(2.5,14,19),finMat);
   fin.position.set(Math.cos(i*Math.PI/2)*11,-12,Math.sin(i*Math.PI/2)*11);
@@ -3360,16 +3361,16 @@ function farmInput(dt,now){
  farmUiTick+=dt;if(farmUiTick>.5){farmUiTick=0;farmUI.refresh()}
  return command;
 }
-let pvpFarmButton=null,pvpFarmRunning=false,pvpFarmTarget=null;
+let pvpFarmButton=null,pvpFarmRunning=false,pvpFarmTarget=null,pvpFarmLastStatus='',pvpFarmThreats=()=>[];const coopFarmPilot=createCoopFarmPilot();
 function canRunPvpFarm(){
- return pvpSession?.autoFarmProAllowed&&pvpSession.canFight&&pvpSession.zone==='pve'&&!pvpSession.inDuel
-  &&!pvpSession.paralyzed&&!docked&&!landing&&!recoveryPending&&player.hp>player.maxHp*.3
+ return pvpSession?.autoFarmProAllowed&&pvpSession.active&&!pvpSession.arenaMode&&['pve','base'].includes(pvpSession.zone)&&!pvpSession.inDuel
+  &&!pvpSession.paralyzed&&!docked&&!landing&&!recoveryPending&&player.hp>0
   &&!graphicsLost&&!document.hidden&&document.hasFocus()&&!systemMap.open&&panel.classList.contains('hidden')
   &&!document.body.matches('.journal-open,.portrait-blocked')&&!document.activeElement?.matches('input,textarea,select');
 }
 function stopPvpFarm(){
- pvpFarmRunning=false;pvpFarmTarget=null;
- pvpFarmButton?.setAttribute('aria-pressed','false');
+ pvpFarmRunning=false;pvpFarmTarget=null;coopFarmPilot.reset();
+ pvpFarmButton?.setAttribute('aria-pressed','false');if(pvpFarmButton)pvpFarmButton.textContent='AUTO PRO';pvpFarmLastStatus='';
 }
 function pvpFarmInput(dt){
  if(!pvpFarmButton)return null;
@@ -3378,23 +3379,14 @@ function pvpFarmInput(dt){
  pvpFarmButton.disabled=!ready;
  if(!ready){if(pvpFarmRunning)stopPvpFarm();return null}
  if(!pvpFarmRunning)return null;
- let target=null,distance=Infinity;
- for(const enemy of enemies){
-  if(enemy.dead||enemy.hp<=0||!enemy.mesh.visible||!pvpSession.canFarmTarget(enemy.playerId))continue;
-  const range=enemy.mesh.position.distanceTo(playerMesh.position);
-  if(range<distance){target=enemy;distance=range}
- }
- pvpFarmTarget=target;
- if(!target)return {throttle:0,strafe:0};
- const delta=target.mesh.position.clone().sub(playerMesh.position);
- const heading=Math.atan2(-delta.x,-delta.z),angle=Math.atan2(Math.sin(heading-yaw),Math.cos(heading-yaw));
- const elevation=THREE.MathUtils.clamp(Math.atan2(delta.y,Math.hypot(delta.x,delta.z)),-1.15,1.15);
- const turn=Math.min(1,dt*3);
- yaw+=angle*turn;pitch+=(elevation-pitch)*turn;
- updateTargetLock();
- const firing=lockedEnemy===target&&distance<COMBAT_RANGE;
- if(firing){fire();skill()}
- return {throttle:Math.abs(angle)<.45?THREE.MathUtils.clamp((distance-650)/160,0,1):0,strafe:0,fire:firing};
+ const candidates=enemies.filter(e=>!e.dead&&e.hp>0&&e.mesh.visible&&pvpSession.canFarmTarget(e.playerId));
+ const command=coopFarmPilot.tick({position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,safe:pvpSession.zone==='base',robot:(pvpSession.profile?.repairRobotLevel||0)>0,canFight:pvpSession.canFight,enemies:candidates.map(e=>({id:e.playerId,position:e.mesh.position,hp:e.hp})),threats:pvpFarmThreats()},performance.now()/1000);
+ pvpFarmButton.textContent=coopFarmPilot.retreating?'REPARAR':'AUTO PRO';pvpFarmButton.title=coopFarmPilot.status;if(pvpFarmLastStatus!==coopFarmPilot.status){pvpFarmLastStatus=coopFarmPilot.status;lootToast(pvpFarmLastStatus);}
+ pvpFarmTarget=candidates.find(e=>e.playerId===command.targetId)||null;
+ if(command.yaw!==undefined){const angle=Math.atan2(Math.sin(command.yaw-yaw),Math.cos(command.yaw-yaw)),turn=Math.min(1,dt*3);yaw+=angle*turn;pitch+=(command.pitch-pitch)*turn;if(Math.abs(angle)>.7)command.throttle=0;}
+ if(coopFarmPilot.retreating){fireHeld=false;lockedEnemy=null;explorerThreat=null;explorerManualTarget=null;explorerManualUntil=0;explorerThreats.clear();lockFrame.classList.add('hidden');}
+ else{updateTargetLock();if(command.fire&&lockedEnemy===pvpFarmTarget){fire();skill()}}
+ return command;
 }
 function loop(now){if(document.getElementById('worldLoading')){last=now;requestAnimationFrame(loop);return}const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;
 const autoInput=PVP_MODE?pvpFarmInput(dt):farmInput(dt,now);
@@ -3533,6 +3525,7 @@ if(PVP_MODE){
  },onBombImpact:(point,radius)=>titanFireburst.spawn(point,radius),loader:new GLTFLoader(),onSelect:id=>pvpSession?.select(id),hidden:()=>!!pvpHangar||landing,makeMissile:createMissileMesh,targetPosition:id=>id===pvpSession?.myId?playerMesh.position:remotes.get(id)?.mesh.position,sound:(kind,point)=>combatAudio.play(kind,point)});
  const pvpSounds=createPvpSoundObserver((kind,point)=>combatAudio.play(kind,point));
  let respawnSoundTimer;
+ pvpFarmThreats=()=>arenaView.threats();
  const pvpDefeated=isMe=>{if(isMe){combatAudio.play('defeat');clearTimeout(respawnSoundTimer);playerDestructionBurst()}};
  const bossRoot=new THREE.Group();scene.add(bossRoot);bossRoot.visible=false;bossRoot.userData.hitRadius=180;
  const bossLabel=document.createElement('div');bossLabel.className='world-nameplate';bossLabel.hidden=true;bossLabel.innerHTML='<span>Titán del Nexo</span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(bossLabel);
@@ -3639,13 +3632,13 @@ if(PVP_MODE){
  });
  pvpFarmButton=document.createElement('button');
  pvpFarmButton.type='button';pvpFarmButton.id='pvpFarmBtn';pvpFarmButton.className='cockpit-control';
- pvpFarmButton.textContent='AUTO PRO';pvpFarmButton.title='Farmeo de enemigos en la zona PvE del mapa cooperativo';
+ pvpFarmButton.textContent='AUTO PRO';pvpFarmButton.title='Combate evasivo y retirada a reparar · Cooperativo';
  pvpFarmButton.hidden=true;pvpFarmButton.setAttribute('aria-pressed','false');
  $('pvpMapActions')?.prepend(pvpFarmButton);
  pvpFarmButton.onclick=()=>{
   if(pvpFarmRunning){stopPvpFarm();return}
   if(!canRunPvpFarm())return;
-  resetDockControls();pvpFarmRunning=true;pvpFarmButton.setAttribute('aria-pressed','true');
+  resetDockControls();coopFarmPilot.reset();pvpFarmRunning=true;pvpFarmButton.setAttribute('aria-pressed','true');
  };
  const takePvpControl=event=>{if(pvpFarmRunning&&!pvpFarmButton.contains(event.target))stopPvpFarm()};
  document.addEventListener('pointerdown',takePvpControl,true);

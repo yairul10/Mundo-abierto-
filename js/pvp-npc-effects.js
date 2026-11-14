@@ -51,5 +51,5 @@ export function createNpcEffects(T,scene,camera,{sound,targetPosition,hidden,onB
   }
   for(const cable of tethers.values())cable.visible=!hidden();
  }
- return {sync,syncTethers,update,clearOwner};
+ return {sync,syncTethers,update,clearOwner,threats:()=>shots.filter(p=>p.expires>clock).map(p=>({position:p.mesh.position,velocity:p.velocity,...(p.kind==='bomb'?{target:p.target,radius:p.radius}:{})}))};
 }
