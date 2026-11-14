@@ -24,3 +24,14 @@
 #mapChat details{margin-top:7px}#mapChat details p{overflow-wrap:anywhere}#mapChat summary{cursor:pointer;padding:5px}
 #mapChat p[role=status]{font-size:12px;color:#ffdc9b;pointer-events:none;margin:3px 0}#mapChat p[role=status]:empty{display:none}
 #mapChat .map-chat-resize{position:absolute;right:0;bottom:0;min-height:24px;padding:0 3px;border:0;background:#102b4077;cursor:nwse-resize;touch-action:none}
+
+#mapChat .map-chat-tabs{display:flex;gap:6px;margin:5px 0;pointer-events:auto}
+#mapChat .map-chat-tabs button[aria-pressed=true]{background:#215474;border-color:#92ddff}
+#mapChat .map-chat-global,#mapChat .map-chat-clan{display:flex;flex:1;min-height:0;flex-direction:column;overflow:hidden}
+#mapChat .map-chat-global>label{pointer-events:auto;background:#071a2fe6;border-radius:9px;padding:8px;overflow:auto;max-height:45%}
+#mapChat .map-chat-clan h3{font-size:13px;margin:3px 0}
+#mapChat .map-chat-clan>p{font-size:12px;margin:3px 0}
+#mapChat .clan-chat-messages{flex:1;min-height:20px;overflow:auto;pointer-events:auto;touch-action:pan-y;overflow-wrap:anywhere}
+#mapChat .clan-chat-messages article{padding:4px 0;border-bottom:1px solid #62829e55}
+#mapChat .clan-chat-messages p{margin:0;white-space:pre-wrap}
+#mapChat .clan-chat-messages small{display:inline-block;margin-right:8px}

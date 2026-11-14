@@ -1,13 +1,14 @@
+import {mountClanChat} from './clan-chat.js?v=472';
 import {chatLayout} from './chat-layout.js?v=1';
-export function mountMapChat({send,storage=localStorage,realm='normal'}){
+export function mountMapChat({send,storage=localStorage,realm='normal',getToken}){
  const LANGUAGES={es:'Español',en:'English',pt:'Português',fr:'Français',de:'Deutsch',it:'Italiano',tr:'Türkçe'};
  const preferred=(navigator.language||'es').split('-')[0];let language=Object.hasOwn(LANGUAGES,preferred)?preferred:'es',auto=true,translationAvailable=false,queue=[],requested=new Set(),translations=new Map(),originals=new Set();
  try{language=storage.getItem('cosmos.chatLanguage')||language;auto=storage.getItem('cosmos.chatTranslate')!=='off'}catch{}if(!Object.hasOwn(LANGUAGES,language))language='es';
  const key='cosmos.chatRules.'+realm;let messages=[],blocks=new Set(),myId='',admin=false;
  const root=document.createElement('section');root.id='mapChat';
- const toggle=document.createElement('button');toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat del mapa');toggle.title='Chat del mapa';toggle.setAttribute('aria-expanded','false');
+ const toggle=document.createElement('button');toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat global y clan');toggle.title='Chat global y clan';toggle.setAttribute('aria-expanded','false');
  const box=document.createElement('div');box.hidden=true;box.className='map-chat-box';
- const title=document.createElement('strong');title.textContent='Chat del mapa · '+(realm==='test'?'Pruebas':'Normal');
+ const title=document.createElement('strong');title.textContent='Chat global · '+(realm==='test'?'Pruebas':'Normal');
  const identityText=document.createElement('small');identityText.style.cssText='display:block;user-select:text;margin:8px 0';
  const close=document.createElement('button');close.textContent='−';close.setAttribute('aria-label','Minimizar chat');
  const header=document.createElement('header');header.className='map-chat-header';
@@ -42,12 +43,28 @@ export function mountMapChat({send,storage=localStorage,realm='normal'}){
  const password=document.createElement('input');password.type='password';password.autocomplete='off';password.placeholder='Clave de moderación';password.setAttribute('aria-label','Clave de moderación');
  const login=document.createElement('button');login.textContent='Acceder';const refresh=document.createElement('button');refresh.textContent='Ver reportes';refresh.hidden=true;const reports=document.createElement('div');
  login.onclick=()=>{send({type:'chatAdminAuth',key:password.value});password.value=''};refresh.onclick=()=>send({type:'chatAdminList'});mod.append(summary,password,login,refresh,reports);
- settings.append(identityText,languageLabel,translateLabel,translationStatus,fontLabel,layoutHelp,resetLayout,rulesButton,blocked,mod);box.append(header,rules,list,notice,form,settings,resize);root.append(toggle,box);document.body.append(root);
+ settings.append(identityText,languageLabel,translateLabel,translationStatus,fontLabel,layoutHelp,resetLayout,rulesButton,blocked,mod);const tabs=document.createElement('nav'),globalTab=document.createElement('button'),clanTab=document.createElement('button'),globalPanel=document.createElement('section'),clanPanel=document.createElement('section');
+ tabs.className='map-chat-tabs';tabs.setAttribute('aria-label','Canales del chat');globalTab.type=clanTab.type='button';globalTab.textContent='Global';clanTab.textContent='Clan';globalTab.setAttribute('aria-pressed','true');clanTab.setAttribute('aria-pressed','false');tabs.append(globalTab,clanTab);globalPanel.className='map-chat-global';clanPanel.className='map-chat-clan';clanPanel.hidden=true;globalPanel.append(rules,list,notice,form);box.append(header,tabs,globalPanel,clanPanel,settings,resize);root.append(toggle,box);document.body.append(root);
+ let channel='global',clanView=null,clanTicket=0;
+ const clanElement=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
+ function stopClan(){clanTicket++;clanView?.stop();clanView=null;clanPanel.replaceChildren()}
+ async function openClan(){
+  stopClan();if(box.hidden||channel!=='clan')return;const ticket=clanTicket;clanPanel.append(clanElement('p','Cargando clan…'));
+  try{if(!getToken)throw Error('Inicia sesión con Google Play para usar el chat del clan.');const token=await getToken();if(ticket!==clanTicket)return;
+   const response=await fetch('https://mundo-abierto-pvp.yairul17.workers.dev/clans/me?realm='+encodeURIComponent(realm),{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000),cache:'no-store'}),data=await response.json();if(ticket!==clanTicket||box.hidden)return;
+   if(!response.ok)throw Error('No se pudo cargar tu clan. Revisa tu conexión y sesión de Google Play.');clanPanel.replaceChildren();
+   if(!data.clan){clanPanel.append(clanElement('p','Todavía no perteneces a un clan. Puedes buscar uno desde el menú Clanes.'));return;}
+   clanView=mountClanChat({container:clanPanel,clan:data.clan,pilotId:data.pilotId,getToken,realm,storage,element:clanElement});
+  }catch(error){if(ticket!==clanTicket)return;clanPanel.replaceChildren(clanElement('p',error.message));const retry=clanElement('button','Reintentar');retry.onclick=openClan;clanPanel.append(retry)}
+ }
+ function changeChannel(value){channel=value;globalPanel.hidden=value!=='global';clanPanel.hidden=value!=='clan';globalTab.setAttribute('aria-pressed',String(value==='global'));clanTab.setAttribute('aria-pressed',String(value==='clan'));settings.hidden=true;settingsButton.hidden=value==='clan';if(value==='clan')void openClan();else{stopClan();send({type:'chatHistory'})}}
+ globalTab.onclick=()=>changeChannel('global');clanTab.onclick=()=>changeChannel('clan');
+ window.addEventListener('cosmos:clans-changed',()=>{if(channel==='clan'&&!box.hidden)void openClan()});
  function schedule(){if(!auto||!translationAvailable)return;for(const m of messages){const k=m.id+':'+language;if(m.language&&m.language!==language&&!blocks.has(m.author)&&!translations.has(k)&&!requested.has(k)){queue.push({id:m.id,language});requested.add(k)}}}
  select.onchange=()=>{language=select.value;queue=[];requested.clear();try{storage.setItem('cosmos.chatLanguage',language)}catch{}schedule();render()};
  translateCheck.onchange=()=>{auto=translateCheck.checked;queue=[];requested.clear();try{storage.setItem('cosmos.chatTranslate',auto?'on':'off')}catch{}schedule();render()};
- const timer=setInterval(()=>{if(box.hidden||!auto||!translationAvailable)return;const next=queue.shift();if(next&&messages.some(m=>m.id===next.id&&!blocks.has(m.author)))send({type:'chatTranslate',...next})},1100);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
- const open=value=>{box.hidden=!value;toggle.hidden=value;toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat del mapa');toggle.title='Chat del mapa';toggle.setAttribute('aria-expanded',String(value));if(value){applyLayout();send({type:'chatHistory'})}};toggle.onclick=()=>open(box.hidden);close.onclick=()=>open(false);
+ const timer=setInterval(()=>{if(box.hidden||channel!=='global'||!auto||!translationAvailable)return;const next=queue.shift();if(next&&messages.some(m=>m.id===next.id&&!blocks.has(m.author)))send({type:'chatTranslate',...next})},1100);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
+ const open=value=>{box.hidden=!value;toggle.hidden=value;toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat global y clan');toggle.title='Chat global y clan';toggle.setAttribute('aria-expanded',String(value));if(value){applyLayout();if(channel==='clan')void openClan();else send({type:'chatHistory'})}else stopClan()};toggle.onclick=()=>open(box.hidden);close.onclick=()=>open(false);
  // Avoid game gestures/keys while typing, without suppressing normal form controls.
  for(const type of ['pointerdown','touchstart','keydown','keyup'])root.addEventListener(type,e=>e.stopPropagation());
  accept.onchange=()=>{try{storage.setItem(key,accept.checked?'1':'0')}catch{}submit.disabled=!accept.checked;rules.hidden=accept.checked};submit.disabled=!accept.checked;rules.hidden=accept.checked;
@@ -58,7 +75,7 @@ export function mountMapChat({send,storage=localStorage,realm='normal'}){
    if(m.author!==myId){const actions=document.createElement('details'),more=document.createElement('summary');more.textContent='⋯';more.setAttribute('aria-label','Opciones del mensaje de '+m.name);actions.append(more);const report=document.createElement('button');report.textContent='Reportar';report.onclick=()=>{const reason=window.prompt('Motivo del reporte (acoso, spam, amenazas u otro):');if(reason?.trim())send({type:'chatReport',id:m.id,reason})};const block=document.createElement('button');block.textContent='Bloquear';block.onclick=()=>send({type:'chatBlock',target:m.author,block:true});actions.append(report,block);row.append(actions)}list.append(row)}list.scrollTop=list.scrollHeight;
   blockedList.replaceChildren();for(const id of blocks){const button=document.createElement('button');button.textContent='Desbloquear #'+id.slice(-6);button.onclick=()=>send({type:'chatBlock',target:id,block:false});blockedList.append(button)}
  }
- return {ready(){if(!box.hidden)send({type:'chatHistory'})},identify(id){myId=id;identityText.textContent='Tu ID: '+id},reset(){admin=false;refresh.hidden=true;password.hidden=login.hidden=false;reports.replaceChildren();messages=[];queue=[];requested.clear();translations.clear();originals.clear();translationAvailable=false;render()},receive(m){
+ return {ready(){if(!box.hidden){if(channel==='clan')void openClan();else send({type:'chatHistory'})}},identify(id){myId=id;identityText.textContent='Tu ID: '+id},reset(){stopClan();admin=false;refresh.hidden=true;password.hidden=login.hidden=false;reports.replaceChildren();messages=[];queue=[];requested.clear();translations.clear();originals.clear();translationAvailable=false;render()},receive(m){
   if(!m.type?.startsWith('chat'))return false;
   if(m.type==='chatHistory'){messages=m.messages;blocks=new Set(m.blocks);translationAvailable=!!m.translationAvailable;translationStatus.textContent=translationAvailable?'Traducción automática disponible.':'Traducción no disponible; se muestran los mensajes originales.';schedule();render()}
   if(m.type==='chatMessage'){messages=[...messages,m.message].slice(-100);schedule();render();if(box.hidden)toggle.textContent='💬 Chat · nuevo'}

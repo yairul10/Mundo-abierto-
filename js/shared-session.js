@@ -8,7 +8,7 @@ import {mountPvpSocialUI} from './pvp-social-ui.js?v=471';
 import {mountPvpRecovery} from './pvp-recovery.js?v=443';
 import {PVP_CLIENT_VERSION,checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
 import {pvpAccountToken,clearPvpAccountToken,pvpAccountProfile} from './pvp-account.js?v=435';
-import {mountMapChat} from './map-chat.js?v=383';
+import {mountMapChat} from './map-chat.js?v=472';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=471';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=471';
@@ -55,7 +55,7 @@ export function startSharedSession(bridge){
  function note(text){message.textContent=text;messageUntil=performance.now()+6500}
  function send(m){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(m))}
  function syncPracticePause(force){if(!ARENA_MODE||!state?.match?.practice||ws?.readyState!==WebSocket.OPEN)return;const paused=force===true||!!bridge.practiceBlocked?.();if(paused!==lastPracticePause){lastPracticePause=paused;send({type:'practicePause',paused})}}
- const chat=mountMapChat({send,realm});const chatStyle=document.createElement('link');chatStyle.rel='stylesheet';chatStyle.href='./css/map-chat.css?v=383';document.head.append(chatStyle);
+ const chat=mountMapChat({send,realm,getToken:pvpAccountToken});const chatStyle=document.createElement('link');chatStyle.rel='stylesheet';chatStyle.href='./css/map-chat.css?v=472';document.head.append(chatStyle);
  const zoneStyle=document.createElement('link');zoneStyle.rel='stylesheet';zoneStyle.href='./css/pvp-zones.css?v=383';document.head.append(zoneStyle);
  const social=mountPvpSocialUI({send,getState:()=>({state,me,selected}),clanTag:id=>clanBadges.tag(id)});
  const recovery=mountPvpRecovery({send,readPilot:()=>readOfflinePilot(localStorage),settle:bill=>bridge.settleRespawn(bill),onReady:bill=>bridge.respawnReady(bill),notice:note});

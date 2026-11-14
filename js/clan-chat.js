@@ -1,0 +1,21 @@
+const API='https://mundo-abierto-pvp.yairul17.workers.dev';
+export function mountClanChat({container,clan,pilotId,getToken,realm='normal',element,storage=localStorage,fetcher=fetch}){
+ const heading=element('h3','Chat privado · ['+clan.tag+']'),help=element('p','Solo miembros del clan. Se muestran hasta 50 mensajes de las últimas 24 horas.'),list=element('div'),notice=element('p'),form=element('form'),input=element('input'),submit=element('button','Enviar'),refresh=element('button','Actualizar'),rules=element('label'),accept=element('input');
+ list.className='clan-chat-messages';list.setAttribute('aria-live','polite');notice.setAttribute('role','status');form.className='clan-chat-form';input.maxLength=240;input.placeholder='Mensaje para tu clan';input.setAttribute('aria-label','Mensaje privado del clan');submit.type='submit';refresh.type='button';accept.type='checkbox';
+ const key='cosmos.clanChatRules.'+realm;try{accept.checked=storage.getItem(key)==='1'}catch{}
+ rules.append(accept,' Acepto escribir con respeto, sin acoso, spam, enlaces ni datos personales. Líderes y oficiales pueden borrar mensajes.');form.append(input,submit);container.append(heading,help,rules,list,notice,form,refresh);
+ let stopped=false,reading=false,sending=false,timer=null,pending=null,stamp='',role=clan.role;
+ const errors={clan_chat_forbidden:'Ya no tienes acceso a este chat.',chat_cooldown:'Espera 2 segundos entre mensajes.',chat_rules_required:'Acepta las reglas del chat.',invalid_chat_text:'Escribe entre 1 y 240 caracteres, sin enlaces.',message_conflict:'Ese envío ya se utilizó. Actualiza el chat.'};
+ function stop(){stopped=true;clearTimeout(timer);input.value='';pending=null;list.replaceChildren()}
+ async function request(values){const token=await getToken();if(stopped)throw Error('closed');const response=await fetcher(API+'/clans/chat?realm='+encodeURIComponent(realm),{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({clanId:clan.id,...values}),signal:AbortSignal.timeout(10000),cache:'no-store'});const data=await response.json();if(!response.ok){if(data.error==='clan_chat_forbidden'){list.replaceChildren();submit.disabled=input.disabled=true;stopped=true;clearTimeout(timer)}throw Error(errors[data.error]||'No se pudo conectar. Vuelve a intentarlo.')}return data}
+ function render(messages){const next=JSON.stringify([role,messages]);if(next===stamp)return;stamp=next;list.replaceChildren();if(!messages.length)list.append(element('p','Todavía no hay mensajes.'));
+  for(const m of messages){const row=element('article'),text=element('p',m.name+': '+m.text),time=element('small',new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));row.append(text,time);
+   if(m.text!=='[Mensaje eliminado]'&&(m.author===pilotId||role==='leader'||role==='officer')){const remove=element('button','Borrar');remove.type='button';remove.onclick=async()=>{if(sending||stopped)return;remove.disabled=true;try{await request({action:'delete',id:m.id});if(!stopped)await read()}catch(error){notice.textContent=error.message}finally{remove.disabled=false}};row.append(remove)}list.append(row)}list.scrollTop=list.scrollHeight;
+ }
+ async function read(){if(stopped||reading||document.hidden)return;reading=true;try{const data=await request({action:'history'});if(stopped)return;role=data.role;render(data.messages);notice.textContent=''}catch(error){if(error.message!=='closed')notice.textContent=error.message}finally{reading=false}}
+ async function poll(){await read();if(!stopped)timer=setTimeout(poll,8000)}
+ accept.onchange=()=>{submit.disabled=!accept.checked;try{storage.setItem(key,accept.checked?'1':'0')}catch{}};submit.disabled=!accept.checked;
+ refresh.onclick=()=>read();
+ form.onsubmit=async event=>{event.preventDefault();if(stopped||sending||!accept.checked||!input.value.trim())return;sending=true;submit.disabled=true;const text=input.value;if(!pending||pending.text!==text)pending={id:crypto.randomUUID(),text};try{await request({action:'send',...pending,rulesVersion:1});if(stopped)return;pending=null;if(input.value===text)input.value='';await read()}catch(error){if(error.message!=='closed')notice.textContent=error.message}finally{sending=false;submit.disabled=stopped||!accept.checked}};
+ void poll();return {stop};
+}

@@ -4,7 +4,7 @@ const admissions={open:'Ingreso libre',request:'Por solicitud',invite:'Solo invi
 export function mountClans({button,getToken,createClan,hasPendingCreation=()=>false,realm='normal'}){
  let dialog=null,controller=null,epoch=0,busy=false,accountState=null;
  const element=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
- const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=471';document.head.append(style);
+ const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=472';document.head.append(style);
  button.onclick=()=>{
   if(dialog)return;
   dialog=element('dialog');dialog.className='clan-dialog';dialog.setAttribute('aria-label','Clanes');

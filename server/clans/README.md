@@ -67,3 +67,14 @@ Requiere sesión verificada, separa los entornos y obtiene la pertenencia desde 
 HUD, naves, selección y grupos muestran [TAG] Nombre sin cambiar el nombre guardado.
 El cliente actualiza cada 30 segundos y fuerza la consulta tras cambios propios.
 No se agregan lecturas D1 a cada fotograma ni a cada disparo del servidor de combate.
+
+Paso 8: POST /clans/chat (history/send/delete), solo para miembros actuales.
+Cada operación recibe clanId explícito y comprueba la pertenencia en SQL; cambiar
+clan o perder membresía revoca las consultas/envíos al clan anterior. Historial:
+50 mensajes de 24 horas, conservación máxima de 200 por clan. UUID idempotente,
+240 caracteres, sin enlaces, censura y pausa de 2 segundos por autor y entorno.
+Borrar reemplaza el texto y conserva el recibo/cooldown: autor, líder u oficial.
+0005-clan-chat.sql es aditiva/idempotente y elimina historial al disolver el clan.
+Chat global → pestaña Clan consulta cada 8 segundos solo con la ventana activa;
+cerrar o cambiar de pestaña detiene consultas e ignora respuestas tardías.
+Los autores se identifican por su ID corto verificado, igual que la lista de miembros.

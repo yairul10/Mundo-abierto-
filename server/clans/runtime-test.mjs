@@ -12,6 +12,8 @@ try{
  let db=await mf.getD1Database('CLANS_DB');
  const schema=readFileSync(new URL('./migrations/0001-clans.sql',import.meta.url),'utf8');
  await db.batch(schema.split(/;\n/).map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+ const chatSchema=readFileSync(new URL('./migrations/0005-clan-chat.sql',import.meta.url),'utf8');
+ await db.batch(chatSchema.split(/;\n/).map(s=>s.trim()).filter(s=>s&&!s.startsWith('-- Deleted')).map(s=>db.prepare(s)));
  assert.equal((await mf.dispatchFetch('https://test/clans/me')).status,401);
  let response=await read();assert.equal(response.status,200);assert.equal((await response.json()).clan,null);
  await db.batch([db.prepare("INSERT INTO clans(realm,id,name,name_key,tag,created_at) VALUES('normal','one','Clan Uno','clan uno','UNO',1)"),db.prepare("INSERT INTO clan_members VALUES('normal',?,'one','leader',1)").bind(id)]);
@@ -20,7 +22,13 @@ try{
  let badgeResponse=await badges();assert.equal(badgeResponse.status,200);assert.equal((await badgeResponse.json()).badges[id].tag,'UNO');
  await db.prepare("UPDATE clans SET tag='DOS' WHERE id='one'").run();assert.equal((await (await badges()).json()).badges[id].tag,'DOS');
  await db.prepare("UPDATE clans SET tag='UNO' WHERE id='one'").run();
+ const chat=(action,extra={})=>mf.dispatchFetch('https://test/clans/chat',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({action,clanId:'one',...extra})});
+ const messageId=crypto.randomUUID();let sent=await chat('send',{id:messageId,text:'Hola clan',rulesVersion:1});assert.equal(sent.status,200);
+ assert.equal((await (await chat('history')).json()).messages[0].text,'Hola clan');
+ await db.prepare('DELETE FROM clan_members WHERE account_id=?').bind(id).run();assert.equal((await chat('history')).status,403);assert.equal((await chat('send',{id:crypto.randomUUID(),text:'Ya no',rulesVersion:1})).status,403);
+ await db.prepare("INSERT INTO clan_members VALUES('normal',?,'one','leader',1)").bind(id).run();
  await mf.dispose();mf=new Miniflare(options);
  response=await read();assert.equal(response.status,200);const data=await response.json();assert.equal(data.clan.id,'one');assert.equal(data.permissions.editClan,true);assert.equal(data.rules.creationCost,200000);
- console.log('PASS Worker identity + real D1: migration, unauthenticated denial, verified account read and membership persistence after restart.');
+ assert.equal((await (await chat('history')).json()).messages[0].text,'Hola clan');
+ console.log('PASS private clan chat + Worker identity + real D1: migration, unauthenticated denial, verified account read and membership persistence after restart.');
 }finally{await mf.dispose();rmSync(persist,{recursive:true,force:true})}
