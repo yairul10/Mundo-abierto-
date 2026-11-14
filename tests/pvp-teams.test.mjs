@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {enterPvp,advancePvp,pvpMessage,pvpSnapshot,changeTeam,swapTeams} from '../server/pvp/pvp-match.mjs';
 import {pvpRoomName} from '../server/pvp/pvp-teams.mjs';
 const body=(id,bot=false)=>({accountId:id,name:id,clientVersion:5,realm:'normal',shipId:'aurora',skills:['fury','paralyze'],pvpRoom:{mode:'2v2',code:'ABCDEF',visibility:bot?'practice':'private',bot},roster:{aurora:{maxHp:1000,attack:100,defense:0,speed:220,maxEnergy:100}}});
-async function fixture(bot=false){const s={players:[],events:[],duels:[],invites:[]},sent=[],ws={send:m=>sent.push(JSON.parse(m)),close(){}},world={ctx:{storage:{setAlarm:async()=>{}},getWebSockets:()=>[]},worldSave(){},worldBroadcast(){},startSimulation(){},worldDisconnect:async()=>{}};
- for(let i=0;i<(bot?1:4);i++){await enterPvp(world,s,body('p'+i,bot),'p'+i,10000);s.players.find(p=>p.id==='p'+i).connected=true}return {s,world,ws,sent};}
+async function fixture(bot=false,mode='2v2'){const s={players:[],events:[],duels:[],invites:[]},sent=[],ws={send:m=>sent.push(JSON.parse(m)),close(){}},world={ctx:{storage:{setAlarm:async()=>{}},getWebSockets:()=>[]},worldSave(){},worldBroadcast(){},startSimulation(){},worldDisconnect:async()=>{}};
+ for(let i=0;i<(bot?1:mode==='5v5'?10:4);i++){await enterPvp(world,s,{...body('p'+i,bot),pvpRoom:{...body('p'+i,bot).pvpRoom,mode}},'p'+i,10000);s.players.find(p=>p.id==='p'+i).connected=true}return {s,world,ws,sent};}
 async function start(f){for(const p of f.s.players.filter(p=>!p.isBot))await pvpMessage(f.world,f.s,p,{type:'ready',ready:true},f.ws,10000);assert.equal(f.s.pvpMatch.status,'countdown');advancePvp(f.s,13000);assert.equal(f.s.pvpMatch.status,'active')}
 test('2v2 has isolated room identities, four reserved slots, balanced teams and four ready checks',async()=>{
  assert.notEqual(pvpRoomName('normal','ABCDEF','1v1'),pvpRoomName('normal','ABCDEF','2v2'));
@@ -44,4 +44,32 @@ test('leaving removes only that player until the last living teammate leaves',as
  const f=await fixture();await start(f);const [a,,ally]=f.s.players;
  await pvpMessage(f.world,f.s,a,{type:'leave'},f.ws,13100);assert.equal(f.s.pvpMatch.status,'active');assert.equal(a.hp,0);assert.equal(ally.hp,ally.profile.maxHp);
  await pvpMessage(f.world,f.s,ally,{type:'leave'},f.ws,13200);assert.equal(f.s.pvpMatch.status,'finished');assert.equal(f.s.pvpMatch.winnerTeam,'b');assert.equal(f.s.pvpMatch.reason,'surrender');
+});
+
+test('5v5 reserves ten distinct spawns, balances five per team and waits for all ten pilots',async()=>{
+ const f=await fixture(false,'5v5'),{s,world,ws}=f;
+ assert.equal(s.players.length,10);assert.equal(s.players.filter(p=>p.team==='a').length,5);
+ assert.equal(new Set(s.players.map(p=>JSON.stringify(p.spawn))).size,10);
+ assert.notEqual(pvpRoomName('normal','ABCDEF','5v5'),pvpRoomName('normal','ABCDEF','2v2'));
+ assert.equal((await enterPvp(world,s,{...body('extra'),pvpRoom:{mode:'5v5'}},'extra',10000)).error,'world_full');
+ for(const p of s.players.slice(0,9))await pvpMessage(world,s,p,{type:'ready',ready:true},ws,10000);
+ assert.equal(s.pvpMatch.status,'waiting');
+ await pvpMessage(world,s,s.players[9],{type:'ready',ready:true},ws,10000);
+ assert.equal(s.pvpMatch.status,'countdown');advancePvp(s,13000);
+ assert.equal(pvpSnapshot(s,13000).match.teamSize,5);
+ for(const p of s.players.filter(p=>p.team==='b').slice(0,4))p.hp=0;
+ advancePvp(s,13100);assert.equal(s.pvpMatch.status,'active');
+ s.players.find(p=>p.team==='b'&&p.hp>0).hp=0;advancePvp(s,13200);
+ assert.equal(s.pvpMatch.status,'finished');assert.equal(s.pvpMatch.winnerTeam,'a');
+});
+test('5v5 practice creates four allies and five rivals and ends when the human leaves',async()=>{
+ const f=await fixture(true,'5v5');await start(f);
+ assert.equal(f.s.players.filter(p=>p.isBot&&p.team==='a').length,4);
+ assert.equal(f.s.players.filter(p=>p.isBot&&p.team==='b').length,5);
+ for(let now=13100;now<=15000;now+=100)advancePvp(f.s,now);
+ for(const bot of f.s.players.filter(p=>p.isBot)){
+  assert.ok(bot.botBrain?.targetId);assert.notEqual(f.s.players.find(p=>p.id===bot.botBrain.targetId).team,bot.team);
+ }
+ await pvpMessage(f.world,f.s,f.s.players[0],{type:'leave'},f.ws,15100);
+ assert.equal(f.s.pvpMatch.status,'finished');assert.equal(f.s.pvpMatch.reason,'abandoned');
 });

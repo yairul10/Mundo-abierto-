@@ -6,9 +6,9 @@ function ui(){class Element{constructor(tag){this.tag=tag;this.children=[];this.
  return {document,api:new Function('document',source+';return {choosePvpMatch,showPvpResult}')(document)};
 }
 test('the mode picker carries 2v2 into practice and private-room code requests',async()=>{
- for(const action of ['bot','join']){const {document,api}=ui(),pending=api.choosePvpMatch(),dialog=document.body.children.at(-1),actions=dialog.children[2];actions.children.find(b=>b.textContent==='2v2').onclick();assert.match(dialog.children[0].textContent,/2v2/);
-  if(action==='bot')actions.children.find(b=>b.textContent==='Practicar con bots').onclick();else{actions.children.find(b=>b.textContent==='Unirme con código').onclick();const form=actions.children[0];form.children[0].value='abcdef';form.onsubmit({preventDefault(){}})}
-  assert.deepEqual(await pending,action==='bot'?{action:'bot',mode:'2v2'}:{action:'join',mode:'2v2',code:'ABCDEF'});
+ for(const mode of ['2v2','5v5'])for(const action of ['bot','find','create','join']){const {document,api}=ui(),pending=api.choosePvpMatch(),dialog=document.body.children.at(-1),actions=dialog.children[2];actions.children.find(b=>b.textContent===mode).onclick();assert.match(dialog.children[0].textContent,new RegExp(mode));
+  if(action!=='join')actions.children.find(b=>b.textContent===({bot:'Practicar con bots',find:'Buscar partida',create:'Crear sala privada'}[action])).onclick();else{actions.children.find(b=>b.textContent==='Unirme con código').onclick();const form=actions.children[0];form.children[0].value='abcdef';form.onsubmit({preventDefault(){}})}
+  assert.deepEqual(await pending,action==='join'?{action,mode,code:'ABCDEF'}:{action,mode});
  }
 });
 test('the result belongs to the whole team, including an eliminated teammate',()=>{

@@ -25,7 +25,7 @@ async function enter(n,choice,mode='2v2'){const r=await mf.dispatchFetch('https:
 async function socket(t){const r=await mf.dispatchFetch('https://test/arena/socket?realm=normal&mode='+t.arena.mode+'&room='+t.arena.code,{headers:{Upgrade:'websocket','Sec-WebSocket-Protocol':'mundo-world-v1,'+t.token}});assert.equal(r.status,101);const ws=r.webSocket,messages=[];ws.accept();ws.addEventListener('message',e=>messages.push(JSON.parse(e.data)));sockets.push(ws);return {ws,messages}}
 async function fixture(code,op,id=''){const r=await mf.dispatchFetch('https://test/__fixture?room='+code+'&op='+op+'&id='+id);assert.equal(r.status,200);return r.json()}
 try{
- assert.equal((await enter(1,{action:'find'},'5v5')).error,'invalid_mode');
+ assert.equal((await enter(1,{action:'find'},'6v6')).error,'invalid_mode');
  const publicTickets=await Promise.all([1,2,3,4,5].map(n=>enter(n,{action:'find'})));for(const t of publicTickets)assert.equal(t.status,200);assert.deepEqual(Object.values(Object.groupBy(publicTickets,t=>t.arena.code)).map(x=>x.length).sort(),[1,4]);
  const host=await enter(10,{action:'create'}),others=[];for(const n of [11,12,13])others.push(await enter(n,{action:'join',code:host.arena.code}));const tickets=[host,...others];
  assert.equal((await enter(14,{action:'join',code:host.arena.code})).error,'world_full');assert.equal((await enter(15,{action:'join',code:host.arena.code},'1v1')).error,'room_not_found');
