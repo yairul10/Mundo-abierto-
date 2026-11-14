@@ -1,5 +1,5 @@
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=463';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=464';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -8,7 +8,7 @@ import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
 import {createInfernoCombat} from './inferno.js?v=441';
-import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=463';
+import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=464';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=440';
@@ -32,7 +32,7 @@ import {mountPvpZones,mountPvpArena} from './pvp-zones.js?v=451';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
 import {createArenaEnemyView} from './pvp-enemies.js?v=437';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=390';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=464';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -51,13 +51,13 @@ import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,cr
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
-import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=463';
-import {mountHangarUI} from './hangar-ui.js?v=463';
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=464';
+import {mountHangarUI} from './hangar-ui.js?v=464';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=463';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=463';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=463';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=464';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=464';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=464';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -793,7 +793,7 @@ function buildEmberStation(hubSource,padSource,bridgeSource,fitted){
   const port=stationConnector(hub,direction);
   const pad=fitted(padSource,360);
   const rim=stationConnector(pad,direction.clone().negate(),18,25);
-  pad.position.copy(direction).multiplyScalar(463);
+  pad.position.copy(direction).multiplyScalar(464);
   pad.position.y=port.center.y-rim.center.y;
   pad.position[port.side]=port.center[port.side]-rim.center[port.side];
   pad.userData.landingRadius=216;pad.name='Plataforma Ascuas';
@@ -3575,9 +3575,10 @@ if(PVP_MODE){
  for(const id of ['questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene,{budget:()=>effectBudget(graphics.level)}):null;
  if(COOP_MODE)scene.fog=new THREE.Fog(0x52617c,1000,2900);
- if(ARENA_MODE)mountPvpArena(THREE,scene);else if(!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Mapa cooperativo':'Mapa PvP';
+ const arenaBoundary=ARENA_MODE?mountPvpArena(THREE,scene):null;if(!ARENA_MODE&&!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Mapa cooperativo':'Mapa PvP';
  pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,practiceBlocked:()=>document.hidden||!document.hasFocus()||!!document.querySelector('dialog[open]')||!panel.classList.contains('hidden')||!$('shopPanel').classList.contains('hidden')||systemMap.open||document.body.matches('.journal-open,.portrait-blocked'),nearPortal:()=>!ARENA_MODE&&playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
+  if(arenaBoundary){const scale=(pvpSession?.radius||2200)/2200;arenaBoundary.scale.set(scale,1,scale);}
   const spectator=pvpSession?.spectatorTarget;if(spectator){playerMesh.visible=false;lockFrame.classList.add('hidden');if(!pvpSession.matchPaused)updateSpectatorShots(dt);const point=new THREE.Vector3(...spectator.pos),angle=spectator.aim?.[0]||0,behind=new THREE.Vector3(Math.sin(angle)*cameraZoom,cameraZoom*105/285,Math.cos(angle)*cameraZoom);camera.position.lerp(point.clone().add(behind),1-Math.exp(-dt*6));camera.lookAt(point)}
   cooperativeClouds?.update(dt);
   updateBossVisual(dt);arenaView.update(dt);

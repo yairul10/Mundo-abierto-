@@ -1,5 +1,5 @@
-import {spectatorPilot,nextSpectatorPilot,arenaDeathMessage} from './pvp-spectator.js?v=463';
-import {arenaRequested,choosePvpMatch,readArenaChoice,saveArenaChoice,showPvpResult} from './pvp-match-ui.js?v=463';
+import {spectatorPilot,nextSpectatorPilot,arenaDeathMessage} from './pvp-spectator.js?v=464';
+import {arenaRequested,choosePvpMatch,readArenaChoice,saveArenaChoice,showPvpResult} from './pvp-match-ui.js?v=464';
 import {chooseCoopRoom,readCoopChoice,saveCoopChoice,showExpeditionEnd} from './coop-room-ui.js?v=449';
 import {restoreWorldSnapshot} from './world-snapshot.js?v=1';
 import {rankedName} from './pvp-ranks.js?v=347';
@@ -9,9 +9,9 @@ import {PVP_CLIENT_VERSION,checkPvpVersion,showPvpUpdate} from './pvp-version.js
 import {pvpAccountToken,clearPvpAccountToken,pvpAccountProfile} from './pvp-account.js?v=435';
 import {mountMapChat} from './map-chat.js?v=383';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=463';
-import {mountPvpSkills} from './pvp-skills-ui.js?v=463';
-import {cooperativeRoster,pvpRoster as arenaRoster,readOfflinePilot} from './pvp-loadout.js?v=463';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=464';
+import {mountPvpSkills} from './pvp-skills-ui.js?v=464';
+import {cooperativeRoster,pvpRoster as arenaRoster,readOfflinePilot} from './pvp-loadout.js?v=464';
 const ARENA_MODE=arenaRequested();
 const pvpRoster=source=>ARENA_MODE?arenaRoster(source):cooperativeRoster(source);
 const chooseRoom=()=>ARENA_MODE?choosePvpMatch():chooseCoopRoom();
@@ -29,14 +29,30 @@ export function startSharedSession(bridge){
  let roomChoice=ARENA_MODE?readArenaChoice():readCoopChoice(),roomEnding=false,rewardSaveFailed=false;
  let transferConfirmed=false,localDeathId='',identity=null,ws=null,state=null,me=null,seq=0,pending=[],lastSend=0,lastPing=0,lastReceived=performance.now(),retryAt=0,attempts=0,busy=false,closed=false,selected='',clockOffset=0,lastRevision=-1,portalTime=0,lastFrame=performance.now(),firstState=true,hangarRequested=false,hangarRequestAt=0,lastLuck=0,pingMs=null,messageUntil=0;
  const seenEvents=new Set(),$=id=>document.getElementById(id);
- if(ARENA_MODE){const arenaStyle=document.createElement('link');arenaStyle.rel='stylesheet';arenaStyle.href='./css/pvp-match.css?v=463';document.head.append(arenaStyle)}
+ if(ARENA_MODE){const arenaStyle=document.createElement('link');arenaStyle.rel='stylesheet';arenaStyle.href='./css/pvp-match.css?v=464';document.head.append(arenaStyle)}
  const style=document.createElement('link');
  const mountControls=()=>mountPvpControlEditor({realm,isHangarOpen:bridge.isHangarOpen});
  style.addEventListener('load',mountControls,{once:true});
  style.addEventListener('error',mountControls,{once:true});
  style.rel='stylesheet';style.href='./css/shared-world.css?v=451';document.head.appendChild(style);document.body.classList.add('pvp-hud');
  const panel=document.createElement('section');panel.id='worldPanel';panel.setAttribute('aria-label','Mapa Cooperativo');panel.innerHTML='<div class="world-top"><strong id="worldStatus">Conectando al mapa…</strong><button type="button" id="worldExit" class="cockpit-control cockpit-tertiary" aria-label="Salir de Cooperativo" title="Salir de Cooperativo"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4H5v16h5m-1-8h11m-4-4 4 4-4 4"/></svg></button></div><small id="worldDetails">Cooperativo · Recompensas compartidas</small><button id="worldHangar">Aterrizar y abrir hangar</button><div id="worldTools" hidden><label>Apodo <input id="worldName" maxlength="20" value="Invitado"></label><button id="worldSaveName">Guardar apodo</button><small>Usas tus naves y equipo. Casco ×20 en Cooperativo.</small></div><div id="worldMessage" role="status"></div><button id="worldRetry" hidden>Reconectar</button>';
- if(ARENA_MODE){panel.setAttribute('aria-label','Sala PvP');panel.querySelector('#worldExit').setAttribute('aria-label','Salir de PvP');panel.querySelector('#worldExit').title='Salir de PvP';panel.querySelector('#worldDetails').textContent='Pv…1350 tokens truncated…bSocket.OPEN)return;const paused=force===true||!!bridge.practiceBlocked?.();if(paused!==lastPracticePause){lastPracticePause=paused;send({type:'practicePause',paused})}}
+ if(ARENA_MODE){panel.setAttribute('aria-label','Sala PvP');panel.querySelector('#worldExit').setAttribute('aria-label','Salir de PvP');panel.querySelector('#worldExit').title='Salir de PvP';panel.querySelector('#worldDetails').textContent='PvP · 1v1 · Sin premios ni pérdida de créditos';}
+ document.body.append(panel);const zoom=$('zoomControls');if(zoom){const actions=document.createElement('div');actions.id='pvpMapActions';$('formationBtn').style.position='static';actions.append($('worldExit'),zoom,$('formationBtn'));const net=document.createElement('small');net.id='pvpNetStatus';net.style.cssText='position:absolute;top:calc(100% + 3px);left:0;color:#c9edff;font:10px system-ui;white-space:nowrap;background:#061527aa;padding:2px 5px;border-radius:5px';net.textContent='conectando';actions.append(net);document.body.append(actions)}
+ const roomInfo=document.createElement('div'),roomText=document.createElement('span'),copyRoom=document.createElement('button');roomInfo.id='coopRoomInfo';copyRoom.textContent='Copiar código';copyRoom.style.pointerEvents='auto';copyRoom.hidden=true;copyRoom.onclick=()=>{const code=(state?.match||state?.room)?.code;if(code){if(navigator.clipboard?.writeText)navigator.clipboard.writeText(code).then(()=>note('Código copiado: '+code)).catch(()=>window.prompt('Código de la sala',code));else window.prompt('Código de la sala',code)}};roomInfo.append(roomText,copyRoom);panel.append(roomInfo);
+ const home=$('hangarHomeView');if(home&&!ARENA_MODE){const section=document.createElement('section');section.id='pvpHangarLoadout';section.innerHTML='<h3>Equipamiento cooperativo</h3><p>Equipa tus naves y habilidades al aterrizar.</p>';section.append($('worldTools'));home.append(section)}
+ const swapControls=document.createElement('fieldset'),swapA=document.createElement('select'),swapB=document.createElement('select'),swapButton=document.createElement('button');swapControls.id='pvpTeamSwap';swapA.setAttribute('aria-label','Jugador del equipo A');swapB.setAttribute('aria-label','Jugador del equipo B');swapButton.type='button';swapButton.textContent='Intercambiar puestos';swapButton.onclick=()=>send({type:'teamSwap',players:[swapA.value,swapB.value]});const swapTitle=document.createElement('legend');swapTitle.textContent='Organizar equipos · Anfitrión';swapControls.append(swapTitle,swapA,swapB,swapButton);let teamStamp='';
+ const preparation=document.createElement('section'),readyButton=document.createElement('button'),teamControls=document.createElement('div'),teamRoster=document.createElement('p');teamControls.id='pvpTeamControls';teamRoster.id='pvpTeamRoster';for(const team of ['a','b']){const button=document.createElement('button');button.type='button';button.dataset.team=team;button.textContent='Equipo '+team.toUpperCase();button.onclick=()=>send({type:'team',team});teamControls.append(button)}preparation.id='pvpPreparation';preparation.hidden=true;readyButton.type='button';readyButton.textContent='Listo';readyButton.onclick=()=>send({type:'ready',ready:!me?.ready});if(ARENA_MODE){preparation.innerHTML='<h3>PvP</h3><p>Elige tus habilidades y marca Listo.</p>';preparation.append(teamRoster,teamControls,swapControls,$('worldTools'),readyButton);document.body.append(preparation);for(const event of ['pointerdown','touchstart','keydown','keyup'])preparation.addEventListener(event,e=>e.stopPropagation());$('worldName').closest('label').hidden=true;$('worldSaveName').hidden=true;$('worldTools').querySelector('small').textContent='Sin recompensas ni pérdida de créditos · Casco PvP ×20';}
+ const targetCard=document.createElement('section');targetCard.id='worldTarget';targetCard.hidden=true;targetCard.setAttribute('role','dialog');targetCard.setAttribute('aria-label','Objetivo seleccionado');targetCard.innerHTML='<strong id="worldTargetName"></strong><small id="worldTargetDetail"></small><button id="worldTargetClose">Cerrar</button>';document.body.append(targetCard);
+ let watchedPilot=null;
+ const spectatorBar=document.createElement('section');spectatorBar.id='pvpSpectator';spectatorBar.hidden=true;spectatorBar.setAttribute('aria-label','Modo espectador');spectatorBar.style.cssText='position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:45;max-width:90vw;padding:10px;border:1px solid #82bde0;border-radius:14px;background:#081526eb;color:white;text-align:center;font:14px system-ui';
+ const watchedName=document.createElement('div');watchedName.setAttribute('aria-live','polite');spectatorBar.append(watchedName);
+ for(const [label,step]of [['← Anterior',-1],['Siguiente →',1]]){const button=document.createElement('button');button.type='button';button.textContent=label;button.onclick=()=>{watchedPilot=nextSpectatorPilot(state,me,watchedPilot,step)};spectatorBar.append(button)}
+ const leaveSpectator=document.createElement('button');leaveSpectator.type='button';leaveSpectator.textContent='Volver a mi mapa';leaveSpectator.onclick=()=>exit();spectatorBar.append(leaveSpectator);document.body.append(spectatorBar);
+ for(const event of ['pointerdown','touchstart','keydown','keyup'])spectatorBar.addEventListener(event,e=>e.stopPropagation());
+ const status=$('worldStatus'),details=$('worldDetails'),tools=$('worldTools'),message=$('worldMessage');
+ function note(text){message.textContent=text;messageUntil=performance.now()+6500}
+ function send(m){if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(m))}
+ function syncPracticePause(force){if(!ARENA_MODE||!state?.match?.practice||ws?.readyState!==WebSocket.OPEN)return;const paused=force===true||!!bridge.practiceBlocked?.();if(paused!==lastPracticePause){lastPracticePause=paused;send({type:'practicePause',paused})}}
  const chat=mountMapChat({send,realm});const chatStyle=document.createElement('link');chatStyle.rel='stylesheet';chatStyle.href='./css/map-chat.css?v=383';document.head.append(chatStyle);
  const zoneStyle=document.createElement('link');zoneStyle.rel='stylesheet';zoneStyle.href='./css/pvp-zones.css?v=383';document.head.append(zoneStyle);
  const social=mountPvpSocialUI({send,getState:()=>({state,me,selected})});

@@ -33,7 +33,7 @@ try{
  for(const p of peers.slice(0,19))p.ws.send(JSON.stringify({type:'ready',ready:true}));
  await delay(150);let snap=await fixture(code,'inspect');assert.equal(snap.match.status,'waiting');
  peers[19].ws.send(JSON.stringify({type:'ready',ready:true}));await delay(150);
- snap=await fixture(code,'start');assert.equal(snap.match.capacity,20);assert.equal(snap.rules.radius,4000);
+ snap=await fixture(code,'start');assert.equal(snap.match.capacity,20);assert.equal(snap.rules.radius,8000);
  assert.equal(new Set(snap.players.map(p=>p.team)).size,20);
  for(const t of tickets.slice(2))snap=await fixture(code,'kill',t.playerId);
  assert.equal(snap.match.status,'active');snap=await fixture(code,'kill',tickets[1].playerId);

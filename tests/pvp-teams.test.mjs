@@ -78,11 +78,11 @@ test('Arena 20 has twenty opponents and circular spawns inside a larger boundary
  const f=await fixture(false,'arena20'),{s,world,ws}=f;
  assert.equal(s.players.length,20);assert.equal(new Set(s.players.map(p=>p.team)).size,20);
  assert.equal(new Set(s.players.map(p=>JSON.stringify(p.spawn))).size,20);
- for(const p of s.players)assert.ok(Math.abs(Math.hypot(p.pos[0],p.pos[2])-2400)<.01);
+ for(const p of s.players){assert.ok(Math.abs(Math.hypot(p.pos[0],p.pos[2])-6000)<.01);for(const q of s.players)if(q!==p)assert.ok(Math.hypot(...p.pos.map((v,i)=>v-q.pos[i]))>1800,'spawn outside immediate laser range');}
  assert.equal(changeTeam(s,s.players[0],'a'),'invalid_team');
  assert.equal(swapTeams(s,s.players[0],[s.players[1].id,s.players[2].id]),'invalid_team');
  await start(f);const snap=pvpSnapshot(s,13000);
- assert.equal(snap.match.freeForAll,true);assert.equal(snap.rules.radius,4000);
+ assert.equal(snap.match.freeForAll,true);assert.equal(snap.rules.radius,8000);
  const a=s.players[0],b=s.players[2];a.pos=[0,120,100];b.pos=[0,120,0];
  await pvpMessage(world,s,a,{type:'pvpSkill',skill:'paralyze',targetId:b.id},ws,13100);
  assert.equal(b.paralyzedUntil,16100);
@@ -98,9 +98,9 @@ test('Arena 20 practice creates nineteen rival bots and enforces the expanded mo
   assert.ok(bot.botBrain?.targetId);assert.notEqual(bot.botBrain.targetId,bot.id);
   assert.ok(Math.hypot(bot.pos[0],bot.pos[2])>2200);
  }
- const p=f.s.players[0];p.pos=[5000,120,0];p.lastInput=14000;
+ const p=f.s.players[0];p.pos=[9000,120,0];p.lastInput=14000;
  await pvpMessage(f.world,f.s,p,{type:'input',seq:1,move:[1,0,0],aim:[0,0]},f.ws,14100);
- assert.ok(Math.abs(Math.hypot(p.pos[0],p.pos[2])-4000)<.01);
+ assert.ok(Math.abs(Math.hypot(p.pos[0],p.pos[2])-8000)<.01);
 });
 
 test('every practice mode resolves immediately when its human dies, including a paused practice',async()=>{
