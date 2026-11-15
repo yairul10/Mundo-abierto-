@@ -21,7 +21,7 @@ export function tickDamageBoosters(timers,seconds){
  return expired;
 }
 
-export const PRECISION_BOOSTER=Object.freeze({id:'precision',name:'Precisión PvP',icon:'🎯',price:300000,benefit:'Velocidad de láseres ×3 y misiles ×2',seconds:600});
+export const PRECISION_BOOSTER=Object.freeze({id:'precision',name:'Precisión PvP',icon:'🎯',price:300000,benefit:'Velocidad: láseres ×3 y misiles ×2; guiado suave del láser',seconds:600});
 export function combatBoosterTimers(raw={}){return {...damageBoosterTimers(raw),precision:Math.max(0,Math.min(86400,Number(raw?.precision)||0))}}
 export const projectileMultiplier=(timers,missile=false)=>Number(timers?.precision)>0?(missile?2:3):1;
 export function tickCombatBoosters(timers,seconds){

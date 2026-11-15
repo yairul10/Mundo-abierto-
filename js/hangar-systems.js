@@ -1,4 +1,4 @@
-import {PRECISION_BOOSTER,DAMAGE_BOOSTERS,damageBoosterMultiplier,tickDamageBoosters} from './damage-boosters.js?v=462';
+import {PRECISION_BOOSTER,DAMAGE_BOOSTERS,damageBoosterMultiplier,tickDamageBoosters} from './damage-boosters.js?v=478';
 export const RECIPE=Object.freeze({credits:20000,chatarra:200,aleacion:70,nucleo:25,reliquia:8});
 export const FORMATIONS=Object.freeze([
  {id:'fan',name:'Abanico',icon:'↗',color:'#78dbff',benefit:'Gratis · Formación inicial',description:'Parejas abiertas a ambos lados de la nave.'},

@@ -1,3 +1,4 @@
+import {guidePrecisionLaser} from './precision-guidance.js?v=478';
 import {mountOnlineChat} from './online-chat.js?v=477';
 import {mountClanWarWatch} from './clan-wars.js?v=476';
 import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=472';
@@ -13,7 +14,7 @@ import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
 import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
 import {createInfernoCombat} from './inferno.js?v=441';
-import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=472';
+import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=478';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
 import {setHudText,setHudWidth} from './hud-values.js?v=389';
 import {createTitanFireburst} from './titan-fireburst.js?v=440';
@@ -56,8 +57,8 @@ import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,cr
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
-import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=472';
-import {mountHangarUI} from './hangar-ui.js?v=472';
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=478';
+import {mountHangarUI} from './hangar-ui.js?v=478';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=477';
@@ -1919,7 +1920,7 @@ function fire(mult=1,count=1){if(portalTransitProtected()||PVP_MODE&&!pvpSession
   const mesh=new THREE.Mesh(laserGeometry,laserMaterial);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
   mesh.position.copy(start);scene.add(mesh);
-  shots.push({mesh,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)*projectileMultiplier(player.boosters)),life:1.65,damage:player.attack*mult*1.5*classDamageMultiplier()*classCritMultiplier()*activeLaserBooster()});
+  shots.push({mesh,guidance:player.boosters.precision>0&&!!lockedEnemy,precisionTarget:player.boosters.precision>0?lockedEnemy:null,pvpAimPoint:destination.clone(),vel:dir.multiplyScalar(laserSpeed(player)*projectileMultiplier(player.boosters)),life:1.65,damage:player.attack*mult*1.5*classDamageMultiplier()*classCritMultiplier()*activeLaserBooster()});
  }
  fireSupportDrones(aimPoint,!!lockedEnemy,noseDir);
  if(pvpSession)pvpSession.shots('laser',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,classDamageMultiplier(),lockedEnemy?.playerId,pvpFarmRunning);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
@@ -2556,9 +2557,18 @@ function removeMissileEffects(p){
 // Misil guiado: busca la fijación central, o avanza hacia la mira si no hay blanco.
 function missileCount(){return 1+upgradeLevel('missiles')}
 function missileUpgradeCost(){const lv=upgradeLevel('missiles');return {credits:500*(lv+1),material:2+lv}}
+function updatePrecisionShot(p,dt){
+ if(!p.guidance)return;
+ const target=p.precisionTarget;
+ if(!target||target.dead||!target.mesh.visible||PVP_MODE&&target.playerId&&(pvpSession?.isJammed(target.playerId)||(target.playerId===pvpSession?.myId?!pvpSession?.canFight:!pvpSession?.canTarget(target.playerId)))){p.precisionTarget=null;p.guidance=false;return}
+ const state={guidance:true,pos:p.mesh.position.toArray(),vel:p.vel.toArray(),guidedTurn:p.guidedTurn||0};
+ const aim=PVP_MODE&&target.goal?target.goal:target.mesh.position;
+ if(guidePrecisionLaser(state,aim.toArray(),dt)){p.vel.fromArray(state.vel);p.guidedTurn=state.guidedTurn;p.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),p.vel.clone().normalize())}
+}
 function updateSpectatorShots(dt){
  for(const p of shots){
   if(!p.pvpRemote)continue;
+  if(p.guidance)updatePrecisionShot(p,dt);
   if(p.missile){
    p.missileAge=(p.missileAge||0)+dt;const aim=p.target&&!p.target.dead&&p.target.mesh.visible?p.target.mesh.position:p.missileAim;
    if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(p.missileSpeed||650);p.vel.lerp(desired,Math.min(1,dt*(p.missileAge<(p.missileGuideDelay||.55) ? .12 : 3.7)))}
@@ -3516,7 +3526,7 @@ for(const e of enemies){
 }
 updateEnemyShots(dt);scrapCombat.update(dt);
 updateSupportDrones(dt,now);updateExplorer(dt,now);updateExplorerCombat(dt);updateCarrier(dt);updateGranTitan(dt);
- for(const p of shots){const previousShotPosition=p.mesh.position.clone();if(p.missile){
+ for(const p of shots){const previousShotPosition=p.mesh.position.clone();updatePrecisionShot(p,dt);if(p.missile){
   p.missileAge=(p.missileAge||0)+dt;
   const aim=p.target&&!p.target.dead&&p.target.mesh.visible?p.target.mesh.position:p.missileAim;
   if(aim){const desired=aim.clone().sub(p.mesh.position).normalize().multiplyScalar(p.missileSpeed||650);
@@ -3660,7 +3670,7 @@ if(PVP_MODE){
   combatAudio.play(b.missile?'missile':'enemyLaser',{x:b.pos[0],y:b.pos[1],z:b.pos[2]});
   const mesh=b.missile?createMissileMesh():new THREE.Mesh(laserGeometry,remoteLaserMaterial);mesh.position.set(...b.pos);const vel=new THREE.Vector3(...b.vel);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vel.clone().normalize());scene.add(mesh);
   const target=b.target===pvpSession?.myId?{mesh:playerMesh,dead:false,playerId:pvpSession?.myId}:b.target===bossRemote.playerId&&bossRoot.visible?bossRemote:arenaView.entities.get(b.target)||remotes.get(b.target);
-  const shot={pvpRemote:true,pvpSent:true,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
+  const shot={pvpRemote:true,pvpSent:true,guidance:!!b.guidance,precisionTarget:b.guidance?target:null,guidedTurn:b.guidedTurn||0,mesh,vel,life:b.life,damage:0,missile:b.missile,missileSpeed:b.speed,missileGuideDelay:b.delay,missileAge:b.age,target,missileAim:null};if(b.missile)shot.missileEffects=addMissileEffects(mesh);shots.push(shot);
  }},
  });
  pvpFarmButton=document.createElement('button');

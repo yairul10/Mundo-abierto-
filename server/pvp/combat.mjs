@@ -1,3 +1,4 @@
+import {guidePrecisionLaser} from '../../js/precision-guidance.js';
 import {practiceDamageScale} from './arena-balance.mjs';
 import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,damageBoosterMultiplier,tickCombatBoosters as tickDamageBoosters} from '../../js/damage-boosters.js';
 import {shieldLevel,shieldCapacity,applyShieldDamage,regenerateShield} from './shield-system.mjs';
@@ -29,7 +30,7 @@ export function volley(s,p,m,now){const q=p.profile;if(!q||!Array.isArray(m.shot
  const maximum=kind==='laser'?2+q.droneCount:kind==='missile'?q.missiles:q.explorerDrone?1:0;if(m.shots.length>maximum)return null;let lasers=0,drones=0;const bullets=[];
  for(const shot of m.shots){if(!vector(shot.offset)||Math.hypot(...shot.offset)>(kind==='explorer'?(q.explorerRange||1450)+60:500)||!vector(shot.direction)||Math.abs(Math.hypot(...shot.direction)-1)>.01)return null;const missile=kind==='missile',drone=kind==='explorer'||shot.kind==='drone';if(kind==='laser'){if(drone)drones++;else lasers++;if(lasers>2||drones>q.droneCount)return null}const speed=(missile?clamp(shot.speed,440,850,650):(drone?1150:4000+440*(q.laserSpeedLevel||0)))*projectileMultiplier(q.boosters,missile),damage=q.attack*practiceDamageScale(p)*(missile?2.4:drone?.6:1.5)*(kind==='laser'&&!drone&&p.abilityUntil>now&&shipRole(q.shipId)==='espectro'?(['segadora','azote'].includes(q.shipId)?1.7:1.6):1)*(kind==='laser'&&!drone&&shipRole(q.shipId)==='espectro'&&shot.crit?1.5:1)*Math.max(q.damageBonus||1,kind==='laser'&&!p.boostersPaused?damageBoosterMultiplier(q.boosters):1)*(drone&&kind==='laser'?(q.droneDamage||1):1);
  const direction=missile?shot.direction:shotDirection(p,m,shot);if(!direction)return null;
- bullets.push({id:crypto.randomUUID(),owner:p.id,pos:p.pos.map((v,i)=>v+shot.offset[i]),vel:direction.map(v=>v*speed),life:missile?5:((kind==='laser'&&drone?q.droneRange||1200:1200)/speed+.35),range:kind==='laser'&&drone?q.droneRange||1200:1200,damage,missile,speed,delay:missile?clamp(shot.delay,.42,1.22,.55):0,age:0,travelled:0,target:missile&&shot.locked&&chosen&&!skillActive(chosen,'interference',now)?chosen.id:null});}
+ bullets.push({id:crypto.randomUUID(),owner:p.id,pos:p.pos.map((v,i)=>v+shot.offset[i]),vel:direction.map(v=>v*speed),life:missile?5:((kind==='laser'&&drone?q.droneRange||1200:1200)/speed+.35),range:kind==='laser'&&drone?q.droneRange||1200:1200,damage,missile,speed,delay:missile?clamp(shot.delay,.42,1.22,.55):0,age:0,travelled:0,guidance:kind==='laser'&&!drone&&q.boosters.precision>0&&!!m.targetId,target:(missile&&shot.locked||kind==='laser'&&!drone&&q.boosters.precision>0&&m.targetId===chosen?.id)&&chosen&&!skillActive(chosen,'interference',now)?chosen.id:null});}
  p[key]=now;p.lastAttack=now;const other=chosen;if(other&&Math.hypot(...other.pos.map((v,i)=>v-p.pos[i]))<=Math.max(1200,...bullets.map(b=>b.range)))other.lastIncoming=now;s.bullets||=[];s.bullets.push(...bullets);return bullets;
 }
 export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Math.max(0,Math.min(.3,(now-(s.simTime||now))/1000));s.simTime=now;
@@ -41,6 +42,7 @@ export function stepCombat(s,now){if(s.status!=='active')return;const elapsed=Ma
    if(!owner?.connected||owner.hp<=0||s.canDamage&&!s.canDamage(owner,null,now)){b.life=0;continue}
    b.age+=dt;const locked=s.players.find(p=>p.id===b.target);
    if(b.target&&(!locked||!locked.connected||locked.hp<=0||skillActive(locked,'interference',now)||s.canDamage&&!s.canDamage(owner,locked,now)))b.target=null;
+   if(b.guidance&&b.target&&locked)guidePrecisionLaser(b,locked.pos,dt);
    if(b.missile&&b.target&&locked){const delta=locked.pos.map((v,i)=>v-b.pos[i]),length=Math.hypot(...delta)||1,alpha=Math.min(1,dt*(b.age<b.delay?.12:3.7));b.vel=b.vel.map((v,i)=>v+(delta[i]/length*b.speed-v)*alpha)}
    const prev=[...b.pos];b.pos=b.pos.map((v,i)=>v+b.vel[i]*dt);b.life-=dt;if(s.allowBullet&&!s.allowBullet(b,owner)){b.life=0;continue}b.travelled=(b.travelled||0)+Math.hypot(...b.vel)*dt;
    if(!b.missile&&b.travelled>(b.range||1200)){b.life=0;continue}
