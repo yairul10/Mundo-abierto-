@@ -19,8 +19,37 @@ Other players' account IDs and cloud payloads are never returned by the level/ra
 panels. Names are rendered with textContent. Refresh is explicit; closing or
 switching a tab cancels its read and late responses cannot replace the active view.
 
-No new bindings or D1 migrations are required. The ranked ArenaLobby adds a
-read-only `hallRanking` RPC method.
+The public tables require no additional bindings. The ranked ArenaLobby adds a
+read-only `hallRanking` RPC method. The administrator audit uses the additive
+level-history migration documented below.
 
 Validation: `node --test tests/hall-of-fame*.test.mjs` and
 `node server/hall-of-fame/runtime-test.mjs` with the existing Miniflare test runtime.
+
+## Level-change audit (administrator)
+
+Apply `migrations/0001-level-history.sql` to the identity/CLANS_DB database before
+exposing the audit panel. Its additive table and SQLite triggers observe verified
+normal cloud saves directly, so failed/rolled-back saves cannot leave false events.
+The current save becomes a `baseline`; no prior history is invented. New saves
+and every subsequent level/type change append records, including invalid values.
+XP-only, wallet and equipment updates do not create duplicate level entries.
+Server timestamps, old/new level and XP, revision, and the previous cloud-save time
+are retained. Only bounded level values are copied, never full save payloads.
+Deleting an account cascades its history through the players foreign key.
+
+`tab=audit` is restricted on every request to the existing CHAT_ADMIN_IDS allowlist
+(using the same verified-account/hashed-pilot matching as clan war administration).
+Client admin flags are ignored. Other Hall responses expose only whether the
+current viewer is an administrator. The audit works only in the normal realm.
+The UI supports name search, account drilldown, optional warning filters and cursor
+pagination. Other players cannot query the audit, even by guessing account IDs.
+
+Initial review criteria (not proof of cheating): a gain of at least 10 levels in
+one save; at least 5 within 5 minutes since the previous save from level 30 onward;
+level decreases; or values outside the supported integer level range. Offline play,
+restored progress and legitimate progression can trigger notices. No automatic
+ban, rollback, rank penalty or message is sent. Thresholds are in `LEVEL_REVIEW`.
+
+Additional checks: `node --test tests/level-audit*.test.mjs` and the Hall runtime
+suite, including D1 triggers, migration replay, own/admin authorization and history.

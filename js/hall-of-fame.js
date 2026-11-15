@@ -1,18 +1,21 @@
+import {renderLevelAudit} from './level-audit-ui.js?v=481';
 import {pvpRank,rankBadge} from './pvp-ranks.js?v=479';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
-const TABS={clans:'Clanes',ranks:'Rangos PvP',levels:'Niveles'};
+const TABS={clans:'Clanes',ranks:'Rangos PvP',levels:'Niveles',audit:'Historial (admin)'};
 export function mountHallOfFame({button,getToken,realm='normal',fetcher=fetch}){
- let dialog=null,controller=null,ticket=0,selected='clans';
+ let dialog=null,controller=null,ticket=0,selected='clans';const auditOptions={query:'',pilot:'',pilotName:'',flagged:true,before:null};
  const make=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
- const style=make('link');style.rel='stylesheet';style.href='./css/hall-of-fame.css?v=480';document.head.append(style);
+ const style=make('link');style.rel='stylesheet';style.href='./css/hall-of-fame.css?v=481';document.head.append(style);
  button.onclick=()=>{
-  if(dialog)return;dialog=make('dialog');dialog.className='account-dialog hall-dialog';dialog.setAttribute('aria-label','Sala de la fama');
+  if(dialog)return;if(selected==='audit')selected='levels';dialog=make('dialog');dialog.className='account-dialog hall-dialog';dialog.setAttribute('aria-label','Sala de la fama');
   const header=make('header'),title=make('h2','Sala de la fama'),close=make('button','Cerrar'),tabs=make('nav'),status=make('p'),content=make('section'),refresh=make('button','Actualizar');close.type=refresh.type='button';status.setAttribute('role','status');content.setAttribute('role','tabpanel');content.id='hallContent';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Clasificaciones');header.append(title,close);const buttons={};
-  for(const [key,label]of Object.entries(TABS)){const b=make('button',label);b.type='button';b.id='hallTab-'+key;b.setAttribute('role','tab');b.setAttribute('aria-controls','hallContent');b.onclick=()=>load(key);tabs.append(b);buttons[key]=b;}
+  function addTab(key,label){const b=make('button',label);b.type='button';b.id='hallTab-'+key;b.setAttribute('role','tab');b.setAttribute('aria-controls','hallContent');b.onclick=()=>load(key);tabs.append(b);buttons[key]=b;}
+  for(const [key,label]of Object.entries(TABS))if(key!=='audit')addTab(key,label);
   function finish(){ticket++;controller?.abort();dialog?.close();dialog?.remove();dialog=null;button.focus?.()}
   close.onclick=finish;refresh.onclick=()=>load(selected);dialog.addEventListener('cancel',event=>{event.preventDefault();finish()});dialog.addEventListener('click',event=>{if(event.target===dialog)finish()});for(const event of ['pointerdown','touchstart','keydown','keyup'])dialog.addEventListener(event,e=>e.stopPropagation());
   const number=value=>Math.max(0,Number(value)||0).toLocaleString('es-CL');
   function table(data){
+   if(selected==='audit'){renderLevelAudit({content,data,make,options:auditOptions,load});return;}
    const key=selected,rows=data.ranking||[],mine=data.mine;
    const intro=key==='clans'?'Top '+data.limit+' de clanes · Puntos de misiones y guerras de esta semana.':key==='ranks'?'Top '+data.limit+' por puntos de partidas públicas. Práctica y privadas no puntúan.':'Top '+data.limit+' por nivel y luego XP · Partidas normales sincronizadas en la nube.';
    content.append(make('p',intro));
@@ -36,8 +39,9 @@ export function mountHallOfFame({button,getToken,realm='normal',fetcher=fetch}){
    selected=tab;const current=++ticket;controller?.abort();controller=new AbortController();const activeController=controller,signal=controller.signal;
    for(const [key,b]of Object.entries(buttons))b.setAttribute('aria-selected',String(key===tab));content.setAttribute('aria-labelledby',buttons[tab].id);content.replaceChildren();status.textContent='Cargando '+TABS[tab]+'…';let timer;
    try{let token;try{token=await getToken()}catch(error){if(/cooperativo|Play Games en la aplicación/.test(error.message))throw Error('Inicia sesión con Google Play desde la app Android para ver la Sala de la fama.');throw error}if(current!==ticket||!dialog)return;timer=setTimeout(()=>activeController.abort(),12000);
-    const response=await fetcher(API+'/hall-of-fame?realm='+encodeURIComponent(realm)+'&tab='+encodeURIComponent(tab),{headers:{Authorization:'Bearer '+token},signal,cache:'no-store'}),data=await response.json();if(current!==ticket||!dialog)return;
-    if(!response.ok)throw Error(data.error==='google_required'?'Inicia sesión con Google Play para ver la Sala de la fama.':data.error==='test_closed'?'El servidor de prueba está cerrado.':'No se pudo cargar la clasificación. Revisa tu conexión y pulsa Actualizar.');status.textContent='';table(data);
+    const params=new URLSearchParams({realm,tab});if(tab==='audit'){params.set('q',auditOptions.query);params.set('pilot',auditOptions.pilot);params.set('flagged',auditOptions.flagged?'1':'0');if(auditOptions.before)params.set('before',String(auditOptions.before));}
+    const response=await fetcher(API+'/hall-of-fame?'+params,{headers:{Authorization:'Bearer '+token},signal,cache:'no-store'}),data=await response.json();if(current!==ticket||!dialog)return;
+    if(!response.ok)throw Error(data.error==='google_required'?'Inicia sesión con Google Play para ver la Sala de la fama.':data.error==='admin_required'?'Solo el administrador puede consultar este historial.':data.error==='normal_only'?'El historial de niveles corresponde al servidor normal.':data.error==='test_closed'?'El servidor de prueba está cerrado.':'No se pudo cargar la clasificación. Revisa tu conexión y pulsa Actualizar.');status.textContent='';if(data.admin&&realm==='normal'&&!buttons.audit)addTab('audit',TABS.audit);table(data);
    }catch(error){if(current!==ticket||!dialog)return;status.textContent=signal.aborted?'La conexión tardó demasiado. Pulsa Actualizar para reintentar.':error.message;}finally{clearTimeout(timer)}
   }
   dialog.append(header,tabs,status,content,refresh);document.body.append(dialog);dialog.showModal();void load(selected);

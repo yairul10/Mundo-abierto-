@@ -1,4 +1,4 @@
-import {mountHallOfFame} from './hall-of-fame.js?v=480';
+import {mountHallOfFame} from './hall-of-fame.js?v=481';
 import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
 import {guidePrecisionLaser} from './precision-guidance.js?v=478';
 import {mountOnlineChat} from './online-chat.js?v=477';
