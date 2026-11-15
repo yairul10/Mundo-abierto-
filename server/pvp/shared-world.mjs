@@ -1,3 +1,4 @@
+import {globalChatRequest} from './global-chat.mjs';
 import {initClanMissionOutbox,queueClanMissionEvents,flushClanMissionOutbox} from '../clans/mission-outbox.mjs';
 import {advancePvp,enterPvp,pvpSnapshot,pvpMessage,finishPvp} from './pvp-match.mjs';
 import {advanceExpedition,roomMembers,EXPEDITION_CAPACITY} from './expedition.mjs';
@@ -20,6 +21,7 @@ const pForProtection=(s,id)=>s.players.find(p=>p.id===id);
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
 export class SharedWorld extends DurableObject {
  constructor(ctx,env){super(ctx,env);this.env=env;this.memory=null;this.lastCheckpoint=0;this.lastBroadcast=0;this.simulation=null;ctx.blockConcurrencyWhile(async()=>{initResults(ctx);initClanMissionOutbox(ctx);ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS shared_world (id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)');ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS boss_rewards (id TEXT PRIMARY KEY, player_id TEXT NOT NULL, amount INTEGER NOT NULL, damage REAL NOT NULL, total_damage REAL NOT NULL, boss_id TEXT NOT NULL, claimed INTEGER NOT NULL DEFAULT 0, materials TEXT NOT NULL DEFAULT '{}')");if(!ctx.storage.sql.exec('PRAGMA table_info(boss_rewards)').toArray().some(c=>c.name==='materials'))ctx.storage.sql.exec("ALTER TABLE boss_rewards ADD COLUMN materials TEXT NOT NULL DEFAULT '{}'");if(!ctx.storage.sql.exec('PRAGMA table_info(boss_rewards)').toArray().some(c=>c.name==='xp'))ctx.storage.sql.exec("ALTER TABLE boss_rewards ADD COLUMN xp INTEGER NOT NULL DEFAULT 0");if(!ctx.storage.sql.exec('PRAGMA table_info(boss_rewards)').toArray().some(c=>c.name==='enemy_kind'))ctx.storage.sql.exec("ALTER TABLE boss_rewards ADD COLUMN enemy_kind TEXT NOT NULL DEFAULT ''");ctx.storage.sql.exec('CREATE INDEX IF NOT EXISTS boss_rewards_pending ON boss_rewards(player_id,claimed)')})}
+ globalChat(p,message){return globalChatRequest(this.ctx,this.env,p,message)}
  // SQLite is authoritative at checkpoints; live combat stays in memory in both realms.
  worldLoad(){
   if(this.memory)return this.memory;

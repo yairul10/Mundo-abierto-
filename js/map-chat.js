@@ -1,6 +1,6 @@
 import {mountClanChat} from './clan-chat.js?v=472';
 import {chatLayout} from './chat-layout.js?v=1';
-export function mountMapChat({send,storage=localStorage,realm='normal',getToken}){
+export function mountMapChat({send,storage=localStorage,realm='normal',getToken,onVisibility=()=>{}}){
  const LANGUAGES={es:'Español',en:'English',pt:'Português',fr:'Français',de:'Deutsch',it:'Italiano',tr:'Türkçe'};
  const preferred=(navigator.language||'es').split('-')[0];let language=Object.hasOwn(LANGUAGES,preferred)?preferred:'es',auto=true,translationAvailable=false,queue=[],requested=new Set(),translations=new Map(),originals=new Set();
  try{language=storage.getItem('cosmos.chatLanguage')||language;auto=storage.getItem('cosmos.chatTranslate')!=='off'}catch{}if(!Object.hasOwn(LANGUAGES,language))language='es';
@@ -57,14 +57,14 @@ export function mountMapChat({send,storage=localStorage,realm='normal',getToken}
    clanView=mountClanChat({container:clanPanel,clan:data.clan,pilotId:data.pilotId,getToken,realm,storage,element:clanElement});
   }catch(error){if(ticket!==clanTicket)return;clanPanel.replaceChildren(clanElement('p',error.message));const retry=clanElement('button','Reintentar');retry.onclick=openClan;clanPanel.append(retry)}
  }
- function changeChannel(value){channel=value;globalPanel.hidden=value!=='global';clanPanel.hidden=value!=='clan';globalTab.setAttribute('aria-pressed',String(value==='global'));clanTab.setAttribute('aria-pressed',String(value==='clan'));settings.hidden=true;settingsButton.hidden=value==='clan';if(value==='clan')void openClan();else{stopClan();send({type:'chatHistory'})}}
+ function changeChannel(value){channel=value;onVisibility(!box.hidden&&value==='global');globalPanel.hidden=value!=='global';clanPanel.hidden=value!=='clan';globalTab.setAttribute('aria-pressed',String(value==='global'));clanTab.setAttribute('aria-pressed',String(value==='clan'));settings.hidden=true;settingsButton.hidden=value==='clan';if(value==='clan')void openClan();else{stopClan();send({type:'chatHistory'})}}
  globalTab.onclick=()=>changeChannel('global');clanTab.onclick=()=>changeChannel('clan');
  window.addEventListener('cosmos:clans-changed',()=>{if(channel==='clan'&&!box.hidden)void openClan()});
  function schedule(){if(!auto||!translationAvailable)return;for(const m of messages){const k=m.id+':'+language;if(m.language&&m.language!==language&&!blocks.has(m.author)&&!translations.has(k)&&!requested.has(k)){queue.push({id:m.id,language});requested.add(k)}}}
  select.onchange=()=>{language=select.value;queue=[];requested.clear();try{storage.setItem('cosmos.chatLanguage',language)}catch{}schedule();render()};
  translateCheck.onchange=()=>{auto=translateCheck.checked;queue=[];requested.clear();try{storage.setItem('cosmos.chatTranslate',auto?'on':'off')}catch{}schedule();render()};
  const timer=setInterval(()=>{if(box.hidden||channel!=='global'||!auto||!translationAvailable)return;const next=queue.shift();if(next&&messages.some(m=>m.id===next.id&&!blocks.has(m.author)))send({type:'chatTranslate',...next})},1100);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
- const open=value=>{box.hidden=!value;toggle.hidden=value;toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat global y clan');toggle.title='Chat global y clan';toggle.setAttribute('aria-expanded',String(value));if(value){applyLayout();if(channel==='clan')void openClan();else send({type:'chatHistory'})}else stopClan()};toggle.onclick=()=>open(box.hidden);close.onclick=()=>open(false);
+ const open=value=>{box.hidden=!value;onVisibility(value&&channel==='global');toggle.hidden=value;toggle.type='button';toggle.id='mapChatToggle';toggle.className='cockpit-control cockpit-tertiary';toggle.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4zM8 10h.01m4 0h.01m4 0h.01"/></svg>';toggle.setAttribute('aria-label','Chat global y clan');toggle.title='Chat global y clan';toggle.setAttribute('aria-expanded',String(value));if(value){applyLayout();if(channel==='clan')void openClan();else send({type:'chatHistory'})}else stopClan()};toggle.onclick=()=>open(box.hidden);close.onclick=()=>open(false);
  // Avoid game gestures/keys while typing, without suppressing normal form controls.
  for(const type of ['pointerdown','touchstart','keydown','keyup'])root.addEventListener(type,e=>e.stopPropagation());
  accept.onchange=()=>{try{storage.setItem(key,accept.checked?'1':'0')}catch{}submit.disabled=!accept.checked;rules.hidden=accept.checked};submit.disabled=!accept.checked;rules.hidden=accept.checked;
@@ -85,6 +85,7 @@ export function mountMapChat({send,storage=localStorage,realm='normal',getToken}
   if(m.type==='chatBlocked'){m.block?blocks.add(m.target):blocks.delete(m.target);render()}
   if(m.type==='chatError')notice.textContent=m.error;
   if(m.type==='chatNotice')notice.textContent=m.text;
+  if(m.type==='chatSendFailed'&&!input.value)input.value=m.text;
   if(m.type==='chatAdminReady'){admin=true;refresh.hidden=false;password.hidden=login.hidden=true;send({type:'chatAdminList'})}
   if(m.type==='chatReports'&&admin){reports.replaceChildren();if(!m.reports.length)reports.textContent='No hay reportes pendientes.';for(const r of m.reports){const row=document.createElement('div'),text=document.createElement('p');text.textContent=r.name+' #'+r.author.slice(-6)+' · '+r.text+' · Motivo: '+r.reason+' · '+r.status;row.append(text);for(const [action,label]of [['dismiss','Descartar'],['delete','Borrar mensaje'],['muteHour','Silenciar 1 h'],['muteDay','Silenciar 24 h'],['banChat','Banear del chat'],['unmute','Quitar silencio']]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>{if(window.confirm(label+' a '+r.name+'?'))send({type:'chatModerate',reportId:r.id,action})};row.append(b)}reports.append(row)}}return true;
  }};

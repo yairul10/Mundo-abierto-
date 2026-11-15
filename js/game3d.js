@@ -1,3 +1,4 @@
+import {mountOnlineChat} from './online-chat.js?v=477';
 import {mountClanWarWatch} from './clan-wars.js?v=476';
 import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=472';
 import {createCoopFarmPilot} from './coop-farm-pilot.js?v=472';
@@ -59,7 +60,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=472';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=476';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=477';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3256,6 +3257,7 @@ const offlineClanBadges=createClanBadges({getToken:pvpAccountToken,realm:window.
 let offlineClanPilotId=window.cosmosAccountSession?.()?.playerId||null;
 const refreshOwnClan=()=>{if(!PVP_MODE&&offlineClanPilotId)void offlineClanBadges.update([offlineClanPilotId]);};
 if(!PVP_MODE){refreshOwnClan();setInterval(refreshOwnClan,30000);addEventListener('cosmos:clans-changed',event=>{offlineClanPilotId=event.detail?.pilotId||offlineClanPilotId||window.cosmosAccountSession?.()?.playerId;offlineClanBadges.invalidate();refreshOwnClan();});}
+if(!PVP_MODE)mountOnlineChat({realm:window.MUNDO_PLAY_MODE?.mode==='test'?'test':'normal'});
 const clansEntry=document.createElement('button');clansEntry.id='clansEntry';clansEntry.type='button';clansEntry.textContent='Clanes';clansEntry.hidden=PVP_MODE;$('arenaEntry').before(clansEntry);mountClans({button:clansEntry,getToken:pvpAccountToken,createClan:createPlayerClan,hasPendingCreation:()=>!!localStorage.getItem('cosmos.clanCreation.pending.'+activeProfile(localStorage)),realm:window.MUNDO_PLAY_MODE?.mode||'normal'});
 const clanWarWatch=mountClanWarWatch({getToken:pvpAccountToken,realm:window.MUNDO_PLAY_MODE?.mode||'normal',hasAccount:()=>PVP_MODE||!!window.cosmosAccountSession?.()?.playerId,notice:message=>lootToast(message),transfer:async assignment=>{
  if(!save())throw Error('No se pudo guardar tu progreso antes de la guerra. Reintentando…');

@@ -1,3 +1,4 @@
+import {globalChatRoute} from './global-chat.mjs';
 import {warRoute,warCoordinator} from '../clan-wars/route.mjs';
 import {ClanWarLobby} from '../clan-wars/lobby.mjs';
 import {clanRoute} from '../clans/route.mjs';
@@ -31,6 +32,7 @@ export default {
   if(url.pathname.startsWith('/wars/')){const r=await warRoute(request,env);return json(r.body,r.status,origin)}
   if(!(await env.API_LIMIT.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'})).success)return json({error:'rate_limit'},429,origin);
   try{
+   if(url.pathname==='/chat'&&request.method==='POST'){const result=await globalChatRoute(request,env,await readBody(request));return json(result.body,result.status,origin)}
    if(url.pathname.startsWith('/clans/')){const result=await clanRoute(request,env);return json(result.body,result.status,origin)}
    if(url.pathname==='/arena/join'&&request.method==='POST'){const body=await readBody(request);const mode=body.arena?.mode||'1v1';if(!validPvpMode(mode))return json({error:'invalid_mode'},400,origin);if(!compatiblePvpClient(body,env))return json({error:'update_required',...pvpVersionConfig(env)},426,origin);if(body.realm&&!['normal','test'].includes(body.realm))return json({error:'invalid_realm'},400,origin);if(body.realm==='test'&&!testServerEnabled(env))return json({error:'test_closed'},403,origin);const account=await verifiedPvpAccount(request,env,body.realm);if(account.error)return json({error:account.error},account.status,origin);if(account.testGuest)return json({error:'google_required'},403,origin);if(await warCoordinator(env,body.realm).reservation(account.playerId))return json({error:'war_pending'},409,origin);const result=await env.LOBBIES.getByName('pvp-directory-'+(body.realm==='test'?'test':'normal')+(mode==='1v1'?'':'-'+mode)).enterDuel({...body,coopRoom:undefined,pvpRoom:undefined,accountId:account.playerId,testGuest:false});return json(result,result.error?409:200,origin)}
    if(url.pathname==='/arena/socket'&&request.method==='GET'){const realm=url.searchParams.get('realm'),code=url.searchParams.get('room'),mode=url.searchParams.get('mode')||'1v1';if(!validPvpMode(mode))return json({error:'invalid_mode'},400,origin);if(!ROOM_CODE.test(code||''))return json({error:'invalid_room_code'},400,origin);if(realm==='test'&&!testServerEnabled(env))return json({error:'test_closed'},403,origin);return env.ROOMS.getByName(pvpRoomName(realm,code,mode)).fetch(request)}

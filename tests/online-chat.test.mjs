@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const source=readFileSync(new URL('../js/online-chat.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export function','function');
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+test('online chat stays idle until opened, polls only visible global chat and preserves failed drafts',async()=>{
+ const requests=[],events=[],timers=new Map(),listeners={},docEvents={};let settings,timerId=0,offline=false,fail=false;
+ const chat={receive:event=>events.push(event),identify:id=>events.push({id})};
+ const document={hidden:false,createElement:()=>({}),head:{append(){}},addEventListener:(k,f)=>docEvents[k]=f,removeEventListener(){}};
+ const window={addEventListener:(k,f)=>listeners[k]=f,removeEventListener(){}};
+ const create=new Function('mountMapChat','document','window','setTimeout','clearTimeout','globalThis','localStorage','pvpAccountToken','isNativePlayGames','playGamesStatus',source+';return mountOnlineChat');
+ const mount=create(options=>{settings=options;return chat},document,window,fn=>{timers.set(++timerId,fn);return timerId},id=>timers.delete(id),{navigator:{get onLine(){return !offline}}},{},()=>{throw Error('unexpected sign-in')},()=>false,async()=>({authenticated:false}));
+ mount({realm:'test',getToken:async()=> 'verified-token',fetcher:async(url,options)=>{requests.push({url,options});if(fail)throw Error('Failed to fetch');return {ok:true,json:async()=>({pilotId:'verified',events:[]})}}});
+ assert.equal(requests.length,0);assert.equal(timers.size,0);
+ settings.onVisibility(true);settings.send({type:'chatHistory'});await flush();assert.equal(requests.length,1);assert.equal(JSON.parse(requests[0].options.body).realm,'test');assert.equal(requests[0].options.headers.Authorization,'Bearer verified-token');
+ settings.onVisibility(false);assert.equal(timers.size,0);
+ fail=true;settings.send({type:'chatSend',text:'Keep me'});await flush();assert.ok(events.some(e=>e.type==='chatSendFailed'&&e.text==='Keep me'));
+ offline=true;const before=requests.length;settings.send({type:'chatHistory'});await flush();assert.equal(requests.length,before);assert.ok(events.some(e=>e.text?.startsWith('Sin conexión')));
+ settings.onVisibility(true);listeners.pagehide();assert.equal(timers.size,0);settings.send({type:'chatHistory'});await flush();assert.equal(requests.length,before);
+});
