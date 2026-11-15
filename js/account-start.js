@@ -1,4 +1,5 @@
-import {createCloudSave} from './cloud-save-client.js?v=467';
+import {cloudSafetyCopy,restoreCloudSafetyCopy} from './cloud-safety-copy.js?v=483';
+import {createCloudSave} from './cloud-save-client.js?v=483';
 import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 import {WORKING_SAVE,activeProfile,ensureProfiles,checkpointProfile,playProfile,profileKey,profileMeta,setProfileMeta,switchProfile,bindGuestProfile,guestProfile,newGuestProfile,storedProgress} from './account-storage.js?v=344';
 const CHOICE='cosmosLegacy.accountChoice.v1',FORCE='cosmosLegacy.forceAccountChoice.v2';
@@ -47,7 +48,8 @@ export async function startAccount({mode=window.MUNDO_PLAY_MODE?.mode}={}){
   if(navigator.onLine===false)throw Error('Sin Internet. El progreso se conserva en este dispositivo.');
   message.textContent='Comprobando cuenta y respaldo…';const result=await client.connect({interactive});
   if(result.status==='conflict'||result.status==='restore_required'){
-   const choice=await ask({title:'Partida de '+(result.identity?.displayName||'esta cuenta'),text:'Nube: '+summary(result.cloud)+'\nEste dispositivo: '+summary(result.local)+'\n\nElige qué partida continuar. Se respaldará la copia local antes de restaurar la nube.',options:[['cloud','Recuperar partida de la nube'],...(result.local?[['local','Conservar esta partida local']]:[]),['cancel','Volver']]});
+   const choice=await ask({title:'Partida de '+(result.identity?.displayName||'esta cuenta'),text:'Nube: '+summary(result.cloud)+'\nEste dispositivo: '+summary(result.local)+'\n\nElige qué partida continuar. Restaurar la nube reemplaza el progreso y las compras locales por los de esa copia. Se guardará un respaldo local antes de restaurarla.',options:[...(result.local?[['local','Conservar el progreso de este dispositivo']]:[]),['cloud','Restaurar la copia de la nube'],['cancel','Volver']]});
+   if(choice==='cloud'&&result.local&&(result.cloud.level<result.local.level||result.cloud.level===result.local.level&&result.cloud.xp<result.local.xp)){const confirm=await ask({title:'La nube tiene menos progreso',text:'Este dispositivo: '+summary(result.local)+'\nNube: '+summary(result.cloud)+'\nRestaurar la nube puede quitar avances y compras posteriores. Se conservará una copia local de seguridad.',options:[['local','Conservar el progreso de este dispositivo'],['cloud','Restaurar igualmente la copia de la nube'],['cancel','Volver']]});if(confirm!==choice){if(confirm==='local'){client.resolveConflict('local');remember('google');showStatus('Partida local conservada · preparando respaldo');return client;}throw Object.assign(Error('Restauración cancelada. Se conserva el progreso local.'),{cancelled:true})}}
    if(choice==='cancel')throw Object.assign(Error('Elección cancelada. Ninguna copia de nube fue modificada.'),{cancelled:true});client.resolveConflict(choice);
   }else if(result.status!=='ready')throw Error('No se pudo verificar Google Play. Puedes continuar PvE sin conexión.');
   remember('google');showStatus('Cuenta verificada · preparando respaldo automático');return client;
@@ -77,9 +79,13 @@ function mountAccountSettings(){
  const panel=document.getElementById('characterPanel'),anchor=document.getElementById('saveBtn');if(!panel||!anchor||document.getElementById('accountSettingsBtn'))return;
  const owner=activeProfile(localStorage),meta=profileMeta(localStorage,owner),status=document.createElement('p');status.id='cloudSaveStatus';status.setAttribute('role','status');status.textContent=window.COSMOS_CLOUD_STATUS||(owner.startsWith('play:')?'Cuenta: '+meta.displayName+' · respaldo pendiente':'Invitado · guardado solo en este dispositivo');panel.insertBefore(status,anchor);
  const button=document.createElement('button');button.id='accountSettingsBtn';button.type='button';button.textContent='Cuenta y guardado en la nube';button.onclick=async()=>{
-  const current=activeProfile(localStorage),label=profileMeta(localStorage,current).displayName||'Invitado';const choice=await ask({title:'Cuenta y guardado',text:'Partida activa: '+label+'\n'+status.textContent+'\nPara cambiar el perfil de Google, elígelo en los ajustes de Play Juegos y vuelve a abrir el juego.',options:[['change','Elegir cuenta o vincular a Google'],['export','Descargar respaldo local'],...(localStorage.getItem('cosmosLegacy.unassignedProgress.v2')?[['legacy','Descargar respaldo anterior a la separación']]:[]),['guest','Abrir invitado guardado'],['new','Empezar un invitado nuevo'],['cancel','Cerrar']]});
+  const current=activeProfile(localStorage),label=profileMeta(localStorage,current).displayName||'Invitado',safety=cloudSafetyCopy(localStorage,current);const choice=await ask({title:'Cuenta y guardado',text:'Partida activa: '+label+'\n'+status.textContent+'\nPara cambiar el perfil de Google, elígelo en los ajustes de Play Juegos y vuelve a abrir el juego.',options:[['change','Elegir cuenta o vincular a Google'],['export','Descargar respaldo local'],...(safety?[['recover','Recuperar copia anterior a restaurar la nube']]:[]),...(localStorage.getItem('cosmosLegacy.unassignedProgress.v2')?[['legacy','Descargar respaldo anterior a la separación']]:[]),['guest','Abrir invitado guardado'],['new','Empezar un invitado nuevo'],['cancel','Cerrar']]});
   try{
    if(choice==='change')reloadAccountChoice();
+   if(choice==='recover'){
+    const choice=await ask({title:'Recuperar copia local de seguridad',text:'Cuenta activa: '+label+'\nPartida actual: '+summary(storedProgress(localStorage,current))+'\nCopia anterior: '+summary(safety.progress)+'\nFecha: '+safety.createdAt+(safety.unassigned?'\nEste respaldo antiguo no identifica la cuenta. Confirma solo si ese progreso pertenece a la cuenta activa.':'')+'\nSe respaldará la partida actual antes de recuperar la copia. La nube no se modifica hasta sincronizar.',options:[['recover',safety.unassigned?'Es de esta cuenta · recuperar copia':'Recuperar esta copia'],['cancel','Volver']]});
+    if(choice==='recover'){window.dispatchEvent(new Event('mundo:save-before-switch'));if(activeProfile(localStorage)!==current)throw Error('Cambió la cuenta. Reinicia antes de recuperar.');window.COSMOS_PROFILE_SWITCHING=true;window.dispatchEvent(new Event('cosmos:account-changing'));try{restoreCloudSafetyCopy(localStorage,current,{allowUnassigned:safety.unassigned,expectedRaw:safety.raw});location.reload()}catch(error){window.COSMOS_PROFILE_SWITCHING=false;alert(error.message+' Reinicia para reanudar el respaldo.')}}
+   }
    if(choice==='export'||choice==='legacy'){
     window.dispatchEvent(new Event('mundo:save-before-switch'));const raw=choice==='legacy'?JSON.parse(localStorage.getItem('cosmosLegacy.unassignedProgress.v2')).raw:checkpointProfile(localStorage),url=URL.createObjectURL(new Blob([JSON.stringify({schema:2,owner:choice==='legacy'?'unassigned':current,createdAt:new Date().toISOString(),raw})],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='Cosmos-Legacy-respaldo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
    }
@@ -92,8 +98,8 @@ function mountAccountSettings(){
 }
 export async function startCloudSync(client){
  if(!client)return;
- let busy=false,blocked=false,retryAt=0,failures=0,stopped=false,lastConfirmed='',conflictNotice=false;
- const sync=async()=>{
+ let busy=false,blocked=false,retryAt=0,failures=0,stopped=false,lastConfirmed='',conflictNotice=false,task=null,saveTimer=null;
+ const runSync=async()=>{
   if(busy||blocked||stopped||Date.now()<retryAt||navigator.onLine===false)return;busy=true;
   try{
    window.dispatchEvent(new Event('mundo:save-before-switch'));checkpointProfile(localStorage,window.COSMOS_ACTIVE_PROFILE);
@@ -107,7 +113,7 @@ export async function startCloudSync(client){
    else if(result.status==='unchanged')showStatus(lastConfirmed?'Respaldo en nube confirmado · '+lastConfirmed:'Cuenta conectada · sin cambios pendientes');
    else if(result.status==='offline')showStatus('Sin conexión con Google · respaldo pendiente, partida local conservada');
    else if(result.status==='no_save')showStatus('Cuenta conectada · esperando el primer guardado local');
-   failures=0;retryAt=0;
+   failures=0;retryAt=0;return result;
   }catch(error){
    if(error.accountChanged){blocked=true;window.dispatchEvent(new Event('cosmos:account-changed'));showStatus(error.message)}
    else if(error.status===409){blocked=true;showStatus('La nube cambió desde otro dispositivo. Abre Cuenta y guardado para resolverlo.')}
@@ -115,12 +121,15 @@ export async function startCloudSync(client){
    if(blocked&&!conflictNotice){conflictNotice=true;const note=document.createElement('p');note.textContent='Respaldo pausado para proteger ambas partidas. Usa Cuenta y guardado.';document.getElementById('characterPanel')?.appendChild(note)}
   }finally{busy=false}
  };
+ const sync=()=>{if(task)return task;task=runSync().finally(()=>{task=null});return task};
+ const flush=async()=>{retryAt=0;await sync();return sync()};window.cosmosFlushProgress=flush;
  let timer=setInterval(()=>void sync(),15000);await sync();
- const stop=()=>{stopped=true;clearInterval(timer)};
+ const stop=()=>{stopped=true;clearInterval(timer);clearTimeout(saveTimer);if(window.cosmosFlushProgress===flush)delete window.cosmosFlushProgress};
+ addEventListener('cosmos:progress-saved',()=>{if(stopped)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>void flush(),350)});
  addEventListener('cosmos:clan-payment-confirmed',()=>{blocked=false;retryAt=0;conflictNotice=false;void sync()});
  addEventListener('online',()=>{retryAt=0;void sync()});addEventListener('visibilitychange',()=>{if(!document.hidden){retryAt=0;void sync()}else void sync()});
  addEventListener('pagehide',stop);addEventListener('cosmos:account-changing',stop);
- addEventListener('pageshow',event=>{if(event.persisted&&stopped){stopped=false;timer=setInterval(()=>void sync(),15000);retryAt=0;void sync()}});
+ addEventListener('pageshow',event=>{if(event.persisted&&stopped){stopped=false;window.cosmosFlushProgress=flush;timer=setInterval(()=>void sync(),15000);retryAt=0;void sync()}});
  addEventListener('storage',event=>{if(event.key==='cosmosLegacy.activeProfile.v2'){blocked=true;window.dispatchEvent(new Event('cosmos:account-changed'));showStatus('Se abrió otra cuenta en otra ventana. Reinicia para continuar.')}});
  return {sync,stop};
 }

@@ -1,5 +1,5 @@
 import {syncShield} from './shield-system.js?v=364';
-import {activeProfile,playProfile,checkpointProfile,profileMeta,setProfileMeta} from './account-storage.js?v=344';
+import {activeProfile,playProfile,checkpointProfile,profileMeta,setProfileMeta,profileKey} from './account-storage.js?v=344';
 // Cosmos Legacy cloud-save client. Does not run until configured by the Android boot path.
 // A server session is held in memory only. Do not persist OAuth codes or session tokens.
 import {playGamesStatus,playGamesSignIn,getPlayGamesServerAuthCode} from './play-games-auth.js';
@@ -50,7 +50,7 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
    if(!local){active=false;return {status:'restore_required',cloud,identity}};
    const base=manageProfiles?profileMeta(localStorage,owner).cloudBase:null;
    const different=signature(local)!==signature(cloud);
-   if(different&&base?.signature===signature(cloud)){lastSent=signature(cloud);active=true;return {status:'ready',identity,offlineChanges:true}}
+   if(different&&(base?.signature===signature(cloud)||base?.revision===revision)){lastSent=signature(cloud);active=true;return {status:'ready',identity,offlineChanges:true}}
    if(different){active=false;onConflict?.({local:progressOf(local),cloud,identity});return {status:'conflict',local:progressOf(local),cloud,identity}}
   }
   if(remote.save){lastSent=signature(remote.save.progress);confirmed(remote.save.progress)}else lastSent='';
@@ -64,7 +64,8 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
    const raw=localStorage.getItem(SAVE_KEY);
    // Preserve an exact, verified safety copy before replacing local progress.
    if(raw!==null){
-    const snapshot=JSON.stringify({schema:1,createdAt:new Date().toISOString(),raw});
+    const snapshot=JSON.stringify({schema:2,owner:manageProfiles?owner:null,playerId:identity?.playerId||null,createdAt:new Date().toISOString(),raw});
+    if(manageProfiles){const key=profileKey(owner)+'.beforeCloudRestore';localStorage.setItem(key,snapshot);if(localStorage.getItem(key)!==snapshot)throw Error('No se pudo verificar el respaldo de esta cuenta');}
     localStorage.setItem('cosmosLegacy.beforeCloudRestore.v1',snapshot);
     if(localStorage.getItem('cosmosLegacy.beforeCloudRestore.v1')!==snapshot)throw Error('No se pudo verificar el respaldo local');
    }

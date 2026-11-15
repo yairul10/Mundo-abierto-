@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createCloudSave} from '../js/cloud-save-client.js';
 import {startCloudSync} from '../js/account-start.js';
-import {WORKING_SAVE,ensureProfiles,activeProfile,playProfile,switchProfile,checkpointProfile,bindGuestProfile,profileKey} from '../js/account-storage.js';
+import {WORKING_SAVE,ensureProfiles,activeProfile,playProfile,switchProfile,checkpointProfile,bindGuestProfile,profileKey,setProfileMeta} from '../js/account-storage.js';
 class Storage{map=new Map();getItem(k){return this.map.get(k)??null}setItem(k,v){this.map.set(k,String(v))}removeItem(k){this.map.delete(k)}}
 const progress=(level=1)=>({name:'Pilot',classId:'aurora',level,xp:level*10,gold:level*100,loot:{},ownedShips:{aurora:true},shipId:'aurora',quests:{},maxHp:100,maxEnergy:100,attack:10,defense:5,speed:220});
 let native='a',offline=false,rejectPut=false,puts=0,sessions=0,remotes;
@@ -51,4 +51,20 @@ test('uncertain clan payment can recover the same debit after a cloud revision c
  setup();select('a',5000);const c=managed();await c.connect();c.resolveConflict('local');await c.prepareClanPayment();c.releaseClanPayment();
  const paid={...remotes.get('a').progress,gold:300000,clanPurchases:{operation:1}};remotes.set('a',{revision:3,progress:paid});const changed=JSON.parse(localStorage.getItem(WORKING_SAVE));changed.xp++;localStorage.setItem(WORKING_SAVE,JSON.stringify(changed));await assert.rejects(c.sync(),/revision_conflict/);
  await c.prepareClanPayment({resume:true});localStorage.setItem(WORKING_SAVE,JSON.stringify(paid));checkpointProfile(localStorage);c.finishClanPayment({revision:3,currentRevision:3});assert.equal((await c.sync()).status,'stored');assert.equal(remotes.get('a').progress.gold,300000);
+});
+
+test('unchanged authoritative cloud revision recognizes local cooperative purchases despite a legacy base signature',async()=>{
+ setup();select('a',71);const seed=managed();await seed.connect();setProfileMeta(localStorage,playProfile('a'),{cloudBase:{revision:1,signature:'old-client-schema'}});
+ const local={...progress(180),gold:1312726,upgrades:{laserSpeed:3},ownedShips:{aurora:true,titan:true}};localStorage.setItem(WORKING_SAVE,JSON.stringify(local));checkpointProfile(localStorage);
+ const client=managed(),result=await client.connect();assert.equal(result.status,'ready');assert.equal(result.offlineChanges,true);assert.equal(puts,0);await client.sync();assert.equal(remotes.get('a').progress.level,180);assert.equal(remotes.get('a').progress.gold,1312726);assert.equal(remotes.get('a').progress.upgrades.laserSpeed,3);
+});
+test('commerce checkpoints sync automatically and departure flush includes a purchase made during an in-flight upload',async()=>{
+ setup();select('a',71);const c=managed();await c.connect();const oldTimeout=globalThis.setTimeout;globalThis.setTimeout=(fn,ms,...args)=>oldTimeout(fn,ms===350?0:ms,...args);const controller=await startCloudSync(c);
+ try{
+  localStorage.setItem(WORKING_SAVE,JSON.stringify({...progress(180),upgrades:{laserSpeed:2}}));window.dispatchEvent(new Event('cosmos:progress-saved'));
+  for(let i=0;i<50&&remotes.get('a').progress.level!==180;i++)await new Promise(r=>oldTimeout(r,1));assert.equal(remotes.get('a').progress.level,180);assert.equal(puts,1);
+  const baseFetch=globalThis.fetch;let release,started=false;globalThis.fetch=async(url,o)=>{if(o.method==='PUT'&&!started){started=true;await new Promise(r=>release=r)}return baseFetch(url,o)};
+  localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(181)));const first=controller.sync();for(let i=0;i<50&&!started;i++)await new Promise(r=>oldTimeout(r,1));assert(started);
+  localStorage.setItem(WORKING_SAVE,JSON.stringify({...progress(182),upgrades:{laserSpeed:4}}));const flush=window.cosmosFlushProgress();release();await first;await flush;assert.equal(remotes.get('a').progress.level,182);assert.equal(remotes.get('a').progress.upgrades.laserSpeed,4);
+ }finally{controller.stop();globalThis.setTimeout=oldTimeout}assert.equal(window.cosmosFlushProgress,undefined);
 });

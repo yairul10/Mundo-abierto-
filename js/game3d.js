@@ -63,7 +63,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=478';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=479';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=483';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -2402,7 +2402,7 @@ function renderMission(){
  }).join(''):'<p>No quedan misiones disponibles para tu nivel.</p>';list.scrollTop=scroll;
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
-function logAction(type,text,details={}){if(PVP_MODE&&!pvpHangar)return;recordAction(player,type,text,details);if(type==='commerce')combatAudio.play(text.includes('Reparación')?'repair':'purchase');else if(type==='mission')combatAudio.play('mission')}
+function logAction(type,text,details={}){if(type==='commerce')window.dispatchEvent(new Event('cosmos:progress-saved'));if(PVP_MODE&&!pvpHangar)return;recordAction(player,type,text,details);if(type==='commerce')combatAudio.play(text.includes('Reparación')?'repair':'purchase');else if(type==='mission')combatAudio.play('mission')}
 function missionEvent(type,context={}){if(PVP_MODE&&!pvpHangar)return;
  const sector=context.sector||player.sector||'aurora';
  const awards=missionBoard.event(type,sector,player.level,{drones:ownedDrones(),missiles:upgradeLevel('missiles')});
@@ -2865,6 +2865,8 @@ function save(){if(testProgressReset.pending)return false;if(PVP_MODE){
  if(!pvpHangar){
   if(!$('shopPanel').classList.contains('hidden')&&canUseShop()){
    const latest=readOfflinePilot(localStorage),saved=serializeHangarEditor(player,latest);
+   // Purchases cannot replace earned levels/XP with an older live-room snapshot.
+   saved.level=latest.level;saved.xp=latest.xp;
    // Arena damage and shields must never overwrite the offline pilot's condition.
    for(const key of ['hp','maxHp','shield','maxShield','energy','maxEnergy'])if(Object.hasOwn(latest,key))saved[key]=latest[key];
    if(!safeStorageSet(SAVE_KEY,JSON.stringify(saved),true))return false;
@@ -3672,6 +3674,7 @@ if(PVP_MODE){
   const latest=readOfflinePilot(localStorage),source=pvpHangar?player:latest;
   const result=saveBossReceipts(localStorage,SAVE_KEY,source,receipts,p=>pvpHangar?serializeHangarEditor(p,latest):p);
   if(result.ids.length){player.quests=result.pilot.quests||{};missionBoard=createMissionBoard(missionCatalog,player.quests);renderMission();for(const m of result.missions){combatAudio.play('mission');lootToast('🏆 '+m.title+' · '+missionPrize(m))}player.gold=result.pilot.gold;player.pvpBossReceipts=result.pilot.pvpBossReceipts;player.activityJournal=result.pilot.activityJournal||[];player.xp=result.pilot.xp;if(pvpHangar)Object.assign(player,result.pilot);if(result.pilot.loot)player.loot=result.pilot.loot;if(pvpHangar){pvpHangar.saved=serializeHangarEditor(result.pilot,latest);hangarRefresh()}hud()}
+  if(result.added>0||result.addedXp>0||result.missionCores>0)window.dispatchEvent(new Event('cosmos:progress-saved'));
   return result;
  },
  remoteShots(bullets){for(const b of bullets){
