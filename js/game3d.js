@@ -14,7 +14,7 @@ import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile}
 import {createBackgroundTextures} from './background-textures.js?v=441';
 import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
-import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=440';
+import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=482';
 import {createInfernoCombat} from './inferno.js?v=441';
 import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=478';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
@@ -38,7 +38,7 @@ import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
 import {mountPvpZones,mountPvpArena} from './pvp-zones.js?v=451';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
-import {createArenaEnemyView} from './pvp-enemies.js?v=472';
+import {createArenaEnemyView} from './pvp-enemies.js?v=482';
 import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=472';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
@@ -3314,7 +3314,7 @@ function updateBoosterStatus(){
 let graphicsDetailAt=0;
 function updateGraphicsDetail(now){
  if(now<graphicsDetailAt)return;graphicsDetailAt=now+250;
- if(activeSector!=='graveyard')return;
+ if(PVP_MODE||activeSector!=='graveyard')return;
  const profile=graphics.profile,origin=graveyard.environment.position;
  const localX=playerMesh.position.x-origin.x,localY=playerMesh.position.y-origin.y,localZ=playerMesh.position.z-origin.z;
  const visible=(object,distance)=>Math.hypot(object.position.x-localX,object.position.y-localY,object.position.z-localZ)<distance;
@@ -3569,7 +3569,7 @@ if(PVP_MODE){
  for(const e of enemies)scene.remove(e.mesh);enemies.length=0;
  for(const drop of drops)scene.remove(drop.mesh);drops.length=0;
  const remotes=new Map();
- const arenaView=createArenaEnemyView({THREE,scene,camera,enemies,onDestroyed:(mesh,kind)=>{
+ const arenaView=createArenaEnemyView({THREE,scene,camera,enemies,detailOrigin:()=>playerMesh.position,detailDistance:()=>COOP_MODE?Math.max(2200,Math.min(3100,graphics.profile.detailDistance)):Infinity,onDestroyed:(mesh,kind)=>{
   const boss=['granTitanPro','colossusPro','nexo'].includes(kind);
   titanFireburst.spawn(mesh.position,boss?110:60,{hull:boss?mesh:null,count:boss?4:3});
  },onBombImpact:(point,radius)=>titanFireburst.spawn(point,radius),loader:new GLTFLoader(),onSelect:id=>pvpSession?.select(id),hidden:()=>!!pvpHangar||landing,makeMissile:createMissileMesh,targetPosition:id=>id===pvpSession?.myId?playerMesh.position:remotes.get(id)?.mesh.position,sound:(kind,point)=>combatAudio.play(kind,point)});

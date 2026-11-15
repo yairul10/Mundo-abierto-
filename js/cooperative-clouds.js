@@ -1,12 +1,12 @@
 import {effectBudget} from './effect-budget.js?v=440';
-import {createCloudLightning} from './cloud-lightning.js?v=440';
+import {createCloudLightning} from './cloud-lightning.js?v=482';
 // Camera-space cloud volume: no distant cylinder cap or camera-far-plane seam.
 export function mountCooperativeClouds(T,scene,{budget=()=>effectBudget('high')}={}){
  let seed=127;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
  // Padded slices give continuous, smoothly interpolated 3D noise with two texture reads.
  const size=64,atlasSize=528,values=new Uint8Array(size*size*size),data=new Uint8Array(atlasSize*atlasSize*4);
  for(let i=0;i<values.length;i++)values[i]=Math.floor(random()*255);
- for(let z=0;z<64;z++)for(let y=0;y<66;y++)for(let x=0;x<66;x++){const sx=(x+63)%64,sy=(y+63)%64,n=values[z*4096+sy*64+sx],offset=(((z>>3)*66+y)*atlasSize+(z%8)*66+x)*4;data.set([n,n,n,255],offset)}
+ for(let z=0;z<64;z++)for(let y=0;y<66;y++)for(let x=0;x<66;x++){const sx=(x+63)%64,sy=(y+63)%64,n=values[z*4096+sy*64+sx],offset=(((z>>3)*66+y)*atlasSize+(z%8)*66+x)*4;data[offset]=data[offset+1]=data[offset+2]=n;data[offset+3]=255}
  const noise=new T.DataTexture(data,atlasSize,atlasSize,T.RGBAFormat);noise.minFilter=noise.magFilter=T.LinearFilter;noise.needsUpdate=true;
  const uniforms={sampleCount:{value:budget().cloudSteps},lightningPower:{value:0},lightningPosition:{value:new T.Vector3()},lightningColor:{value:new T.Color(0x438aff)},lightningColor2:{value:new T.Color(0xb34dff)},noiseMap:{value:noise},time:{value:0},eye:{value:new T.Vector3()},cameraWorld:{value:new T.Matrix4()},inverseProjection:{value:new T.Matrix4()}};
  const material=new T.ShaderMaterial({uniforms,depthWrite:false,depthTest:false,
@@ -28,6 +28,22 @@ export function mountCooperativeClouds(T,scene,{budget=()=>effectBudget('high')}
   vec3 ray=normalize(mat3(cameraWorld)*(view.xyz/view.w));
   float horizon=.5+.5*ray.y;
   vec3 background=mix(vec3(.13,.18,.30),vec3(.30,.35,.47),horizon);
+  // Mobile low tiers intersect the closed cloud bank once instead of marching
+  // 14/18 steps over every pixel. Same opaque enclosure, no extra render target.
+  if(sampleCount<=18.){
+   vec2 offset=eye.xy-vec2(0.,120.);float a=max(dot(ray.xy,ray.xy),.000001);
+   float b=dot(offset,ray.xy),c=dot(offset,offset)-1900.*1900.;
+   float wall=(-b+sqrt(max(0.,b*b-a*c)))/a;
+   if(wall<=0.)wall=6500.;
+   float cap=6500.;if(abs(ray.z)>.00001){float hit=((ray.z>0.?1500.:-12800.)-eye.z)/ray.z;if(hit>0.)cap=hit;}
+   float distance=clamp(min(wall,cap),60.,6500.);vec3 p=eye+ray*distance;
+   float n=field(p),tint=.5+.5*sin(p.z*.00065+p.x*.0005);
+   vec3 shadow=mix(vec3(.21,.30,.47),vec3(.36,.27,.49),tint);
+   vec3 cloud=mix(shadow,vec3(.84,.88,.95),smoothstep(.28,.76,n)*.82);
+   cloud=mix(cloud,vec3(.34,.40,.52),smoothstep(950.,4000.,distance)*.38);
+   if(lightningPower>0.){vec3 delta=p-lightningPosition;float glow=exp(-dot(delta,delta)/490000.);cloud+=mix(lightningColor,lightningColor2,tint)*glow*lightningPower;}
+   gl_FragColor=vec4(cloud,1.);return;
+  }
   vec3 accumulated=vec3(0.);float transmission=1.;
   for(int i=0;i<28;i++){
    if(float(i)>=sampleCount)break;

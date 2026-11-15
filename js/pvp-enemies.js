@@ -1,12 +1,12 @@
 import {createInfernoCombat} from './inferno.js?v=434';
-import {createNpcEffects} from './pvp-npc-effects.js?v=466';
+import {createNpcEffects} from './pvp-npc-effects.js?v=482';
 import {createCatapultRig} from './catapult-rig.js?v=339';
 import {createHarpoonRig} from './harpoon-rig.js?v=339';
 import {createGranTitan} from './gran-titan.js?v=326';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 const MODELS={catapult:'./assets/models/catapulta_casco.glb?v=327',harpooner:'./assets/models/arponero_lanzador.glb?v=327',stalker:'./assets/models/acechador_optimizado.glb?v=327',raider:'./assets/models/sci_fi_combat_vessel.glb?v=113',sentinel:'./assets/models/raider_spacecraft.glb?v=112',destroyer:'./assets/models/futuristic_spacecraft.glb?v=105'};
-export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,onDestroyed=()=>{},onBombImpact,sound=()=>{},targetPosition=()=>null,makeMissile=null}){
+export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSelect,hidden,onDestroyed=()=>{},onBombImpact,sound=()=>{},targetPosition=()=>null,makeMissile=null,detailOrigin=()=>camera.position,detailDistance=()=>Infinity}){
  const entities=new Map(),templates=new Map(),effects=[];
  let serverNow=0,syncedAt=0;
  const infernoFx=createInfernoCombat(T,{targets:()=>[],damage:()=>{}});
@@ -54,7 +54,7 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
   npcFx.sync(r,b,now);
   const fresh=r.instance!==b.instanceId,jump=(b.lastTeleport?.seq||0)>r.teleportSeq;
   if(fresh||jump){r.mesh.position.set(...b.pos);r.instance=b.instanceId;r.attackSeq=b.lastAttack?.seq||0;r.teleportSeq=b.lastTeleport?.seq||0}
-  if(!fresh&&r.hp>0&&b.hp<=0&&b.finishReason!=='cancelled'&&!hidden())onDestroyed(r.mesh,r.kind);
+  if(!fresh&&r.hp>0&&b.hp<=0&&b.finishReason!=='cancelled'&&!hidden()&&r.mesh.position.distanceToSquared(detailOrigin())<=detailDistance()**2)onDestroyed(r.mesh,r.kind);
   r.goal.set(...b.pos);r.hp=b.hp;r.maxHp=b.maxHp;r.dead=b.hp>0?0:1;r.mesh.visible=b.hp>0;r.active=b.active;r.inferno=b.inferno||null;r.targetId=b.targetId||null;r.parentId=b.parentId||null;r.launch=b.launch||null;r.launchBaysUntil=b.launchBaysUntil??null;r.label.querySelector('span').textContent=b.name;
   r.label.querySelector('small').textContent=Math.ceil(b.hp).toLocaleString()+' / '+b.maxHp.toLocaleString()+' PV'+(['reinforcement','infernoDrone'].includes(b.kind)?'':' · '+Number(b.reward).toLocaleString()+' créditos');r.label.querySelector('i').style.width=(100*Math.max(0,b.hp)/b.maxHp)+'%';
   if(r.kind==='nexo'){r.rig.assignTargets(b.aimTargets||[]);r.rig.setCharge((b.nextAttackAt-now)/1000)}
@@ -62,7 +62,11 @@ export function createArenaEnemyView({THREE:T,scene,camera,enemies,loader,onSele
  }
  npcFx.syncTethers(players,entities,now);
  }
- function update(dt){const displayNow=serverNow+performance.now()-syncedAt;for(const r of entities.values()){
+ function update(dt){const displayNow=serverNow+performance.now()-syncedAt,origin=detailOrigin(),limit=detailDistance();for(const r of entities.values()){
+  // Keep every server entity and its health/goal. Skip only hidden presentation.
+  if(Number.isFinite(limit)&&r.goal.distanceToSquared(origin)>limit*limit){r.mesh.position.copy(r.goal);r.mesh.visible=false;r.label.hidden=true;if(r.kind==='infernoPro')infernoFx.reset(r);continue;}
+  r.mesh.visible=r.hp>0;
+
   if(r.launch){
    r.mesh.visible=r.hp>0&&displayNow>=r.launch.start;r.label.hidden=true;
    const parent=entities.get(r.parentId),bay=r.launch.bay;

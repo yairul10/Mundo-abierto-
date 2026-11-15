@@ -39,6 +39,7 @@ export function createNpcEffects(T,scene,camera,{sound,targetPosition,hidden,onB
  function update(dt,entities){clock+=dt*1000;
   for(const [id,w]of warnings){const r=entities.get(id);if(!r||r.dead||!r.patternCharge||clock>r.patternCharge.fireAt+300){fx.dispose(w.mesh);warnings.delete(id);continue}w.mesh.visible=!hidden();if(w.kind==='sniper')points(w.mesh,r.mesh.position,w.target);else fx.animateMarker(w.mesh,(clock-w.started)/1000,camera)}
   for(const r of entities.values()){
+   if(r.mesh.visible===false)continue;
    const c=r.patternCharge;if(r.kind==='granTitanPro'){const last=r.patternData?.patternEvents?.at(-1),age=last?(clock-last.time)/1000:10,open=c?Math.min(1,(clock-c.start)/1500):age<1.5?1:Math.max(0,1-(age-1.5)/1.5);r.rig?.pose(open,c?.kind||last?.projectile||'spear')}
    if(r.model==='catapult'){if(c)r.rig?.setCharge(Math.min(1,(clock-c.start)/1400));r.rig?.update(dt)}
    if(r.model==='harpooner')r.rig?.update(dt);

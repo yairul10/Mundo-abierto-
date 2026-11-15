@@ -20,17 +20,19 @@ export function createCloudLightning(T,scene,uniforms,random=Math.random,{budget
   const z=Math.max(-11500,Math.min(750,eye.z+direction*(1700+random()*1100)));
   const angle=(random()<.5?0:Math.PI)+(random()-.5)*1.05,turn=(random()<.5?-1:1)*(.7+random()*.6),radius=1480+random()*240,length=1800+random()*800,points=[];
   for(let i=0;i<23;i++){const t=i/22,a=angle+turn*(t-.5),r=radius+(random()-.5)*100;points.push(new T.Vector3(Math.cos(a)*r,120+Math.sin(a)*r,Math.max(-12400,Math.min(1150,z+(t-.5)*length+(random()-.5)*100))))}
-  path=points;uniforms.lightningPosition.value.copy(points[0]);tube(points,2.5,core);tube(points,11,glow);
+  path=points;uniforms.lightningPosition.value.copy(points[0]);if(budget().cloudSteps>18){tube(points,2.5,core);tube(points,11,glow);
   for(const start of [9,16]){const branch=[points[start].clone()];for(let i=1;i<=5;i++)branch.push(points[start].clone().add(new T.Vector3((random()-.5)*220,-i*65+(random()-.5)*90,i*120)));tube(branch,1.4,core);tube(branch,7,glow)}
   // Some discharges also run along the opposite cloud bank.
   if(random()<.4){const second=points.map((p,i)=>new T.Vector3(-p.x,p.y+Math.sin(i*.6)*110,p.z-230));tube(second,1.8,core);tube(second,8,glow)}
-  root.visible=true;
+  }
+  root.visible=budget().cloudSteps>18;
  }
  return {
   update(dt){
    dt=Math.max(0,Math.min(.1,Number(dt)||0));uniforms.lightningPower.value=0;
    if(!active){wait-=dt;if(wait<=0){const chained=chainLeft>0;if(chained)chainLeft--;strike(chained)}}
    if(!active)return;
+   root.visible=budget().cloudSteps>18;
    age+=dt;if(age>=duration){active=false;wait=chainLeft>0?.22+random()*.33:2+random()*3;clear();return}
    const reveal=Math.min(1,age/.65),tail=Math.min(1,(duration-age)/.45),envelope=Math.min(1,age/.08)*tail,pulse=.65+.35*Math.pow(Math.sin(age*9),2);
    for(const mesh of root.children){const count=mesh.geometry.index.count;mesh.geometry.setDrawRange(0,Math.floor(count*reveal/3)*3)}
