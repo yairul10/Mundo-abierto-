@@ -42,6 +42,7 @@ function advanceOneBot(s,bot,target,now,canDamage,random){
   if(now>=brain.engageAt){
    if(nearby||bot.hp<bot.profile.maxHp*.65)activateSkill(bot,'instantShield',now);
    if(distance<1000&&!skillActive(target,'instantShield',now))activateSkill(bot,'fury',now);
+   if(bot.rankedBot){if(nearby)activateSkill(bot,'interference',now);if(bot.hp<bot.profile.maxHp*.8)activateSkill(bot,'transfer',now);if(distance<1000&&activateSkill(bot,'paralyze',now))target.paralyzedUntil=now+3000;if(distance<1000&&now-(bot.last_missile||0)<2000&&activateSkill(bot,'luck',now))bot.last_missile=0;}
    if(distance<1050||nearby){if(ability(bot,now)&&['centella','vertigo'].includes(bot.profile.shipId))bot.paralyzedUntil=0}
   }
  }
@@ -60,3 +61,15 @@ function advanceOneBot(s,bot,target,now,canDamage,random){
 }
 
 
+
+const BOT_NAMES=['Nova','Eclipse','Orion','Nebula','Vega','Cometa','Lyra','Zenit','Astra','Fenix','Pulsar','Cosmo','Draco','Atlas','Helios','Artemis','Titanio','Sirius','Quasar','Andromeda','Solara','Nexus','Kronos','Aurion'];
+const BOT_SHIPS=['aurora','titan','espectro','centella','bastion','segadora','agilbasica','obsidian','azote','egida','vertigo'];
+export function createMatchBot(human,match,now,slot,random=Math.random){
+ const pick=list=>list[Math.min(list.length-1,Math.floor(random()*list.length))],ship=pick(BOT_SHIPS),source=JSON.parse(JSON.stringify(human.roster[ship]||human.roster[human.profile.shipId]||Object.values(human.roster)[0]));
+ source.shipId=ship;source.maxHp=Math.max(1,Math.round(source.maxHp*(.85+random()*.3)));source.hp=source.maxHp;source.attack=Math.max(1,Math.round(source.attack*(.8+random()*.4)));source.defense=Math.max(0,Math.round(source.defense*(.8+random()*.4)));source.speed=Math.max(50,Math.round(source.speed*(.9+random()*.2)));source.droneCount=Math.floor(random()*9);source.upgrades={laserSpeed:Math.floor(random()*6),missiles:Math.floor(random()*4)};source.boosters={};
+ const seed={...human,roster:{[ship]:source},profile:{...human.profile,shipId:ship}},bot=createPracticeBot(seed,match,now,slot);
+ bot.name=pick(BOT_NAMES)+String(Math.floor(random()*90)+10);bot.rankedBot=true;
+ const options=['instantShield','fury','interference','transfer','paralyze','luck'];bot.equippedSkills=[];
+ while(bot.equippedSkills.length<bot.skillSlots){const index=Math.floor(random()*options.length);bot.equippedSkills.push(options.splice(Math.min(index,options.length-1),1)[0])}
+ return bot;
+}

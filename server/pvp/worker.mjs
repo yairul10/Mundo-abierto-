@@ -1,3 +1,4 @@
+import {rankedRoute} from '../matchmaking/route.mjs';
 import {globalChatRoute} from './global-chat.mjs';
 import {warRoute,warCoordinator} from '../clan-wars/route.mjs';
 import {ClanWarLobby} from '../clan-wars/lobby.mjs';
@@ -30,6 +31,7 @@ export default {
   if(url.pathname==='/game-config'&&request.method==='GET')return json({testServerEnabled:testServerEnabled(env),testGuestAccess:testServerEnabled(env)&&env.TEST_GUEST_ACCESS==='true',...pvpVersionConfig(env),zones:ZONES,features:{duels:false,respawnChoice:false,rankings:false,groups:true,cooperativeRooms:true,roomCapacity:5,lives:2,pvp1v1:true,pvpPracticeBot:true,pvp2v2:true,pvp5v5:true,pvpArena20:true}},200,origin);
   if(url.pathname==='/health'&&request.method==='GET')return json({ok:true,game:'mundo-abierto',version:VERSION,stage:'cooperative-expeditions',modes:['common','private','pvp-1v1','pvp-2v2','pvp-5v5','pvp-arena20'],persistentSoloGame:false},200,origin);
   if(url.pathname.startsWith('/wars/')){const r=await warRoute(request,env);return json(r.body,r.status,origin)}
+  if(url.pathname.startsWith('/ranked/')&&request.method==='POST'){try{const result=await rankedRoute(request,env,await readBody(request));return json(result.body,result.status,origin)}catch{return json({error:'invalid_request'},400,origin)}}
   if(!(await env.API_LIMIT.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'})).success)return json({error:'rate_limit'},429,origin);
   try{
    if(url.pathname==='/chat'&&request.method==='POST'){const result=await globalChatRoute(request,env,await readBody(request));return json(result.body,result.status,origin)}

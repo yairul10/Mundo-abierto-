@@ -12,7 +12,7 @@ export const PVP_RANKS=Object.freeze([
 ]);
 export function pvpRank(stats){
  const {kills=0,position=0}=stats||{};
- if(!(Number(kills)>0)||!Number.isSafeInteger(Number(position))||Number(position)<1)return PVP_RANKS[7];
+ if(!(Number(stats?.points??kills)>0)||!Number.isSafeInteger(Number(position))||Number(position)<1)return PVP_RANKS[7];
  return PVP_RANKS.find(r=>position<=r.max);
 }
 export function rankBadge(stats){

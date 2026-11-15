@@ -1,3 +1,4 @@
+import {matchmakingCommand,hasMatchmaking,initMatchmaking,score} from '../matchmaking/lobby.mjs';
 import {awardClanWarPoints} from './points.mjs';
 import {CoopLobby} from '../pvp/coop-lobby.mjs';
 import {pvpRoomName} from '../pvp/pvp-teams.mjs';
@@ -43,7 +44,9 @@ export class ClanWarLobby extends CoopLobby{
  async warRequest(actor,admin,realm,raw){try{return await this.warCommand(actor,admin,realm,raw)}catch(error){return {error:error.code||'war_unavailable',status:error.status||503}}}
  async reservation(actor){const e=this.event();return !!e&&e.phase==='countdown'&&e.teams.some(t=>t.roster.includes(actor))}
  async warTicket(body){const e=this.event(),assignment=warAssignment(e,body.accountId);if(e?.phase!=='active'||body.eventId!==e.id||!assignment) return {error:'war_not_assigned'};const ticket=await this.env.ROOMS.getByName(pvpRoomName(e.realm,assignment.code,e.mode)).enter({...body,pvpRoom:undefined,coopRoom:undefined});return {...ticket,arena:{code:assignment.code,mode:e.mode},war:{eventId:e.id}}}
- async alarm(){let e=this.event();if(!e||!['countdown','active'].includes(e.phase))return;const now=Date.now();
+ rankedRanks(accounts){initMatchmaking(this.ctx);return Object.fromEntries(accounts.slice(0,24).map(id=>[id,score(this.ctx,id)]))}
+ rankedCommand(actor,name,realm,raw){const run=()=>matchmakingCommand(this,actor,name,realm,raw);const pending=(this.rankedWork||Promise.resolve()).then(run,run);this.rankedWork=pending.catch(()=>{});return pending}
+ async alarm(){if(hasMatchmaking(this.ctx)){try{const state=JSON.parse(this.ctx.storage.sql.exec('SELECT data FROM matchmaking_state WHERE id=1').toArray()[0]?.data||'{}');await this.rankedCommand(null,'',state.realm||'normal',{action:'tick'})}catch{await this.ctx.storage.setAlarm(Date.now()+5000)}return}let e=this.event();if(!e||!['countdown','active'].includes(e.phase))return;const now=Date.now();
   try{
    if(e.phase==='countdown'){
     if(now<e.beginsAt){await this.ctx.storage.setAlarm(e.beginsAt);return}

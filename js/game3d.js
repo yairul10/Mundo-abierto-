@@ -1,3 +1,4 @@
+import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
 import {guidePrecisionLaser} from './precision-guidance.js?v=478';
 import {mountOnlineChat} from './online-chat.js?v=477';
 import {mountClanWarWatch} from './clan-wars.js?v=476';
@@ -5,7 +6,7 @@ import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=
 import {createCoopFarmPilot} from './coop-farm-pilot.js?v=472';
 import {mountClans} from './clans-ui.js?v=476';
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=472';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=479';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -27,7 +28,7 @@ import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone}
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=440';
 import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=443';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
-import {rankedName} from './pvp-ranks.js?v=472';
+import {rankedName} from './pvp-ranks.js?v=479';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
 import {checkpointProfile,activeProfile} from './account-storage.js?v=344';
 import {ENEMY_BASELINES} from './enemy-balance.js?v=343';
@@ -61,7 +62,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=478';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=477';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=479';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3196,7 +3197,7 @@ function hud(force=true){
    if(label.title!==title)label.title=title;
   }
  }
- if(PVP_MODE)rankedName($('playerName'),player.name,player.livePvpRank,{clanTag:liveOwnClanTag});
+ if(PVP_MODE||player.livePvpRank)rankedName($('playerName'),player.name,player.livePvpRank,{clanTag:liveOwnClanTag});
  else renderClanName($('playerName'),player.name,liveOwnClanTag);
  setHudText($('classLabel'),'Nave '+(SHIP_TYPES[player.shipId]?.name||'Aurora'));
  setHudText($('level'),'Nivel '+player.level);
@@ -3274,7 +3275,12 @@ const clanWarWatch=mountClanWarWatch({getToken:pvpAccountToken,realm:window.MUND
  sessionStorage.setItem('cosmos.clanWar.return',location.href);sessionStorage.setItem('cosmos.clanWar.assignment',JSON.stringify({...assignment,action:'resume'}));pvpSession?.leaveForClanWar();
  location.href='./index.html?pvp=1&arena=1&clanWar='+encodeURIComponent(assignment.eventId)+'&v='+encodeURIComponent(window.COSMOS_GAME_BUILD);
 }});
-const arenaEntry=$('arenaEntry');arenaEntry.hidden=PVP_MODE;arenaEntry.onclick=async()=>{if(clanWarWatch.reserved){lootToast('Tu guerra comienza pronto. Espera el traslado automático.');return}if(player.hp<=0)return;try{await checkPvpVersion();const choice=await choosePvpMatch();if(!choice)return;if(!save())return;saveArenaChoice(choice);location.href='./index.html?pvp=1&arena=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}catch(error){if(error.updateRequired)showPvpUpdate();else window.alert(error.message)}};
+const rankedMatchmaking=mountRankedMatchmaking({onQueued:()=>closeCharacterPanel(),getToken:pvpAccountToken,realm:window.MUNDO_PLAY_MODE?.mode==='test'?'test':'normal',notice:message=>lootToast(message),onRank:rank=>{if(rank)player.livePvpRank=rank},transfer:async assignment=>{
+ if(!save())throw Error('No se pudo guardar tu progreso. Reintentando el traslado.');
+ saveArenaChoice({action:'resume',code:assignment.code,mode:assignment.mode});sessionStorage.setItem('cosmos.ranked.return',location.href);pvpSession?.leaveForClanWar();
+ location.href='./index.html?pvp=1&arena=1&ranked='+encodeURIComponent(assignment.id)+'&v='+encodeURIComponent(window.COSMOS_GAME_BUILD);
+}});
+const arenaEntry=$('arenaEntry');arenaEntry.hidden=ARENA_MODE;arenaEntry.onclick=async()=>{if(clanWarWatch.reserved){lootToast('Tu guerra comienza pronto. Espera el traslado automático.');return}if(player.hp<=0)return;try{await checkPvpVersion();const choice=await choosePvpMatch();if(!choice)return;if(choice.action==='party'){await rankedMatchmaking.open();return}if(choice.action==='find'){await rankedMatchmaking.queue(choice.mode);return}if(rankedMatchmaking.reserved){lootToast('Cancela la búsqueda antes de entrar a otra sala.');return}if(!save())return;saveArenaChoice(choice);location.href='./index.html?pvp=1&arena=1&v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}catch(error){if(error.updateRequired)showPvpUpdate();else window.alert(error.message)}};
 $('qaPanel').classList.toggle('hidden',!window.MUNDO_PLAY_MODE?.testEnabled&&!qaActive);
 qaTools.classList.add('hidden');
 qaSwitch.onclick=()=>{if(!save())return;window.MUNDO_PLAY_MODE.choose()};
