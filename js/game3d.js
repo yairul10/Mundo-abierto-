@@ -1,3 +1,4 @@
+import {mountHallOfFame} from './hall-of-fame.js?v=480';
 import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
 import {guidePrecisionLaser} from './precision-guidance.js?v=478';
 import {mountOnlineChat} from './online-chat.js?v=477';
@@ -3269,6 +3270,7 @@ let offlineClanPilotId=window.cosmosAccountSession?.()?.playerId||null;
 const refreshOwnClan=()=>{if(!PVP_MODE&&offlineClanPilotId)void offlineClanBadges.update([offlineClanPilotId]);};
 if(!PVP_MODE){refreshOwnClan();setInterval(refreshOwnClan,30000);addEventListener('cosmos:clans-changed',event=>{offlineClanPilotId=event.detail?.pilotId||offlineClanPilotId||window.cosmosAccountSession?.()?.playerId;offlineClanBadges.invalidate();refreshOwnClan();});}
 if(!PVP_MODE)mountOnlineChat({realm:window.MUNDO_PLAY_MODE?.mode==='test'?'test':'normal'});
+const hallEntry=document.createElement('button');hallEntry.id='hallOfFameEntry';hallEntry.type='button';hallEntry.textContent='🏆 Sala de la fama';$('arenaEntry').before(hallEntry);mountHallOfFame({button:hallEntry,getToken:pvpAccountToken,realm:window.MUNDO_PLAY_MODE?.mode==='test'?'test':'normal'});
 const clansEntry=document.createElement('button');clansEntry.id='clansEntry';clansEntry.type='button';clansEntry.textContent='Clanes';clansEntry.hidden=PVP_MODE;$('arenaEntry').before(clansEntry);mountClans({button:clansEntry,getToken:pvpAccountToken,createClan:createPlayerClan,hasPendingCreation:()=>!!localStorage.getItem('cosmos.clanCreation.pending.'+activeProfile(localStorage)),realm:window.MUNDO_PLAY_MODE?.mode||'normal'});
 const clanWarWatch=mountClanWarWatch({getToken:pvpAccountToken,realm:window.MUNDO_PLAY_MODE?.mode||'normal',hasAccount:()=>PVP_MODE||!!window.cosmosAccountSession?.()?.playerId,notice:message=>lootToast(message),transfer:async assignment=>{
  if(!save())throw Error('No se pudo guardar tu progreso antes de la guerra. Reintentando…');
