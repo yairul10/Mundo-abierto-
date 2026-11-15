@@ -1,4 +1,4 @@
-import {clanWarReturnURL} from './clan-wars.js?v=475';
+import {clanWarReturnURL} from './clan-wars.js?v=476';
 import {createClanBadges,clanPilotName} from './clan-badges.js?v=471';
 import {spectatorPilot,nextSpectatorPilot,arenaDeathMessage} from './pvp-spectator.js?v=471';
 import {arenaRequested,choosePvpMatch,readArenaChoice,saveArenaChoice,showPvpResult} from './pvp-match-ui.js?v=471';

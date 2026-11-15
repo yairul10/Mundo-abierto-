@@ -120,7 +120,7 @@ export function advancePvp(s,now){
   }
   if(present.length!==expected&&m.betweenRounds){const missing=s.players.find(p=>!p.connected||p.exiting);if(missing&&(missing.exiting||now-missing.lastSeen>=20000))finishPvp(s,now,s.players.find(p=>p.connected&&!p.exiting)?.id||null,'disconnect');else{m.paused=true;m.startsAt+=dt;for(const p of s.players)p.duelStartsAt=m.startsAt}return}
   if(present.length!==expected){m.status='waiting';for(const p of s.players)p.ready=false;s.critical=true;return}
-  m.paused=false;if(now<m.startsAt)return;m.betweenRounds=false;m.status='active';m.deadline=now+300000;s.simTime=now;s.critical=true;
+  m.paused=false;if(now<m.startsAt)return;m.betweenRounds=false;m.status='active';m.combatStartedAt||=now;m.deadline=now+300000;s.simTime=now;s.critical=true;
  }
  const expired=s.players.filter(p=>p.hp>0&&(p.exiting||!p.connected&&now-p.lastSeen>=20000));for(const p of expired)p.hp=0;recordEliminations(s,now);
  const alive=s.players.filter(p=>p.hp>0&&!p.exiting),aliveTeams=new Set(alive.map(p=>p.team));

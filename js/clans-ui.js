@@ -1,11 +1,11 @@
-import {clanWarRequest,renderClanWars} from './clan-wars.js?v=475';
+import {clanWarRequest,renderClanWars} from './clan-wars.js?v=476';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
 const roles={leader:'Líder',officer:'Oficial',member:'Miembro'};
 const admissions={open:'Ingreso libre',request:'Por solicitud',invite:'Solo invitación'};
 export function mountClans({button,getToken,createClan,hasPendingCreation=()=>false,realm='normal'}){
  let dialog=null,controller=null,epoch=0,busy=false,accountState=null;
  const element=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
- const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=475';document.head.append(style);
+ const style=element('link');style.rel='stylesheet';style.href='./css/clans.css?v=476';document.head.append(style);
  button.onclick=()=>{
   if(dialog)return;
   dialog=element('dialog');dialog.className='clan-dialog';dialog.setAttribute('aria-label','Clanes');
@@ -98,9 +98,9 @@ export function mountClans({button,getToken,createClan,hasPendingCreation=()=>fa
    const list=element('ol');for(const pilot of data.contributors)list.append(element('li',pilot.pilot+' · '+pilot.kills+' participaciones'));if(!data.contributors.length)content.append(element('p','Todavía no hay aportes.'));else content.append(list);
   })};
   rankingTab.onclick=()=>{title.textContent='Ranking semanal de clanes';load('/clans/ranking',data=>{
-   content.append(period(data),element('p','Puntos por misiones completadas. En empates se comparan las bajas únicas del clan.'));
+   content.append(period(data),element('p','Puntos por misiones y victorias de guerra (+100). Sin puntos por ausencia o empate. En empates se comparan las bajas únicas del clan.'));
    if(!data.ranking.length){content.append(element('p','Todavía no hay clanes para mostrar.'));return;}
-   const list=element('ol');for(const clan of data.ranking){const row=element('li');row.append(element('strong','['+clan.tag+'] '+clan.name),element('p',clan.points+' puntos · '+clan.kills+' bajas'));list.append(row)}content.append(list,element('p','Se muestran hasta '+data.limit+' clanes.'));
+   const list=element('ol');for(const clan of data.ranking){const row=element('li');row.append(element('strong','['+clan.tag+'] '+clan.name),element('p',clan.points+' puntos · '+clan.kills+' bajas · '+(clan.warWins||0)+' guerras ganadas'));list.append(row)}content.append(list,element('p','Se muestran hasta '+data.limit+' clanes.'));
   })};
   warsTab.onclick=async()=>{const ticket=++epoch;controller?.abort();title.textContent='Guerras de clanes';status.textContent='Cargando…';content.replaceChildren();try{const data=await clanWarRequest(getToken,realm);if(ticket!==epoch||!dialog)return;status.textContent='';renderClanWars({container:content,data,account:accountState,element,request:body=>clanWarRequest(getToken,realm,'action',body),refresh:()=>warsTab.onclick()});}catch(error){if(ticket===epoch&&dialog)status.textContent=error.message}};
   document.body.append(dialog);dialog.showModal();mine.onclick();

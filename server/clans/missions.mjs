@@ -24,9 +24,9 @@ const totalsSQL=`SELECT clan_id,COUNT(DISTINCT event_id) AS enemies,
 const scoreSQL=CLAN_MISSIONS.map(m=>`CASE WHEN COALESCE(t.${m.id},0)>=${m.goal} THEN ${m.points} ELSE 0 END`).join('+');
 export async function clanRanking(db,realm,now=Date.now()){
  const week=clanWeek(now),session=db.withSession?db.withSession('first-primary'):db;
- const result=await session.prepare(`SELECT c.id,c.name,c.tag,(${scoreSQL}) AS points,COALESCE(t.enemies,0) AS kills
- FROM clans c LEFT JOIN (${totalsSQL}) t ON t.clan_id=c.id WHERE c.realm=?
- ORDER BY points DESC,kills DESC,c.created_at,c.id LIMIT 50`).bind(realm,week,realm).all();
+ const result=await session.prepare(`SELECT c.id,c.name,c.tag,(${scoreSQL}+COALESCE(w.warPoints,0)) AS points,COALESCE(w.warPoints,0) AS warPoints,COALESCE(w.wins,0) AS warWins,COALESCE(t.enemies,0) AS kills
+ FROM clans c LEFT JOIN (${totalsSQL}) t ON t.clan_id=c.id LEFT JOIN (SELECT clan_id,SUM(points) AS warPoints,COUNT(*) AS wins FROM clan_war_points WHERE realm=? AND week=? GROUP BY clan_id) w ON w.clan_id=c.id WHERE c.realm=?
+ ORDER BY points DESC,kills DESC,c.created_at,c.id LIMIT 50`).bind(realm,week,realm,week,realm).all();
  return {week,endsAt:week+WEEK_MS,ranking:result.results.map((r,i)=>({...r,position:i+1})),limit:50};
 }
 export async function clanMissions(db,realm,actor,now=Date.now()){

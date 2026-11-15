@@ -28,6 +28,7 @@ try{
  const failed=await (await request('/fixture/drain')).json();assert.equal(failed.count,1);assert.ok(failed.alarm>Date.now());
  await mf.dispose();mf=new Miniflare(options);db=await mf.getD1Database('CLANS_DB');
  const migration=readFileSync(new URL('./migrations/0006-clan-missions.sql',import.meta.url),'utf8');await db.batch(migration.split(/;\n/).map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+ const pointsSchema=readFileSync(new URL('./migrations/0007-clan-war-points.sql',import.meta.url),'utf8');await db.batch(pointsSchema.split(/;\n/).map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
  assert.equal((await (await request('/fixture/drain')).json()).count,0);
  let missions=await request('/clans/missions');assert.equal(missions.status,200);missions=await missions.json();assert.equal(missions.missions[0].progress,1);assert.equal(missions.contributors[0].pilot,'Piloto Real');
  await request('/fixture/seed');await request('/fixture/drain');assert.equal((await (await request('/clans/missions')).json()).missions[0].progress,1);

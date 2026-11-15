@@ -105,7 +105,7 @@ export class SharedWorld extends DurableObject {
   s.pvpMatch={code:spec.code,mode:spec.mode,realm:spec.realm,visibility:'clan-war',status:'waiting',createdAt:Date.now(),bestOf:3,round:1,score:{a:0,b:0},clanWar:{eventId:spec.eventId,roster:spec.roster,joinDeadline:spec.joinDeadline,clans:spec.clans}};
   this.worldSave(s,true);await this.ctx.storage.setAlarm(Date.now()+1000);return {ok:true};
  }
- async clanWarResult(eventId,force=false){const s=this.worldLoad(),m=s.pvpMatch;if(m?.clanWar?.eventId!==eventId)return null;this.advanceRoom(s,Date.now());this.worldSave(s,true);if(force&&m.status!=='finished'){finishPvp(s,Date.now(),null,'war_time_limit');this.worldSave(s,true);this.worldBroadcast(s)}return {status:m.status,winnerTeam:m.winnerTeam||null,reason:m.reason||null,score:m.score||null}}
+ async clanWarResult(eventId,force=false){const s=this.worldLoad(),m=s.pvpMatch;if(m?.clanWar?.eventId!==eventId)return null;this.advanceRoom(s,Date.now());this.worldSave(s,true);if(force&&m.status!=='finished'){finishPvp(s,Date.now(),null,'war_time_limit');this.worldSave(s,true);this.worldBroadcast(s)}return {status:m.status,winnerTeam:m.winnerTeam||null,reason:m.reason||null,score:m.score||null,finishedAt:m.finishedAt||null,combatStartedAt:m.combatStartedAt||null}}
  async enter(body){
   if(body.testGuest===true&&(body.realm!=='test'||!testServerEnabled(this.env)||this.env.TEST_GUEST_ACCESS!=='true'))return {error:'google_required'};
   if(typeof body.accountId!=='string'||!/^[a-f0-9-]{36}$/i.test(body.accountId))return {error:'google_required'};

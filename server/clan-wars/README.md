@@ -7,7 +7,8 @@ Puede actualizar/retirar la lista mientras la inscripción permanezca abierta.
 El admin pulsa Sortear e iniciar: emparejamiento aleatorio y 5 minutos de aviso.
 Un clan impar queda sin rival y no recibe victoria. Si vuelve al próximo evento,
 se evita dejarlo otra vez como el clan impar cuando hay otros candidatos.
-No hay calendario automático, créditos, apuestas ni puntos de misiones por guerras.
+No hay calendario automático, créditos ni apuestas. Cada victoria disputada suma
+100 puntos al ranking semanal; no suma progreso a las misiones cooperativas.
 
 Autenticación: Google Play obligatorio. Autoridad admin desde CHAT_ADMIN_IDS,
 aceptando ID de cuenta o el ID de piloto derivado que ya utiliza la moderación.
@@ -55,3 +56,13 @@ Los jugadores sin esta compilación no envían presencia y se consideran ausente
 Validación: node --test tests/clan-wars*.test.mjs
 Runtime: node server/clan-wars/runtime-test.mjs (Miniflare, D1 y DO SQLite reales).
 Las rutas /fixture de ese test solo existen en su módulo temporal de pruebas.
+
+Puntos de guerra: 0007-clan-war-points.sql conserva un recibo único por entorno,
+evento y encuentro. El coordinador recibe el resultado de la arena, guarda su hora
+de finalización y entrega los puntos antes de cerrar el evento. Si D1 falla se
+reintenta; el recibo impide duplicados incluso si se interrumpe la confirmación.
+Solo victorias tras comenzar el combate, incluidos abandonos durante combate;
+sin puntos por ausencia, ambos ausentes, empate o límite global sin ganador.
+La semana se calcula con finishedAt de la arena, no con la hora del reintento.
+El ranking suma puntos de misiones y guerras y muestra las victorias de guerra.
+Los resultados ya cerrados antes de este cambio no se puntúan retroactivamente.

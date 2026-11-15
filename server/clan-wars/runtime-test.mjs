@@ -16,6 +16,7 @@ let mf=new Miniflare(options);
 const call=async(path,id=ids[0],body)=>{const r=await mf.dispatchFetch('https://test'+path,{method:body?'POST':'GET',headers:id?{Authorization:'Bearer fixture-'+id,'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,data:await r.json()}};
 try{
  let db=await mf.getD1Database('CLANS_DB');const schema=readFileSync(new URL('../clans/migrations/0001-clans.sql',import.meta.url),'utf8');await db.batch(schema.split(/;\n/).map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+ for(const file of ['0006-clan-missions.sql','0007-clan-war-points.sql']){const sql=readFileSync(new URL('../clans/migrations/'+file,import.meta.url),'utf8');await db.batch(sql.split(/;\n/).map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)))}
  for(const [id,tag]of [['one','UNO'],['two','DOS']])await db.prepare('INSERT INTO clans(realm,id,name,name_key,tag,created_at) VALUES(?,?,?,?,?,0)').bind('normal',id,'Clan '+tag,tag.toLowerCase(),tag).run();for(let i=0;i<4;i++)await db.prepare('INSERT INTO clan_members VALUES(?,?,?,?,0)').bind('normal',ids[i],i<2?'one':'two',i%2?'member':'leader').run();
  assert.equal((await call('/wars/status',null)).status,401);assert.equal((await call('/wars/action',ids[1],{action:'open',mode:'2v2'})).status,403);
  assert.equal((await call('/wars/action',ids[0],{action:'open',mode:'2v2'})).status,200);
@@ -28,8 +29,9 @@ try{
  const body={eventId,clientVersion:5,snapshotDelta:1,name:'Piloto',shipId:'aurora',roster:{aurora:{maxHp:1000,maxShield:100,attack:100,defense:0,speed:200,maxEnergy:100}}};
  assert.equal((await call('/wars/join',ids[1],body)).data.error,'war_not_assigned');for(const i of [0,2]){const ticket=await call('/wars/join',ids[i],{...body,accountId:ids[1]});assert.equal(ticket.status,200);assert.ok(ticket.data.token);assert.equal(ticket.data.arena.code,code)}
  const combat=await call('/fixture/win?code='+code);assert.equal(combat.data.status,'finished');assert.equal(combat.data.score.a,2);
- const ended=await call('/fixture/collect');assert.equal(ended.data.phase,'finished');assert.equal(ended.data.matches[0].winnerTeam,'a');
- await mf.dispose();mf=new Miniflare(options);const restored=await call('/wars/status');assert.equal(restored.data.event.id,eventId);assert.equal(restored.data.event.matches[0].score.a,2);assert.equal(restored.data.history[0].id,eventId);
+ await db.prepare('DROP TABLE clan_war_points').run();const retry=await call('/fixture/collect');assert.equal(retry.data.phase,'active');const repair=readFileSync(new URL('../clans/migrations/0007-clan-war-points.sql',import.meta.url),'utf8');await db.batch(repair.split(/;\n/).map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+ const ended=await call('/fixture/collect');assert.equal(ended.data.phase,'finished');assert.equal(ended.data.matches[0].winnerTeam,'a');await call('/fixture/collect');const ranking=await call('/clans/ranking');assert.equal(ranking.data.ranking[0].points,100);assert.equal(ranking.data.ranking[0].warWins,1);
+ await mf.dispose();mf=new Miniflare(options);const restored=await call('/wars/status');assert.equal(restored.data.event.id,eventId);assert.equal(restored.data.event.matches[0].score.a,2);assert.equal(restored.data.history[0].id,eventId);assert.equal((await call('/clans/ranking')).data.ranking[0].points,100);
  await call('/wars/action',ids[0],{action:'open',mode:'5v5'});assert.equal((await call('/wars/action',ids[0],{action:'register',roster:ids.slice(0,2)})).data.error,'war_invalid_roster');await call('/wars/action',ids[0],{action:'cancel'});
  console.log('PASS real Worker/D1/DO: verified admin and clan enrollment, manual countdown, incomplete active teams, locked war tickets, real best-of-three result and restart/history persistence.');
 }finally{await mf.dispose();rmSync(persist,{recursive:true,force:true})}

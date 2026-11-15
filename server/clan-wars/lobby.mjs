@@ -1,3 +1,4 @@
+import {awardClanWarPoints} from './points.mjs';
 import {CoopLobby} from '../pvp/coop-lobby.mjs';
 import {pvpRoomName} from '../pvp/pvp-teams.mjs';
 import {WAR_COUNTDOWN,WAR_TRAVEL,activeWarPilot,shuffledTeams,warSize,warAssignment} from './rules.mjs';
@@ -60,7 +61,8 @@ export class ClanWarLobby extends CoopLobby{
      const configured=await this.env.ROOMS.getByName(pvpRoomName(e.realm,match.code,e.mode)).configureClanWar({code:match.code,mode:e.mode,realm:e.realm,eventId:e.id,roster:match.allowed,joinDeadline:match.joinDeadline,clans:e.teams.filter(t=>[match.a,match.b].includes(t.clanId)).map(t=>({id:t.clanId,name:t.name,tag:t.tag}))});if(!configured.ok){match.code=code();this.save(e);continue}match.status='active';this.save(e);
     }
     this.save(e);
-   for(const m of e.matches.filter(m=>m.status==='active')){const result=await this.env.ROOMS.getByName(pvpRoomName(e.realm,m.code,e.mode)).clanWarResult(e.id,now>=e.endsAt);if(result?.status==='finished'){Object.assign(m,{status:'finished',winnerTeam:result.winnerTeam,reason:result.reason,score:result.score});this.save(e)}}
+   for(const m of e.matches.filter(m=>m.status==='active')){const result=await this.env.ROOMS.getByName(pvpRoomName(e.realm,m.code,e.mode)).clanWarResult(e.id,now>=e.endsAt);if(result?.status==='finished'){Object.assign(m,{status:'finished',winnerTeam:result.winnerTeam,reason:result.reason,score:result.score,combatStartedAt:result.combatStartedAt||0,finishedAt:result.finishedAt||now});this.save(e)}}
+   for(const m of e.matches.filter(m=>m.status==='finished'&&!m.pointsSettled)){await awardClanWarPoints(this.env.CLANS_DB,e,m);m.pointsSettled=true;this.save(e)}
    if(e.matches.every(m=>m.status==='finished')){e.phase='finished';e.finishedAt=now;this.save(e)}else await this.ctx.storage.setAlarm(now+5000);
   }catch{console.error(JSON.stringify({event:'clan_war_retry'}));await this.ctx.storage.setAlarm(Date.now()+5000)}
  }

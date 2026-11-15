@@ -83,7 +83,9 @@ Ranking y misiones: GET /clans/missions y GET /clans/ranking, ambos con Google P
 Semana lunes 00:00 UTC; objetivos fijos por semana: 100 bajas (100 puntos),
 10 Colosos Pro (200), 5 Titanes Pro/Nexo (300), 3 Infernos Pro (400).
 Los jefes también suman a las 100 bajas. Cada objetivo da sus puntos una sola vez.
-Ranking: top 50 por puntos, bajas únicas, antigüedad e ID; sin premios monetarios.
+Ranking: top 50 por puntos de misiones + guerras, bajas únicas, antigüedad e ID;
+sin premios monetarios. Las guerras disputadas dan 100 por victoria, una vez por
+evento/encuentro (0007-clan-war-points.sql), con la semana de finalización.
 No hay endpoint público de aportes ni botones para reclamar puntos del cliente.
 0006-clan-missions.sql recibe únicamente eventos del combate cooperativo autoritativo.
 Una baja cuenta una vez por clan; cada miembro con daño real registra participación.
