@@ -6,6 +6,7 @@ export function createCoopFarmPilot(){
  return {reset(){retreat=false;targetId=null;status='AUTO PRO'},get retreating(){return retreat},get status(){return status},tick(s,now){
   const idle={throttle:0,strafe:0,fire:false,targetId:null};
   if(s.hp<=0)return idle;
+  if(s.paralyzed){status='AUTO · En pausa por Arponero';return idle}
   const ratio=s.hp/Math.max(1,s.maxHp);if(ratio<=.3){if(!retreat)huntPoint={...s.position};retreat=true;targetId=null}
   if(retreat&&ratio>=.95){retreat=false;targetId=null}
   if(retreat&&s.safe){status=s.robot?'AUTO · Reparando en zona segura':'AUTO · Esperando reparación manual';return idle}

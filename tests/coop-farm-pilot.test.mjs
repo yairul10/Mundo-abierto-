@@ -20,3 +20,7 @@ test('no robot waits for manual repair and reset clears the retreat state withou
 test('AUTO approaches a distant Inferno instead of waiting in the cleared starting sector',()=>{
  const p=createCoopFarmPilot(),s=state();s.enemies=[{id:'coop-inferno-pro',kind:'infernoPro',hp:500000,position:{x:-400,y:120,z:-5350}}];let c=p.tick(s,1);assert.equal(c.targetId,'coop-inferno-pro');assert.equal(c.fire,false);assert.ok(c.throttle>0);s.position={x:-400,y:120,z:-4600};c=p.tick(s,2);assert.equal(c.targetId,'coop-inferno-pro');assert.equal(c.fire,true);
 });
+test('harpoon paralysis pauses commands without disabling the pilot and resumes combat or retreat afterward',()=>{
+ const p=createCoopFarmPilot(),s=state();assert.equal(p.tick(s,1).fire,true);s.paralyzed=true;let c=p.tick(s,2);assert.deepEqual([c.throttle,c.strafe,c.fire,c.targetId],[0,0,false,null]);assert.match(p.status,/pausa/);s.hp=20;c=p.tick(s,3);assert.equal(c.fire,false);s.paralyzed=false;c=p.tick(s,4);assert.equal(p.retreating,true);assert.equal(c.fire,false);assert.ok(c.throttle>0);
+ s.hp=100;c=p.tick(s,5);assert.equal(p.retreating,false);assert.equal(c.targetId,'enemy');assert.equal(c.fire,true);
+});

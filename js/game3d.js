@@ -9,7 +9,7 @@ import {guidePrecisionLaser} from './precision-guidance.js?v=478';
 import {mountOnlineChat} from './online-chat.js?v=477';
 import {mountClanWarWatch} from './clan-wars.js?v=476';
 import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=472';
-import {createCoopFarmPilot} from './coop-farm-pilot.js?v=472';
+import {createCoopFarmPilot} from './coop-farm-pilot.js?v=494';
 import {mountClans} from './clans-ui.js?v=476';
 import {missileLaunches} from './missile-launch.js?v=454';
 import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=479';
@@ -3413,7 +3413,7 @@ let pvpFarmSettings=null,pvpFarmResume=false,pvpFarmResumeOwner=null,pvpFarmRest
 let pvpFarmButton=null,pvpFarmRunning=false,pvpFarmTarget=null,pvpFarmLastStatus='',pvpFarmThreats=()=>[];const coopFarmPilot=createCoopFarmPilot();
 function canRunPvpFarm(){
  return pvpSession?.autoFarmProAllowed&&pvpSession.active&&!pvpSession.arenaMode&&['pve','base'].includes(pvpSession.zone)&&!pvpSession.inDuel
-  &&!pvpSession.paralyzed&&!docked&&!landing&&!recoveryPending&&player.hp>0
+  &&!docked&&!landing&&!recoveryPending&&player.hp>0
   &&!graphicsLost&&!document.hidden&&document.hasFocus()&&!systemMap.open&&panel.classList.contains('hidden')
   &&!document.body.matches('.journal-open,.portrait-blocked')&&!document.activeElement?.matches('input,textarea,select');
 }
@@ -3434,10 +3434,10 @@ function pvpFarmInput(dt){
  if(!ready){if(pvpFarmRunning)stopPvpFarm();return null}
  if(pvpFarmResume&&ready){pvpFarmResume=false;if(activeProfile(localStorage)===pvpFarmResumeOwner){coopFarmPilot.reset();pvpFarmRunning=true;pvpFarmButton.setAttribute('aria-pressed','true')}}
  if(!pvpFarmRunning)return null;
- if(coopAutoSettings.repeat&&pvpSession.coopStopReached(coopAutoSettings.stop)){void repeatCoopFarm();return null}
+ if(!pvpSession.paralyzed&&coopAutoSettings.repeat&&pvpSession.coopStopReached(coopAutoSettings.stop)){void repeatCoopFarm();return null}
  const candidates=enemies.filter(e=>!e.dead&&e.hp>0&&pvpSession.canFarmTarget(e.playerId));
- const command=coopFarmPilot.tick({position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,safe:pvpSession.zone==='base',robot:(pvpSession.profile?.repairRobotLevel||0)>0,canFight:pvpSession.canFight,enemies:candidates.map(e=>({id:e.playerId,position:e.mesh.position,hp:e.hp})),threats:pvpFarmThreats()},performance.now()/1000);
- pvpFarmButton.textContent=coopFarmPilot.retreating?'REPARAR':'AUTO PRO';pvpFarmButton.title=coopFarmPilot.status;if(pvpFarmLastStatus!==coopFarmPilot.status){pvpFarmLastStatus=coopFarmPilot.status;lootToast(pvpFarmLastStatus);}
+ const command=coopFarmPilot.tick({position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,safe:pvpSession.zone==='base',paralyzed:pvpSession.paralyzed,robot:(pvpSession.profile?.repairRobotLevel||0)>0,canFight:pvpSession.canFight,enemies:candidates.map(e=>({id:e.playerId,position:e.mesh.position,hp:e.hp})),threats:pvpFarmThreats()},performance.now()/1000);
+ pvpFarmButton.textContent=pvpSession.paralyzed?'EN ESPERA':coopFarmPilot.retreating?'REPARAR':'AUTO PRO';pvpFarmButton.title=coopFarmPilot.status;if(pvpFarmLastStatus!==coopFarmPilot.status){pvpFarmLastStatus=coopFarmPilot.status;lootToast(pvpFarmLastStatus);}
  pvpFarmTarget=candidates.find(e=>e.playerId===command.targetId)||null;
  if(command.yaw!==undefined){const angle=Math.atan2(Math.sin(command.yaw-yaw),Math.cos(command.yaw-yaw)),turn=Math.min(1,dt*3);yaw+=angle*turn;pitch+=(command.pitch-pitch)*turn;if(Math.abs(angle)>.7)command.throttle=0;}
  if(coopFarmPilot.retreating){fireHeld=false;lockedEnemy=null;explorerThreat=null;explorerManualTarget=null;explorerManualUntil=0;explorerThreats.clear();lockFrame.classList.add('hidden');}
