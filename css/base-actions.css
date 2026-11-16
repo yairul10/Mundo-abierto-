@@ -2,7 +2,7 @@
 #baseActions{
  position:absolute;z-index:15;left:50%;bottom:19%;transform:translateX(-50%);
  display:flex;align-items:center;justify-content:center;gap:8px;
- max-width:calc(100% - 32px);isolation:isolate;
+ width:max-content;max-width:calc(100% - 32px);isolation:isolate;
 }
 #baseActions.hidden{display:none}
 #baseActions button{
