@@ -1,6 +1,7 @@
+import {configurePcManifest} from './pc-manifest.mjs';
 import {readFileSync,writeFileSync,existsSync,mkdirSync,copyFileSync} from 'node:fs';
 const manifestPath='android/app/src/main/AndroidManifest.xml';
-let manifest=readFileSync(manifestPath,'utf8');
+let manifest=configurePcManifest(readFileSync(manifestPath,'utf8'));
 manifest=manifest.replace('<activity','<activity android:screenOrientation="sensorLandscape"');
 writeFileSync(manifestPath,manifest);
 const javaPath='android/app/src/main/java/com/cosmoslegacy/game/MainActivity.java';
@@ -22,6 +23,8 @@ public class MainActivity extends BridgeActivity {
     }
     @Override public void onCreate(Bundle state) { registerPlugin(PlayGamesPlugin.class); PlayGamesSdk.initialize(this); super.onCreate(state); getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); immersive(); }
     @Override public void onWindowFocusChanged(boolean focus) { super.onWindowFocusChanged(focus); if (focus) immersive(); }
+    @Override public void onPause() { super.onPause(); if (bridge != null) bridge.triggerWindowJSEvent("cosmos:app-paused"); }
+    @Override public void onResume() { super.onResume(); if (bridge != null) bridge.triggerWindowJSEvent("cosmos:app-resumed"); }
 }
 `);
 console.log('Android preparado en horizontal y pantalla completa');
@@ -36,6 +39,12 @@ import com.google.android.gms.games.PlayGames;
 
 @CapacitorPlugin(name = "CosmosPlayGames")
 public class PlayGamesPlugin extends Plugin {
+    @PluginMethod
+    public void platform(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("pc", getContext().getPackageManager().hasSystemFeature("com.google.android.play.feature.HPE_EXPERIENCE"));
+        call.resolve(result);
+    }
     @PluginMethod
     public void status(PluginCall call) {
         PlayGames.getGamesSignInClient(getActivity()).isAuthenticated().addOnCompleteListener(task -> {
