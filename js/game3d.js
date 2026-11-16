@@ -1,6 +1,6 @@
 import {mountBaseActions} from './base-actions.js?v=498';
 import {readCoopChoice} from './coop-room-ui.js?v=491';
-import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings,coopAutoShouldRepeat} from './coop-auto-run.js?v=499';
+import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings,coopAutoShouldRepeat,shouldUseCoopAbility} from './coop-auto-run.js?v=501';
 import {desktopMode} from './desktop-platform.js?v=487';
 import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=495';
 import {mountFloatingJoystick} from './floating-joystick.js?v=486';
@@ -69,7 +69,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=497';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=499';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=501';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=497';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3428,7 +3428,7 @@ function stopPvpFarm(){
 async function repeatCoopFarm(reason='completed'){
  if(pvpFarmRestarting||!pvpFarmRunning||!coopAutoShouldRepeat(coopAutoSettings,reason))return false;pvpFarmRestarting=true;
  if(pvpFarmButton){pvpFarmButton.textContent='GUARDANDO…';pvpFarmButton.title='Confirmando respaldo para iniciar otra privada';}
- try{const restarted=await pvpSession.restartPrivate(()=>pvpFarmRunning&&coopAutoShouldRepeat(coopAutoSettings,reason)&&!document.hidden&&document.hasFocus(),{reason});if(!restarted)stopPvpFarm();return restarted}catch(error){stopPvpFarm();lootToast('AUTO detenido · '+error.message);return false}finally{pvpFarmRestarting=false}
+ try{const restarted=await pvpSession.restartPrivate(()=>pvpFarmRunning&&coopAutoShouldRepeat(coopAutoSettings,reason)&&!document.hidden&&document.hasFocus(),{reason,roomType:coopAutoSettings.roomType,stop:coopAutoSettings.repeat?coopAutoSettings.stop:'all'});if(!restarted)stopPvpFarm();return restarted}catch(error){stopPvpFarm();lootToast('AUTO detenido · '+error.message);return false}finally{pvpFarmRestarting=false}
 }
 function pvpFarmInput(dt){
  if(!pvpFarmButton)return null;
@@ -3447,6 +3447,7 @@ function pvpFarmInput(dt){
  if(command.yaw!==undefined){const angle=Math.atan2(Math.sin(command.yaw-yaw),Math.cos(command.yaw-yaw)),turn=Math.min(1,dt*3);yaw+=angle*turn;pitch+=(command.pitch-pitch)*turn;if(Math.abs(angle)>.7)command.throttle=0;}
  if(coopFarmPilot.retreating){fireHeld=false;lockedEnemy=null;explorerThreat=null;explorerManualTarget=null;explorerManualUntil=0;explorerThreats.clear();lockFrame.classList.add('hidden');}
  else{updateTargetLock();if(command.fire&&lockedEnemy===pvpFarmTarget){fire();skill()}}
+ if(shouldUseCoopAbility({enabled:coopAutoSettings.useAbilities,canFight:pvpSession.canFight,safe:pvpSession.zone==='base',engaged:!!command.fire&&lockedEnemy===pvpFarmTarget,retreating:coopFarmPilot.retreating,paralyzed:pvpSession.paralyzed,remaining:classAbilityCd,active:classAbilityTime}))activateClassAbility();
  return command;
 }
 function loop(now){if(document.getElementById('worldLoading')){last=now;requestAnimationFrame(loop);return}const elapsed=Math.max(0,Math.min(1,(now-last)/1000)),dt=Math.min(elapsed,.04);last=now;

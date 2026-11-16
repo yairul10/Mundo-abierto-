@@ -8,7 +8,7 @@ test('AUTO offers Inferno in the cemetery, preserves existing choices and can se
  assert.equal(FARM_MAPS.graveyard.enemies.inferno,'Inferno');const config=farmConfig({map:'graveyard',selections:{graveyard:['stalker','inferno']}});assert.deepEqual(config.selections.graveyard,['stalker','inferno']);assert.deepEqual(farmConfig({selections:{graveyard:['stalker']}}).selections.graveyard,['stalker']);
 });
 test('repeat checkpoints require actual dead bosses from the authoritative room, in corridor order',()=>{
- const s={room:{status:'active'},enemies:ids.map(id=>({id,hp:100}))};assert.equal(coopStopReached(s,'colossi'),false);for(let i=0;i<3;i++)s.enemies[i].hp=0;assert.equal(coopStopReached(s,'colossi'),true);assert.equal(coopStopReached(s,'inferno'),false);s.enemies[3].hp=0;assert.equal(coopStopReached(s,'inferno'),true);assert.equal(coopStopReached(s,'titan'),false);s.enemies[4].hp=0;assert.equal(coopStopReached(s,'titan'),true);assert.equal(coopStopReached(s,'all'),false);s.room.status='completed';assert.equal(coopStopReached(s,'all'),true);s.enemies=[];assert.equal(coopStopReached(s,'colossi'),false);assert.equal(coopStopReached({},'all'),false);assert.deepEqual(coopAutoConfig({repeat:'yes',stop:'bad'}),{repeat:false,repeatOnDefeat:false,stop:'all'});
+ const s={room:{status:'active'},enemies:ids.map(id=>({id,hp:100}))};assert.equal(coopStopReached(s,'colossi'),false);for(let i=0;i<3;i++)s.enemies[i].hp=0;assert.equal(coopStopReached(s,'colossi'),true);assert.equal(coopStopReached(s,'inferno'),false);s.enemies[3].hp=0;assert.equal(coopStopReached(s,'inferno'),true);assert.equal(coopStopReached(s,'titan'),false);s.enemies[4].hp=0;assert.equal(coopStopReached(s,'titan'),true);assert.equal(coopStopReached(s,'all'),false);s.room.status='completed';assert.equal(coopStopReached(s,'all'),true);s.enemies=[];assert.equal(coopStopReached(s,'colossi'),false);assert.equal(coopStopReached({},'all'),false);assert.deepEqual(coopAutoConfig({repeat:'yes',stop:'bad'}),{repeat:false,repeatOnDefeat:false,roomType:'private',useAbilities:true,stop:'all'});
 });
 test('repeat flushes progress before leaving, requests a NEW private and consumes an account-bound one-shot resume',async()=>{
  const session=store(),events=[];let choice;const now=10000;
@@ -30,7 +30,7 @@ test('defeat repetition is an independent opt-in and survives saved settings',()
  assert.equal(coopAutoShouldRepeat({repeat:true,repeatOnDefeat:false},'completed'),true);
  assert.equal(coopAutoShouldRepeat({repeat:true,repeatOnDefeat:true},'other'),false);
  const value=coopAutoConfig(JSON.parse(JSON.stringify({repeat:false,repeatOnDefeat:true,stop:'inferno'})));
- assert.deepEqual(value,{repeat:false,repeatOnDefeat:true,stop:'inferno'});
+ assert.deepEqual(value,{repeat:false,repeatOnDefeat:true,roomType:'private',useAbilities:true,stop:'inferno'});
  assert.equal(coopAutoShouldRepeat({repeatOnDefeat:'yes'},'defeat'),false);
 });
 test('only a server-confirmed second cooperative death permits defeat repetition',()=>{
@@ -73,4 +73,20 @@ test('failed backups and manual cancellation prevent second-death restarts',asyn
   }});
   assert.equal(ok,false);assert.equal(effects,0);assert.equal(session.getItem(COOP_RESUME_KEY),null);
  }
+});
+
+test('common repetition saves the destination, avoids the previous room and resumes only once',async()=>{
+ const session=store();let choice;
+ assert.equal(await prepareCoopRepeat({session,owner:'play:p',realm:'normal',now:10000,roomType:'common',roomCode:'ABCDEF',stop:'inferno',shouldContinue:()=>true,flush:async()=>({status:'stored'}),saveChoice:value=>choice=value,leave(){},navigate(){}}),true);
+ assert.deepEqual(choice,{action:'common',excludeCode:'ABCDEF',autoStop:'inferno'});
+ assert.equal(consumeCoopResume(session,{owner:'play:p',realm:'normal',choice,now:10001}),true);
+ assert.equal(consumeCoopResume(session,{owner:'play:p',realm:'normal',choice,now:10001}),false);
+ assert.equal(await prepareCoopRepeat({session,owner:'play:p',realm:'normal',now:10000,roomType:'common',shouldContinue:()=>true,flush:async()=>({status:'stored'}),saveChoice:value=>choice=value,leave(){},navigate(){}}),true);
+ assert.equal(consumeCoopResume(session,{owner:'play:p',realm:'normal',choice:{action:'create'},now:10001}),false);
+});
+test('auto settings preserve the chosen room and optional ability use',()=>{
+ const config=coopAutoConfig({roomType:'common',useAbilities:false,repeatOnDefeat:true});
+ assert.equal(config.roomType,'common');assert.equal(config.useAbilities,false);
+ assert.deepEqual(coopAutoConfig(JSON.parse(JSON.stringify(config))),config);
+ assert.equal(coopAutoConfig({roomType:'invalid'}).roomType,'private');assert.equal(coopAutoConfig({}).useAbilities,true);
 });

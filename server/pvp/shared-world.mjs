@@ -16,6 +16,7 @@ import {testServerEnabled} from './test-config.mjs';
 import {DurableObject} from 'cloudflare:workers';
 import {WORLD,zoneOf,duelFor,finishDuel,changeFormation,equip,importRoster,reset,safe,advance,invite,reply,attack,useAbility,protectedAt,updateProtection,openHangar,applyHangarLoadout,setSkills,usePvpSkill} from './world-rules.mjs';
 import {COOP_CORRIDOR,constrainCorridor} from './zones.mjs';
+import {coopStopReached} from '../../js/coop-auto-policy.js';
 const json=(x,status=200)=>Response.json(x,{status});
 const pForProtection=(s,id)=>s.players.find(p=>p.id===id);
 const secret=()=>crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
@@ -75,6 +76,7 @@ export class SharedWorld extends DurableObject {
   if(s.recoveries?.[id]?.bill)ws.send(JSON.stringify({type:'respawnBill',bill:s.recoveries[id].bill}));
   const receipts=this.pendingRewards(id);if(receipts.length)ws.send(JSON.stringify({type:'bossRewards',receipts}));
  }
+ autoStopReached(stop){const s=this.worldLoad();return coopStopReached({room:s.room,enemies:s.arenaEnemies},stop)}
  worldSnapshot(s){if(s.pvpMatch)return pvpSnapshot(s,Date.now());const ids=s.players.filter(p=>p.connected).map(p=>p.id),stamp=ids.join(',');if(!this.rankCache||this.rankStamp!==stamp||this.rankCheckpoint!==this.lastCheckpoint){this.rankCache=pilotRanks(this.ctx,ids);this.rankStamp=stamp;this.rankCheckpoint=this.lastCheckpoint;}return {type:'world',room:s.room?{code:s.room.code,visibility:s.room.visibility,status:s.room.status,remaining:s.arenaEnemies.filter(b=>b.hp>0).length,capacity:5}:null,boss:bossSnapshot(s.boss),enemies:arenaEnemySnapshots(s),serverTime:Date.now(),rules:(s.cooperative===true||s.realm==='test')?{...WORLD,openCombat:false,cooperative:true,pvpSkills:false,skills:{},capacity:s.room?5:WORLD.capacity,corridor:COOP_CORRIDOR,radius:13500}:WORLD,players:s.players.filter(p=>p.connected).map(({id,name,profile,hp,energy,shield,pos,aim,seq,duelId,duelStartsAt,death,exiting,abilityUntil,abilityReadyAt,revision,hangar,paralyzedUntil,skillUntil,skillReadyAt,lastDamagedBy,...p})=>({pvpRank:pForProtection(s,id)?.rankedRank||this.rankCache[id],adminShipAllowed:!!p.adminShipAllowed,id,name,profile,hp,energy,shield,pos,aim,seq,duelId,abilityUntil,abilityReadyAt:abilityReadyAt||0,revision,hangar,coopDeaths:p.coopDeaths||0,coopEliminated:!!p.coopEliminated,livesRemaining:Math.max(0,2-(p.coopDeaths||0)),death:death?{id:death.id,time:death.time}:null,exiting:!!exiting,zone:zoneOf(pForProtection(s,id)),duelStartsAt:duelStartsAt||0,lastDamagedBy,protected:protectedAt(pForProtection(s,id),Date.now()),paralyzedUntil:paralyzedUntil||0,npcTether:p.npcTether?{owner:p.npcTether.owner}:null,equippedSkills:equippedSkills(p),skillUntil:skillUntil||{},skillReadyAt:skillReadyAt||{}})),duels:s.duels.map(({bullets,simTime,...d})=>d),invites:s.invites,groups:s.groups||[],groupInvites:s.groupInvites||[],events:s.events}}
  worldBroadcast(s){
   if(Date.now()-this.lastBroadcast<100)return;

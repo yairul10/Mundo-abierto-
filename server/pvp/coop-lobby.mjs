@@ -2,6 +2,7 @@ import {validPvpMode} from './pvp-teams.mjs';
 import {pvpRoomName} from './pvp-match.mjs';
 import {DurableObject} from 'cloudflare:workers';
 import {ROOM_CODE,roomName} from './expedition.mjs';
+import {COOP_STOPS} from '../../js/coop-auto-policy.js';
 const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const newCode=()=>Array.from(crypto.getRandomValues(new Uint8Array(6)),n=>alphabet[n%alphabet.length]).join('');
 export class CoopLobby extends DurableObject{
@@ -24,10 +25,12 @@ export class CoopLobby extends DurableObject{
   const realm=body.realm==='test'?'test':'normal',choice=body.coop||{},action=choice.action;
   if(!['common','create','join','resume'].includes(action))return {error:'invalid_room_choice'};
   const code=String(choice.code||'').trim().toUpperCase();if(['join','resume'].includes(action)&&!ROOM_CODE.test(code))return {error:'invalid_room_code'};
-  const attempted=new Set();
+  const attempted=new Set(action==='common'&&ROOM_CODE.test(choice.excludeCode||'')?[choice.excludeCode]:[]);
   for(let attempt=0;attempt<202;attempt++){
    const room=this.chooseRoom(action,code,attempted);if(!room)return {error:'room_not_found'};
-   const stub=this.env.ROOMS.getByName(roomName(realm,room.code)),ticket=await stub.enter({...body,coopRoom:{...room,realm}});
+   const stub=this.env.ROOMS.getByName(roomName(realm,room.code));
+   if(action==='common'&&Object.hasOwn(COOP_STOPS,choice.autoStop)&&await stub.autoStopReached(choice.autoStop)){attempted.add(room.code);continue}
+   const ticket=await stub.enter({...body,coopRoom:{...room,realm}});
    if(!ticket.error){this.ctx.storage.sql.exec('INSERT INTO coop_members(account_id,code,seen_at) VALUES(?,?,?) ON CONFLICT(account_id,code) DO UPDATE SET seen_at=excluded.seen_at',body.accountId,room.code,Date.now());return {...ticket,room:{code:room.code,visibility:room.visibility},pendingRooms:await this.pendingRooms(body.accountId,realm,room.code)}}
    if(['room_finished','room_abandoned'].includes(ticket.error))this.ctx.storage.sql.exec('UPDATE coop_rooms SET closed=1 WHERE code=?',room.code);
    if(action!=='common'||ticket.error==='already_connected')return {...ticket,pendingRooms:await this.pendingRooms(body.accountId,realm,null)};
