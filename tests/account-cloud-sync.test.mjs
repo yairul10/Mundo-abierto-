@@ -68,3 +68,18 @@ test('commerce checkpoints sync automatically and departure flush includes a pur
   localStorage.setItem(WORKING_SAVE,JSON.stringify({...progress(182),upgrades:{laserSpeed:4}}));const flush=window.cosmosFlushProgress();release();await first;await flush;assert.equal(remotes.get('a').progress.level,182);assert.equal(remotes.get('a').progress.upgrades.laserSpeed,4);
  }finally{controller.stop();globalThis.setTimeout=oldTimeout}assert.equal(window.cosmosFlushProgress,undefined);
 });
+
+test('a committed cloud upload whose reply was lost rebases safely after reload without replacing later cooperative purchases',async()=>{
+ setup();select('a',71);const c=managed();await c.connect();const fetch=globalThis.fetch;let lose=true;globalThis.fetch=async(url,o)=>{const result=await fetch(url,o);if(o?.method==='PUT'&&lose){lose=false;throw Error('reply lost during navigation')}return result};
+ localStorage.setItem(WORKING_SAVE,JSON.stringify({...progress(72),gold:261852}));await assert.rejects(c.sync(),/reply lost/);assert.equal(remotes.get('a').revision,2);
+ const newer={...progress(72),xp:800,gold:157292,upgrades:{armas:4}};localStorage.setItem(WORKING_SAVE,JSON.stringify(newer));checkpointProfile(localStorage);
+ const next=managed();const result=await next.connect();assert.equal(result.status,'ready');assert.equal(result.offlineChanges,true);assert.deepEqual(JSON.parse(localStorage.getItem(WORKING_SAVE)),newer);await next.sync();assert.equal(remotes.get('a').progress.gold,157292);assert.equal(remotes.get('a').progress.upgrades.armas,4);
+});
+test('retrying an uncertain upload preserves its previous payload proof and a real divergent remote edit still pauses writes',async()=>{
+ setup();select('a',71);const c=managed();await c.connect();const fetch=globalThis.fetch;let lose=true;globalThis.fetch=async(url,o)=>{const result=await fetch(url,o);if(o?.method==='PUT'&&lose){lose=false;throw Error('lost acknowledgement')}return result};localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(72)));await assert.rejects(c.sync());localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(73)));assert.equal((await c.sync()).recovered,true);await c.sync();assert.equal(remotes.get('a').progress.level,73);
+ localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(74)));lose=true;await assert.rejects(c.sync());const remote=remotes.get('a');remotes.set('a',{revision:remote.revision+1,progress:{...progress(80),gold:999}});localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(75)));await assert.rejects(c.sync(),e=>e.status===409);assert.equal(remotes.get('a').progress.level,80);assert.equal((await managed().connect()).status,'conflict');assert.equal(JSON.parse(localStorage.getItem(WORKING_SAVE)).level,75);
+});
+test('cloud lifecycle listeners are installed before the initial upload finishes',async()=>{
+ setup();select('a',71);const c=managed();await c.connect();localStorage.setItem(WORKING_SAVE,JSON.stringify(progress(72)));const fetch=globalThis.fetch;let release,started=false;globalThis.fetch=async(url,o)=>{if(o?.method==='PUT'){started=true;await new Promise(resolve=>release=resolve)}return fetch(url,o)};
+ const starting=startCloudSync(c);for(let i=0;i<30&&!started;i++)await new Promise(r=>setTimeout(r,1));assert.equal(started,true);assert.equal(typeof window.cosmosFlushProgress,'function');window.dispatchEvent(new Event('pagehide'));assert.equal(window.cosmosFlushProgress,undefined);release();const controller=await starting;controller.stop();
+});

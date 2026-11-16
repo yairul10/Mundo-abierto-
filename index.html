@@ -66,7 +66,7 @@ await initDesktopPlatform();
 const {mountDisplayShell}=await import('./js/display-shell.js?v=228');
 if(!mountDisplayShell()){
 try{
-  const {startAccount,startCloudSync}=await import('./js/account-start.js?v=483');
+  const {startAccount,startCloudSync}=await import('./js/account-start.js?v=492');
   const {startPlayMode,saveKey}=await import('./js/play-mode.js?v=447');
   const realm=await startPlayMode();
   document.getElementById('worldLoadingText').textContent='Preparando pantalla de inicio…';

@@ -14,7 +14,8 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
  const ordered=value=>Array.isArray(value)?value.map(ordered):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,ordered(value[key])])):value;
  const signature=progress=>JSON.stringify(ordered(progressOf(progress)));
  const guard=()=>{if(manageProfiles&&activeProfile(localStorage)!==owner){active=false;throw Object.assign(Error('La cuenta cambió. Reinicia para cargar su partida.'),{accountChanged:true})}};
- function confirmed(progress){if(manageProfiles)setProfileMeta(localStorage,owner,{cloudBase:{revision,signature:signature(progress)},cloudConfirmedAt:Date.now()})}
+ function ownPending(receipt,progress,remoteRevision){return !!receipt&&[receipt,...(Array.isArray(receipt.previous)?receipt.previous:[])].some(write=>write&&Number.isSafeInteger(write.revision)&&write.revision+1===remoteRevision&&write.signature===signature(progress))}
+ function confirmed(progress){if(manageProfiles)setProfileMeta(localStorage,owner,{cloudBase:{revision,signature:signature(progress)},cloudConfirmedAt:Date.now(),cloudPending:null})}
  const endpoint=apiUrl.replace(/\/$/,'');
  async function request(path,options={}){
   const controller=new AbortController();
@@ -48,9 +49,9 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
    validateProgress(cloud);
    pending={cloud,identity};
    if(!local){active=false;return {status:'restore_required',cloud,identity}};
-   const base=manageProfiles?profileMeta(localStorage,owner).cloudBase:null;
+   const meta=manageProfiles?profileMeta(localStorage,owner):{},base=meta.cloudBase,ownWrite=ownPending(meta.cloudPending,cloud,revision);
    const different=signature(local)!==signature(cloud);
-   if(different&&(base?.signature===signature(cloud)||base?.revision===revision)){lastSent=signature(cloud);active=true;return {status:'ready',identity,offlineChanges:true}}
+   if(different&&(base?.signature===signature(cloud)||base?.revision===revision||ownWrite)){lastSent=signature(cloud);confirmed(cloud);pending=null;active=true;return {status:'ready',identity,offlineChanges:true}}
    if(different){active=false;onConflict?.({local:progressOf(local),cloud,identity});return {status:'conflict',local:progressOf(local),cloud,identity}}
   }
   if(remote.save){lastSent=signature(remote.save.progress);confirmed(remote.save.progress)}else lastSent='';
@@ -98,10 +99,20 @@ export function createCloudSave({apiUrl,serverClientId,onConflict,onIdentity,man
    const local=localSave();if(!local)return {status:'no_save'};
    const progress=progressOf(local),serialized=signature(progress);validateProgress(progress);
    if(serialized===lastSent)return {status:'unchanged'};
+   // Persist the attempted write before sending it: a committed PUT may lose its
+   // response during navigation. Only an exact payload + next revision can be rebased.
+   if(manageProfiles){const old=profileMeta(localStorage,owner).cloudPending,previous=old?[{revision:old.revision,signature:old.signature},...(Array.isArray(old.previous)?old.previous:[])].filter(p=>p.revision===revision&&p.signature!==serialized).slice(0,3):[];setProfileMeta(localStorage,owner,{cloudPending:{revision,signature:serialized,previous}})}
    const result=await request('/v1/play-games/save',{method:'PUT',body:JSON.stringify({revision,progress})});
+   if(result.revision!==revision+1)throw Error('Confirmación de nube inválida');
    if(attempt!==generation)throw Error('Cambió la sesión durante el respaldo');
    guard();revision=result.revision;lastSent=serialized;confirmed(progress);return {status:'stored',revision};
-  }catch(e){if(e.status===409||e.status===401||e.accountChanged){active=false;onConflict?.({reason:e.message,status:e.status,accountChanged:!!e.accountChanged})}throw e}
+  }catch(e){
+   if(e.status===409&&manageProfiles&&attempt===generation){
+    try{guard();const receipt=profileMeta(localStorage,owner).cloudPending,remote=await request('/v1/play-games/save');guard();
+     if(attempt===generation&&receipt&&remote.save&&ownPending(receipt,validateProgress(remote.save.progress),remote.save.revision)){revision=remote.save.revision;lastSent=signature(remote.save.progress);confirmed(remote.save.progress);active=true;return {status:'stored',revision,recovered:true}}
+    }catch{} // A different cloud value still requires explicit conflict resolution.
+   }
+   if(e.status===409||e.status===401||e.accountChanged){active=false;onConflict?.({reason:e.message,status:e.status,accountChanged:!!e.accountChanged})}throw e}
   finally{inFlight=false}
  }
  async function sync(){if(commerce)return {status:'paused'};if(syncPromise)return {status:'paused'};syncPromise=syncOnce();try{return await syncPromise}finally{syncPromise=null}}

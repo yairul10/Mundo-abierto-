@@ -1,12 +1,12 @@
 import {cloudSafetyCopy,restoreCloudSafetyCopy} from './cloud-safety-copy.js?v=483';
-import {createCloudSave} from './cloud-save-client.js?v=483';
+import {createCloudSave} from './cloud-save-client.js?v=492';
 import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 import {WORKING_SAVE,activeProfile,ensureProfiles,checkpointProfile,playProfile,profileKey,profileMeta,setProfileMeta,switchProfile,bindGuestProfile,guestProfile,newGuestProfile,storedProgress} from './account-storage.js?v=344';
 const CHOICE='cosmosLegacy.accountChoice.v1',FORCE='cosmosLegacy.forceAccountChoice.v2';
 const API='https://cosmos-legacy-lite-test.yairul17.workers.dev',CLIENT='430904114567-2s03dmhrv4o4lfp73qal65kseu837035.apps.googleusercontent.com';
 const readChoice=()=>localStorage.getItem(CHOICE);
 function remember(choice){localStorage.setItem(CHOICE,choice);if(readChoice()!==choice)throw Error('No se pudo guardar tu elección')}
-const summary=p=>p?'Nivel '+(p.level??1)+' · '+(p.gold??0).toLocaleString('es')+' créditos':'Partida nueva';
+const summary=p=>p?'Nivel '+(p.level??1)+' · XP '+(p.xp??0).toLocaleString('es')+' · '+(p.gold??0).toLocaleString('es')+' créditos':'Partida nueva';
 function ask({title,text,options,dismissOnReady=false}){
  return new Promise(resolve=>{
   const dialog=document.createElement('dialog');dialog.className='account-dialog';
@@ -117,13 +117,13 @@ export async function startCloudSync(client){
   }catch(error){
    if(error.accountChanged){blocked=true;window.dispatchEvent(new Event('cosmos:account-changed'));showStatus(error.message)}
    else if(error.status===409){blocked=true;showStatus('La nube cambió desde otro dispositivo. Abre Cuenta y guardado para resolverlo.')}
-   else{failures++;retryAt=Date.now()+Math.min(60000,2000*2**Math.min(5,failures));showStatus('Respaldo pendiente · progreso guardado en este dispositivo'+(lastConfirmed?' · último respaldo '+lastConfirmed:''))}
+   else{failures++;retryAt=Date.now()+Math.min(60000,2000*2**Math.min(5,failures));showStatus((error.status===413?'El respaldo supera el tamaño permitido · nube pendiente':error.status===400?'La nube rechazó el formato del respaldo':error.status===503?'Servicio de guardado no disponible':'Respaldo pendiente')+' · progreso guardado en este dispositivo'+(lastConfirmed?' · último respaldo '+lastConfirmed:''))}
    if(blocked&&!conflictNotice){conflictNotice=true;const note=document.createElement('p');note.textContent='Respaldo pausado para proteger ambas partidas. Usa Cuenta y guardado.';document.getElementById('characterPanel')?.appendChild(note)}
   }finally{busy=false}
  };
  const sync=()=>{if(task)return task;task=runSync().finally(()=>{task=null});return task};
  const flush=async()=>{retryAt=0;await sync();return sync()};window.cosmosFlushProgress=flush;
- let timer=setInterval(()=>void sync(),15000);await sync();
+ let timer=setInterval(()=>void sync(),15000);
  const stop=()=>{stopped=true;clearInterval(timer);clearTimeout(saveTimer);if(window.cosmosFlushProgress===flush)delete window.cosmosFlushProgress};
  addEventListener('cosmos:progress-saved',()=>{if(stopped)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>void flush(),350)});
  addEventListener('cosmos:clan-payment-confirmed',()=>{blocked=false;retryAt=0;conflictNotice=false;void sync()});
@@ -131,6 +131,7 @@ export async function startCloudSync(client){
  addEventListener('pagehide',stop);addEventListener('cosmos:account-changing',stop);
  addEventListener('pageshow',event=>{if(event.persisted&&stopped){stopped=false;window.cosmosFlushProgress=flush;timer=setInterval(()=>void sync(),15000);retryAt=0;void sync()}});
  addEventListener('storage',event=>{if(event.key==='cosmosLegacy.activeProfile.v2'){blocked=true;window.dispatchEvent(new Event('cosmos:account-changed'));showStatus('Se abrió otra cuenta en otra ventana. Reinicia para continuar.')}});
+ await sync();
  return {sync,stop};
 }
 
