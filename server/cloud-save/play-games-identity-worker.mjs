@@ -1,6 +1,21 @@
 // Cosmos Legacy Google Play Games identity endpoint.
 // Deploy as a separate Cloudflare Worker with D1 DB, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and SESSION_SIGNING_KEY bindings.
 // Do not deploy over the existing guest backup Worker without routing review.
+// Cooperative reward receipt IDs are part of the save and must not be truncated.
+export const MAX_SAVE_BYTES=1024*1024;
+async function readSaveBody(request){
+ const reader=request.body?.getReader();if(!reader)return '';
+ const chunks=[];let size=0;
+ try{
+  for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
+   if(size>MAX_SAVE_BYTES){await reader.cancel();throw Object.assign(Error('too_large'),{status:413})}
+   chunks.push(value);
+  }
+ }finally{reader.releaseLock()}
+ const bytes=new Uint8Array(size);let offset=0;
+ for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+ return new TextDecoder().decode(bytes);
+}
 const headers={'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
 const origins=new Set(['https://yairul10.github.io','https://localhost','capacitor://localhost']);
 const encoder=new TextEncoder();
@@ -18,7 +33,8 @@ export default {
   const pathname=new URL(request.url).pathname;
   if(!['/v1/play-games/session','/v1/play-games/save','/v1/play-games/me'].includes(pathname))return reply({error:'not_found'},404,origin);
   if(!env.DB||!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.SESSION_SIGNING_KEY)return reply({error:'not_configured'},503,origin);
-  if(Number(request.headers.get('content-length')||0)>65536)return reply({error:'too_large'},413,origin);
+  const bodyLimit=pathname==='/v1/play-games/save'&&request.method==='PUT'?MAX_SAVE_BYTES:65536;
+  if(Number(request.headers.get('content-length')||0)>bodyLimit)return reply({error:'too_large'},413,origin);
   if(pathname==='/v1/play-games/me'){
    if(request.method!=='GET')return reply({error:'method_not_allowed'},405,origin);
    const playerId=await sessionPlayer(request,env);
@@ -33,7 +49,7 @@ export default {
      const saved=await env.DB.prepare('SELECT payload,revision,updated_at FROM player_saves WHERE player_id=?').bind(playerId).first();
      return reply({save:saved?{progress:JSON.parse(saved.payload),revision:saved.revision,updatedAt:saved.updated_at}:null},200,origin);
     }
-    const raw=await request.text();if(encoder.encode(raw).length>65536)return reply({error:'too_large'},413,origin);
+    const raw=await readSaveBody(request);
     const input=JSON.parse(raw);
     if(!Number.isSafeInteger(input.revision)||input.revision<0||!input.progress||typeof input.progress!=='object'||Array.isArray(input.progress))return reply({error:'invalid_save'},400,origin);
     const payload=JSON.stringify(input.progress);
@@ -42,7 +58,7 @@ export default {
     const result=await env.DB.prepare('INSERT INTO player_saves(player_id,save_version,revision,payload,updated_at) VALUES(?,1,1,?,CURRENT_TIMESTAMP) ON CONFLICT(player_id) DO UPDATE SET revision=revision+1,payload=excluded.payload,updated_at=CURRENT_TIMESTAMP WHERE revision=?').bind(playerId,payload,input.revision).run();
     if(result.meta?.changes!==1)return reply({error:'revision_conflict'},409,origin);
     return reply({stored:true,revision:input.revision+1},200,origin);
-   }catch{return reply({error:'save_failed'},503,origin)}
+   }catch(error){return error.status===413?reply({error:'too_large'},413,origin):reply({error:'save_failed'},503,origin)}
   }
   if(request.method!=='POST')return reply({error:'method_not_allowed'},405,origin);
   let input;try{const raw=await request.text();if(raw.length>8192)throw Error('too_large');input=JSON.parse(raw)}catch{return reply({error:'invalid_json'},400,origin)}
