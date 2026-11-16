@@ -1,0 +1,31 @@
+/* Compact text-only actions replace the large landing badge. */
+#baseActions{
+ position:absolute;z-index:15;left:50%;bottom:19%;transform:translateX(-50%);
+ display:flex;align-items:center;justify-content:center;gap:8px;
+ max-width:calc(100% - 32px);isolation:isolate;
+}
+#baseActions.hidden{display:none}
+#baseActions button{
+ position:static;inset:auto;transform:none;translate:none;flex:0 1 auto;
+ display:flex;align-items:center;justify-content:center;gap:0;
+ min-width:64px;min-height:40px;max-width:none;margin:0;padding:8px 12px;
+ border:1px solid #c5a368;border-radius:7px;clip-path:none;
+ background:#101a28ed;color:#fff0cd;font:600 13px/1.2 system-ui,sans-serif;
+ text-align:center;text-shadow:none;box-shadow:0 2px 6px #0005;
+ white-space:nowrap;cursor:pointer;touch-action:manipulation;
+}
+#baseActions button::before,#baseActions button::after{content:none;display:none}
+#baseActions button[hidden],#baseActions button.hidden{display:none}
+#baseActions button:disabled{opacity:.55;cursor:default}
+#baseActions button:active:not(:disabled){background:#302b22}
+#baseActions button:focus-visible{outline:2px solid #ffe2a1;outline-offset:3px}
+body:is(.docked,.inventory-open,.journal-open,.system-map-open) #baseActions{display:none}
+body.landing #baseActions{bottom:15%}
+@media(orientation:landscape) and (max-height:500px){
+ #baseActions{bottom:12%;gap:6px}
+ #baseActions button{min-height:38px;padding:7px 10px;font-size:12px}
+}
+@media(max-width:480px){
+ #baseActions{max-width:calc(100% - 24px);gap:5px}
+ #baseActions button{padding:7px 8px;font-size:12px}
+}

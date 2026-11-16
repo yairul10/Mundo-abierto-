@@ -1,3 +1,4 @@
+import {mountBaseActions} from './base-actions.js?v=498';
 import {readCoopChoice} from './coop-room-ui.js?v=491';
 import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings} from './coop-auto-run.js?v=493';
 import {desktopMode} from './desktop-platform.js?v=487';
@@ -2673,6 +2674,10 @@ function drawRadar(dt){
 }
 // Paso 14: atraque asistido y hangar sin cambiar de escena ni perder progreso.
 const dockBtn=$('dockBtn'),hangar=$('hangarPanel'),hangarStats=$('hangarStats');
+const baseActions=mountBaseActions({root:$('baseActions'),dock:dockBtn,pvp:$('basePvpBtn'),hall:$('baseHallBtn'),
+ onPvp:()=>{resetDockControls();fireHeld=false;$('arenaEntry').click()},
+ onHall:()=>{resetDockControls();fireHeld=false;$('hallOfFameEntry').click()}
+});
 let docked=false,landing=false,landingTime=0,landingStart=null,landingYaw=0,landingPitch=0,landingArmed=true;
 const LANDING_TRIGGER=new THREE.Vector3(540,0,-650);
 const LANDING_RADIUS=780; // Alcance de atraque desde el centro de la estación
@@ -2793,15 +2798,14 @@ $('repairBtn').onclick=()=>{
  player.gold-=cost;logAction('commerce','Reparación de casco · −'+cost.toLocaleString('es')+' créditos');player.hp=player.maxHp;hangarRefresh();save();hud();
 };
 function updateDock(){
- if(docked){dockBtn.classList.add('hidden');return}
- if(landing){dockBtn.classList.remove('hidden');return}
+ if(docked||ARENA_MODE||player.hp<=0){baseActions.update();return}
+ if(landing){baseActions.update({landing:true});return}
  const base=currentStation(),distance=Math.hypot(playerMesh.position.x-base.position.x,playerMesh.position.z-base.position.z);
  if(distance>LANDING_RADIUS+110)landingArmed=true;
- const visible=inLandingZone()&&panel.classList.contains('hidden')&&!(PVP_MODE&&pvpHangar);
+ const visible=inLandingZone()&&panel.classList.contains('hidden')&&$('shopPanel').classList.contains('hidden')&&!(PVP_MODE&&pvpHangar)&&!document.body.matches('.inventory-open,.journal-open,.system-map-open')&&!document.querySelector('dialog[open],#pvpControlEditor:not([hidden])');
  const available=visible&&selectLandingPlatform()&&(!PVP_MODE||pvpSession?.canDock);
- dockBtn.classList.toggle('hidden',!visible);
- dockBtn.disabled=!available;
- if(visible)dockBtn.textContent='Aterrizar en '+(PVP_MODE?'Base cooperativa':currentStationName());
+ baseActions.update({visible,canLand:!!available});
+ if(visible){dockBtn.textContent='Aterrizar';dockBtn.setAttribute('aria-label','Aterrizar en '+(PVP_MODE?'Base cooperativa':currentStationName()));}
 }
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{if(desktopMode())return;if(document.body.classList.contains('system-map-open')||e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
