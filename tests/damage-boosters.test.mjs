@@ -42,6 +42,7 @@ player.connected=true;player.hp=0;stepCombat(state,25000);assert.equal(player.pr
 player.profile.boosters={damage2:0,damage3:300};
 assert.equal(volley(state,player,{weapon:'laser',shots:[shot]},26000)[0].damage,450);
 const oldTime=player.profile.boosters.damage3;
+player.boosterPurchases={...roster.profiles.aurora.boosterPurchases};
 player.roster=importRoster(roster.profiles);assert(equip(player,'aurora'));
 assert.equal(player.profile.boosters.damage3,oldTime,'refreshing progress cannot restart an in-flight timer');
 console.log('Damage boosters: prices, five minutes, queue, persistence, ship/drone damage, missiles and server pauses passed.');
