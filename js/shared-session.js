@@ -1,4 +1,5 @@
-import {coopStopReached,prepareCoopRepeat} from './coop-auto-run.js?v=491';
+import {confirmCloudBeforeLeave,showPendingCloudExit} from './cloud-leave-guard.js?v=493';
+import {coopStopReached,prepareCoopRepeat} from './coop-auto-run.js?v=493';
 import {activeProfile} from './account-storage.js?v=344';
 import {clanWarReturnURL} from './clan-wars.js?v=476';
 import {createClanBadges,clanPilotName} from './clan-badges.js?v=471';
@@ -32,7 +33,7 @@ export function startSharedSession(bridge){
  const realm=window.MUNDO_PLAY_MODE?.mode==='test'?'test':'normal';let loadout=pvpRoster(readOfflinePilot(localStorage));
  let lastPracticePause=null;
  let roomChoice=WAR_ID?JSON.parse(sessionStorage.getItem('cosmos.clanWar.assignment')||'null')||{mode:'2v2',action:'resume'}:ARENA_MODE?readArenaChoice():readCoopChoice(),roomEnding=false,rewardSaveFailed=false;
- let transferConfirmed=false,localDeathId='',identity=null,ws=null,state=null,me=null,seq=0,pending=[],lastSend=0,lastPing=0,lastReceived=performance.now(),retryAt=0,attempts=0,busy=false,closed=false,selected='',clockOffset=0,lastRevision=-1,portalTime=0,lastFrame=performance.now(),firstState=true,hangarRequested=false,hangarRequestAt=0,lastLuck=0,pingMs=null,messageUntil=0;
+ let transferConfirmed=false,localDeathId='',identity=null,ws=null,state=null,me=null,seq=0,pending=[],lastSend=0,lastPing=0,lastReceived=performance.now(),retryAt=0,attempts=0,busy=false,closed=false,leaving=false,selected='',clockOffset=0,lastRevision=-1,portalTime=0,lastFrame=performance.now(),firstState=true,hangarRequested=false,hangarRequestAt=0,lastLuck=0,pingMs=null,messageUntil=0;
  const clanBadges=createClanBadges({getToken:pvpAccountToken,realm,onChange:()=>bridge.clanBadges?.(clanBadges)});addEventListener('cosmos:clans-changed',()=>clanBadges.invalidate());
  const seenEvents=new Set(),$=id=>document.getElementById(id);
  if(ARENA_MODE){const arenaStyle=document.createElement('link');arenaStyle.rel='stylesheet';arenaStyle.href='./css/pvp-match.css?v=473';document.head.append(arenaStyle)}
@@ -68,7 +69,18 @@ export function startSharedSession(bridge){
  const canTarget=id=>{if(!canFight())return false;const npc=state?.enemies?.find(e=>e.id===id);if(npc)return !npc.launch&&!me.duelId&&npc.hp>0&&npc.zone===me.zone;const other=state?.players.find(p=>p.id===id&&p.id!==me.id);if(state?.rules?.cooperative)return false;if(!other||other.hp<=0||other.death||other.hangar||other.protected||state.match&&me.team&&other.team===me.team)return false;return me.duelId?other.duelId===me.duelId&&Date.now()+clockOffset>=me.duelStartsAt:!other.duelId&&me.zone==='hostile'&&other.zone==='hostile'};
  const targetId=()=>selected||bridge.targetId?.()||null;
  const skillUI=mountPvpSkills({tools,isPreparing:()=>ARENA_MODE&&state?.match?.status==='waiting',equipmentHost:ARENA_MODE?tools:null,getState:()=>({state,me,now:Date.now()+clockOffset}),canUse:canFight,send:m=>send({...m,targetId:targetId()}),isHangarOpen:bridge.isHangarOpen,storage:localStorage,key:'mundoAbierto.pvpSkills.'+realm});
- async function exit(){if(closed)return;saveChoice(null);try{bridge.cancelPvpTransfer?.()}catch(error){note(error.message);return}closed=true;send({type:'leave'});ws?.close();if(typeof window.cosmosFlushProgress==='function'){let timer;try{await Promise.race([Promise.resolve().then(()=>window.cosmosFlushProgress()).catch(()=>{}),new Promise(resolve=>{timer=setTimeout(resolve,2500)})])}finally{clearTimeout(timer)}}if(RANKED_ID){location.href='./index.html?v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}else if(WAR_ID){sessionStorage.setItem('cosmos.clanWar.done.'+WAR_ID,'1');const back=sessionStorage.getItem('cosmos.clanWar.return');sessionStorage.removeItem('cosmos.clanWar.assignment');location.href=clanWarReturnURL(back,location.href)}else location.href='./index.html?v='+encodeURIComponent(window.COSMOS_GAME_BUILD)}
+ async function exit(){
+  if(closed||leaving)return;leaving=true;
+  try{
+   bridge.cancelPvpTransfer?.();bridge.clearFight();note('Confirmando respaldo antes de salir…');
+   if(!await confirmCloudBeforeLeave(window.cosmosFlushProgress,showPendingCloudExit))return;
+   if(closed)return;saveChoice(null);closed=true;send({type:'leave'});ws?.close();
+   if(RANKED_ID)location.href='./index.html?v='+encodeURIComponent(window.COSMOS_GAME_BUILD);
+   else if(WAR_ID){sessionStorage.setItem('cosmos.clanWar.done.'+WAR_ID,'1');const back=sessionStorage.getItem('cosmos.clanWar.return');sessionStorage.removeItem('cosmos.clanWar.assignment');location.href=clanWarReturnURL(back,location.href)}
+   else location.href='./index.html?v='+encodeURIComponent(window.COSMOS_GAME_BUILD);
+  }catch(error){note(error.message)}finally{leaving=false}
+ }
+
  function clearSelection(){selected='';targetCard.hidden=true}
  $('worldHangar').onclick=()=>bridge.requestLanding();$('worldExit').onclick=exit;$('worldRetry').onclick=async()=>{roomChoice=await chooseRoom();if(!roomChoice)return;saveChoice(roomChoice);attempts=0;retryAt=0;connect()};$('worldTargetClose').onclick=clearSelection;
  $('worldSaveName').onclick=()=>{const name=$('worldName').value.trim()||'Invitado';try{localStorage.setItem(NAME_KEY,name);if(identity)identity.name=name}catch{}send({type:'name',name})};

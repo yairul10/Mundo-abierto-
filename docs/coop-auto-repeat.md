@@ -15,7 +15,8 @@
   para el resto del grupo; no se reinicia al entrar/salir un jugador. Crear una
   privada solicita una instancia nueva. Al finalizar una común, el emparejamiento
   puede crear otra común si no queda una abierta disponible.
-- Antes de repetir se intenta sincronizar el progreso (espera máxima de 2,5 s).
+- Antes de repetir se espera la confirmación del respaldo. Si falla o queda
+  pausado, se detiene la repetición y se conserva la sala actual.
   Los premios siguen usando recibos locales/servidor y su recuperación pendiente
   al entrar en otra sala. Un fallo conocido del guardado de premios bloquea la
   repetición. No se borran ni fusionan partidas de nube.

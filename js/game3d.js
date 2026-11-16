@@ -1,5 +1,5 @@
 import {readCoopChoice} from './coop-room-ui.js?v=491';
-import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings} from './coop-auto-run.js?v=491';
+import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings} from './coop-auto-run.js?v=493';
 import {desktopMode} from './desktop-platform.js?v=487';
 import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=488';
 import {mountFloatingJoystick} from './floating-joystick.js?v=486';
@@ -68,7 +68,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=478';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=491';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=493';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';

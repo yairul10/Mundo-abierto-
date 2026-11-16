@@ -12,7 +12,7 @@ test('repeat checkpoints require actual dead bosses from the authoritative room,
 });
 test('repeat flushes progress before leaving, requests a NEW private and consumes an account-bound one-shot resume',async()=>{
  const session=store(),events=[];let choice;const now=10000;
- const ok=await prepareCoopRepeat({session,owner:'play:p',realm:'normal',now,shouldContinue:()=>true,flush:async()=>events.push('flush'),saveChoice:value=>{choice=value;events.push('choice')},leave:()=>events.push('leave'),navigate:()=>events.push('navigate')});assert.equal(ok,true);assert.deepEqual(events,['flush','choice','leave','navigate']);assert.deepEqual(choice,{action:'create'});assert.equal(consumeCoopResume(session,{owner:'play:p',realm:'normal',choice,now:10001}),true);assert.equal(consumeCoopResume(session,{owner:'play:p',realm:'normal',choice,now:10001}),false);
+ const ok=await prepareCoopRepeat({session,owner:'play:p',realm:'normal',now,shouldContinue:()=>true,flush:async()=>{events.push('flush');return {status:'stored'}},saveChoice:value=>{choice=value;events.push('choice')},leave:()=>events.push('leave'),navigate:()=>events.push('navigate')});assert.equal(ok,true);assert.deepEqual(events,['flush','choice','leave','navigate']);assert.deepEqual(choice,{action:'create'});assert.equal(consumeCoopResume(session,{owner:'play:p',realm:'normal',choice,now:10001}),true);assert.equal(consumeCoopResume(session,{owner:'play:p',realm:'normal',choice,now:10001}),false);
 });
 test('manual control, account changes, common rooms, expiration and storage failures never trigger a restart',async()=>{
  const session=store();let allowed=true,left=0;const base={session,owner:'play:p',realm:'normal',now:10000,shouldContinue:()=>allowed,saveChoice(){},leave(){left++},navigate(){}};

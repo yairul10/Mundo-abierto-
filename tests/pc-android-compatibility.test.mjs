@@ -18,6 +18,6 @@ test('Android preparation generates runtime PC detection and lifecycle hooks wit
  const env={...process.env};delete env.CI;delete env.MUNDO_KEYSTORE;
  execFileSync(process.execPath,[fileURLToPath(new URL('../mobile/test-app/prepare-android.mjs',import.meta.url))],{cwd:root,env,stdio:'pipe'});
  const java=readFileSync(join(base,'src/main/java/com/cosmoslegacy/game/PlayGamesPlugin.java'),'utf8');assert.ok(java.includes('com.google.android.play.feature.HPE_EXPERIENCE'));assert.ok(java.includes('public void platform(PluginCall call)'));
- const activity=readFileSync(join(base,'src/main/java/com/cosmoslegacy/game/MainActivity.java'),'utf8');assert.ok(activity.includes('cosmos:app-paused'));assert.ok(activity.includes('super.onPause()'));assert.ok(readFileSync(join(base,'build.gradle'),'utf8').includes('versionName "1.1.46"'));
+ const activity=readFileSync(join(base,'src/main/java/com/cosmoslegacy/game/MainActivity.java'),'utf8');assert.ok(activity.includes('cosmos:app-paused'));assert.ok(activity.includes('super.onPause()'));assert.ok(readFileSync(join(base,'build.gradle'),'utf8').includes('versionName "1.1.47"'));
  }finally{rmSync(root,{recursive:true,force:true})}
 });

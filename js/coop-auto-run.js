@@ -1,3 +1,4 @@
+import {confirmCloudBeforeLeave} from './cloud-leave-guard.js?v=493';
 export const COOP_AUTO_KEY='cosmosLegacy.coopAuto.v1',COOP_RESUME_KEY='cosmosLegacy.coopAutoResume.v1';
 export const COOP_STOPS=Object.freeze({colossi:'Después de los 3 Colosos',inferno:'Después de Inferno Pro',titan:'Después del Gran Titán Pro',all:'Mapa completo (Titán del Nexo)'});
 export function coopAutoConfig(value={}){return {repeat:value?.repeat===true,stop:Object.hasOwn(COOP_STOPS,value?.stop)?value.stop:'all'}}
@@ -11,7 +12,7 @@ export function coopStopReached(snapshot,stop='all'){
 export function consumeCoopResume(storage,{owner,realm,choice,now=Date.now()}){try{const raw=storage.getItem(COOP_RESUME_KEY);storage.removeItem(COOP_RESUME_KEY);const value=JSON.parse(raw||'null');return !!(owner?.startsWith('play:')&&value?.owner===owner&&value.realm===realm&&value.expiresAt>now&&value.expiresAt<=now+120000&&choice?.action==='create')}catch{return false}}
 export async function prepareCoopRepeat({session,owner,realm,shouldContinue,saveChoice,flush,leave,navigate,now=Date.now()}){
  if(!owner?.startsWith('play:')||!shouldContinue())return false;
- let timer;try{if(flush)await Promise.race([Promise.resolve().then(flush).catch(()=>{}),new Promise(resolve=>{timer=setTimeout(resolve,2500)})])}finally{clearTimeout(timer)}
+ if(!await confirmCloudBeforeLeave(flush))return false;
  if(!shouldContinue())return false;
  const marker=JSON.stringify({owner,realm,expiresAt:now+90000});session.setItem(COOP_RESUME_KEY,marker);if(session.getItem(COOP_RESUME_KEY)!==marker)throw Error('No se pudo preparar la repetición.');
  try{saveChoice({action:'create'});leave();navigate();return true}catch(error){session.removeItem(COOP_RESUME_KEY);throw error}
