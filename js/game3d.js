@@ -64,12 +64,12 @@ import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,cr
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
-import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=478';
-import {mountHangarUI} from './hangar-ui.js?v=478';
+import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=497';
+import {mountHangarUI} from './hangar-ui.js?v=497';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=493';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=497';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=497';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';

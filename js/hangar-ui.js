@@ -4,7 +4,7 @@ import {pvpMultipliers,pveMultipliers,cooperativeMultipliers} from './pvp-loadou
 import {SHIP_PREVIEWS,shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {startAssemblyPreview,stopAssemblyPreview} from './assembly-3d-preview.js?v=440';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip} from './assembled-ships.js?v=450';
-import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=478';
+import {FORMATIONS,RECIPE,BOOSTERS,SELL_PRICES,canAssemble,assemble,sellMaterial,buyBooster,formationOffset} from './hangar-systems.js?v=497';
 const fmt=n=>Math.floor(n).toLocaleString('es-CL');
 const MATERIALS=[['chatarra','Chatarra espacial','#bac9d7'],['aleacion','Aleación reforzada','#55c6ff'],['nucleo','Núcleo de energía','#c783ff'],['reliquia','Componente ancestral','#ffca58']];
 const duration=n=>Math.ceil(Math.max(0,n)/60)+' min';
@@ -77,7 +77,7 @@ export function mountHangarUI({player,isDocked,isOffline,canShop=isOffline,isPvp
   $('shopBoosters').querySelectorAll('[data-booster]').forEach(button=>button.onclick=()=>{
    if(!canShop())return;
    const id=button.dataset.booster,booster=BOOSTERS.find(b=>b.id===id);
-   const previous={gold:player.gold,boosters:{...player.boosters}};
+   const previous={gold:player.gold,boosters:{...player.boosters},boosterPurchases:player.boosterPurchases};
    if(!buyBooster(player,id))return;
    if(sync()===false){Object.assign(player,previous);render(true);note('No se pudo guardar la compra. Inténtalo de nuevo.');return}
    log('commerce','Compra: '+booster.name+' · −'+fmt(booster.price)+' créditos');

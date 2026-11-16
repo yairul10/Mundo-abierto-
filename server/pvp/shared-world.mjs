@@ -163,7 +163,7 @@ export class SharedWorld extends DurableObject {
   else if(m.type==='respawn'){error=requestRespawn(s,p,m);this.worldSave(s,true);if(!error&&p.death?.bill)ws.send(JSON.stringify({type:'respawnBill',bill:p.death.bill}));}
   else if(m.type==='respawnAck'){const bill=confirmRespawn(s,p,m.id,reset)||(!p.death?p.lastRespawn:null);if(bill?.id===m.id){this.worldSave(s,true);ws.send(JSON.stringify({type:'respawnReady',bill}));}}
   else if(m.type==='duelBlock'){p.duelRequestsOff=m.block===true;s.invites=s.invites.filter(i=>i.to!==p.id);}
-  else if(m.type==='progress'){const raw=importRoster(m.roster),q=raw[p.profile.shipId];if(q&&q.level>=p.profile.level&&!p.death){const shield=p.profile.maxShield>0?p.shield/p.profile.maxShield:0,shieldLastHit=p.shieldLastHit;const hp=p.hp/p.profile.maxHp,energy=p.energy/p.profile.maxEnergy,timing={lastHit:p.lastHit,lastAttack:p.lastAttack,lastIncoming:p.lastIncoming,abilityUntil:p.abilityUntil,abilityReadyAt:p.abilityReadyAt,skillUntil:p.skillUntil,skillReadyAt:p.skillReadyAt};p.roster=raw;equip(p,p.profile.shipId);p.hp*=hp;p.energy*=energy;p.shield=p.profile.maxShield*shield;p.shieldLastHit=shieldLastHit;Object.assign(p,timing)}}
+  else if(m.type==='progress'){const raw=importRoster(m.roster),q=raw[p.profile.shipId==='adminpod'?'aurora':p.profile.shipId];if(q&&q.level>=p.profile.level&&!p.death){const shield=p.profile.maxShield>0?p.shield/p.profile.maxShield:0,shieldLastHit=p.shieldLastHit;const hp=p.hp/p.profile.maxHp,energy=p.energy/p.profile.maxEnergy,timing={lastHit:p.lastHit,lastAttack:p.lastAttack,lastIncoming:p.lastIncoming,abilityUntil:p.abilityUntil,abilityReadyAt:p.abilityReadyAt,skillUntil:p.skillUntil,skillReadyAt:p.skillReadyAt};p.roster=raw;equip(p,p.profile.shipId);p.hp*=hp;p.energy*=energy;p.shield=p.profile.maxShield*shield;p.shieldLastHit=shieldLastHit;Object.assign(p,timing)}}
   else if(m.type==='hangar')error=openHangar(s,p,now);
   else if(m.type==='loadout')error=applyHangarLoadout(s,p,m.roster,m.shipId,now);
   else if(m.type==='formation')error=changeFormation(p,m.formation);
@@ -182,7 +182,7 @@ export class SharedWorld extends DurableObject {
   else if(m.type==='ping'){ws.send(JSON.stringify({type:'pong',echo:m.time,serverTime:now}));}
   else if(m.type==='leave'){await this.worldDisconnect(ws);try{ws.close(1000,'leave')}catch{}return}
   else return;
-  this.worldSave(s,['loadout','ship','formation','name','skills','hangar','invite','reply','surrender','duelBlock','groupInvite','groupReply','groupLeave'].includes(m.type));if(error)ws.send(JSON.stringify({type:'error',error}));this.worldBroadcast(s);
+  this.worldSave(s,['progress','loadout','ship','formation','name','skills','hangar','invite','reply','surrender','duelBlock','groupInvite','groupReply','groupLeave'].includes(m.type));if(error)ws.send(JSON.stringify({type:'error',error}));this.worldBroadcast(s);
  }
  async worldDisconnect(ws){const s=this.worldLoad(),p=s.players.find(x=>x.id===ws.deserializeAttachment()?.id);if(!p?.connected)return;p.connected=false;p.lastSeen=Date.now();updateGroups(s,p.lastSeen);this.advanceRoom(s,Date.now());this.worldSave(s,true);if(!s.players.some(p=>p.connected))this.stopSimulation();this.worldBroadcast(s)}
  async webSocketClose(ws){await this.worldDisconnect(ws)}

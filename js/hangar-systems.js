@@ -1,4 +1,5 @@
 import {PRECISION_BOOSTER,DAMAGE_BOOSTERS,damageBoosterMultiplier,tickDamageBoosters} from './damage-boosters.js?v=478';
+import {recordBoosterPurchase} from './booster-purchases.js?v=497';
 export const RECIPE=Object.freeze({credits:20000,chatarra:200,aleacion:70,nucleo:25,reliquia:8});
 export const FORMATIONS=Object.freeze([
  {id:'fan',name:'Abanico',icon:'↗',color:'#78dbff',benefit:'Gratis · Formación inicial',description:'Parejas abiertas a ambos lados de la nave.'},
@@ -38,6 +39,7 @@ export function sellMaterial(p,id,quantity){
 }
 export function buyBooster(p,id){
  const b=BOOSTERS.find(x=>x.id===id);if(!b||b.retired||!Number.isFinite(p.gold)||count(p.gold)<b.price||p.boosters[id]+b.seconds>86400)return false;
+ if(!recordBoosterPurchase(p,id))return false;
  p.gold-=b.price;p.boosters[id]+=b.seconds;return true;
 }
 export function boosterBonus(p,id,offline=true){return offline&&p.boosters?.[id]>0?(id==='damage'?1.15:id==='resistance'?.85:1.25):1}

@@ -16,7 +16,7 @@ import {mountOnlineChat} from './online-chat.js?v=477';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=488';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=488';
-import {cooperativeRoster,pvpRoster as arenaRoster,readOfflinePilot} from './pvp-loadout.js?v=471';
+import {cooperativeRoster,pvpRoster as arenaRoster,readOfflinePilot} from './pvp-loadout.js?v=497';
 const RANKED_ID=new URLSearchParams(location.search).get('ranked');
 const ARENA_MODE=arenaRequested(),WAR_ID=new URLSearchParams(location.search).get('clanWar');
 const pvpRoster=source=>ARENA_MODE?arenaRoster(source):cooperativeRoster(source);
