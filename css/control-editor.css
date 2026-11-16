@@ -74,3 +74,14 @@ body:is(.docked,.inventory-open,.journal-open) .cockpit-control:not(.pvp-editor-
 #pvpFarmBtn{min-height:40px;padding:0 8px;white-space:nowrap;font:700 11px system-ui;touch-action:manipulation}
 #pvpFarmBtn[hidden]{display:none!important}
 #pvpFarmBtn[aria-pressed="true"]{color:var(--cockpit-accent);border-color:var(--cockpit-accent)}
+
+/* Keyboard tab shares the position editor's Save / Cancel / Reset transaction. */
+#pvpControlEditor .pvp-editor-canvas[hidden],#pvpControlEditor .keybinding-editor[hidden]{display:none!important}
+#pvpControlEditor .keybinding-editor{position:absolute;inset:0 0 108px;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;background:#0d1724;padding:20px max(16px,calc((100vw - 820px)/2));color:#f5ebcf}
+#pvpControlEditor .keybinding-editor h2{margin:0 0 8px}
+#pvpControlEditor .keybinding-editor p{line-height:1.4;font-size:14px}
+#pvpControlEditor .keybinding-editor [role=status]{min-height:2.8em;color:#ecd28c}
+#pvpControlEditor .keybinding-row{display:grid;grid-template-columns:minmax(140px,1fr) minmax(100px,160px) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #a38b4b44}
+#pvpControlEditor .keybinding-row button{background:#28251d;color:#fff1cd;border:1px solid #9c854e;border-radius:8px;padding:9px;min-height:40px;cursor:pointer}
+#pvpControlEditor .keybinding-row button[aria-pressed=true]{outline:2px solid #e0b33c}
+@media(max-width:600px){#pvpControlEditor .pvp-editor-toolbar{left:5%;right:5%}#pvpControlEditor .keybinding-row{grid-template-columns:1fr 110px auto;font-size:12px;gap:6px}}

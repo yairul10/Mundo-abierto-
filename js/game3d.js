@@ -1,5 +1,5 @@
 import {desktopMode} from './desktop-platform.js?v=487';
-import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=487';
+import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=488';
 import {mountFloatingJoystick} from './floating-joystick.js?v=486';
 import {mountHallOfFame} from './hall-of-fame.js?v=481';
 import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
@@ -43,7 +43,7 @@ import {mountPvpZones,mountPvpArena} from './pvp-zones.js?v=451';
 import {checkPvpVersion,showPvpUpdate} from './pvp-version.js?v=443';
 import {createArenaEnemyView} from './pvp-enemies.js?v=482';
 import {correctionStep} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=472';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=488';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
@@ -66,7 +66,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=478';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=483';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=488';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3381,7 +3381,7 @@ const desktopControls=mountDesktopControls({enabled:()=>desktopMode(),keys,
  canPlay:()=>!document.hidden&&!document.getElementById('worldLoading')&&!document.body.matches('.system-map-open,.inventory-open,.journal-open,.portrait-blocked')&&!docked&&!landing&&!recoveryPending&&player.hp>0&&!farmUI?.open&&panel.classList.contains('hidden')&&$('shopPanel').classList.contains('hidden')&&!document.querySelector('dialog[open],#pvpControlEditor:not([hidden])')&&!document.activeElement?.matches('input,textarea,select,[contenteditable]')&&(!pvpSession||pvpSession.active&&!pvpHangar&&!pvpSession.matchPaused),
  onFire:held=>{if(held&&!fireHeld)fire();fireHeld=held},
  onAim:(dx,dy)=>{yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)},onZoom:direction=>setCameraZoom(cameraZoom+direction*45),
- onAction:action=>{if(action==='missile')skill();else if(action==='ability')activateClassAbility();else if(action==='dock')dockBtn.click();else if(action==='map')$('radarWidget').click();else if(action==='menu')$('characterBtn').click();else if(action==='zoomIn')setCameraZoom(cameraZoom-45);else if(action==='zoomOut')setCameraZoom(cameraZoom+45)},
+ onAction:action=>{if(action==='missile')skill();else if(action==='ability')activateClassAbility();else if(action==='dock')dockBtn.click();else if(action==='map')$('radarWidget').click();else if(action==='menu')$('characterBtn').click();else if(action==='zoomIn')setCameraZoom(cameraZoom-45);else if(action==='zoomOut')setCameraZoom(cameraZoom+45);else {const id=({formation:'formationBtn',companion:'companionModeBtn',quests:'questToggle',chat:'mapChatToggle',auto:PVP_MODE?'pvpFarmBtn':'farmAutoBtn',skill0:'pvpSkillButton0',skill1:'pvpSkillButton1',skill2:'pvpSkillButton2'})[action],button=id&&$(id);if(button&&!button.disabled&&!button.hidden&&button.getClientRects().length)button.click()}},
  onHelp:()=>desktopHelp?.show(),onEscape:()=>{if(desktopHelp?.close())return true;if(!panel.classList.contains('hidden')){closeCharacterPanel();return true}if(!$('shopPanel').classList.contains('hidden')){closeShop();return true}return false;}
 });
 function farmBasePoint(){

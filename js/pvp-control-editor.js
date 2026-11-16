@@ -1,3 +1,4 @@
+import {mountKeybindingEditor} from './keybindings-editor.js?v=488';
 // Player-adjustable flight controls. The editor uses inert previews.
 const pvpCockpitIds=['zoomIn','zoomOut','companionModeBtn','formationBtn'];
 const cockpitIds=['formationBtn','questToggle','characterBtn','zoomIn','zoomOut','farmAutoBtn','companionModeBtn'];
@@ -46,16 +47,17 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
  function apply(){
   buttons().forEach((button,i)=>{if(!button)return;positions[i]=bounded(i,positions[i]);button.style.setProperty('position','fixed','important');button.style.setProperty('left',positions[i][0]+'vw','important');button.style.setProperty('top',positions[i][1]+'vh','important');button.style.setProperty('right','auto','important');button.style.setProperty('bottom','auto','important');button.style.setProperty('transform','translate(-50%,-50%)','important');button.style.setProperty('z-index',upperIds.includes(ids[i])?(pve?'24':'86'):'66','important')});
  }
- {const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=386';document.head.append(style)}
+ {const style=document.createElement('link');style.rel='stylesheet';style.href='./css/control-editor.css?v=488';document.head.append(style)}
  const home=document.getElementById('hangarHomeView');
  if(!home)return {apply};
  const section=document.createElement('section');section.id='pvpControlEditorEntry';
  section.innerHTML='<h3>🎮 Acomodar controles</h3><p>Arrastra los botones y el joystick para organizarlos. Se guardan por separado para pruebas y partida normal.</p><button type="button" id="pvpEditControls">Acomodar botones</button>';
  home.prepend(section);
  const overlay=document.createElement('div');overlay.id='pvpControlEditor';overlay.hidden=true;
- overlay.innerHTML='<div class="pvp-editor-toolbar"><strong>Editar controles</strong><span>Arrastra los botones y el joystick</span><button type="button" data-action="reset">Restablecer</button><button type="button" data-action="cancel">Cancelar</button><button type="button" data-action="save">Guardar</button></div><div class="pvp-editor-canvas" aria-label="Vista previa de botones"></div>';
+ overlay.innerHTML='<div class="pvp-editor-toolbar"><strong>Editar controles</strong><span>Arrastra los botones y el joystick</span><button type="button" data-action="reset">Restablecer todo</button><button type="button" data-action="cancel">Cancelar</button><button type="button" data-action="save">Guardar</button></div><div class="pvp-editor-canvas" aria-label="Vista previa de botones"></div>';
  document.body.append(overlay);
  const canvas=overlay.querySelector('.pvp-editor-canvas');
+ const keyboard=typeof document.addEventListener==='function'&&typeof window!=='undefined'?mountKeybindingEditor(overlay,canvas):null;
  let draft=[],drag=null;
  function draw(){canvas.replaceChildren();ids.forEach((id,i)=>{const original=document.getElementById(id);if(!original)return;const b=document.createElement('button');b.type='button';b.className='pvp-editor-control'+(i===0?' primary':'');b.textContent=id==='joystick'?'🕹️':pve?({fireBtn:'🔥',skillBtn:'🚀',classAbilityBtn:'✨',joystick:'🕹️',formationBtn:'🔄',questToggle:'📋',characterBtn:'☰',zoomIn:'+',zoomOut:'−',farmAutoBtn:'AUTO'}[id]):i===0?'🔥':i===1?'🚀':i===2?'🛡️':(original?.querySelector('span')?.textContent||'✨');if(upperIds.includes(id)){
   b.classList.add('cockpit-control');
@@ -64,12 +66,12 @@ export function mountPvpControlEditor({realm,isHangarOpen,pve=false}){
   if(id==='companionModeBtn')b.style.minWidth='40px';
  }
  const art=original.querySelector('.combat-art');if(art){b.replaceChildren(art.cloneNode());b.classList.add('combat-button');b.style.setProperty('--combat-accent',original.style.getPropertyValue('--combat-accent'));b.style.setProperty('--combat-art-scale',original.style.getPropertyValue('--combat-art-scale'))}b.setAttribute('aria-label',id==='joystick'?'Joystick de movimiento':(pve||upperIds.includes(id))?(original.getAttribute('aria-label')||id):['Disparar','Misil','Habilidad de nave','Habilidad PvP 1','Habilidad PvP 2'][i]);if(pve||upperIds.includes(id)||id==='joystick'){const r=original.getBoundingClientRect();if(r.width&&r.height){b.style.width=r.width+'px';b.style.height=r.height+'px'}}b.style.left=draft[i][0]+'%';b.style.top=draft[i][1]+'%';b.dataset.index=i;b.addEventListener('pointerdown',e=>{e.preventDefault();drag={i,pointer:e.pointerId};b.setPointerCapture(e.pointerId)});b.addEventListener('pointermove',e=>{if(!drag||drag.i!==i||drag.pointer!==e.pointerId)return;const r=canvas.getBoundingClientRect();draft[i]=bounded(i,[(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100],r.width,r.height);b.style.left=draft[i][0]+'%';b.style.top=draft[i][1]+'%'});b.addEventListener('pointerup',()=>{drag=null});b.addEventListener('pointercancel',()=>{drag=null});canvas.append(b)})}
- const open=()=>{if(!isHangarOpen())return;draft=positions.map(p=>[...p]);draw();overlay.hidden=false};
- const close=()=>{overlay.hidden=true;drag=null};
+ const open=()=>{if(!isHangarOpen())return;draft=positions.map(p=>[...p]);draw();keyboard?.open();overlay.hidden=false};
+ const close=()=>{overlay.hidden=true;drag=null;keyboard?.close()};
  section.querySelector('#pvpEditControls').onclick=open;
- overlay.querySelector('[data-action="reset"]').onclick=()=>{draft=defaults.map(p=>[...p]);draw()};
+ overlay.querySelector('[data-action="reset"]').onclick=()=>{draft=defaults.map(p=>[...p]);keyboard?.reset();draw()};
  overlay.querySelector('[data-action="cancel"]').onclick=close;
- overlay.querySelector('[data-action="save"]').onclick=()=>{positions=draft.map(p=>[...p]);try{localStorage.setItem(key,JSON.stringify(positions))}catch{}apply();close()};
+ overlay.querySelector('[data-action="save"]').onclick=()=>{const before=localStorage.getItem(key);try{localStorage.setItem(key,JSON.stringify(draft));if(keyboard&&!keyboard.save()){if(before===null)localStorage.removeItem(key);else localStorage.setItem(key,before);return}}catch{alert('No se pudieron guardar los controles. El progreso se conserva.');return}positions=draft.map(p=>[...p]);apply();close()};
  addEventListener('resize',apply);
  apply();
  return {apply};

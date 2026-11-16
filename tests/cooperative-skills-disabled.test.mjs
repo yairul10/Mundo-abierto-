@@ -20,11 +20,11 @@ test('cooperative advancement removes only PvP power effects and retains enemy p
  const q={pos:[0,120,1000],skillUntil:{fury:100000}};run({players:[q]},()=>{});assert.equal(q.skillUntil.fury,100000);
 });
 test('cooperative UI hides skills, blocks clicks, and preserves future PvP choices',()=>{
- const code=readFileSync(new URL('../js/pvp-skills-ui.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/,'const presentCombatButton=()=>{};\n').replace('export function','function');
+ const code=readFileSync(new URL('../js/pvp-skills-ui.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/gm,'').replace('export function','function');
  const elements=[];class Element{constructor(){this.children=[];this.classList={toggle(){}};elements.push(this)}append(...x){this.children.push(...x)}appendChild(x){this.append(x)}setAttribute(k,v){this[k]=v}addEventListener(){}replaceChildren(...x){this.children=x}}
  const doc={createElement:()=>new Element(),getElementById:()=>null,body:new Element()};let sent=0,writes=0;const me={equippedSkills:['fury','luck'],paralyzedUntil:0};
  const getState=()=>({state:{rules:{cooperative:true,skills:{}}},me,now:1000});
- const mount=new Function('document','addEventListener',code+';return mountPvpSkills')(doc,()=>{});
+ const mount=new Function('document','addEventListener','presentCombatButton','desktopMode',code+';return mountPvpSkills')(doc,()=>{},()=>{},()=>false);
  const ui=mount({tools:new Element(),getState,canUse:()=>true,send:()=>sent++,isHangarOpen:()=>false,storage:{getItem:()=>JSON.stringify(['fury','luck']),setItem(){writes++}},key:'skills'});
  ui.update();const bar=elements.find(e=>e.id==='pvpSkills'),equipment=elements.find(e=>e.id==='pvpSkillEquipment');
  assert.equal(bar.hidden,true);assert.equal(equipment.hidden,true);

@@ -12,7 +12,7 @@ ninguna dependencia de hardware de PC obligatoria. El proyecto usa Java y WebVie
 sin filtros ABI propios ni bibliotecas JNI del juego; confirmar el resultado en
 el explorador del AAB, incluidas las bibliotecas transitivas.
 
-## Controles
+## Controles predeterminados
 
 | Entrada | Acción |
 | --- | --- |
@@ -71,3 +71,20 @@ Referencias oficiales consultadas:
 - https://developer.android.com/games/playgames/input-mouse
 - https://developer.android.com/games/playgames/checklist
 - https://developer.android.com/games/playgames/development-submit
+
+
+## Asignación de teclas
+
+Hangar → Acomodar botones → Teclas (PC) permite cambiar o quitar las teclas de
+movimiento, combate, habilidades PvP, cámara, formación, mascota, misiones, chat,
+AUTO y ayuda. Pulsar el botón de una acción y después la nueva tecla. Las
+asignaciones repetidas se rechazan; quitar o cambiar la asignación anterior antes
+de reutilizar una tecla. Esc cancela la captura. Ctrl/Alt/Meta/Shift combinados y
+teclas de sistema reservadas no se asignan.
+
+Guardar aplica las teclas y posiciones; Cancelar descarta el borrador y
+Restablecer prepara los valores predeterminados, que también requieren Guardar.
+Se guardan en `mundoAbierto.pcKeybindings.v1`, por dispositivo y compartidas entre
+PvE, cooperativo, arenas y cuentas. No forman parte del inventario ni del guardado
+cloud. La ayuda del menú muestra la asignación vigente. El clic del ratón y la
+rueda mantienen sus acciones; este editor cambia teclas, no botones del ratón.

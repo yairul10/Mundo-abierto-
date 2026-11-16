@@ -1,3 +1,4 @@
+import {desktopMode} from './desktop-platform.js?v=487';
 import {presentCombatButton} from './combat-buttons.js?v=389';
 // Two extra PvP powers. Rules and timestamps come from the server snapshot.
 export function mountPvpSkills({tools,getState,canUse,send,isHangarOpen,isPreparing=()=>false,equipmentHost=null,storage,key}){
@@ -22,7 +23,7 @@ export function mountPvpSkills({tools,getState,canUse,send,isHangarOpen,isPrepar
  const inBase=Math.hypot(...me.pos)<=state.rules.safeRadius;
  for(let i=0;i<count;i++){const s=slots[i],id=ids[i],rule=definitions[id];if(!rule)continue;s.select.value=id;s.select.disabled=!me.protected||!(inBase||isPreparing())||!(isHangarOpen()||isPreparing());s.detail.textContent=rule.description+' Recarga: '+rule.cooldown/1000+' s.';const active=Math.max(0,(me.skillUntil?.[id]||0)-now),wait=Math.max(0,(me.skillReadyAt?.[id]||0)-now);s.icon.textContent='';presentCombatButton(s.button,{art:({instantShield:'shield'})[id]||id,remaining:wait/1000,duration:rule.cooldown/1000,active:active>0,blocked:!canUse()||isHangarOpen()});s.name.textContent=rule.name;s.timer.textContent=active?'Activa '+Math.ceil(active/1000)+' s':wait?Math.ceil(wait/1000)+' s':'';s.timer.style.display=s.timer.textContent?'':'none';s.button.disabled=!canUse()||wait>0||isHangarOpen();s.button.classList.toggle('active',active>0);s.button.title=rule.description;s.button.setAttribute('aria-label',rule.name+' · '+(s.timer.textContent||'Lista'))}
  }
- addEventListener('keydown',e=>{if(e.repeat||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,select,textarea,[contenteditable="true"]'))return;const i=['Digit1','Digit2','Digit3'].indexOf(e.code);if(i>=0&&!slots[i].button.disabled){e.preventDefault();slots[i].button.click()}});
+ addEventListener('keydown',e=>{if(desktopMode()||e.defaultPrevented||e.repeat||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,select,textarea,[contenteditable="true"]'))return;const i=['Digit1','Digit2','Digit3'].indexOf(e.code);if(i>=0&&!slots[i].button.disabled){e.preventDefault();slots[i].button.click()}});
  return {update,get saved(){return [...saved]}};
 }
 
