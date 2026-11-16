@@ -99,8 +99,8 @@ writeFileSync(manifestPath,manifest);
 
 const gradlePath='android/app/build.gradle';
 // Keep this release fixed until a version increase is explicitly requested.
-const code=393;
-let gradle=readFileSync(gradlePath,'utf8').replace(/versionCode\s+1/,'versionCode '+code).replace(/versionName\s+"1.0"/,'versionName "1.1.45"');
+const code=394;
+let gradle=readFileSync(gradlePath,'utf8').replace(/versionCode\s+1/,'versionCode '+code).replace(/versionName\s+"1.0"/,'versionName "1.1.46"');
 gradle += '\n// Play Games Services v2 (Google Play identity)\ndependencies { implementation "com.google.android.gms:play-services-games-v2:22.1.0" }\n';
 writeFileSync(gradlePath,gradle);
 
