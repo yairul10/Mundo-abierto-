@@ -59,7 +59,7 @@ El apuntado usa arrastre, no captura exclusiva/infinita del cursor.
 Este cambio prepara una prueba de compatibilidad, no activa distribución ni
 certifica el juego. La etiqueta «optimizado» requiere requisitos adicionales,
 incluido Input SDK, que todavía no está integrado. La versión Android permanece
-1.1.47 (395) hasta solicitar el siguiente incremento; la compilación debe contener
+1.1.48 (396) hasta solicitar el siguiente incremento; la compilación debe contener
 este commit para incluir los controles nuevos.
 
 Comprobaciones locales: pruebas de eventos del controlador, aislamiento de
