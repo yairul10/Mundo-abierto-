@@ -17,3 +17,6 @@ test('no robot waits for manual repair and reset clears the retreat state withou
  const p=createCoopFarmPilot(),s=state();s.hp=10;s.robot=false;s.safe=true;p.tick(s,1);assert.match(p.status,/manual/);assert.equal(s.hp,10);assert.equal(s.gold,undefined);p.reset();assert.equal(p.retreating,false);
  s.hp=100;s.enemies=[];s.position={x:0,y:120,z:-250};const c=p.tick(s,2);assert.ok(c.throttle>0);assert.equal(c.fire,false);
 });
+test('AUTO approaches a distant Inferno instead of waiting in the cleared starting sector',()=>{
+ const p=createCoopFarmPilot(),s=state();s.enemies=[{id:'coop-inferno-pro',kind:'infernoPro',hp:500000,position:{x:-400,y:120,z:-5350}}];let c=p.tick(s,1);assert.equal(c.targetId,'coop-inferno-pro');assert.equal(c.fire,false);assert.ok(c.throttle>0);s.position={x:-400,y:120,z:-4600};c=p.tick(s,2);assert.equal(c.targetId,'coop-inferno-pro');assert.equal(c.fire,true);
+});

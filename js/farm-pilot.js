@@ -4,7 +4,7 @@ export const FARM_MAPS={
  aurora:{name:'Aurora',level:1,enemies:{scout:'Explorador',raider:'Asaltante'}},
  belt:{name:'Cinturón Perdido',level:10,enemies:{sentinel:'Guardián',destroyer:'Destructor'}},
  ember:{name:'Ascuas',level:30,enemies:{destroyer:'Destructor',devastator:'Devastador',carrier:'Coloso (jefe)',sentinel:'Guardián (refuerzos)',raider:'Asaltante (refuerzos)'}},
- graveyard:{name:'Cementerio de Naves',level:40,enemies:{catapult:'Catapulta',harpooner:'Arponero',stalker:'Acechador',granTitan:'Gran Titán (jefe)'}}
+ graveyard:{name:'Cementerio de Naves',level:40,enemies:{catapult:'Catapulta',harpooner:'Arponero',stalker:'Acechador',inferno:'Inferno',granTitan:'Gran Titán (jefe)'}}
 };
 addProFarmChoices(FARM_MAPS);
 const order=Object.keys(FARM_MAPS),distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);

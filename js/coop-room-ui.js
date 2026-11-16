@@ -3,7 +3,7 @@ export function readCoopChoice(){try{return JSON.parse(sessionStorage.getItem(KE
 export function saveCoopChoice(value){if(value)sessionStorage.setItem(KEY,JSON.stringify(value));else sessionStorage.removeItem(KEY)}
 export function chooseCoopRoom(){return new Promise(resolve=>{
  const dialog=document.createElement('dialog');dialog.className='account-dialog coop-room-dialog';for(const event of ['pointerdown','touchstart','keydown','keyup'])dialog.addEventListener(event,e=>e.stopPropagation());dialog.setAttribute('aria-label','Partida cooperativa');
- const title=document.createElement('h2'),text=document.createElement('p'),actions=document.createElement('div'),back=document.createElement('button');title.textContent='Cooperativo';text.textContent='Hasta 5 jugadores · 2 vidas · Recompensas compartidas';dialog.append(title,text,actions,back);
+ const title=document.createElement('h2'),text=document.createElement('p'),actions=document.createElement('div'),back=document.createElement('button');title.textContent='Cooperativo';text.textContent='Hasta 5 jugadores · 2 vidas · Recompensas compartidas. Común: te unes a una sala abierta y conservas su avance. Crear privada: expedición nueva desde cero.';dialog.append(title,text,actions,back);
  const done=value=>{dialog.close();dialog.remove();resolve(value)};
  const button=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;actions.append(b)};
  function home(){actions.replaceChildren();back.textContent='Cancelar';back.onclick=()=>done(null);button('Partida común',()=>done({action:'common'}));button('Partida privada',privateMenu)}

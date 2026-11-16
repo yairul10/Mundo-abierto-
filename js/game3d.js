@@ -1,3 +1,5 @@
+import {readCoopChoice} from './coop-room-ui.js?v=491';
+import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings} from './coop-auto-run.js?v=491';
 import {desktopMode} from './desktop-platform.js?v=487';
 import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=488';
 import {mountFloatingJoystick} from './floating-joystick.js?v=486';
@@ -11,7 +13,7 @@ import {createCoopFarmPilot} from './coop-farm-pilot.js?v=472';
 import {mountClans} from './clans-ui.js?v=476';
 import {missileLaunches} from './missile-launch.js?v=454';
 import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=479';
-import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=449';
+import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=491';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
 import {createBackgroundTextures} from './background-textures.js?v=441';
@@ -51,7 +53,7 @@ import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=443';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
-import {createFarmPilot} from './farm-pilot.js?v=255';
+import {createFarmPilot} from './farm-pilot.js?v=491';
 import {mountFarmPilotUI} from './farm-pilot-ui.js?v=367';
 import {GRAPHICS_KEY,FRAME_RATE_KEY,normalizeFrameRate,initialGraphicsLevel,createFrameLimiter,createGraphicsController,renderRatio,mountGraphicsSettings,isGraphicsRecoveryReload} from './graphics-settings.js?v=438';
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
@@ -66,7 +68,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=478';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=488';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=491';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=472';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3407,6 +3409,7 @@ function farmInput(dt,now){
  farmUiTick+=dt;if(farmUiTick>.5){farmUiTick=0;farmUI.refresh()}
  return command;
 }
+let pvpFarmSettings=null,pvpFarmResume=false,pvpFarmResumeOwner=null,pvpFarmRestarting=false,coopAutoSettings=readCoopAuto(localStorage);
 let pvpFarmButton=null,pvpFarmRunning=false,pvpFarmTarget=null,pvpFarmLastStatus='',pvpFarmThreats=()=>[];const coopFarmPilot=createCoopFarmPilot();
 function canRunPvpFarm(){
  return pvpSession?.autoFarmProAllowed&&pvpSession.active&&!pvpSession.arenaMode&&['pve','base'].includes(pvpSession.zone)&&!pvpSession.inDuel
@@ -3415,17 +3418,24 @@ function canRunPvpFarm(){
   &&!document.body.matches('.journal-open,.portrait-blocked')&&!document.activeElement?.matches('input,textarea,select');
 }
 function stopPvpFarm(){
- pvpFarmRunning=false;pvpFarmTarget=null;coopFarmPilot.reset();
+ pvpFarmResume=false;pvpFarmRunning=false;pvpFarmTarget=null;coopFarmPilot.reset();
  pvpFarmButton?.setAttribute('aria-pressed','false');if(pvpFarmButton)pvpFarmButton.textContent='AUTO PRO';pvpFarmLastStatus='';
+}
+async function repeatCoopFarm(){
+ if(pvpFarmRestarting||!pvpFarmRunning||!coopAutoSettings.repeat)return false;pvpFarmRestarting=true;
+ try{const restarted=await pvpSession.restartPrivate(()=>pvpFarmRunning&&coopAutoSettings.repeat&&!document.hidden&&document.hasFocus());if(!restarted)stopPvpFarm();return restarted}catch(error){stopPvpFarm();lootToast('AUTO detenido · '+error.message);return false}finally{pvpFarmRestarting=false}
 }
 function pvpFarmInput(dt){
  if(!pvpFarmButton)return null;
- pvpFarmButton.hidden=!pvpSession?.autoFarmProAllowed;
+ pvpFarmButton.hidden=!pvpSession?.autoFarmProAllowed;if(pvpFarmSettings)pvpFarmSettings.hidden=pvpFarmButton.hidden;
+ if(pvpFarmRestarting)return null;
  const ready=canRunPvpFarm();
  pvpFarmButton.disabled=!ready;
  if(!ready){if(pvpFarmRunning)stopPvpFarm();return null}
+ if(pvpFarmResume&&ready){pvpFarmResume=false;if(activeProfile(localStorage)===pvpFarmResumeOwner){coopFarmPilot.reset();pvpFarmRunning=true;pvpFarmButton.setAttribute('aria-pressed','true')}}
  if(!pvpFarmRunning)return null;
- const candidates=enemies.filter(e=>!e.dead&&e.hp>0&&e.mesh.visible&&pvpSession.canFarmTarget(e.playerId));
+ if(coopAutoSettings.repeat&&pvpSession.coopStopReached(coopAutoSettings.stop)){void repeatCoopFarm();return null}
+ const candidates=enemies.filter(e=>!e.dead&&e.hp>0&&pvpSession.canFarmTarget(e.playerId));
  const command=coopFarmPilot.tick({position:playerMesh.position,hp:player.hp,maxHp:player.maxHp,safe:pvpSession.zone==='base',robot:(pvpSession.profile?.repairRobotLevel||0)>0,canFight:pvpSession.canFight,enemies:candidates.map(e=>({id:e.playerId,position:e.mesh.position,hp:e.hp})),threats:pvpFarmThreats()},performance.now()/1000);
  pvpFarmButton.textContent=coopFarmPilot.retreating?'REPARAR':'AUTO PRO';pvpFarmButton.title=coopFarmPilot.status;if(pvpFarmLastStatus!==coopFarmPilot.status){pvpFarmLastStatus=coopFarmPilot.status;lootToast(pvpFarmLastStatus);}
  pvpFarmTarget=candidates.find(e=>e.playerId===command.targetId)||null;
@@ -3617,7 +3627,7 @@ if(PVP_MODE){
  const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene,{budget:()=>effectBudget(graphics.level)}):null;
  if(COOP_MODE)scene.fog=new THREE.Fog(0x52617c,1000,2900);
  const arenaBoundary=ARENA_MODE?mountPvpArena(THREE,scene):null;if(!ARENA_MODE&&!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Mapa cooperativo':'Mapa PvP';
- pvpSession=startSharedSession({keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,practiceBlocked:()=>document.hidden||!document.hasFocus()||!!document.querySelector('dialog[open]')||!panel.classList.contains('hidden')||!$('shopPanel').classList.contains('hidden')||systemMap.open||document.body.matches('.journal-open,.portrait-blocked'),nearPortal:()=>!ARENA_MODE&&playerMesh.position.distanceTo(returnPortal.position)<=100,
+ pvpSession=startSharedSession({coopCompleted:repeatCoopFarm,keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,practiceBlocked:()=>document.hidden||!document.hasFocus()||!!document.querySelector('dialog[open]')||!panel.classList.contains('hidden')||!$('shopPanel').classList.contains('hidden')||systemMap.open||document.body.matches('.journal-open,.portrait-blocked'),nearPortal:()=>!ARENA_MODE&&playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
   if(arenaBoundary){const scale=(pvpSession?.radius||2200)/2200;arenaBoundary.scale.set(scale,1,scale);}
   const spectator=pvpSession?.spectatorTarget;if(spectator){playerMesh.visible=false;lockFrame.classList.add('hidden');if(!pvpSession.matchPaused)updateSpectatorShots(dt);const point=new THREE.Vector3(...spectator.pos),angle=spectator.aim?.[0]||0,behind=new THREE.Vector3(Math.sin(angle)*cameraZoom,cameraZoom*105/285,Math.cos(angle)*cameraZoom);camera.position.lerp(point.clone().add(behind),1-Math.exp(-dt*6));camera.lookAt(point)}
@@ -3683,12 +3693,14 @@ if(PVP_MODE){
  pvpFarmButton.textContent='AUTO PRO';pvpFarmButton.title='Combate evasivo y retirada a reparar · Cooperativo';
  pvpFarmButton.hidden=true;pvpFarmButton.setAttribute('aria-pressed','false');
  $('pvpMapActions')?.prepend(pvpFarmButton);
+ pvpFarmResumeOwner=activeProfile(localStorage);pvpFarmResume=consumeCoopResume(sessionStorage,{owner:pvpFarmResumeOwner,realm:window.MUNDO_PLAY_MODE?.mode||'normal',choice:readCoopChoice()});
+ pvpFarmSettings=mountCoopAutoSettings({parent:$('pvpMapActions')||document.body,getConfig:()=>coopAutoSettings,isRunning:()=>pvpFarmRunning,onStop:stopPvpFarm,onStart:config=>{localStorage.setItem(COOP_AUTO_KEY,JSON.stringify(config));coopAutoSettings=config;if(!canRunPvpFarm())throw Error('Vuelve a la partida activa para iniciar AUTO.');resetDockControls();coopFarmPilot.reset();pvpFarmRunning=true;pvpFarmButton.setAttribute('aria-pressed','true')}});pvpFarmSettings.hidden=true;
  pvpFarmButton.onclick=()=>{
   if(pvpFarmRunning){stopPvpFarm();return}
   if(!canRunPvpFarm())return;
   resetDockControls();coopFarmPilot.reset();pvpFarmRunning=true;pvpFarmButton.setAttribute('aria-pressed','true');
  };
- const takePvpControl=event=>{if(pvpFarmRunning&&!pvpFarmButton.contains(event.target))stopPvpFarm()};
+ const takePvpControl=event=>{if(pvpFarmRunning&&!pvpFarmButton.contains(event.target)&&!pvpFarmSettings?.contains(event.target)&&!event.target.closest?.('#coopAutoSettings'))stopPvpFarm()};
  document.addEventListener('pointerdown',takePvpControl,true);
  document.addEventListener('touchstart',takePvpControl,{capture:true,passive:true});
  addEventListener('keydown',takePvpControl,true);
