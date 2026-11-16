@@ -1,3 +1,4 @@
+import {mountFloatingJoystick} from './floating-joystick.js?v=486';
 import {mountHallOfFame} from './hall-of-fame.js?v=481';
 import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
 import {guidePrecisionLaser} from './precision-guidance.js?v=478';
@@ -2685,7 +2686,7 @@ function hangarRefresh(){
  renderDrones();renderUpgrades();renderShips();if(hangarUI)hangarUI.render();renderAdminDesigns();
 }
 function resetDockControls(){
- joy.throttle=0;joy.strafe=0;$('stick').style.transform='';
+ floatingJoystick.reset();
  for(const key of Object.keys(keys))keys[key]=0;
 }
 function finishLanding(){
@@ -2801,24 +2802,7 @@ function updateDock(){
 const keys={},joy={throttle:0};let yaw=player.yaw||0,pitch=player.pitch||0;
 addEventListener('keydown',e=>{if(document.body.classList.contains('system-map-open')||e.target?.closest?.('input,textarea,select,#farmAutoMenu'))return;keys[e.key.toLowerCase()]=1;if(e.code==='Space'){e.preventDefault();if(!document.body.classList.contains('inventory-open')&&!docked&&!landing)fire()}if(e.key.toLowerCase()==='q'&&!document.body.classList.contains('inventory-open')&&!docked&&!landing)skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 const joyEl=$('joystick'),stick=$('stick');joy.strafe=0;
-function throttleMove(e){if(!panel.classList.contains('hidden')||docked||landing)return;const r=joyEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);joy.throttle=THREE.MathUtils.clamp(-dy/(r.height*.38),-1,1);joy.strafe=THREE.MathUtils.clamp(dx/(r.width*.38),-1,1);stick.style.transform='translate('+joy.strafe*38+'px,'+(-joy.throttle*38)+'px)'}
-// Entradas táctiles independientes: el joystick no pierde su dedo al disparar.
-let joyTouchId=null;
-function resetJoystick(){joy.throttle=0;joy.strafe=0;stick.style.transform=''}
-joyEl.addEventListener('touchstart',e=>{
- if(joyTouchId!==null)return;
- const t=e.changedTouches[0];if(!t)return;
- joyTouchId=t.identifier;e.preventDefault();throttleMove(t);
-},{passive:false});
-joyEl.addEventListener('touchmove',e=>{
- for(const t of e.changedTouches)if(t.identifier===joyTouchId){e.preventDefault();throttleMove(t);break}
-},{passive:false});
-const stopJoyTouch=e=>{for(const t of e.changedTouches)if(t.identifier===joyTouchId){joyTouchId=null;resetJoystick();break}};
-joyEl.addEventListener('touchend',stopJoyTouch,{passive:false});
-joyEl.addEventListener('touchcancel',stopJoyTouch,{passive:false});
-joyEl.onpointerdown=e=>{if(e.pointerType==='touch')return;joyEl.setPointerCapture(e.pointerId);throttleMove(e)};
-joyEl.onpointermove=e=>{if(e.pointerType!=='touch'&&joyEl.hasPointerCapture(e.pointerId))throttleMove(e)};
-joyEl.onpointerup=joyEl.onpointercancel=e=>{if(e.pointerType!=='touch')resetJoystick()};
+const floatingJoystick=mountFloatingJoystick({element:joyEl,stick,onMove:(strafe,throttle)=>{joy.strafe=strafe;joy.throttle=throttle},canMove:()=>panel.classList.contains('hidden')&&!docked&&!landing&&!document.body.classList.contains('system-map-open')&&!document.querySelector('#worldLoading,dialog[open],#pvpControlEditor:not([hidden]),#shopPanel:not(.hidden)')});
 const lookZone=$('lookZone');let lookId=null,lastLookX=0,lastLookY=0,bankInput=0;
 lookZone.onpointerdown=e=>{if(!panel.classList.contains('hidden'))return;lookId=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;lookZone.setPointerCapture(e.pointerId)};
 lookZone.onpointermove=e=>{if(e.pointerId!==lookId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.0045,-1.15,1.15);bankInput=THREE.MathUtils.clamp(-dx*.035,-.65,.65)};
@@ -3704,7 +3688,7 @@ if(PVP_MODE){
  // Se puede tocar una nave en ambos lados de la pantalla, sin capturar el joystick.
  const taps=new Map(),picker=new THREE.Raycaster();
  const ui='#systemMapOverlay,button,input,select,textarea,a,#worldPanel,#worldTarget,#worldInvite,#pvpSkills,.world-nameplate,#joystick,#hud,#radarWidget,#zoomControls,#combatControls,#hangarPanel';
- document.addEventListener('pointerdown',e=>{if(e.target.closest?.(ui))return;taps.set(e.pointerId,{x:e.clientX,y:e.clientY,moved:false})},true);
+ document.addEventListener('pointerdown',e=>{if(e.defaultPrevented||e.target.closest?.(ui))return;taps.set(e.pointerId,{x:e.clientX,y:e.clientY,moved:false})},true);
  document.addEventListener('pointermove',e=>{const t=taps.get(e.pointerId);if(t&&Math.hypot(e.clientX-t.x,e.clientY-t.y)>15)t.moved=true},true);
  document.addEventListener('pointercancel',e=>taps.delete(e.pointerId),true);
  document.addEventListener('pointerup',e=>{
