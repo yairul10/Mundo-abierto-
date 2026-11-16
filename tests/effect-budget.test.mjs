@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {cloudLayerCount,constrainCooperativePosition} from '../js/cooperative-clouds.js';
 import {effectBudget,cloudSample} from '../js/effect-budget.js';
 test('quality budgets preserve cloud depth and distance coverage',()=>{
  let prior=0;
@@ -17,10 +17,10 @@ test('budgets contain only presentation settings',()=>{
  assert.deepEqual(Object.keys(effectBudget('low')).sort(),['bursts','cloudSteps','effectDistance','fragments','lightningSegments','previewFps'].sort());
  assert.equal(effectBudget('unknown'),effectBudget('medium'));
 });
-test('cloud shader uses adaptive samples with the same range and opacity scaling',async()=>{
- const source=await readFile(new URL('../js/cooperative-clouds.js',import.meta.url),'utf8');
- assert.match(source,/if\(float\(i\)>=sampleCount\)break/);
- assert.match(source,/float\(i\)\*27\.\/\(sampleCount-1\.\)/);
- assert.match(source,/\(99\.5\+f\*9\.\)\*28\.\/sampleCount/);
- assert.match(source,/uniforms.sampleCount.value=budget\(\).cloudSteps/);
+test('texture layers stay bounded across quality changes without changing corridor limits',()=>{
+ assert.deepEqual(['verylow','low','medium','high'].map(level=>cloudLayerCount(effectBudget(level))),[2,2,3,4]);
+ for(const level of ['high','low','medium','verylow']){
+  const p={x:3000,y:3120,z:-15000};cloudLayerCount(effectBudget(level));constrainCooperativePosition(p);
+  assert.ok(Math.abs(Math.hypot(p.x,p.y-120)-1540)<.001);assert.equal(p.z,-12440);
+ }
 });

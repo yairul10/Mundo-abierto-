@@ -1,6 +1,6 @@
 // CPU/scene regression checks, not a device FPS benchmark.
 import assert from 'node:assert/strict';
-import {mountCooperativeClouds} from '../js/cooperative-clouds.js';
+import {mountCooperativeClouds,cloudLayerCount} from '../js/cooperative-clouds.js';
 import {createCloudLightning} from '../js/cloud-lightning.js';
 import {createArenaEnemyView} from '../js/pvp-enemies.js';
 import {effectBudget} from '../js/effect-budget.js';
@@ -10,8 +10,8 @@ for(const level of ['verylow','low','medium','high']){
  let flashes=0,geometry=0;for(let frame=0;frame<200;frame++){fx.update(.025);if(u.lightningPower.value>0)flashes++;geometry=Math.max(geometry,scene.children[0].children.length)}assert.ok(flashes>0);
  if(['verylow','low'].includes(level))assert.equal(geometry,0);else assert.ok(geometry>0);
  fx.dispose();assert.equal(scene.children.length,0);
- const clouds=mountCooperativeClouds(T,scene,{budget:()=>effectBudget(level)}),sky=scene.getObjectByName('Nubes volumétricas cooperativas');clouds.update(.1);assert.equal(sky.material.uniforms.sampleCount.value,effectBudget(level).cloudSteps);assert.ok(sky.material.fragmentShader.includes('if(sampleCount<=18.)'));
- clouds.dispose();assert.equal(scene.children.length,0);
+ const clouds=mountCooperativeClouds(T,scene,{budget:()=>effectBudget(level)}),sky=scene.getObjectByName('Nubes por capas cooperativas');clouds.update(.1);assert.equal(sky.material.uniforms.layerCount.value,cloudLayerCount(effectBudget(level)));assert.ok(!sky.material.fragmentShader.includes('volumeNoise'));assert.equal(scene.children.filter(c=>c.isMesh).length,1);const texture=sky.material.uniforms.noiseMap.value;assert.equal(texture.image.data.byteLength,256*256*4);assert.equal(texture.wrapS,T.RepeatWrapping);let disposed=0;texture.addEventListener('dispose',()=>disposed++);const camera=new T.PerspectiveCamera();camera.position.set(100,220,-6000);camera.updateMatrixWorld();sky.onBeforeRender(null,scene,camera);assert.deepEqual(sky.material.uniforms.eye.value.toArray(),[100,220,-6000]);
+ clouds.dispose();assert.equal(scene.children.length,0);assert.equal(disposed,1);
  console.log(level+': lightning meshes '+geometry+', ambient flashes '+flashes);
 }
 const scene=new T.Scene(),camera=new T.PerspectiveCamera(),origin=new T.Vector3(0,120,0);camera.position.set(0,120,300);camera.updateMatrixWorld();let limit=2200;

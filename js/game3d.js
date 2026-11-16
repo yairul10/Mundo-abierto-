@@ -14,7 +14,7 @@ import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile}
 import {createBackgroundTextures} from './background-textures.js?v=441';
 import {effectBudget} from './effect-budget.js?v=440';
 import {createRefreshGate,batchStaticField} from './frame-work.js?v=439';
-import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=482';
+import {mountCooperativeClouds,constrainCooperativePosition} from './cooperative-clouds.js?v=484';
 import {createInfernoCombat} from './inferno.js?v=441';
 import {combatBoosterTimers as damageBoosterTimers,projectileMultiplier,activeDamageBooster,damageBoosterMultiplier} from './damage-boosters.js?v=478';
 import {createWreckVisibility} from './wreck-visibility.js?v=390';
