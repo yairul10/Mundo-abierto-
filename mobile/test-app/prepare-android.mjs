@@ -21,7 +21,7 @@ public class MainActivity extends BridgeActivity {
         bars.hide(WindowInsetsCompat.Type.systemBars());
         bars.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
     }
-    @Override public void onCreate(Bundle state) { registerPlugin(PlayGamesPlugin.class); PlayGamesSdk.initialize(this); super.onCreate(state); getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); immersive(); }
+    @Override public void onCreate(Bundle state) { registerPlugin(PlayGamesPlugin.class); PlayGamesSdk.initialize(this); super.onCreate(state); if (bridge != null) bridge.getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false); getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); immersive(); }
     @Override public void onWindowFocusChanged(boolean focus) { super.onWindowFocusChanged(focus); if (focus) immersive(); }
     @Override public void onPause() { super.onPause(); if (bridge != null) bridge.triggerWindowJSEvent("cosmos:app-paused"); }
     @Override public void onResume() { super.onResume(); if (bridge != null) bridge.triggerWindowJSEvent("cosmos:app-resumed"); }

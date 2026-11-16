@@ -34,3 +34,18 @@ solicitud de privada nueva, autorización de cuenta/entorno/expiración, cancela
 manual y errores de almacenamiento. Pendiente probar ciclos completos en la
 app, incluyendo recibos de recompensa tardíos y reconexiones reales. No requiere
 cambiar ni desplegar el servidor; usa las rutas existentes de crear privada.
+
+## Música al repetir
+
+El reproductor recuerda durante dos minutos la pista y su posición en la sesión
+local cuando ya había sido activado por el jugador. Tras recargar intenta
+reanudarla, manteniendo silencio y volumen configurados. No activa música en la
+primera visita sin una sesión previa. Android permite reproducción multimedia
+sin exigir un nuevo gesto en cada recarga; este ajuste requiere compilar el APK.
+Si el navegador rechaza la reproducción, aparece «Reanudar música». Ese botón
+está excluido del control manual de AUTO y AUTO PRO, por lo que no cancela el
+piloto. No se crean reproductores adicionales para reintentar.
+
+Pruebas: pista/posición tras recarga, silencio/volumen cero, intención caducada,
+limpieza antes de reanudar y rechazo de reproducción con recuperación manual.
+Pendiente comprobación de audio real en Android/Google Play Games para PC.

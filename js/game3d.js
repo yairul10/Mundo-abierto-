@@ -1,7 +1,7 @@
 import {readCoopChoice} from './coop-room-ui.js?v=491';
 import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings} from './coop-auto-run.js?v=493';
 import {desktopMode} from './desktop-platform.js?v=487';
-import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=488';
+import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=495';
 import {mountFloatingJoystick} from './floating-joystick.js?v=486';
 import {mountHallOfFame} from './hall-of-fame.js?v=481';
 import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
@@ -48,7 +48,7 @@ import {correctionStep} from './pvp-prediction.js?v=324';
 import {mountPvpControlEditor} from './pvp-control-editor.js?v=488';
 import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
-import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=299';
+import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=495';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
 import {saveBossReceipts} from './pvp-boss-rewards.js?v=443';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
@@ -3371,7 +3371,7 @@ if(!PVP_MODE){
  farmPilot=createFarmPilot(config);
  farmUI=mountFarmPilotUI({pilot:farmPilot,level:()=>player.level,onStart:resetDockControls,persist:c=>safeStorageSet(SAVE_KEY+'.farmPilot',JSON.stringify(c))});
  if(!PVP_MODE)mountPvpControlEditor({realm:window.MUNDO_PLAY_MODE?.mode||'normal',isHangarOpen:()=>docked,pve:true});
- const manual=e=>{if(e.target.closest?.('#farmAutoBtn,#farmAutoMenu'))return;if(farmPilot.running){farmPilot.stop();farmUI.refresh()}};
+ const manual=e=>{if(e.target.closest?.('#farmAutoBtn,#farmAutoMenu,[data-audio-resume]'))return;if(farmPilot.running){farmPilot.stop();farmUI.refresh()}};
  document.addEventListener('pointerdown',manual,true);
  document.addEventListener('touchstart',manual,{capture:true,passive:true});
  addEventListener('keydown',e=>{if(!e.target.closest?.('#farmAutoMenu'))manual(e)},true);
@@ -3700,7 +3700,7 @@ if(PVP_MODE){
   if(!canRunPvpFarm())return;
   resetDockControls();coopFarmPilot.reset();pvpFarmRunning=true;pvpFarmButton.setAttribute('aria-pressed','true');
  };
- const takePvpControl=event=>{if(pvpFarmRunning&&!pvpFarmButton.contains(event.target)&&!pvpFarmSettings?.contains(event.target)&&!event.target.closest?.('#coopAutoSettings'))stopPvpFarm()};
+ const takePvpControl=event=>{if(pvpFarmRunning&&!pvpFarmButton.contains(event.target)&&!pvpFarmSettings?.contains(event.target)&&!event.target.closest?.('#coopAutoSettings,[data-audio-resume]'))stopPvpFarm()};
  document.addEventListener('pointerdown',takePvpControl,true);
  document.addEventListener('touchstart',takePvpControl,{capture:true,passive:true});
  addEventListener('keydown',takePvpControl,true);

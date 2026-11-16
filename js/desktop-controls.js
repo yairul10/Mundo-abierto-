@@ -4,7 +4,7 @@ const ui='button,a,input,textarea,select,label,[role="button"],[contenteditable]
 export function mountDesktopControls({enabled,canPlay,keys,onFire,onAim,onZoom,onAction,onHelp,onEscape,getBindings=()=>readKeybindings(),doc=document,win=window}){
  let mouseFire=false,spaceFire=false,pointer=null,capture=null,last=null;const held=new Map();
  const syncHeld=()=>{for(const [action,key] of Object.entries(MOVE_ACTIONS))keys[key]=[...held.values()].includes(action)?1:0;spaceFire=[...held.values()].includes('fire');signal()};
- const typing=e=>e.isComposing||e.ctrlKey||e.altKey||e.metaKey||!!e.target?.closest?.('input,textarea,select,[contenteditable]');
+ const typing=e=>e.isComposing||e.ctrlKey||e.altKey||e.metaKey||!!e.target?.closest?.('input,textarea,select,[contenteditable],[data-audio-resume]');
  const signal=()=>onFire(mouseFire||spaceFire);
  const consume=e=>{if(e.cancelable)e.preventDefault();e.stopPropagation()};
  function reset(){held.clear();mouseFire=spaceFire=false;signal();for(const key of Object.values(PC_MOVEMENT))keys[key]=0;const id=pointer;pointer=null;last=null;try{if(capture?.hasPointerCapture?.(id))capture.releasePointerCapture(id)}catch{}capture=null}
@@ -33,7 +33,7 @@ export function mountDesktopControls({enabled,canPlay,keys,onFire,onAim,onZoom,o
  const events=[['pointerdown',down],['pointermove',move],['pointerup',up],['pointercancel',up],['lostpointercapture',up],['keydown',keydown],['keyup',keyup],['wheel',wheel],['contextmenu',context]],options={capture:true,passive:false};
  for(const [name,handler] of events)doc.addEventListener(name,handler,options);
  for(const name of ['blur','pagehide','cosmos:app-paused','cosmos:keybindings-changed'])win.addEventListener(name,reset);
- const visibility=()=>{if(doc.hidden)reset()};const focus=event=>{if(event.target?.closest?.('input,textarea,select,[contenteditable]'))reset()};doc.addEventListener('visibilitychange',visibility);doc.addEventListener('focusin',focus);
+ const visibility=()=>{if(doc.hidden)reset()};const focus=event=>{if(event.target?.closest?.('input,textarea,select,[contenteditable],[data-audio-resume]'))reset()};doc.addEventListener('visibilitychange',visibility);doc.addEventListener('focusin',focus);
  const observer=win.MutationObserver?new win.MutationObserver(()=>{if((pointer!==null||spaceFire||Object.values(PC_MOVEMENT).some(k=>keys[k]))&&!canPlay())reset()}):null;observer?.observe(doc.body,{subtree:true,attributes:true,attributeFilter:['class','hidden','open']});
  return {reset,dispose(){reset();observer?.disconnect();for(const [name,handler] of events)doc.removeEventListener(name,handler,options);for(const name of ['blur','pagehide','cosmos:app-paused','cosmos:keybindings-changed'])win.removeEventListener(name,reset);doc.removeEventListener('visibilitychange',visibility);doc.removeEventListener('focusin',focus)}};
 }
