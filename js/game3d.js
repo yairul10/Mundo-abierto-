@@ -1,6 +1,6 @@
 import {mountBaseActions} from './base-actions.js?v=498';
 import {readCoopChoice} from './coop-room-ui.js?v=491';
-import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings} from './coop-auto-run.js?v=493';
+import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings,coopAutoShouldRepeat} from './coop-auto-run.js?v=499';
 import {desktopMode} from './desktop-platform.js?v=487';
 import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=495';
 import {mountFloatingJoystick} from './floating-joystick.js?v=486';
@@ -69,7 +69,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=497';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=497';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=499';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=497';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -3425,9 +3425,10 @@ function stopPvpFarm(){
  pvpFarmResume=false;pvpFarmRunning=false;pvpFarmTarget=null;coopFarmPilot.reset();
  pvpFarmButton?.setAttribute('aria-pressed','false');if(pvpFarmButton)pvpFarmButton.textContent='AUTO PRO';pvpFarmLastStatus='';
 }
-async function repeatCoopFarm(){
- if(pvpFarmRestarting||!pvpFarmRunning||!coopAutoSettings.repeat)return false;pvpFarmRestarting=true;
- try{const restarted=await pvpSession.restartPrivate(()=>pvpFarmRunning&&coopAutoSettings.repeat&&!document.hidden&&document.hasFocus());if(!restarted)stopPvpFarm();return restarted}catch(error){stopPvpFarm();lootToast('AUTO detenido · '+error.message);return false}finally{pvpFarmRestarting=false}
+async function repeatCoopFarm(reason='completed'){
+ if(pvpFarmRestarting||!pvpFarmRunning||!coopAutoShouldRepeat(coopAutoSettings,reason))return false;pvpFarmRestarting=true;
+ if(pvpFarmButton){pvpFarmButton.textContent='GUARDANDO…';pvpFarmButton.title='Confirmando respaldo para iniciar otra privada';}
+ try{const restarted=await pvpSession.restartPrivate(()=>pvpFarmRunning&&coopAutoShouldRepeat(coopAutoSettings,reason)&&!document.hidden&&document.hasFocus(),{reason});if(!restarted)stopPvpFarm();return restarted}catch(error){stopPvpFarm();lootToast('AUTO detenido · '+error.message);return false}finally{pvpFarmRestarting=false}
 }
 function pvpFarmInput(dt){
  if(!pvpFarmButton)return null;
