@@ -143,15 +143,26 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
   if(m.emissive&&base.emissive.getHex())m.emissive.set(skin.energy);
   if((id==='colombia'||id==='chile')&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
   if(id==='chile'&&reactor){
-   // Blue core remains readable under strong hangar lighting without bloom.
-   m.color.set(0x0753b8);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=.7;
-   m.onBeforeCompile=shader=>{shader.vertexShader='varying vec3 corePosition;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;');shader.fragmentShader='varying vec3 corePosition;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
-    float turbulence=sin(corePosition.x*2.3+sin(corePosition.z*1.9))*sin(corePosition.y*2.7+sin(corePosition.x*1.6));
-    float bands=pow(1.0-abs(turbulence),18.0)*0.48;
-    float glow=pow(max(0.0,1.0-length(corePosition.xy)/8.0),3.0)*0.35;
-    totalEmissiveRadiance=mix(vec3(0.005,0.055,0.25),vec3(0.06,0.7,1.0),bands+glow);
-   `)};
-   m.customProgramCacheKey=()=> 'obsidian-chile-core-v2';
+   // Slow, broad energy currents avoid the tiny grid produced by high-frequency bands.
+   const coreTime={value:0};m.userData.previewCoreTime=coreTime;
+   m.color.set(0x073276);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=1;
+   m.onBeforeCompile=shader=>{
+    shader.uniforms.previewCoreTime=coreTime;
+    shader.vertexShader='varying vec3 corePosition;\n'+shader.vertexShader;
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;');
+    shader.fragmentShader='varying vec3 corePosition;\nuniform float previewCoreTime;\n'+shader.fragmentShader;
+    shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+     vec3 p=corePosition/8.0;
+     float t=previewCoreTime*0.6;
+     float wave=sin(p.x*4.0+p.y*2.6+sin(p.z*3.0+t)*1.4+t);
+     float wave2=sin(p.y*4.0-p.z*2.5+sin(p.x*3.0-t)*1.2-t*0.8);
+     float arcs=pow(max(0.0,1.0-abs(wave)),12.0)*0.6
+               +pow(max(0.0,1.0-abs(wave2)),16.0)*0.45;
+     float cloud=0.5+0.5*sin(p.x*2.5-p.y*2.2+p.z*2.0+t);
+     totalEmissiveRadiance=vec3(0.005,0.035,0.18)+vec3(0.01,0.16,0.42)*cloud+vec3(0.32,0.85,1.0)*arcs;
+    `);
+   };
+   m.customProgramCacheKey=()=> 'obsidian-preview-chile-core-v508';
   }
  }
  return m;
@@ -201,4 +212,9 @@ export function applyObsidianSkin(THREE,root,id='original'){
   for(const m of previous)if(originals.has(m))m.dispose();
  });
  root.userData.obsidianSkin=id;
+}
+
+// Only the isolated preview updates these material uniforms.
+export function animatePreviewCore(root,time){
+ root.traverse(o=>{if(!o.isMesh)return;for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m?.userData?.previewCoreTime)m.userData.previewCoreTime.value=time;});
 }
