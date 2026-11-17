@@ -148,9 +148,9 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
    m.color.set(0x073276);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=1;
    m.onBeforeCompile=shader=>{
     shader.uniforms.previewCoreTime=coreTime;
-    shader.vertexShader='varying vec3 corePosition;\n'+shader.vertexShader;
-    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;');
-    shader.fragmentShader='varying vec3 corePosition;\nuniform float previewCoreTime;\n'+shader.fragmentShader;
+    shader.vertexShader='varying vec3 corePosition;\nvarying vec3 coreViewPosition;\nvarying vec3 coreViewNormal;\n'+shader.vertexShader;
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;\ncoreViewPosition=(modelViewMatrix*vec4(position,1.0)).xyz;\ncoreViewNormal=normalMatrix*normal;');
+    shader.fragmentShader='varying vec3 corePosition;\nvarying vec3 coreViewPosition;\nvarying vec3 coreViewNormal;\nuniform float previewCoreTime;\n'+shader.fragmentShader;
     shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
      vec3 p=corePosition/8.0;
      float t=previewCoreTime*0.6;
@@ -159,10 +159,12 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
      float arcs=pow(max(0.0,1.0-abs(wave)),12.0)*0.6
                +pow(max(0.0,1.0-abs(wave2)),16.0)*0.45;
      float cloud=0.5+0.5*sin(p.x*2.5-p.y*2.2+p.z*2.0+t);
-     totalEmissiveRadiance=vec3(0.005,0.035,0.18)+vec3(0.01,0.16,0.42)*cloud+vec3(0.32,0.85,1.0)*arcs;
+     float facing=max(dot(normalize(coreViewNormal),normalize(-coreViewPosition)),0.0);
+     float heart=pow(facing,18.0)*(0.85+0.15*sin(t*2.0));
+     totalEmissiveRadiance=vec3(0.005,0.035,0.18)+vec3(0.01,0.16,0.42)*cloud+vec3(0.32,0.85,1.0)*arcs+vec3(1.1,1.7,2.0)*heart;
     `);
    };
-   m.customProgramCacheKey=()=> 'obsidian-preview-chile-core-v508';
+   m.customProgramCacheKey=()=> 'obsidian-preview-chile-core-v509';
   }
  }
  return m;

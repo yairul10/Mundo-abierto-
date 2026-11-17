@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {fitPreviewCamera} from './preview-framing.js?v=506';
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
-import {applyObsidianSkin,animatePreviewCore} from './obsidian-design-skin.js?v=508';
+import {applyObsidianSkin,animatePreviewCore} from './obsidian-design-skin.js?v=509';
 import {fitPreviewModel} from './ship-preview-catalog.js?v=355';
 const $=id=>document.getElementById(id),host=$('viewer'),status=$('status');
 let model,turntable,auto=true,last=0,renderer,shaderFailed=false,zoomFactor=1.35;
@@ -21,8 +21,16 @@ try{
  model=await loadObsidian(THREE,new GLTFLoader());
  // Smoother sphere in this preview; the actual game model is untouched.
  model.children.filter(o=>o.isMesh&&o.geometry?.type==='SphereGeometry').forEach(o=>{o.geometry.dispose();o.geometry=new THREE.SphereGeometry(8,48,32)});
+ // A soft halo is isolated to this comparison view and respects scene depth.
+ const glowCanvas=document.createElement('canvas');glowCanvas.width=128;glowCanvas.height=128;
+ const ctx=glowCanvas.getContext('2d'),gradient=ctx.createRadialGradient(64,64,8,64,64,64);
+ gradient.addColorStop(0,'rgba(90,210,255,0.55)');gradient.addColorStop(.38,'rgba(35,150,255,0.26)');gradient.addColorStop(1,'rgba(10,80,255,0)');
+ ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);
+ const glowTexture=new THREE.CanvasTexture(glowCanvas);glowTexture.colorSpace=THREE.SRGBColorSpace;
+ const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.55,toneMapped:false}));
+ glow.position.set(0,3,14);glow.scale.set(28,28,1);model.add(glow);
  turntable=fitPreviewModel(THREE,model,'obsidian');scene.add(turntable);
- const paint=id=>{shaderFailed=false;applyObsidianSkin(THREE,model,id);for(const name of ['original','chile'])$(name).setAttribute('aria-pressed',String(name===id));renderer.compile(scene,camera);if(!shaderFailed)status.textContent=id==='chile'?'Prueba 508 · Chile: núcleo de energía.':'Diseño original · Misma geometría.';};
+ const paint=id=>{shaderFailed=false;applyObsidianSkin(THREE,model,id);glow.visible=id==='chile';for(const name of ['original','chile'])$(name).setAttribute('aria-pressed',String(name===id));renderer.compile(scene,camera);if(!shaderFailed)status.textContent=id==='chile'?'Prueba 509 · Chile: núcleo brillante.':'Diseño original · Misma geometría.';};
  $('original').onclick=()=>paint('original');$('chile').onclick=()=>paint('chile');
  const stopRotation=()=>{auto=false;$('spin').setAttribute('aria-pressed','false')};
  $('front').onclick=()=>{stopRotation();view(false)};$('rear').onclick=()=>{stopRotation();view(true)};
