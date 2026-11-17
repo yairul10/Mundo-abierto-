@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
-import {applyObsidianSkin} from './obsidian-skins.js?v=502';
+import {applyObsidianSkin} from './obsidian-skins.js?v=503';
 import {fitPreviewModel} from './ship-preview-catalog.js?v=355';
 const $=id=>document.getElementById(id),host=$('viewer'),status=$('status');
 let model,turntable,auto=true,last=0,renderer,shaderFailed=false;
@@ -15,7 +15,7 @@ try{
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
  renderer.setClearColor(0x0a1426);host.append(renderer.domElement);
  renderer.debug.onShaderError=(gl,program,vertex,fragment)=>{shaderFailed=true;status.textContent='No se pudo mostrar la pintura. Prueba la vista original.';console.error(gl.getProgramInfoLog(program),gl.getShaderInfoLog(vertex),gl.getShaderInfoLog(fragment));};
- const resize=()=>{const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
+ const resize=()=>{const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/h;camera.zoom=Math.min(1,camera.aspect*.95);camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
  addEventListener('resize',resize);resize();
  model=await loadObsidian(THREE,new GLTFLoader());turntable=fitPreviewModel(THREE,model,'obsidian');scene.add(turntable);
  const paint=id=>{shaderFailed=false;applyObsidianSkin(THREE,model,id);for(const name of ['original','chile'])$(name).setAttribute('aria-pressed',String(name===id));renderer.compile(scene,camera);if(!shaderFailed)status.textContent=id==='chile'?'Chile · Blanco y azul en el casco, detalles rojos y energía azul.':'Diseño original · Misma geometría.';};

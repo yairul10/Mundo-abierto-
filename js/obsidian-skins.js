@@ -19,6 +19,13 @@ export const OBSIDIAN_SKINS=Object.freeze({
 });
 export function allowedObsidianSkin(id,admin){return admin===true&&Object.hasOwn(OBSIDIAN_SKINS,id)?id:'original'}
 const originals=new WeakMap(),wakeGeometry=new WeakMap();
+const chileTextures=new WeakMap();
+function chileTexture(THREE,part){
+ if(!THREE.TextureLoader)return null;
+ let textures=chileTextures.get(THREE);if(!textures){textures={};chileTextures.set(THREE,textures)}
+ if(!textures[part]){const map=new THREE.TextureLoader().load('./assets/skins/obsidian-chile/'+part+'.png?v=503');map.flipY=false;map.colorSpace=THREE.SRGBColorSpace;textures[part]=map}
+ return textures[part];
+}
 const baseMaterial=m=>originals.get(m)||m;
 // Smooth color masks preserve the atlas shading, normals and metal/roughness maps.
 const colombiaPaint = `
@@ -78,10 +85,12 @@ vec3 chileFlag(vec2 uv){
 }
 bool insideChileFlag(vec2 uv){return uv.x>=0.0&&uv.x<=1.0&&uv.y>=0.0&&uv.y<=1.0;}
 `;
-function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
+function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
  const base=baseMaterial(source),skin=OBSIDIAN_SKINS[id],m=base.clone();originals.set(m,base);
  if(base.map){
   const energy=new THREE.Color(skin.energy),trim=skin.trim;
+  const baked=id==='chile'?chileTexture(THREE,part):null;
+  if(baked){m.map=baked;m.color?.set(0xffffff)}
   m.onBeforeCompile=shader=>{
    shader.uniforms.skinEnergy={value:energy};
    if(paintFrame){
@@ -107,7 +116,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
     float brightness = max(atlas.r, max(atlas.g, atlas.b));
     vec3 darkHull = atlas * 0.40;
     vec3 finish = ${paintFrame ? '('+skin.pattern+') * clamp(brightness * 1.35 + 0.13, 0.0, 1.0)' : 'mix(darkHull, skinTrim * brightness, trimMask)'};
-    diffuseColor.rgb = mix(finish, skinEnergy * brightness, energyMask);
+    diffuseColor.rgb = ${baked ? 'atlas' : 'mix(finish, skinEnergy * brightness, energyMask)'};
     ${id==='colombia' ? `
     // Project a small flag onto the upward-facing nose panels.
     if (!skinRing && skinNormal.y > 0.35 * length(skinNormal)) {
@@ -127,7 +136,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-skin-v4-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-skin-v5-'+id;
   if(id==='chile'&&m.isMeshStandardMaterial){m.metalnessMap=null;m.roughnessMap=null;m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
@@ -135,6 +144,15 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
   if(m.color){const c=base.color;m.color.set(c.g>.85&&c.r>.35?skin.core:skin.energy)}
   if(m.emissive&&base.emissive.getHex())m.emissive.set(skin.energy);
   if((id==='colombia'||id==='chile')&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
+  if(id==='chile'&&reactor){
+   // Blue core remains readable under strong hangar lighting without bloom.
+   m.color.set(0x0753b8);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=.7;
+   m.onBeforeCompile=shader=>{shader.vertexShader='varying vec3 corePosition;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;');shader.fragmentShader='varying vec3 corePosition;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+    float bands=pow(0.5+0.5*sin(corePosition.y*2.8+sin(corePosition.x*1.7)*1.8),12.0);
+    totalEmissiveRadiance=mix(vec3(0.005,0.055,0.25),vec3(0.06,0.7,1.0),bands);
+   `)};
+   m.customProgramCacheKey=()=> 'obsidian-chile-core-v1';
+  }
  }
  return m;
 }
@@ -167,18 +185,18 @@ export function applyObsidianSkin(THREE,root,id='original'){
    return;
   }
   const previous=Array.isArray(o.material)?o.material:[o.material];
-  let paintFrame=worldToShip&&worldToShip.clone().multiply(o.matrixWorld),ring=false;
+  let paintFrame=worldToShip&&worldToShip.clone().multiply(o.matrixWorld),ring=false,part='fighter';
   if(id==='colombia'||id==='chile'){
    // Keep each color segment attached to its rotating ring.
    for(let parent=o.parent;parent&&parent!==root;parent=parent.parent){
     if(!parent.name.startsWith('obsidian-ring-'))continue;
     paintFrame=parent.matrixWorld.clone().invert().multiply(o.matrixWorld);
-    ring=true;
+    ring=true;part=parent.name==='obsidian-ring-0'?'portal':'inner-ring';
     break;
    }
   }
   const reactor=o.parent===root&&o.geometry?.type==='SphereGeometry';
-  const next=previous.map(m=>id==='original'?baseMaterial(m):recoloredMaterial(THREE,m,id,paintFrame,ring,reactor));
+  const next=previous.map(m=>id==='original'?baseMaterial(m):recoloredMaterial(THREE,m,id,paintFrame,ring,reactor,part));
   o.material=Array.isArray(o.material)?next:next[0];
   for(const m of previous)if(originals.has(m))m.dispose();
  });

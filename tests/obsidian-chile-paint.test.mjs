@@ -11,7 +11,7 @@ class Matrix{
 class Color{constructor(hex=0xffffff){this.hex=hex;this.r=1;this.g=1;this.b=1}set(hex){this.hex=hex;return this}getHex(){return this.hex}}
 class Material{
  constructor(){this.isMeshStandardMaterial=true;this.map={atlas:'original'};this.normalMap={normal:'original'};this.roughnessMap={roughness:'original'};this.metalnessMap={metal:'original'};this.metalness=.7;this.roughness=.4;this.color=new Color();this.disposed=false}
- clone(){return Object.assign(new Material(),this)}
+ clone(){const m=Object.assign(new Material(),this);m.color=new Color(this.color.getHex());if(this.emissive)m.emissive=new Color(this.emissive.getHex());return m}
  dispose(){this.disposed=true}
 }
 const THREE={Color,Vector3:class{}};
@@ -52,4 +52,23 @@ test('painting keeps both original ring animations in opposite directions',()=>{
  assert.ok(f.outer.rotation.z>0);assert.ok(f.inner.rotation.z<0);
  applyObsidianSkin(THREE,f.root,'original');animateObsidian(f.root,.05,0);
  assert.ok(f.outer.rotation.z>.05*.38);assert.ok(f.inner.rotation.z<-.05*.55);
+});
+test('Chile selects separate baked UV maps for hull and ring and restores original maps',()=>{
+ const requested=[];
+ const textured={...THREE,SRGBColorSpace:'srgb',TextureLoader:class{load(url){const map={url};requested.push(map);return map}}};
+ const f=fixture();applyObsidianSkin(textured,f.root,'chile');
+ assert.match(f.hull.material.map.url,/fighter.png/);assert.match(f.ring.material.map.url,/portal.png/);
+ for(const map of requested){assert.equal(map.flipY,false);assert.equal(map.colorSpace,'srgb')}
+ const shader={uniforms:{},vertexShader:'#include <begin_vertex>',fragmentShader:'#include <map_fragment>'};
+ f.hull.material.onBeforeCompile(shader);assert.match(shader.fragmentShader,/diffuseColor.rgb = atlas;/);
+ applyObsidianSkin(textured,f.root,'original');assert.equal(f.hull.material.map,f.original.map);
+});
+test('Chile reactor uses blue emission with energy bands and restores the original material',()=>{
+ const f=fixture(),coreMaterial=new Material();coreMaterial.map=null;coreMaterial.emissive=new Color(0x09cdb8);
+ const core={name:'reactor',parent:f.root,isMesh:true,material:coreMaterial,geometry:{type:'SphereGeometry'},matrixWorld:new Matrix('reactor')};
+ const traverse=f.root.traverse;f.root.traverse=fn=>{traverse.call(f.root,fn);fn(core)};
+ applyObsidianSkin(THREE,f.root,'chile');assert.equal(core.material.color.getHex(),0x0753b8);
+ const shader={vertexShader:'#include <begin_vertex>',fragmentShader:'#include <emissivemap_fragment>'};core.material.onBeforeCompile(shader);
+ assert.match(shader.fragmentShader,/totalEmissiveRadiance=mix/);
+ applyObsidianSkin(THREE,f.root,'original');assert.equal(core.material,coreMaterial);
 });

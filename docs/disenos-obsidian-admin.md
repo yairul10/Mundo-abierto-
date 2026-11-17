@@ -17,3 +17,7 @@ Abrir `obsidian-design-preview.html` permite comparar Original y Chile sobre los
 ## Validación
 
 Las pruebas cubren autorización, aislamiento y restauración de materiales, conservación de geometría/atlas, uso del marco de cada aro y continuidad de las rotaciones opuestas. La compilación y revisión visual se comprueban por separado.
+
+
+### Prueba Chile 503
+Se hornean tres texturas RGB de 1024×1024 en los UV originales mediante `tools/bake-obsidian-chile.py`. Las zonas de pintura se definen en coordenadas de cada pieza y se elimina la máscara de color dorado que provocaba manchas. Es pintura por zonas geométricas, no un trabajo manual de cada placa. Se conserva el relieve de los mapas originales y no se cambian posiciones, índices ni animaciones. El núcleo tiene bandas emisivas azules sin bloom. La vista de prueba ajusta la cámara al ancho del celular para evitar recortar la nave.
