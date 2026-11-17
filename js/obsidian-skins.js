@@ -7,7 +7,7 @@ export const OBSIDIAN_SKINS=Object.freeze({
  carmesi:Object.freeze({name:'Carmesí',energy:0xff243e,core:0xffc4cb,trim:[.65,.012,.025]}),
  imperial:Object.freeze({name:'Imperial',energy:0xb456ff,core:0xedccff,trim:[.9,.52,.08]}),
  chile:country('Chile',0x3d83ff,0xdbeaff,[white,blue,red],
-  'skinPoint.y < 0.0 ? paintC : (skinPoint.x < -9.0 ? paintB : paintA)'),
+  'chilePanels(atlas, normalize(skinNormal), skinPoint)'),
  mexico:country('México',0x31db81,0xd0ffdf,[0x198458,white,red],
   'skinPoint.x < -9.0 ? paintA : (skinPoint.x > 9.0 ? paintC : paintB)'),
  colombia:country('Colombia',0xffc43d,0xffefb0,[yellow,blue,red],
@@ -36,6 +36,48 @@ const colombiaPaint = `
   return mix(plate, paintC, warmTrim * smoothstep(0.35, 0.65, side));
  }
 `;
+const chilePaint = `
+// Chile paint follows the original armor/trim atlas; geometry and UVs are untouched.
+varying vec3 skinNormal;
+uniform bool skinRing;
+vec3 chilePanels(vec3 atlas,vec3 normal,vec3 point){
+ float trim=smoothstep(0.035,0.13,min(atlas.r,atlas.g)-atlas.b);
+ if(skinRing){
+  float segment=floor((atan(point.y,point.x)+3.14159265)*1.9098593);
+  vec3 plate=mod(segment,4.0)<1.0?paintB:paintA;
+  return mix(plate,paintC,trim);
+ }
+ float side=smoothstep(0.35,0.78,abs(normal.x));
+ vec3 plate=mix(paintA,paintB,side);
+ float spine=(1.0-smoothstep(6.0,14.0,abs(point.x)))*0.82;
+ plate=mix(plate,paintB,spine);
+ plate=mix(plate,paintB,smoothstep(0.1,0.6,-normal.y));
+ return mix(plate,paintC,trim);
+}
+bool chileStar(vec2 point){
+ bool inside=false;
+ float angle=1.570796327-0.628318531;
+ vec2 previous=vec2(cos(angle),sin(angle))*0.073;
+ for(int i=0;i<10;i++){
+  float a=1.570796327+float(i)*0.628318531;
+  float radius=mod(float(i),2.0)<0.5?0.17:0.073;
+  vec2 vertex=vec2(cos(a),sin(a))*radius;
+  if((vertex.y>point.y)!=(previous.y>point.y)){
+   float dy=previous.y-vertex.y;
+   if(point.x<(previous.x-vertex.x)*(point.y-vertex.y)/dy+vertex.x)inside=!inside;
+  }
+  previous=vertex;
+ }
+ return inside;
+}
+vec3 chileFlag(vec2 uv){
+ if(uv.y<0.5)return paintC;
+ if(uv.x>=0.333333333)return paintA;
+ vec2 starPoint=(uv-vec2(0.166666667,0.75))*vec2(1.5,1.0);
+ return chileStar(starPoint)?paintA:paintB;
+}
+bool insideChileFlag(vec2 uv){return uv.x>=0.0&&uv.x<=1.0&&uv.y>=0.0&&uv.y<=1.0;}
+`;
 function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
  const base=baseMaterial(source),skin=OBSIDIAN_SKINS[id],m=base.clone();originals.set(m,base);
  if(base.map){
@@ -48,13 +90,13 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
     shader.vertexShader='uniform mat4 skinFrame;\nvarying vec3 skinPoint;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nskinPoint = (skinFrame * vec4(position, 1.0)).xyz;');
     shader.fragmentShader='varying vec3 skinPoint;\nuniform vec3 paintA, paintB, paintC;\n'+shader.fragmentShader;
-    if(id==='colombia'){
+    if(id==='colombia'||id==='chile'){
      shader.uniforms.skinRing={value:ring};
      shader.vertexShader='varying vec3 skinNormal;\n'+shader.vertexShader;
      shader.vertexShader=shader.vertexShader.replace('skinPoint = (skinFrame * vec4(position, 1.0)).xyz;',
       'skinPoint = (skinFrame * vec4(position, 1.0)).xyz;\nskinNormal = mat3(skinFrame) * normal;');
      shader.fragmentShader=shader.fragmentShader.replace('uniform vec3 paintA, paintB, paintC;',
-      'uniform vec3 paintA, paintB, paintC;\n'+colombiaPaint);
+      'uniform vec3 paintA, paintB, paintC;\n'+(id==='chile'?chilePaint:colombiaPaint));
     }
    }else shader.uniforms.skinTrim={value:new THREE.Vector3(...trim)};
    shader.fragmentShader='uniform vec3 skinEnergy;\nuniform vec3 skinTrim;\n'+shader.fragmentShader;
@@ -74,16 +116,25 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor){
       diffuseColor.rgb = flag.y < 0.5 ? vec3(1.0, 0.63, 0.015) : (flag.y < 0.75 ? paintB : paintC);
      }
     }` : ''}
+    ${id==='chile' ? `
+    // Paint two top-panel flags so the design remains readable from rear flight view.
+    if(!skinRing && skinNormal.y > 0.45 * length(skinNormal)){
+     vec2 frontFlag=vec2(skinPoint.x/14.0+0.5,(-skinPoint.z-36.0)/9.0);
+     vec2 rearFlag=vec2(skinPoint.x/12.0+0.5,(skinPoint.z-28.0)/8.0);
+     if(insideChileFlag(frontFlag))diffuseColor.rgb=chileFlag(frontFlag);
+     else if(insideChileFlag(rearFlag))diffuseColor.rgb=chileFlag(rearFlag);
+    }` : ''}
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-skin-v3-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-skin-v4-'+id;
+  if(id==='chile'&&m.isMeshStandardMaterial){m.metalnessMap=null;m.roughnessMap=null;m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
   // The procedural core and engines use untextured materials.
   if(m.color){const c=base.color;m.color.set(c.g>.85&&c.r>.35?skin.core:skin.energy)}
   if(m.emissive&&base.emissive.getHex())m.emissive.set(skin.energy);
-  if(id==='colombia'&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
+  if((id==='colombia'||id==='chile')&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
  }
  return m;
 }
@@ -117,7 +168,7 @@ export function applyObsidianSkin(THREE,root,id='original'){
   }
   const previous=Array.isArray(o.material)?o.material:[o.material];
   let paintFrame=worldToShip&&worldToShip.clone().multiply(o.matrixWorld),ring=false;
-  if(id==='colombia'){
+  if(id==='colombia'||id==='chile'){
    // Keep each color segment attached to its rotating ring.
    for(let parent=o.parent;parent&&parent!==root;parent=parent.parent){
     if(!parent.name.startsWith('obsidian-ring-'))continue;
