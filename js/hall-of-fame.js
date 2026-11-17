@@ -28,7 +28,7 @@ export function mountHallOfFame({button,getToken,realm='normal',fetcher=fetch}){
    const columns=key==='clans'?['Puesto','Clan','Puntos','Guerras ganadas']:key==='levels'?['Puesto','Jugador','Nivel','XP']:['Puesto','Jugador','Rango','Puntos','Victorias'];
    for(const label of columns){const cell=make('th',label);cell.setAttribute('scope','col');heading.append(cell)}head.append(heading);
    for(const row of rows){const line=make('tr');if(row.own){line.className='hall-highlight';line.setAttribute('aria-label',key==='clans'?'Tu clan':'Tu posición')}
-    line.append(make('td',(row.position<=3?['🥇','🥈','🥉'][row.position-1]+' ':'')+'#'+row.position));
+    line.append(make('td','#'+row.position));
     const name=make('td',key==='clans'?'['+row.tag+'] '+row.name:row.name);name.className='hall-name';line.append(name);
     if(key==='ranks'){const badge=make('td');badge.append(rankBadge(row),make('span',pvpRank(row).name));line.append(badge)}
     line.append(make('td',number(key==='levels'?row.level:row.points)),make('td',number(key==='clans'?row.warWins:key==='levels'?row.xp:row.wins)));body.append(line);

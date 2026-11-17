@@ -5,7 +5,7 @@ import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings,coopA
 import {desktopMode} from './desktop-platform.js?v=487';
 import {mountDesktopControls,mountDesktopHelp} from './desktop-controls.js?v=495';
 import {mountFloatingJoystick} from './floating-joystick.js?v=486';
-import {mountHallOfFame} from './hall-of-fame.js?v=481';
+import {mountHallOfFame} from './hall-of-fame.js?v=520';
 import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
 import {guidePrecisionLaser} from './precision-guidance.js?v=478';
 import {mountOnlineChat} from './online-chat.js?v=477';
