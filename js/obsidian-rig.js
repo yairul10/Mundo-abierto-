@@ -43,7 +43,7 @@ export async function loadObsidian(THREE,loader){
   const pivot=new THREE.Group();pivot.name='obsidian-ring-'+i;
   pivot.add(slimObsidianRing(THREE,fit(parts[i+1],i?68:98)));frame.add(pivot);root.add(frame);
  }
- const core=new THREE.Mesh(new THREE.SphereGeometry(8,16,12),new THREE.MeshStandardMaterial({color:0x0ab7a8,emissive:0x09cdb8,emissiveIntensity:.45,roughness:.65}));core.position.set(0,3,14);root.add(core);
+ const core=new THREE.Mesh(new THREE.SphereGeometry(8,48,32),new THREE.MeshStandardMaterial({color:0x0ab7a8,emissive:0x09cdb8,emissiveIntensity:.45,roughness:.65}));core.position.set(0,3,14);root.add(core);
  attachAssembledEngines(THREE,root,'obsidian');
  attachObsidianWake(THREE,root);
  return root;
@@ -69,6 +69,7 @@ export function animateObsidian(root,dt,power=0){
  root.userData.wakePower=(root.userData.wakePower||0)+(target-(root.userData.wakePower||0))*(1-Math.exp(-step*9));
  const time=root.userData.wakeTime,strength=root.userData.wakePower;
  root.traverse(o=>{
+  if(o.isMesh){for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m?.userData?.previewCoreTime)m.userData.previewCoreTime.value=time}
   if(o.name==='obsidian-ring-0')o.rotation.z+=step*.38;
   else if(o.name==='obsidian-ring-1')o.rotation.z-=step*.55;
   else if(o.name.startsWith('obsidian-wake-')){

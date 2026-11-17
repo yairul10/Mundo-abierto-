@@ -35,7 +35,7 @@ test('Chile paints original model materials while preserving geometry, atlas and
  const painted=f.hull.material;applyObsidianSkin(THREE,f.root,'original');
  assert.equal(f.hull.material,f.original);assert.equal(f.ring.material,f.original);assert.equal(painted.disposed,true);
 });
-test('Chile shader follows trim and surfaces, draws flag stars and anchors rotating ring segments',()=>{
+test('Chile shader follows trim and surfaces, draws a star and armor joints and anchors rotating ring segments',()=>{
  const f=fixture();applyObsidianSkin(THREE,f.root,'chile');
  const shader=()=>({uniforms:{},vertexShader:'#include <begin_vertex>',fragmentShader:'#include <map_fragment>'});
  const hull=shader(),ring=shader();f.hull.material.onBeforeCompile(hull);f.ring.material.onBeforeCompile(ring);
@@ -43,7 +43,7 @@ test('Chile shader follows trim and surfaces, draws flag stars and anchors rotat
  assert.match(hull.uniforms.skinFrame.value.label,/inverse\(ship\)/);
  assert.match(ring.uniforms.skinFrame.value.label,/inverse\(outer\)/);
  assert.match(hull.fragmentShader,/chilePanels/);assert.match(hull.fragmentShader,/chileStar/);
- assert.match(hull.fragmentShader,/frontFlag/);assert.match(hull.fragmentShader,/rearFlag/);
+ assert.match(hull.fragmentShader,/starPoint/);assert.match(hull.fragmentShader,/joint1/);assert.doesNotMatch(hull.fragmentShader,/frontFlag|rearFlag/);
  assert.match(hull.vertexShader,/skinNormal = mat3\(skinFrame\) \* normal/);
 });
 test('painting keeps both original ring animations in opposite directions',()=>{
@@ -67,8 +67,24 @@ test('Chile reactor uses blue emission with energy bands and restores the origin
  const f=fixture(),coreMaterial=new Material();coreMaterial.map=null;coreMaterial.emissive=new Color(0x09cdb8);
  const core={name:'reactor',parent:f.root,isMesh:true,material:coreMaterial,geometry:{type:'SphereGeometry'},matrixWorld:new Matrix('reactor')};
  const traverse=f.root.traverse;f.root.traverse=fn=>{traverse.call(f.root,fn);fn(core)};
- applyObsidianSkin(THREE,f.root,'chile');assert.equal(core.material.color.getHex(),0x0753b8);
- const shader={vertexShader:'#include <begin_vertex>',fragmentShader:'#include <emissivemap_fragment>'};core.material.onBeforeCompile(shader);
- assert.match(shader.fragmentShader,/totalEmissiveRadiance=mix/);
+ applyObsidianSkin(THREE,f.root,'chile');assert.equal(core.material.color.getHex(),0x073276);
+ const shader={uniforms:{},vertexShader:'#include <begin_vertex>',fragmentShader:'#include <emissivemap_fragment>'};core.material.onBeforeCompile(shader);
+ assert.match(shader.fragmentShader,/float heart/);assert.equal(shader.uniforms.previewCoreTime.value,0);
+ animateObsidian(f.root,.05,0);assert.equal(shader.uniforms.previewCoreTime.value,.05);
  applyObsidianSkin(THREE,f.root,'original');assert.equal(core.material,coreMaterial);
+});
+
+test('Chile wake is blue and returns to its original geometry when the design is reset',()=>{
+ class WakeColor extends Color{
+  constructor(hex){super(hex);this.r=((hex>>16)&255)/255;this.g=((hex>>8)&255)/255;this.b=(hex&255)/255}
+ }
+ const colors={count:4,values:[],setXYZ(i,r,g,b){this.values[i]=[r,g,b]}};
+ const geometry={attributes:{color:colors},clone(){return {attributes:{color:{count:4,values:[],setXYZ(i,r,g,b){this.values[i]=[r,g,b]}}},dispose(){this.disposed=true}}}};
+ const f=fixture(),wake={name:'obsidian-wake-0',isMesh:true,geometry};
+ const traverse=f.root.traverse;f.root.traverse=fn=>{traverse.call(f.root,fn);fn(wake)};
+ applyObsidianSkin({...THREE,Color:WakeColor},f.root,'chile');
+ assert.notEqual(wake.geometry,geometry);
+ const [r,g,b]=wake.geometry.attributes.color.values[0];assert.ok(b>g&&g>r);
+ const painted=wake.geometry;applyObsidianSkin({...THREE,Color:WakeColor},f.root,'original');
+ assert.equal(wake.geometry,geometry);assert.equal(painted.disposed,true);
 });

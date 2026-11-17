@@ -6,7 +6,7 @@ export const OBSIDIAN_SKINS=Object.freeze({
  original:Object.freeze({name:'Original',energy:0x26e6cf,core:0xc4fff5}),
  carmesi:Object.freeze({name:'Carmesí',energy:0xff243e,core:0xffc4cb,trim:[.65,.012,.025]}),
  imperial:Object.freeze({name:'Imperial',energy:0xb456ff,core:0xedccff,trim:[.9,.52,.08]}),
- chile:country('Chile',0x3d83ff,0xdbeaff,[white,blue,red],
+ chile:country('Chile',0x3d9eff,0xdbeaff,[white,blue,red],
   'chilePanels(atlas, normalize(skinNormal), skinPoint)'),
  mexico:country('México',0x31db81,0xd0ffdf,[0x198458,white,red],
   'skinPoint.x < -9.0 ? paintA : (skinPoint.x > 9.0 ? paintC : paintB)'),
@@ -126,17 +126,33 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
      }
     }` : ''}
     ${id==='chile' ? `
-    // Paint two top-panel flags so the design remains readable from rear flight view.
+    // Broad mirrored nose armor with continuous, softly shaded panels.
+    if(!skinRing && skinNormal.y > 0.22 * length(skinNormal)){
+     float along=smoothstep(-51.0,-47.0,skinPoint.z)*(1.0-smoothstep(-24.0,-20.0,skinPoint.z));
+     float ax=abs(skinPoint.x);
+     float outer=10.0+smoothstep(-48.0,-22.0,skinPoint.z)*2.0;
+     float band=smoothstep(3.2,4.0,ax)*(1.0-smoothstep(outer,outer+0.8,ax))*along;
+     float innerWhite=smoothstep(4.3,5.0,ax)*(1.0-smoothstep(outer-1.1,outer-0.35,ax));
+     // Keep the panel continuous instead of making holes from texture colors.
+     // Soft atlas shading keeps some underlying surface detail.
+     float coverage=band;
+     vec3 armor=mix(paintC,paintA,innerWhite)*clamp(brightness*0.55+0.58,0.58,1.0);
+     // Fine diagonal joints on white armor, mirrored on the two sides.
+     float joint1=1.0-smoothstep(0.19,0.38,abs(skinPoint.z+38.0+(ax-5.0)*0.45));
+     float joint2=1.0-smoothstep(0.19,0.38,abs(skinPoint.z+29.0-(ax-5.0)*0.35));
+     float joints=max(joint1,joint2)*innerWhite;
+     armor=mix(armor,armor*vec3(0.37,0.46,0.59),joints*0.85);
+     diffuseColor.rgb=mix(diffuseColor.rgb,armor,coverage);
+    }
+    // A single white star on the upper nose, in the ship frame.
     if(!skinRing && skinNormal.y > 0.45 * length(skinNormal)){
-     vec2 frontFlag=vec2(skinPoint.x/14.0+0.5,(-skinPoint.z-36.0)/9.0);
-     vec2 rearFlag=vec2(skinPoint.x/12.0+0.5,(skinPoint.z-28.0)/8.0);
-     if(insideChileFlag(frontFlag))diffuseColor.rgb=chileFlag(frontFlag);
-     else if(insideChileFlag(rearFlag))diffuseColor.rgb=chileFlag(rearFlag);
+     vec2 starPoint=vec2(skinPoint.x / 20.0,(-skinPoint.z-40.5) / 20.0);
+     if(chileStar(starPoint)) diffuseColor.rgb=paintA;
     }` : ''}
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-skin-v5-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-skin-v514-'+id;
   if(id==='chile'&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
@@ -145,22 +161,52 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
   if(m.emissive&&base.emissive.getHex())m.emissive.set(skin.energy);
   if((id==='colombia'||id==='chile')&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
   if(id==='chile'&&reactor){
-   // Blue core remains readable under strong hangar lighting without bloom.
-   m.color.set(0x0753b8);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=.7;
-   m.onBeforeCompile=shader=>{shader.vertexShader='varying vec3 corePosition;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;');shader.fragmentShader='varying vec3 corePosition;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
-    float turbulence=sin(corePosition.x*2.3+sin(corePosition.z*1.9))*sin(corePosition.y*2.7+sin(corePosition.x*1.6));
-    float bands=pow(1.0-abs(turbulence),18.0)*0.48;
-    float glow=pow(max(0.0,1.0-length(corePosition.xy)/8.0),3.0)*0.35;
-    totalEmissiveRadiance=mix(vec3(0.005,0.055,0.25),vec3(0.06,0.7,1.0),bands+glow);
-   `)};
-   m.customProgramCacheKey=()=> 'obsidian-chile-core-v2';
+   // Slow, broad energy currents avoid the tiny grid produced by high-frequency bands.
+   const coreTime={value:0};m.userData ||= {};m.userData.previewCoreTime=coreTime;
+   m.color.set(0x073276);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=1;
+   m.onBeforeCompile=shader=>{
+    shader.uniforms.previewCoreTime=coreTime;
+    shader.vertexShader='varying vec3 corePosition;\nvarying vec3 coreViewPosition;\nvarying vec3 coreViewNormal;\n'+shader.vertexShader;
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;\ncoreViewPosition=(modelViewMatrix*vec4(position,1.0)).xyz;\ncoreViewNormal=normalMatrix*normal;');
+    shader.fragmentShader='varying vec3 corePosition;\nvarying vec3 coreViewPosition;\nvarying vec3 coreViewNormal;\nuniform float previewCoreTime;\n'+shader.fragmentShader;
+    shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+     vec3 p=corePosition/8.0;
+     float t=previewCoreTime*0.6;
+     float wave=sin(p.x*4.0+p.y*2.6+sin(p.z*3.0+t)*1.4+t);
+     float wave2=sin(p.y*4.0-p.z*2.5+sin(p.x*3.0-t)*1.2-t*0.8);
+     float arcs=pow(max(0.0,1.0-abs(wave)),12.0)*0.6
+               +pow(max(0.0,1.0-abs(wave2)),16.0)*0.45;
+     float cloud=0.5+0.5*sin(p.x*2.5-p.y*2.2+p.z*2.0+t);
+     float facing=max(dot(normalize(coreViewNormal),normalize(-coreViewPosition)),0.0);
+     float heart=pow(facing,18.0)*(0.85+0.15*sin(t*2.0));
+     totalEmissiveRadiance=vec3(0.005,0.035,0.18)+vec3(0.01,0.16,0.42)*cloud+vec3(0.32,0.85,1.0)*arcs+vec3(1.1,1.7,2.0)*heart;
+    `);
+   };
+   m.customProgramCacheKey=()=> 'obsidian-chile-core-v514';
   }
  }
  return m;
 }
+// The halo is a lightweight sprite, attached only to the Chile model.
+function setChileHalo(THREE,root,enabled){
+ if(!root.children||!root.add)return;
+ let halo=root.children.find(o=>o.name==='obsidian-chile-halo');
+ if(!halo&&enabled&&typeof document!=='undefined'&&THREE.CanvasTexture&&THREE.Sprite&&THREE.SpriteMaterial){
+  const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  const gradient=ctx.createRadialGradient(64,64,8,64,64,64);
+  gradient.addColorStop(0,'rgba(90,210,255,0.55)');gradient.addColorStop(.38,'rgba(35,150,255,0.26)');gradient.addColorStop(1,'rgba(10,80,255,0)');
+  ctx.fillStyle=gradient;ctx.fillRect(0,0,128,128);
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  halo=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.55,toneMapped:false}));
+  halo.name='obsidian-chile-halo';halo.position.set(0,3,14);halo.scale.set(28,28,1);root.add(halo);
+ }
+ if(halo)halo.visible=enabled;
+}
 // Used after cloning the local model: other pilots must keep their original look.
 export function resetObsidianClone(root){
  root.traverse(o=>{if(!o.isMesh)return;o.material=Array.isArray(o.material)?o.material.map(baseMaterial):baseMaterial(o.material);if(wakeGeometry.has(o.geometry))o.geometry=wakeGeometry.get(o.geometry)});
+ for(const child of root.children||[])if(child.name==='obsidian-chile-halo')child.visible=false;
  delete root.userData.obsidianSkin;
 }
 export function applyObsidianSkin(THREE,root,id='original'){
@@ -202,5 +248,7 @@ export function applyObsidianSkin(THREE,root,id='original'){
   o.material=Array.isArray(o.material)?next:next[0];
   for(const m of previous)if(originals.has(m))m.dispose();
  });
+ setChileHalo(THREE,root,id==='chile');
  root.userData.obsidianSkin=id;
 }
+

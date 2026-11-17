@@ -1,7 +1,7 @@
 import {effectBudget} from './effect-budget.js?v=440';
 import {GRAPHICS_KEY,initialGraphicsLevel} from './graphics-settings.js?v=438';
-import {applyObsidianSkin} from './obsidian-skins.js?v=505';
-import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
+import {applyObsidianSkin} from './obsidian-skins.js?v=514';
+import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=514';
 import {SHIP_PREVIEWS,shipThumbnail,disposePreviewModel,fitPreviewModel} from './ship-preview-catalog.js?v=355';
 // Only one independent, demand-loaded WebGL preview is alive across the hangar.
 let active=null;
