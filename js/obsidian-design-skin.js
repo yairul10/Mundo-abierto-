@@ -166,10 +166,13 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
     // Mexico's crest is projected only on the upper front of the hull.
     ${id==='mexico' ? `
     if(!skinRing && skinNormal.y > 0.45 * length(skinNormal)){
-     vec2 crestUv=vec2(skinPoint.x/11.0+0.5,(-skinPoint.z-34.0)/13.0);
+     vec2 crestUv=vec2(skinPoint.x/15.0+0.5,(-skinPoint.z-32.0)/17.0);
      if(crestUv.x>=0.0 && crestUv.x<=1.0 && crestUv.y>=0.0 && crestUv.y<=1.0){
+      // A pale base gives the emblem contrast against the dark green hull.
+      float badge=1.0-smoothstep(0.43,0.49,length((crestUv-0.5)*vec2(1.0,1.0)));
+      diffuseColor.rgb=mix(diffuseColor.rgb,paintA,badge*0.92);
       vec4 crest=texture2D(mexicoCrest,crestUv);
-      diffuseColor.rgb=mix(diffuseColor.rgb,crest.rgb,crest.a);
+      diffuseColor.rgb=mix(diffuseColor.rgb,crest.rgb,crest.a*badge);
      }
     }` : ''}
     // A single white star on the upper nose, in the ship frame.
@@ -180,7 +183,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v517-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v518-'+id;
   if((id==='chile'||id==='mexico')&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
