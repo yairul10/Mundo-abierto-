@@ -137,6 +137,11 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
      // Soft atlas shading keeps some underlying surface detail.
      float coverage=band;
      vec3 armor=mix(paintC,paintA,innerWhite)*clamp(brightness*0.55+0.58,0.58,1.0);
+     // Fine diagonal joints on white armor, mirrored on the two sides.
+     float joint1=1.0-smoothstep(0.06,0.18,abs(skinPoint.z+38.0+(ax-5.0)*0.45));
+     float joint2=1.0-smoothstep(0.06,0.18,abs(skinPoint.z+29.0-(ax-5.0)*0.35));
+     float joints=max(joint1,joint2)*innerWhite;
+     armor=mix(armor,armor*vec3(0.56,0.65,0.76),joints*0.65);
      diffuseColor.rgb=mix(diffuseColor.rgb,armor,coverage);
     }
     // A single white star on the upper nose, in the ship frame.
@@ -147,7 +152,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v511-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v512-'+id;
   if(id==='chile'&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
