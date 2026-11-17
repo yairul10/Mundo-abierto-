@@ -126,18 +126,17 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
      }
     }` : ''}
     ${id==='chile' ? `
-    // Broad mirrored nose armor. Keep lamps, seams and existing red details.
+    // Broad mirrored nose armor with continuous, softly shaded panels.
     if(!skinRing && skinNormal.y > 0.22 * length(skinNormal)){
      float along=smoothstep(-51.0,-47.0,skinPoint.z)*(1.0-smoothstep(-24.0,-20.0,skinPoint.z));
      float ax=abs(skinPoint.x);
      float outer=10.0+smoothstep(-48.0,-22.0,skinPoint.z)*2.0;
      float band=smoothstep(3.2,4.0,ax)*(1.0-smoothstep(outer,outer+0.8,ax))*along;
      float innerWhite=smoothstep(4.3,5.0,ax)*(1.0-smoothstep(outer-1.1,outer-0.35,ax));
-     float cyanLight=smoothstep(0.34,0.55,atlas.g/max(atlas.b,0.001))*smoothstep(0.12,0.30,atlas.b);
-     float litSurface=smoothstep(0.035,0.12,brightness);
-     float existingRed=smoothstep(0.02,0.12,atlas.r-atlas.b);
-     float coverage=band*litSurface*(1.0-cyanLight)*(1.0-existingRed);
-     vec3 armor=mix(paintC,paintA,innerWhite)*clamp(brightness*1.1+0.3,0.0,1.0);
+     // Keep the panel continuous instead of making holes from texture colors.
+     // Soft atlas shading keeps some underlying surface detail.
+     float coverage=band;
+     vec3 armor=mix(paintC,paintA,innerWhite)*clamp(brightness*0.55+0.58,0.58,1.0);
      diffuseColor.rgb=mix(diffuseColor.rgb,armor,coverage);
     }
     // A single white star on the upper nose, in the ship frame.
@@ -148,7 +147,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v510-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v511-'+id;
   if(id==='chile'&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
