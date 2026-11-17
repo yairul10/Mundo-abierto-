@@ -1,3 +1,4 @@
+import {wantsObsidianPreview,displayedShip} from './obsidian-visual-preview.js?v=1';
 import {mountBaseActions} from './base-actions.js?v=498';
 import {readCoopChoice} from './coop-room-ui.js?v=491';
 import {COOP_AUTO_KEY,readCoopAuto,consumeCoopResume,mountCoopAutoSettings,coopAutoShouldRepeat,shouldUseCoopAbility} from './coop-auto-run.js?v=501';
@@ -76,6 +77,13 @@ import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyar
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
 const PVP_MODE=sharedRequested();
+const OBSIDIAN_VISUAL_PREVIEW=wantsObsidianPreview(location.search,PVP_MODE);
+if(OBSIDIAN_VISUAL_PREVIEW)window.addEventListener('cosmos:world-ready',()=>{
+ const note=document.createElement('div');
+ note.textContent='Prueba visual: Obsidian Chile. Conservas las características de tu nave equipada.';
+ Object.assign(note.style,{position:'fixed',top:'12px',left:'50%',transform:'translateX(-50%)',zIndex:'9999',background:'rgba(8,16,32,.88)',color:'#fff',padding:'8px 12px',borderRadius:'8px',font:'14px system-ui',textAlign:'center',pointerEvents:'none',maxWidth:'85vw'});
+ document.body.appendChild(note);setTimeout(()=>note.remove(),9000);
+},{once:true});
 const ARENA_MODE=arenaRequested();
 const COOP_MODE=PVP_MODE&&!ARENA_MODE;
 if(!PVP_MODE){const key=window.MUNDO_PLAY_MODE?.mode==='test'?'mundoAbierto.qaPlayer':'mundoAbierto.player';let pending=false;try{finishPvpTransfer(localStorage,key,true);pending=!!JSON.parse(localStorage.getItem(key)||'{}').pendingPvpDeath}catch{}if(pending){const url=new URL(location.href);url.searchParams.set('pvp','1');location.replace(url.href);await new Promise(()=>{});}}
@@ -458,7 +466,7 @@ function fitPlayerModel(model,yaw=0){
 }
 function syncPlayerShipVisuals(){
  const keys={agilbasica:'agilbasicaModel',adminpod:'adminpodModel',titan:'titanModel',espectro:'espectroModel',segadora:'segadoraModel',bastion:'bastionModel',centella:'centellaModel',obsidian:'obsidianModel',azote:'azoteModel',egida:'egidaModel',vertigo:'vertigoModel'};
- const selected=keys[player.shipId],loaded=!!(selected&&playerMesh.userData[selected]);
+ const selected=keys[displayedShip(player.shipId,OBSIDIAN_VISUAL_PREVIEW)],loaded=!!(selected&&playerMesh.userData[selected]);
  for(const key of Object.values(keys)){const model=playerMesh.userData[key];if(model)model.visible=loaded&&key===selected}
  let hasOriginal=false;
  const waiting=!!selected&&!loaded&&!playerMesh.userData[selected+'Failed'];
@@ -491,6 +499,7 @@ function loadAssembledVisual(id){
   mountPlayerModel(visual,id+'Model');playerMesh.userData[id+'Loading']=false;
  },undefined,error=>{playerMesh.userData[id+'Loading']=false;playerMesh.userData[id+'ModelFailed']=true;syncPlayerShipVisuals();console.warn('Modelo de '+id+' no disponible; se conserva la nave de respaldo.',error)});
 }
+if(OBSIDIAN_VISUAL_PREVIEW)loadAssembledVisual('obsidian');
 deferredModelLoad(modelLoader,'./assets/models/titan.glb?v=327',gltf=>{
  const source=gltf.scene;
  // Acabado metálico moderado con el material estándar de Three.js.
@@ -3473,10 +3482,11 @@ playerMesh.rotation.order='YXZ';playerMesh.rotation.y=yaw;playerMesh.rotation.x=
 const titanVisual=playerMesh.userData.titanModel,espectroVisual=playerMesh.userData.espectroModel;
 const titanEnginesActive=player.shipId==='titan'&&!!titanVisual?.visible;
 const espectroEnginesActive=player.shipId==='espectro'&&!!espectroVisual?.visible;
-const assembledVisual=ASSEMBLED_SHIPS[player.shipId]?playerMesh.userData[player.shipId+'Model']:null;
+const visibleShip=displayedShip(player.shipId,OBSIDIAN_VISUAL_PREVIEW);
+const assembledVisual=ASSEMBLED_SHIPS[visibleShip]?playerMesh.userData[visibleShip+'Model']:null;
 const assembledEnginesActive=!!assembledVisual?.visible;
-if(player.shipId==='adminpod')animateAdminPod(assembledVisual,now/1000,docked||landing?0:Math.hypot(throttle,strafe));
-if(player.shipId==='obsidian'){applyObsidianSkin(THREE,assembledVisual,allowedObsidianSkin(adminObsidianSkin,PVP_MODE&&pvpSession?.adminShipAllowed));animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe))}
+if(visibleShip==='adminpod')animateAdminPod(assembledVisual,now/1000,docked||landing?0:Math.hypot(throttle,strafe));
+if(visibleShip==='obsidian'){const skin=OBSIDIAN_VISUAL_PREVIEW?'chile':allowedObsidianSkin(adminObsidianSkin,PVP_MODE&&pvpSession?.adminShipAllowed);applyObsidianSkin(THREE,assembledVisual,skin);animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe))}
 const auroraVisual=playerMesh.userData.xWingModel;
 const auroraEnginesActive=player.shipId==='aurora'&&!!auroraVisual?.visible;
 const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive||auroraEnginesActive;
