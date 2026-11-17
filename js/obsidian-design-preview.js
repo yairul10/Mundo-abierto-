@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {fitPreviewCamera} from './preview-framing.js?v=506';
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
-import {applyObsidianSkin,animatePreviewCore} from './obsidian-design-skin.js?v=512';
+import {applyObsidianSkin,animatePreviewCore} from './obsidian-design-skin.js?v=513';
 import {fitPreviewModel} from './ship-preview-catalog.js?v=355';
 const $=id=>document.getElementById(id),host=$('viewer'),status=$('status');
 let model,turntable,auto=true,last=0,renderer,shaderFailed=false,zoomFactor=1.35;
@@ -30,7 +30,7 @@ try{
  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.55,toneMapped:false}));
  glow.position.set(0,3,14);glow.scale.set(28,28,1);model.add(glow);
  turntable=fitPreviewModel(THREE,model,'obsidian');scene.add(turntable);
- const paint=id=>{shaderFailed=false;applyObsidianSkin(THREE,model,id);glow.visible=id==='chile';for(const name of ['original','chile'])$(name).setAttribute('aria-pressed',String(name===id));renderer.compile(scene,camera);if(!shaderFailed)status.textContent=id==='chile'?'Prueba 512 · Chile: detalles de armadura.':'Diseño original · Misma geometría.';};
+ const paint=id=>{shaderFailed=false;applyObsidianSkin(THREE,model,id);glow.visible=id==='chile';for(const name of ['original','chile'])$(name).setAttribute('aria-pressed',String(name===id));renderer.compile(scene,camera);if(!shaderFailed)status.textContent=id==='chile'?'Prueba 513 · Chile: juntas más visibles.':'Diseño original · Misma geometría.';};
  $('original').onclick=()=>paint('original');$('chile').onclick=()=>paint('chile');
  const stopRotation=()=>{auto=false;$('spin').setAttribute('aria-pressed','false')};
  $('front').onclick=()=>{stopRotation();view(false)};$('rear').onclick=()=>{stopRotation();view(true)};
