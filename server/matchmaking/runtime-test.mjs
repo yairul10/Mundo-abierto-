@@ -26,8 +26,8 @@ try{
  let room=await fixture('start',assigned);assert.equal(room.players.length,10);assert.equal(room.players.filter(p=>p.isBot).length,7);assert.equal(new Set(room.players.filter(p=>!p.isBot).map(p=>p.team)).size,1);assert.ok(room.players.filter(p=>p.isBot).every(p=>!p.name.includes('BOT')));assert.equal(room.status,'active');
  room=await fixture('win',assigned);assert.equal(room.status,'finished');const settled=await call();assert.equal(settled.data.rank.points,50);assert.equal((await call()).data.rank.points,50);assert.equal((await call({},1)).data.rank.points,50);
  await call({action:'leaveParty'});await call({action:'queue',mode:'arena20'});await mf.dispatchFetch('https://test/fixture/expire');assigned=(await call()).data.assignment;await mf.dispatchFetch('https://test/fixture/expire');assigned=(await call()).data.assignment;assert.equal((await call({...loadout,matchId:assigned.id},0,'/ranked/join')).status,200);
- room=await fixture('start',assigned);assert.equal(room.players.length,20);room=await fixture('killHuman',assigned);assert.equal(room.status,'active');assert.equal(room.players.find(p=>!p.isBot).place,19);await fixture('finishArena',assigned);assert.equal((await call()).data.rank.points,51);
- await mf.dispose();mf=new Miniflare(options);assert.equal((await call()).data.rank.points,51);
+ room=await fixture('start',assigned);assert.equal(room.players.length,20);room=await fixture('killHuman',assigned);assert.equal(room.status,'active');assert.equal(room.players.find(p=>!p.isBot).place,19);await fixture('finishArena',assigned);assert.equal((await call()).data.rank.points,50);
+ await mf.dispose();mf=new Miniflare(options);assert.equal((await call()).data.rank.points,50);
  // A complete human 1v1 starts before the two-minute deadline; cancel remains leader-only.
  const first=await call({action:'queue',mode:'1v1'});assert.ok(first.data.queue);
  const full=await call({action:'queue',mode:'1v1'},3);assert.ok(full.data.assignment);assert.ok(full.data.serverTime<first.data.queue.deadline);

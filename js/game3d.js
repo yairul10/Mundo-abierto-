@@ -14,7 +14,7 @@ import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=
 import {createCoopFarmPilot} from './coop-farm-pilot.js?v=494';
 import {mountClans} from './clans-ui.js?v=476';
 import {missileLaunches} from './missile-launch.js?v=454';
-import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=479';
+import {arenaRequested,choosePvpMatch,saveArenaChoice} from './pvp-match-ui.js?v=521';
 import {chooseCoopRoom,saveCoopChoice} from './coop-room-ui.js?v=491';
 import {materialInventoryHtml} from './material-info.js?v=443';
 import {AUTO_MISSILE_PRICE,buyAutoMissiles,toggleAutoMissiles,shouldAutoMissile} from './auto-missiles.js?v=442';
@@ -70,7 +70,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=497';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=501';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=521';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=497';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';

@@ -19,8 +19,9 @@ failing to reconnect forfeits their points; eliminated players may leave and ret
 place/team eligibility. Time-limit survivors share the lowest occupied survivor
 place; simultaneous deaths share the next available place.
 
-Wins grant 50 points in team/duel modes. Arena 20 grants 50 to its winner, then
-18 for second down to 1 for nineteenth, zero for twentieth. No points for practice,
+Wins grant 50 points in team/duel modes. Arena 20 awards, by place 1 through 20:
+100, 70, 55, 45, 40, 35, 30, 25, 20, 15, 10, 8, 6, 4, 2, 0, 0, 0, 0, 0.
+Players sharing a place receive the same points. No points for practice,
 private games, cancelled matches or absent participants. The existing positional
 rank badges use the new global points standings. Prior cooperative kill statistics
 remain separate.

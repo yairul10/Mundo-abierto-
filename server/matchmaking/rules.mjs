@@ -10,4 +10,5 @@ export function packTeams(groups,mode){
  }
  return {selected,roster:teams.flat(),full:teams.reduce((sum,t)=>sum+t.length,0)===rules.capacity};
 }
-export function matchPoints(mode,place,won,eligible=true){if(!eligible)return 0;return mode==='arena20'?(place===1&&won?50:Math.max(0,20-place)):won?50:0}
+export function arenaPlacementPoints(place){return Number.isInteger(place)&&place>=1&&place<=20?[100,70,55,45,40,35,30,25,20,15,10,8,6,4,2,0,0,0,0,0][place-1]:0}
+export function matchPoints(mode,place,won,eligible=true){if(!eligible)return 0;return mode==='arena20'?arenaPlacementPoints(place):won?50:0}
