@@ -25,3 +25,5 @@ Se hornean tres texturas RGB de 1024×1024 en los UV originales mediante `tools/
 Prueba 504: blanco limitado a placas superiores; cañones y motores azules, escapes oscuros y líneas de energía. Núcleo con filamentos irregulares suaves, visor ampliado y número de prueba visible para identificar caché antigua.
 
 Prueba 505: se recuperan la luminancia completa del atlas, los canales cian en sus UV originales y los mapas de rugosidad/metal originales. El visor reduce el zoom cuando la caja proyectada alcanza el borde. Sigue siendo una prueba procedimental, sin pintura manual de placas.
+
+Prueba 506: encuadre medido desde zoom 1 sobre las mallas texturizadas, sin efectos y sin reducciones acumulativas. Comprobado con las posiciones de los GLB reales en 360 ángulos y 4 proporciones de pantalla. La pintura 505 se conserva.

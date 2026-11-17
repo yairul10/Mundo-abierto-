@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {fitPreviewCamera} from './preview-framing.js?v=506';
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=308';
 import {applyObsidianSkin} from './obsidian-skins.js?v=505';
@@ -18,26 +19,16 @@ try{
  const resize=()=>{const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/h;camera.zoom=Math.min(1.15,camera.aspect*1.35);camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
  addEventListener('resize',resize);resize();
  model=await loadObsidian(THREE,new GLTFLoader());turntable=fitPreviewModel(THREE,model,'obsidian');scene.add(turntable);
- const paint=id=>{shaderFailed=false;applyObsidianSkin(THREE,model,id);for(const name of ['original','chile'])$(name).setAttribute('aria-pressed',String(name===id));renderer.compile(scene,camera);if(!shaderFailed)status.textContent=id==='chile'?'Prueba 505 · Chile: relieve y canales de energía recuperados.':'Diseño original · Misma geometría.';};
+ const paint=id=>{shaderFailed=false;applyObsidianSkin(THREE,model,id);for(const name of ['original','chile'])$(name).setAttribute('aria-pressed',String(name===id));renderer.compile(scene,camera);if(!shaderFailed)status.textContent=id==='chile'?'Prueba 506 · Chile: encuadre corregido.':'Diseño original · Misma geometría.';};
  $('original').onclick=()=>paint('original');$('chile').onclick=()=>paint('chile');
  const stopRotation=()=>{auto=false;$('spin').setAttribute('aria-pressed','false')};
  $('front').onclick=()=>{stopRotation();view(false)};$('rear').onclick=()=>{stopRotation();view(true)};
  $('spin').onclick=()=>{auto=!auto;$('spin').setAttribute('aria-pressed',String(auto))};
- // Project the fitted model bounds, keeping every part inside the viewport.
- const fitBox=new THREE.Box3(),corner=new THREE.Vector3();
- const keepInFrame=()=>{
-  camera.updateMatrixWorld(true);turntable.updateWorldMatrix(true,true);fitBox.setFromObject(turntable);
-  let edge=0;
-  for(const x of [fitBox.min.x,fitBox.max.x])for(const y of [fitBox.min.y,fitBox.max.y])for(const z of [fitBox.min.z,fitBox.max.z]){
-   corner.set(x,y,z).project(camera);edge=Math.max(edge,Math.abs(corner.x),Math.abs(corner.y));
-  }
-  if(edge>.92){camera.zoom*=.92/edge;camera.updateProjectionMatrix()}
- };
  let dragging=false,x=0;
  renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;x=e.clientX;stopRotation();renderer.domElement.setPointerCapture(e.pointerId)});
  renderer.domElement.addEventListener('pointermove',e=>{if(dragging){turntable.rotation.y+=(e.clientX-x)*.012;x=e.clientX}});
  for(const event of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(event,()=>{dragging=false});
  paint('chile');
- function frame(now){const dt=last?Math.min((now-last)/1000,.05):0;last=now;if(!document.hidden){if(auto)turntable.rotation.y+=dt*.22;animateObsidian(model,dt,0);keepInFrame();renderer.render(scene,camera)}requestAnimationFrame(frame)}
+ function frame(now){const dt=last?Math.min((now-last)/1000,.05):0;last=now;if(!document.hidden){if(auto)turntable.rotation.y+=dt*.22;animateObsidian(model,dt,0);fitPreviewCamera(THREE,camera,turntable);renderer.render(scene,camera)}requestAnimationFrame(frame)}
  requestAnimationFrame(frame);
 }catch(error){status.textContent='No se pudo cargar la vista 3D. Recarga la página para reintentar.';console.error(error)}
