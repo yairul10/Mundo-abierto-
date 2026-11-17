@@ -52,9 +52,16 @@ for name in (sys.argv[1:] or ['fighter','portal','inner-ring']):
             color[:]=WHITE;color[(np.floor((angle+np.pi)/(np.pi/3)).astype(int)%3)==0]=BLUE
             # Continuous inner and outer red rails, rather than atlas color speckles.
             color[(radius>outside-1.7)|(radius<outside-6.0)]=RED
-        # Keep engraved light/dark detail subtle; discard old gold/turquoise hues.
-        src=original[yy,xx];shade=.80+.20*src.max(axis=-1)/255
-        result=np.clip(color*shade[...,None],0,255).astype(np.uint8)
+        # Preserve original engraved panels, cavities and illuminated channels.
+        # These are authored UV details; do not flatten them to a 20% shade range.
+        src=original[yy,xx]/255.0
+        luminance=src@np.array([.2126,.7152,.0722])
+        shade=np.clip(.12+1.28*np.power(luminance,.72),.12,1.0)
+        painted=color*shade[...,None]
+        # Restore only the existing cyan windows/channels in their original UVs.
+        cyan=np.clip((np.minimum(src[:,:,1],src[:,:,2])-src[:,:,0]-.045)/.18,0,1)
+        energy=np.array([38,173,250])*(.45+.55*src.max(axis=-1))[...,None]
+        result=np.clip(painted*(1-cyan[...,None])+energy*cyan[...,None],0,255).astype(np.uint8)
         canvas[yy[mask],xx[mask]]=result[mask];coverage[yy[mask],xx[mask]]=255
     # Two texels of edge padding prevent dark seams during bilinear sampling.
     for _ in range(3):

@@ -31,7 +31,7 @@ test('Chile paints original model materials while preserving geometry, atlas and
  assert.deepEqual([...f.geometry.attributes.position.array],vertices);
  assert.equal(f.hull.material.map,f.original.map);assert.equal(f.hull.material.normalMap,f.original.normalMap);
  assert.equal(f.original.metalness,.7);assert.equal(f.original.roughness,.4);assert.equal(f.original.disposed,false);
- assert.equal(f.hull.material.metalness,.12);assert.equal(f.hull.material.roughness,.82);
+ assert.equal(f.hull.material.roughnessMap,f.original.roughnessMap);assert.equal(f.hull.material.metalnessMap,f.original.metalnessMap);assert.equal(f.hull.material.metalness,.12);assert.equal(f.hull.material.roughness,.82);
  const painted=f.hull.material;applyObsidianSkin(THREE,f.root,'original');
  assert.equal(f.hull.material,f.original);assert.equal(f.ring.material,f.original);assert.equal(painted.disposed,true);
 });

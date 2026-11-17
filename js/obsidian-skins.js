@@ -23,7 +23,7 @@ const chileTextures=new WeakMap();
 function chileTexture(THREE,part){
  if(!THREE.TextureLoader)return null;
  let textures=chileTextures.get(THREE);if(!textures){textures={};chileTextures.set(THREE,textures)}
- if(!textures[part]){const map=new THREE.TextureLoader().load('./assets/skins/obsidian-chile/'+part+'.png?v=504');map.flipY=false;map.colorSpace=THREE.SRGBColorSpace;textures[part]=map}
+ if(!textures[part]){const map=new THREE.TextureLoader().load('./assets/skins/obsidian-chile/'+part+'.png?v=505');map.flipY=false;map.colorSpace=THREE.SRGBColorSpace;textures[part]=map}
  return textures[part];
 }
 const baseMaterial=m=>originals.get(m)||m;
@@ -137,7 +137,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
    `);
   };
   m.customProgramCacheKey=()=> 'obsidian-skin-v5-'+id;
-  if(id==='chile'&&m.isMeshStandardMaterial){m.metalnessMap=null;m.roughnessMap=null;m.metalness=.12;m.roughness=.82;}
+  if(id==='chile'&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
   // The procedural core and engines use untextured materials.
