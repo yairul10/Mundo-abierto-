@@ -1,14 +1,14 @@
 """Bake deterministic 3D paint zones into the existing Obsidian UV atlases.
 No geometry is changed. Run from repository root with numpy and Pillow installed.
 """
-import io,json,struct
+import io,json,struct,sys
 from pathlib import Path
 import numpy as np
 from PIL import Image,ImageFilter
 OUT=Path('assets/skins/obsidian-chile')
 OUT.mkdir(parents=True,exist_ok=True)
 WHITE=np.array([226,233,244]);BLUE=np.array([20,48,115]);RED=np.array([205,30,48])
-for name in ['fighter','portal','inner-ring']:
+for name in (sys.argv[1:] or ['fighter','portal','inner-ring']):
     blob=Path(f'assets/models/ancestral-{name}.glb').read_bytes()
     size=struct.unpack_from('<I',blob,12)[0];g=json.loads(blob[20:20+size]);data=blob[28+size:]
     def accessor(i):
@@ -35,10 +35,18 @@ for name in ['fighter','portal','inner-ring']:
         pos=w0[...,None]*p[t[0]]+w1[...,None]*p[t[1]]+w2[...,None]*p[t[2]];x,y,z=np.moveaxis(pos,-1,0)
         color=np.broadcast_to(BLUE,(*xx.shape,3)).copy()
         if name=='fighter':
-            # Broad solid armor zones, independent of noisy original atlas hue.
-            ax=np.abs(x);front=z<-10;flank=front&(ax>7)&(ax<20);pods=(ax>27)&(y>0)
-            color[flank|pods|(z>36)]=WHITE
-            color[(front&(ax>6)&(ax<8))|(front&(ax>20)&(ax<22))|((z>30)&(z<34))|((ax>24)&(ax<27))]=RED
+            # White is limited to upper armor; gun barrels/exhausts stay navy.
+            ax=np.abs(x);front=z<-10;upper=y>3
+            flank=front&upper&(ax>8)&(ax<17)&(z>-46)
+            shoulder=(ax>29)&(y>5)&(z>-8)&(z<28)
+            rearPlate=(z>36)&(z<47)&(ax<9)&(y>5)
+            color[flank|shoulder|rearPlate]=WHITE
+            redRails=front&upper&(((ax>6)&(ax<8))|((ax>17)&(ax<19)))
+            redCollar=((z>30)&(z<33))|((ax>24)&(ax<26)&(z>-12))
+            color[redRails|redCollar]=RED
+            # Recessed exhausts and lower gun housings retain mechanical contrast.
+            color[((z>48)&(y<5))|(front&(ax>19)&(y<0))]=[12,23,44]
+            color[front&(ax>19)&(ax<20)&(y>0)&(y<3)]=[33,153,224]
         else:
             radius=np.hypot(x,y);outside=np.linalg.norm(p[:,:2],axis=1).max();angle=np.arctan2(y,x)
             color[:]=WHITE;color[(np.floor((angle+np.pi)/(np.pi/3)).astype(int)%3)==0]=BLUE

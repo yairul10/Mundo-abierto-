@@ -23,7 +23,7 @@ const chileTextures=new WeakMap();
 function chileTexture(THREE,part){
  if(!THREE.TextureLoader)return null;
  let textures=chileTextures.get(THREE);if(!textures){textures={};chileTextures.set(THREE,textures)}
- if(!textures[part]){const map=new THREE.TextureLoader().load('./assets/skins/obsidian-chile/'+part+'.png?v=503');map.flipY=false;map.colorSpace=THREE.SRGBColorSpace;textures[part]=map}
+ if(!textures[part]){const map=new THREE.TextureLoader().load('./assets/skins/obsidian-chile/'+part+'.png?v=504');map.flipY=false;map.colorSpace=THREE.SRGBColorSpace;textures[part]=map}
  return textures[part];
 }
 const baseMaterial=m=>originals.get(m)||m;
@@ -148,10 +148,12 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
    // Blue core remains readable under strong hangar lighting without bloom.
    m.color.set(0x0753b8);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=.7;
    m.onBeforeCompile=shader=>{shader.vertexShader='varying vec3 corePosition;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ncorePosition=position;');shader.fragmentShader='varying vec3 corePosition;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
-    float bands=pow(0.5+0.5*sin(corePosition.y*2.8+sin(corePosition.x*1.7)*1.8),12.0);
-    totalEmissiveRadiance=mix(vec3(0.005,0.055,0.25),vec3(0.06,0.7,1.0),bands);
+    float turbulence=sin(corePosition.x*2.3+sin(corePosition.z*1.9))*sin(corePosition.y*2.7+sin(corePosition.x*1.6));
+    float bands=pow(1.0-abs(turbulence),18.0)*0.48;
+    float glow=pow(max(0.0,1.0-length(corePosition.xy)/8.0),3.0)*0.35;
+    totalEmissiveRadiance=mix(vec3(0.005,0.055,0.25),vec3(0.06,0.7,1.0),bands+glow);
    `)};
-   m.customProgramCacheKey=()=> 'obsidian-chile-core-v1';
+   m.customProgramCacheKey=()=> 'obsidian-chile-core-v2';
   }
  }
  return m;
