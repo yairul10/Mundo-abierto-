@@ -20,6 +20,13 @@ export const OBSIDIAN_SKINS=Object.freeze({
 export function allowedObsidianSkin(id,admin){return admin===true&&Object.hasOwn(OBSIDIAN_SKINS,id)?id:'original'}
 const originals=new WeakMap(),wakeGeometry=new WeakMap();
 const chileTextures=new WeakMap();
+const mexicoCrests=new WeakMap();
+function mexicoCrestTexture(THREE){
+ if(!THREE.TextureLoader)return null;
+ let texture=mexicoCrests.get(THREE);
+ if(!texture){texture=new THREE.TextureLoader().load('./assets/skins/obsidian-mexico-crest.svg?v=517');texture.colorSpace=THREE.SRGBColorSpace;mexicoCrests.set(THREE,texture)}
+ return texture;
+}
 function chileTexture(THREE,part){
  if(!THREE.TextureLoader)return null;
  let textures=chileTextures.get(THREE);if(!textures){textures={};chileTextures.set(THREE,textures)}
@@ -95,6 +102,10 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
    shader.uniforms.skinEnergy={value:energy};
    if(paintFrame){
     shader.uniforms.skinFrame={value:paintFrame};
+    if(id==='mexico'){
+     shader.uniforms.mexicoCrest={value:mexicoCrestTexture(THREE)};
+     shader.fragmentShader='uniform sampler2D mexicoCrest;\n'+shader.fragmentShader;
+    }
     for(const [i,key] of ['paintA','paintB','paintC'].entries())shader.uniforms[key]={value:new THREE.Color(skin.colors[i])};
     shader.vertexShader='uniform mat4 skinFrame;\nvarying vec3 skinPoint;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nskinPoint = (skinFrame * vec4(position, 1.0)).xyz;');
@@ -120,8 +131,10 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
     ${id==='mexico' && baked ? `
     // Recolor blue/cyan portions of the common texture while retaining whites and reds.
     float blueRegion=smoothstep(0.01,0.09,atlas.b-max(atlas.r,atlas.g)*0.82);
-    vec3 greenAtlas=vec3(atlas.r*0.60,atlas.b*0.92,atlas.g*0.50);
-    diffuseColor.rgb=mix(atlas,greenAtlas,blueRegion);
+    float lightDetail=smoothstep(0.04,0.18,min(atlas.g,atlas.b)-atlas.r);
+    vec3 darkGreen=vec3(atlas.r*0.45,atlas.b*0.48,atlas.g*0.32);
+    vec3 brightGreen=vec3(atlas.r*0.60,atlas.b*0.92,atlas.g*0.50);
+    diffuseColor.rgb=mix(atlas,mix(darkGreen,brightGreen,lightDetail),blueRegion);
     ` : ''}
     ${id==='colombia' ? `
     // Project a small flag onto the upward-facing nose panels.
@@ -150,6 +163,15 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
      armor=mix(armor,armor*vec3(0.37,0.46,0.59),joints*0.85);
      diffuseColor.rgb=mix(diffuseColor.rgb,armor,coverage);
     }
+    // Mexico's crest is projected only on the upper front of the hull.
+    ${id==='mexico' ? `
+    if(!skinRing && skinNormal.y > 0.45 * length(skinNormal)){
+     vec2 crestUv=vec2(skinPoint.x/11.0+0.5,(-skinPoint.z-34.0)/13.0);
+     if(crestUv.x>=0.0 && crestUv.x<=1.0 && crestUv.y>=0.0 && crestUv.y<=1.0){
+      vec4 crest=texture2D(mexicoCrest,crestUv);
+      diffuseColor.rgb=mix(diffuseColor.rgb,crest.rgb,crest.a);
+     }
+    }` : ''}
     // A single white star on the upper nose, in the ship frame.
     if(!skinRing && skinNormal.y > 0.45 * length(skinNormal)){
      vec2 starPoint=vec2(skinPoint.x / 20.0,(-skinPoint.z-40.5) / 20.0);
@@ -158,7 +180,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v516-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v517-'+id;
   if((id==='chile'||id==='mexico')&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
