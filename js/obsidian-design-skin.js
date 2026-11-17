@@ -8,8 +8,8 @@ export const OBSIDIAN_SKINS=Object.freeze({
  imperial:Object.freeze({name:'Imperial',energy:0xb456ff,core:0xedccff,trim:[.9,.52,.08]}),
  chile:country('Chile',0x3d83ff,0xdbeaff,[white,blue,red],
   'chilePanels(atlas, normalize(skinNormal), skinPoint)'),
- mexico:country('México',0x31db81,0xd0ffdf,[0x198458,white,red],
-  'skinPoint.x < -9.0 ? paintA : (skinPoint.x > 9.0 ? paintC : paintB)'),
+ mexico:country('México',0x31db81,0xd0ffdf,[white,0x075b36,red],
+  'chilePanels(atlas, normalize(skinNormal), skinPoint)'),
  colombia:country('Colombia',0xffc43d,0xffefb0,[yellow,blue,red],
   'colombiaPanels(atlas, normalize(skinNormal), skinPoint)'),
  venezuela:country('Venezuela',0x5186ff,0xdbe6ff,[yellow,blue,red],
@@ -89,7 +89,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
  const base=baseMaterial(source),skin=OBSIDIAN_SKINS[id],m=base.clone();originals.set(m,base);
  if(base.map){
   const energy=new THREE.Color(skin.energy),trim=skin.trim;
-  const baked=id==='chile'?chileTexture(THREE,part):null;
+  const baked=(id==='chile'||id==='mexico')?chileTexture(THREE,part):null;
   if(baked){m.map=baked;m.color?.set(0xffffff)}
   m.onBeforeCompile=shader=>{
    shader.uniforms.skinEnergy={value:energy};
@@ -99,13 +99,13 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
     shader.vertexShader='uniform mat4 skinFrame;\nvarying vec3 skinPoint;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nskinPoint = (skinFrame * vec4(position, 1.0)).xyz;');
     shader.fragmentShader='varying vec3 skinPoint;\nuniform vec3 paintA, paintB, paintC;\n'+shader.fragmentShader;
-    if(id==='colombia'||id==='chile'){
+    if(id==='colombia'||id==='chile'||id==='mexico'){
      shader.uniforms.skinRing={value:ring};
      shader.vertexShader='varying vec3 skinNormal;\n'+shader.vertexShader;
      shader.vertexShader=shader.vertexShader.replace('skinPoint = (skinFrame * vec4(position, 1.0)).xyz;',
       'skinPoint = (skinFrame * vec4(position, 1.0)).xyz;\nskinNormal = mat3(skinFrame) * normal;');
      shader.fragmentShader=shader.fragmentShader.replace('uniform vec3 paintA, paintB, paintC;',
-      'uniform vec3 paintA, paintB, paintC;\n'+(id==='chile'?chilePaint:colombiaPaint));
+      'uniform vec3 paintA, paintB, paintC;\n'+(id==='chile'||id==='mexico'?chilePaint:colombiaPaint));
     }
    }else shader.uniforms.skinTrim={value:new THREE.Vector3(...trim)};
    shader.fragmentShader='uniform vec3 skinEnergy;\nuniform vec3 skinTrim;\n'+shader.fragmentShader;
@@ -117,6 +117,12 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
     vec3 darkHull = atlas * 0.40;
     vec3 finish = ${paintFrame ? '('+skin.pattern+') * clamp(brightness * 1.35 + 0.13, 0.0, 1.0)' : 'mix(darkHull, skinTrim * brightness, trimMask)'};
     diffuseColor.rgb = ${baked ? 'atlas' : 'mix(finish, skinEnergy * brightness, energyMask)'};
+    ${id==='mexico' && baked ? `
+    // Recolor blue/cyan portions of the common texture while retaining whites and reds.
+    float blueRegion=smoothstep(0.01,0.09,atlas.b-max(atlas.r,atlas.g)*0.82);
+    vec3 greenAtlas=vec3(atlas.r*0.60,atlas.b*0.92,atlas.g*0.50);
+    diffuseColor.rgb=mix(atlas,greenAtlas,blueRegion);
+    ` : ''}
     ${id==='colombia' ? `
     // Project a small flag onto the upward-facing nose panels.
     if (!skinRing && skinNormal.y > 0.35 * length(skinNormal)) {
@@ -125,7 +131,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
       diffuseColor.rgb = flag.y < 0.5 ? vec3(1.0, 0.63, 0.015) : (flag.y < 0.75 ? paintB : paintC);
      }
     }` : ''}
-    ${id==='chile' ? `
+    ${id==='chile'||id==='mexico' ? `
     // Broad mirrored nose armor with continuous, softly shaded panels.
     if(!skinRing && skinNormal.y > 0.22 * length(skinNormal)){
      float along=smoothstep(-51.0,-47.0,skinPoint.z)*(1.0-smoothstep(-24.0,-20.0,skinPoint.z));
@@ -147,23 +153,23 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
     // A single white star on the upper nose, in the ship frame.
     if(!skinRing && skinNormal.y > 0.45 * length(skinNormal)){
      vec2 starPoint=vec2(skinPoint.x / 20.0,(-skinPoint.z-40.5) / 20.0);
-     if(chileStar(starPoint)) diffuseColor.rgb=paintA;
+     if(${id==='chile'?'true':'false'} && chileStar(starPoint)) diffuseColor.rgb=paintA;
     }` : ''}
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v513-'+id;
-  if(id==='chile'&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
+  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v516-'+id;
+  if((id==='chile'||id==='mexico')&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
   // The procedural core and engines use untextured materials.
   if(m.color){const c=base.color;m.color.set(c.g>.85&&c.r>.35?skin.core:skin.energy)}
   if(m.emissive&&base.emissive.getHex())m.emissive.set(skin.energy);
-  if((id==='colombia'||id==='chile')&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
-  if(id==='chile'&&reactor){
+  if((id==='colombia'||id==='chile'||id==='mexico')&&reactor){m.color.set(skin.core);m.emissiveIntensity=1.05}
+  if((id==='chile'||id==='mexico')&&reactor){
    // Slow, broad energy currents avoid the tiny grid produced by high-frequency bands.
-   const coreTime={value:0};m.userData.previewCoreTime=coreTime;
-   m.color.set(0x073276);if(m.emissive)m.emissive.set(0x087bdf);m.emissiveIntensity=1;
+   const coreTime={value:0};m.userData ||= {};m.userData.previewCoreTime=coreTime;
+   m.color.set(id==='mexico'?0x073e25:0x073276);if(m.emissive)m.emissive.set(id==='mexico'?0x08bf63:0x087bdf);m.emissiveIntensity=1;
    m.onBeforeCompile=shader=>{
     shader.uniforms.previewCoreTime=coreTime;
     shader.vertexShader='varying vec3 corePosition;\nvarying vec3 coreViewPosition;\nvarying vec3 coreViewNormal;\n'+shader.vertexShader;
@@ -179,10 +185,10 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
      float cloud=0.5+0.5*sin(p.x*2.5-p.y*2.2+p.z*2.0+t);
      float facing=max(dot(normalize(coreViewNormal),normalize(-coreViewPosition)),0.0);
      float heart=pow(facing,18.0)*(0.85+0.15*sin(t*2.0));
-     totalEmissiveRadiance=vec3(0.005,0.035,0.18)+vec3(0.01,0.16,0.42)*cloud+vec3(0.32,0.85,1.0)*arcs+vec3(1.1,1.7,2.0)*heart;
+     totalEmissiveRadiance=${id==='mexico'?'vec3(0.005,0.10,0.035)+vec3(0.01,0.40,0.12)*cloud+vec3(0.30,1.0,0.52)*arcs+vec3(1.1,2.0,1.4)*heart':'vec3(0.005,0.035,0.18)+vec3(0.01,0.16,0.42)*cloud+vec3(0.32,0.85,1.0)*arcs+vec3(1.1,1.7,2.0)*heart'};
     `);
    };
-   m.customProgramCacheKey=()=> 'obsidian-preview-chile-core-v509';
+   m.customProgramCacheKey=()=> 'obsidian-preview-core-v516-'+id;
   }
  }
  return m;
@@ -217,7 +223,7 @@ export function applyObsidianSkin(THREE,root,id='original'){
   }
   const previous=Array.isArray(o.material)?o.material:[o.material];
   let paintFrame=worldToShip&&worldToShip.clone().multiply(o.matrixWorld),ring=false,part='fighter';
-  if(id==='colombia'||id==='chile'){
+  if(id==='colombia'||id==='chile'||id==='mexico'){
    // Keep each color segment attached to its rotating ring.
    for(let parent=o.parent;parent&&parent!==root;parent=parent.parent){
     if(!parent.name.startsWith('obsidian-ring-'))continue;
