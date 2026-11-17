@@ -24,7 +24,11 @@ const mexicoCrests=new WeakMap();
 function mexicoCrestTexture(THREE){
  if(!THREE.TextureLoader)return null;
  let texture=mexicoCrests.get(THREE);
- if(!texture){texture=new THREE.TextureLoader().load('./assets/skins/obsidian-mexico-crest.svg?v=517');texture.colorSpace=THREE.SRGBColorSpace;mexicoCrests.set(THREE,texture)}
+ if(!texture){
+  const report=ok=>{if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('obsidian-crest-status',{detail:{ok}}))};
+  texture=new THREE.TextureLoader().load('./assets/skins/obsidian-mexico-crest.png?v=519',()=>report(true),undefined,()=>report(false));
+  texture.colorSpace=THREE.SRGBColorSpace;mexicoCrests.set(THREE,texture)
+ }
  return texture;
 }
 function chileTexture(THREE,part){
@@ -183,7 +187,7 @@ function recoloredMaterial(THREE,source,id,paintFrame,ring,reactor,part){
 
    `);
   };
-  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v518-'+id;
+  m.customProgramCacheKey=()=> 'obsidian-preview-skin-v519-'+id;
   if((id==='chile'||id==='mexico')&&m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}
   if(id==='colombia'&&m.isMeshStandardMaterial){m.metalness*=.65;m.roughness=Math.max(m.roughness,.65)}
  }else{
