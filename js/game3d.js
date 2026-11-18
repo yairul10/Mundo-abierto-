@@ -1,3 +1,4 @@
+import {applySupportDesign,supportDesignSelected,supportDroneDamageMultiplier} from './support-drone-design.js?v=2';
 import {applyExplorerDesign} from './explorer-design.js?v=1';
 import {wantsObsidianPreview,displayedShip} from './obsidian-visual-preview.js?v=1';
 import {mountBaseActions} from './base-actions.js?v=498';
@@ -35,7 +36,7 @@ import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-up
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=450';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=514';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=514';
-import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=443';
+import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=drone1';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=479';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
@@ -53,7 +54,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=514';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=495';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=443';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=drone1';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=491';
@@ -62,18 +63,18 @@ import {GRAPHICS_KEY,FRAME_RATE_KEY,normalizeFrameRate,initialGraphicsLevel,crea
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=436';
-import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350-m2';
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=drone1';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=497';
-import {mountHangarUI} from './hangar-ui.js?v=497';
+import {mountHangarUI} from './hangar-ui.js?v=drone1';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=521-zone1';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=497';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=drone1';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=drone1';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=drone1';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -1722,7 +1723,7 @@ deferredModelLoad(modelLoader,'./assets/models/sci_fi_fighter_spacecraft.glb?v=1
   visual.scale.setScalar(47/longest);
   visual.position.copy(center).multiplyScalar(-47/longest);
   pivot.add(visual);
-  d.mesh.add(pivot);
+  d.mesh.add(pivot);d.skinStamp='';
   for(const part of d.mesh.children)if(part!==pivot)part.visible=false;
  }
 },undefined,()=>console.info('Modelo de dron pendiente: se usa el diseño provisional.'));
@@ -1754,6 +1755,7 @@ if(formationBtn){
 }
 refreshFormationButton();
 function updateSupportDrones(dt,now){
+ const design=supportDesignSelected(player);for(const d of supportDrones)if(d.skinStamp!==design){applySupportDesign(THREE,d.mesh,design);d.skinStamp=design}
  const forward=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)).normalize();
  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  const up=new THREE.Vector3().crossVectors(right,forward).normalize();
@@ -1783,7 +1785,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
   const range=supportRange();
-  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:range/1150+.35,range,damage:player.attack*.6*equippedBonus().damage*activeLaserBooster()});
+  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:range/1150+.35,range,damage:player.attack*.6*equippedBonus().damage*activeLaserBooster()*supportDroneDamageMultiplier(supportDesignSelected(player))});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
@@ -1978,10 +1980,10 @@ function renderDrones(){
  const count=ownedDrones(),price=DRONE_PRICES[count],max=count>=MAX_DRONES;
  const html='<div class="upgrade-card"><div><strong>🤖 Drones de combate · '+count+'/'+MAX_DRONES+'</strong><small>Cada dron agrega un láser extra a tu nave cuando disparas. Apunta hacia tu misma mira y conserva la misma precisión.</small><small>'+(max?'Ocho drones equipados':'Siguiente dron: '+price.toLocaleString('es')+' créditos')+'</small></div><button id="buyDroneBtn" '+(max||player.gold<price?'disabled':'')+'>'+(max?'Máximo':'Comprar')+'</button></div>';
  const rangeLevel=player.explorerRangeLevel,rangeMax=rangeLevel>=10,rangePrice=explorerUpgradePrice();
- const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Dron Explorador · 9.º especial</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirido y equipado':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Compra independiente')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipado':'Comprar')+'</button></div>';
+ const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Mascota</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirida y equipada':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Compra independiente')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipada':'Comprar')+'</button></div>';
  const repairLevel=player.repairRobotLevel,repairMax=repairLevel>=5,repairPrice=repairRobotPrice();
  const repairHtml='<div class="upgrade-card"><div><strong>🔧 Robot reparador · Nivel '+repairLevel+'/5</strong><small>Repara '+(repairLevel||1)+' % del casco por segundo tras 2 s sin disparar ni recibir ataques. Cada nivel añade 1 %. No ocupa espacios de drones.</small><small>'+(repairMax?'Nivel máximo · 5 % por segundo':(repairLevel?'Mejorar a nivel '+(repairLevel+1):'Compra permanente')+': '+repairPrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyRepairRobot" '+(repairMax||player.gold<repairPrice?'disabled':'')+'>'+(repairMax?'Máximo':repairLevel?'Mejorar':'Comprar')+'</button></div>';
- const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance del Explorador · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
+ const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance de la Mascota · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
  const autoOwned=player.autoMissilesOwned===true,autoEnabled=autoOwned&&player.autoMissilesEnabled===true;
  const autoHtml='<div class="upgrade-card"><div><strong>🚀 Misiles automáticos</strong><small>Lanza la salva de misiles mientras disparas el láser a un objetivo. Conserva el daño y la recarga normales.</small><small>'+(autoOwned?'Compra permanente · '+(autoEnabled?'Activados':'Desactivados'):'Compra permanente: '+AUTO_MISSILE_PRICE.toLocaleString('es')+' créditos')+'</small></div><button class="autoMissilesBtn" '+(!autoOwned&&player.gold<AUTO_MISSILE_PRICE?'disabled':'')+'>'+(autoOwned?(autoEnabled?'Desactivar':'Activar'):'Comprar')+'</button></div>';
  for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml+autoHtml;
@@ -2001,11 +2003,11 @@ function renderDrones(){
  };
  el.querySelector('.buyExplorerRange').onclick=()=>{
   const price=explorerUpgradePrice();if(!canUseShop()||!player.explorerDrone||player.explorerRangeLevel>=10||player.gold<price)return;
-  player.gold-=price;player.explorerRangeLevel++;logAction('commerce','Alcance del Explorador · Nivel '+player.explorerRangeLevel+' · −'+price.toLocaleString('es')+' créditos');save();hud();renderDrones();lootToast('📡 Explorador: alcance '+explorerRange()+' m');if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
+  player.gold-=price;player.explorerRangeLevel++;logAction('commerce','Alcance de la Mascota · Nivel '+player.explorerRangeLevel+' · −'+price.toLocaleString('es')+' créditos');save();hud();renderDrones();lootToast('📡 Mascota: alcance '+explorerRange()+' m');if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
  };
  el.querySelector('.buyExplorerBtn').onclick=()=>{
   if(!canUseShop()||player.explorerDrone||player.gold<EXPLORER_PRICE)return;
-  player.gold-=EXPLORER_PRICE;player.explorerDrone=true;logAction('commerce','Compra: Dron Explorador · −'+EXPLORER_PRICE.toLocaleString('es')+' créditos');save();hud();renderDrones();lootToast('🛰️ Dron Explorador equipado');
+  player.gold-=EXPLORER_PRICE;player.explorerDrone=true;logAction('commerce','Compra: Mascota · −'+EXPLORER_PRICE.toLocaleString('es')+' créditos');save();hud();renderDrones();lootToast('🛰️ Mascota equipada');
   if(docked||!$('shopPanel').classList.contains('hidden'))hangarRefresh();
  };el.querySelector('.buyDroneBtn').onclick=()=>{
   const owned=ownedDrones(),cost=DRONE_PRICES[owned];
@@ -2274,7 +2276,7 @@ function renderAdminDesigns(){
  if(!PVP_MODE||!pvpSession?.adminShipAllowed){panel?.remove();return}
  if(!panel){panel=document.createElement('section');panel.id='adminObsidianDesigns';panel.className='admin-designs';home.appendChild(panel)}
  panel.innerHTML='<h3>Obsidian · Diseños de prueba</h3><p class="muted">Solo administrador · Vista local durante esta sesión. Sin cambios de estadísticas. Los demás jugadores ven el diseño original.</p><div class="commerce-tabs" role="group" aria-label="Diseño de Obsidian">'+Object.entries(OBSIDIAN_SKINS).map(([id,skin])=>'<button type="button" data-obsidian-skin="'+id+'" aria-pressed="'+(adminObsidianSkin===id)+'">'+skin.name+'</button>').join('')+'</div><div class="ship-model-preview" id="adminObsidianPreview" style="height:260px"></div><p class="muted">Selecciona un diseño para previsualizarlo. Se aplica al volar con tu Obsidian.</p>';
- panel.insertAdjacentHTML('beforeend','<h3>Dron explorador · Diseño de prueba</h3><p class="muted">Vista local durante esta sesión; requiere tener el dron. El diseño aún no es una recompensa.</p><div class="commerce-tabs"><button type="button" data-explorer-design="original">Original</button><button type="button" data-explorer-design="obsidian">Obsidian</button></div>');
+ panel.insertAdjacentHTML('beforeend','<h3>Mascota · Diseño de prueba</h3><p class="muted">Vista local durante esta sesión; requiere tener la mascota. El diseño aún no es una recompensa.</p><div class="commerce-tabs"><button type="button" data-explorer-design="original">Original</button><button type="button" data-explorer-design="obsidian">Obsidian</button></div>');
  panel.querySelectorAll('[data-explorer-design]').forEach(button=>button.onclick=()=>{
   if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed)return;
   explorerDesignPreview=button.dataset.explorerDesign==='obsidian'?'obsidian':'original';
@@ -3698,10 +3700,11 @@ if(PVP_MODE){
   else if(pending.fresh)pvpCorrection=predicted.sub(playerMesh.position).toArray();
   const ids=new Set(others.map(p=>p.id));for(const [id,r]of remotes)if(!ids.has(id)){scene.remove(r.mesh,r.drones,r.pet);r.label.remove();enemies.splice(enemies.indexOf(r),1);remotes.delete(id)}
   for(const other of others){let r=remotes.get(other.id);if(!r){const mesh=new THREE.Group(),drones=new THREE.Group(),pet=new THREE.Group(),label=document.createElement('div');label.className='world-nameplate';label.innerHTML='<span></span><small></small><div class="name-health"><i></i></div>';document.body.appendChild(label);scene.add(mesh,drones,pet);label.setAttribute('role','button');label.tabIndex=0;label.onclick=()=>pvpSession.select(other.id);label.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();pvpSession.select(other.id)},{passive:false});label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvpSession.select(other.id)}};r={pvpRemote:true,playerId:other.id,type:'pilot',mesh,drones,pet,label,home:new THREE.Vector3(),goal:new THREE.Vector3(...other.pos),hp:1,maxHp:1,dead:0,aggressive:false,pilotName:'Invitado',pilotLevel:other.profile.level};mesh.position.copy(r.goal);remotes.set(other.id,r);enemies.push(r);
-    for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i%2?1:-1)*[78,135,195,250][Math.floor(i/2)],14,125+Math.floor(i/2)*40);d.rotation.set(0,0,0);drones.add(d)}
+    for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);applySupportDesign(THREE,d,'original');d.visible=true;d.position.set((i%2?1:-1)*[78,135,195,250][Math.floor(i/2)],14,125+Math.floor(i/2)*40);d.rotation.set(0,0,0);drones.add(d)}
    }
    if(!force&&r.hp>0&&other.hp<=0)titanFireburst.spawn(new THREE.Vector3(...other.pos),60,{count:3});
-   if(r.drones.children.length!==other.profile.droneCount||r.droneStamp!==supportDrones[0]?.mesh.children.length){r.drones.clear();for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);d.visible=true;d.position.set((i%2?1:-1)*78,14,125);r.drones.add(d)}r.droneStamp=supportDrones[0]?.mesh.children.length}
+   if(r.drones.children.length!==other.profile.droneCount||r.droneStamp!==supportDrones[0]?.mesh.children.length){r.drones.clear();for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);applySupportDesign(THREE,d,'original');d.visible=true;d.position.set((i%2?1:-1)*78,14,125);r.drones.add(d)}r.droneStamp=supportDrones[0]?.mesh.children.length}
+   const remoteDesign=other.profile.supportDroneSkin==='pearl'?'pearl':'original';if(r.supportSkin!==remoteDesign||r.supportSkinCount!==r.drones.children.length){for(const d of r.drones.children)applySupportDesign(THREE,d,remoteDesign);r.supportSkin=remoteDesign;r.supportSkinCount=r.drones.children.length}
    r.team=other.team;r.label.classList.toggle('ally',!!state.match&&other.team===me.team);r.label.classList.toggle('pvp-enemy',!!state.match&&other.team!==me.team);r.inHangar=other.hangar;r.hasPet=other.profile.explorerDrone;r.formation=other.profile.droneFormation;r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shield=Number(other.shield)||0;r.maxShield=other.profile.maxShield||0;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=other.profile.level;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=other.hp>0;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
 
    if(wasHit&&other.id===me.lastDamagedBy)registerExplorerThreat(r);

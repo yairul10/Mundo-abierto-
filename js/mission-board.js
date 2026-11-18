@@ -19,6 +19,7 @@ export function createMissionBoard(catalog,quests={}){
  for(const m of catalog)state.progress[m.id]=m.objectives.map((o,i)=>Math.max(0,Math.min(o.goal,Math.floor(Number(state.progress[m.id]?.[i])||0))));
  function remaining(level){for(const m of catalog.filter(m=>m.realm==='pvp')){
  const completed=quests.pvpMissions?.completed?.includes(m.id);
+ if(m.skin){if(completed&&!state.completed.includes(m.id))state.completed.push(m.id);state.progress[m.id]=m.objectives.map((o,i)=>completed?o.goal:Math.min(o.goal,Math.max(0,Math.floor(Number(quests.pvpMissions?.droneProgress?.[i])||0))));continue;}
  if(completed&&!state.completed.includes(m.id))state.completed.push(m.id);
  const first=catalog.find(o=>o.realm==='pvp'&&o.enemyKind===m.enemyKind&&o.objectives[0].goal===1),initial=m.objectives[0].goal>1&&quests.pvpMissions?.completed?.includes(first?.id)?1:0;
  state.progress[m.id]=m.objectives.map(o=>completed?o.goal:Math.min(o.goal,Math.max(initial,Math.floor(Number(quests.pvpMissions?.progress?.[m.id])||0))));

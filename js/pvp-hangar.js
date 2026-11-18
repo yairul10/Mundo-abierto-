@@ -1,4 +1,4 @@
-import {initialPvpPilot,offlineRoster} from './pvp-loadout.js?v=462';
+import {initialPvpPilot,offlineRoster} from './pvp-loadout.js?v=drone1';
 const WORLD_FIELDS=['x','y','z','yaw','pitch','sector','granTitanState','carrierState'];
 export function createHangarEditor(source={}){
  const original=JSON.parse(JSON.stringify(source)),editor=initialPvpPilot(original);
