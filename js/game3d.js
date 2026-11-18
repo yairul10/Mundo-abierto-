@@ -1,3 +1,4 @@
+import {PET_VARIANTS,selectedPetVariant,petRangeMultiplier,petDamageMultiplier,petBaseRange,petCollectionRange} from './pet-variants.js?v=1';
 import {applySupportDesign,supportDesignSelected,supportDroneDamageMultiplier} from './support-drone-design.js?v=2';
 import {applyExplorerDesign} from './explorer-design.js?v=1';
 import {wantsObsidianPreview,displayedShip} from './obsidian-visual-preview.js?v=1';
@@ -36,7 +37,7 @@ import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-up
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=450';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=514';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=514';
-import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=drone1';
+import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=pet1';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=479';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
@@ -54,7 +55,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=514';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=495';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=drone1';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=pet1';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=491';
@@ -63,18 +64,18 @@ import {GRAPHICS_KEY,FRAME_RATE_KEY,normalizeFrameRate,initialGraphicsLevel,crea
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=436';
-import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=drone1';
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=pet1';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=497';
-import {mountHangarUI} from './hangar-ui.js?v=drone1';
+import {mountHangarUI} from './hangar-ui.js?v=pet1';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=drone1';
-import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=drone1';
-import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=drone1';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=pet1';
+import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=pet1';
+import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=pet1';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
 import {createCatapultRig} from './catapult-rig.js?v=182';
 import {createHarpoonRig} from './harpoon-rig.js?v=187';
@@ -1510,7 +1511,8 @@ const EXPLORER_PRICE=300000;
 player.explorerDrone=player.explorerDrone===true;
 player.explorerMode=companionMode(player.explorerMode);
 player.explorerRangeLevel=Math.max(1,Math.min(10,Math.floor(Number(player.explorerRangeLevel)||1)));
-function explorerRange(){return 450+player.explorerRangeLevel*100}
+function explorerBaseRange(){return petBaseRange(player.explorerRangeLevel)}
+function explorerRange(){return petCollectionRange(player.explorerRangeLevel,selectedPetVariant(player))}
 const EXPLORER_UPGRADE_PRICES=[1000,2500,5000,9000,14000,21000,29000,39000,50000]; // Mejoras del nivel 2 al 10.
 function explorerUpgradePrice(){return EXPLORER_UPGRADE_PRICES[player.explorerRangeLevel-1]||0}
 player.droneCount=Math.max(0,Math.min(MAX_DRONES,Math.floor(Number(player.droneCount)||0)));
@@ -1546,74 +1548,23 @@ explorerShell.scale.set(1.1,.7,1.4);explorerMesh.add(explorerShell);
 const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.MeshBasicMaterial({color:0x6effc8}));
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
-// El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
- const visual=gltf.scene;
- visual.updateMatrixWorld(true);
- const bounds=new THREE.Box3().setFromObject(visual);
- const size=bounds.getSize(new THREE.Vector3());
- const center=bounds.getCenter(new THREE.Vector3());
- const longest=Math.max(size.x,size.y,size.z);
- if(!Number.isFinite(longest)||longest<.001)return;
- const pivot=new THREE.Group();
- const scale=90/longest; // escala legible en móvil, normalizada al tamaño real del GLB
- visual.scale.setScalar(scale);
- visual.position.copy(center).multiplyScalar(-scale);
- pivot.add(visual);
- // Detalles azul eléctrico y violeta, conservando las texturas originales de Sloyd.
- visual.traverse(part=>{
-  if(!part.isMesh)return;
-  const usesMaterialArray=Array.isArray(part.material);
-  const materials=usesMaterialArray?part.material:[part.material];
-  const tintedMaterials=materials.map(mat=>{
-   if(!mat)return mat;
-   const tinted=mat.clone();
-   if(tinted.color){
-    const hue=tinted.color.clone();
-    const light=hue.r*.2126+hue.g*.7152+hue.b*.0722;
-    if(light>.15 && light<.78)tinted.color.lerp(new THREE.Color(0x7cb8e8),.17);
-   }
-   if('emissive' in tinted){
-    tinted.emissive=new THREE.Color(0x123f8e);
-    tinted.emissiveIntensity=.18;
-   }
-   return tinted;
-  });
-  // Una malla de material único no puede recibir un array: sin grupos de
-  // geometría Three.js no la dibuja, aunque continúe existiendo y moviéndose.
-  part.material=usesMaterialArray?tintedMaterials:tintedMaterials[0];
- });
- const glow=new THREE.PointLight(0x30baff,3.5,55);
- explorerMesh.userData.designGlow=glow;
- glow.position.set(0,0,-12);
- pivot.add(glow);
- // Mantener un núcleo visible aunque el GLB tenga materiales incompatibles
- // o sea descartado por el frustum culling del navegador móvil.
- visual.traverse(part=>{
-  if(!part.isMesh)return;
-  part.visible=true;
-  part.frustumCulled=false;
-  const mats=Array.isArray(part.material)?part.material:[part.material];
-  for(const mat of mats)if(mat){
-   mat.side=THREE.DoubleSide;
-   mat.transparent=false;
-   mat.opacity=1;
-   mat.depthWrite=true;
-   mat.needsUpdate=true;
-  }
- });
- explorerMesh.add(pivot);
- explorerMesh.userData.designVisual=visual;
- applyExplorerDesign(THREE,visual,explorerDesignPreview);
- explorerMesh.scale.setScalar(1);
- // El núcleo permanece como respaldo visual detrás del GLB.
- explorerShell.material.color.setHex(0x2279c8);
- explorerShell.material.emissive.setHex(0x0753a0);
- explorerShell.scale.set(.68,.44,.78);
- explorerEye.material.color.setHex(0x65edff);
- explorerEye.position.z=-9;
- explorerEye.scale.setScalar(.65);
-},undefined,error=>{console.warn('No se pudo cargar scifidrone.glb; se conserva el modelo provisional',error);lootToast('⚠️ No se pudo cargar el modelo 3D de la mascota');});
+// Models are loaded on demand. The same gameplay root, targeting and movement are retained.
+explorerShell.name='pet-fallback';explorerEye.name='pet-fallback';explorerMesh.scale.setScalar(1);explorerShell.scale.set(.68,.44,.78);explorerEye.scale.setScalar(.65);explorerEye.position.z=-9;
+const petVisualStates=new Map();let petVisualRevision=0;
+function showPetVisual(root,id){const chosen='pet-model-'+id,loaded=root.children.some(c=>c.name===chosen);for(const c of root.children){if(c.name.startsWith('pet-model-'))c.visible=c.name===chosen;else if(c.name==='pet-fallback')c.visible=!loaded}}
+function ensurePetVisual(id){
+ const variant=PET_VARIANTS[id]?id:'normal';if(petVisualStates.has(variant))return;
+ petVisualStates.set(variant,'loading');deferredModelLoad(modelLoader,'./assets/models/'+PET_VARIANTS[variant].file+'?v=1',gltf=>{
+  const visual=gltf.scene;visual.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(visual),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
+  if(!Number.isFinite(longest)||longest<.001){petVisualStates.set(variant,'failed');return}
+  const factor=90/longest,pivot=new THREE.Group();pivot.name='pet-model-'+variant;visual.scale.setScalar(factor);visual.position.copy(center).multiplyScalar(-factor);pivot.add(visual);pivot.visible=false;
+  visual.traverse(part=>{if(!part.isMesh)return;part.frustumCulled=false;const array=Array.isArray(part.material),mats=array?part.material:[part.material];const prepared=mats.map(old=>{if(!old)return old;const mat=old.clone();mat.side=THREE.DoubleSide;mat.transparent=false;mat.opacity=1;mat.depthWrite=true;
+   if(variant==='normal'&&mat.isMeshStandardMaterial){mat.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+float cyanMask = smoothstep(0.015, 0.13, min(diffuseColor.g, diffuseColor.b) - diffuseColor.r) * smoothstep(0.04, 0.24, max(diffuseColor.g, diffuseColor.b));
+totalEmissiveRadiance += vec3(0.015, 0.55, 0.52) * cyanMask * 0.8;`);};mat.customProgramCacheKey=()=> 'pet-obsidian-cyan-v1'}mat.needsUpdate=true;return mat});part.material=array?prepared:prepared[0]});
+  explorerMesh.add(pivot);if(variant==='normal')explorerMesh.userData.designVisual=visual;petVisualStates.set(variant,'ready');petVisualRevision++;showPetVisual(explorerMesh,selectedPetVariant(player));
+ },undefined,error=>{petVisualStates.set(variant,'failed');console.warn('No se pudo cargar el diseño de mascota '+variant,error)});
+}
 // Movimiento de compañía: paseos suaves alrededor de la nave, con pequeñas pausas.
 const explorerCompanion={
  nextChange:0,destination:new THREE.Vector3(),initialized:false,targetDrop:null
@@ -1624,7 +1575,7 @@ const explorerThreats=new Map();
 function registerExplorerThreat(e){
  if(player.explorerDrone&&e.type!=='carrier'&&!e.dead&&e.mesh.visible){explorerThreat=e;explorerThreats.set(e,performance.now()/1000);}
 }
-function explorerEnemyValid(e){return (!PVP_MODE||pvpSession?.canFight&&pvpSession?.canTarget(e?.playerId)&&!pvpSession?.isJammed(e?.playerId))&&!!e&&!e.dead&&e.mesh.visible&&e.mesh.position.distanceTo(playerMesh.position)<=Math.min(COMBAT_RANGE,explorerRange())}
+function explorerEnemyValid(e){return (!PVP_MODE||pvpSession?.canFight&&pvpSession?.canTarget(e?.playerId)&&!pvpSession?.isJammed(e?.playerId))&&!!e&&!e.dead&&e.mesh.visible&&e.mesh.position.distanceTo(playerMesh.position)<=Math.min(COMBAT_RANGE,explorerBaseRange())}
 function explorerTask(){
  const now=performance.now()/1000;
  for(const [enemy,time] of explorerThreats)if(now-time>4.5||!explorerEnemyValid(enemy))explorerThreats.delete(enemy);
@@ -1652,7 +1603,7 @@ function updateExplorerCombat(dt){
  const direction=delta.clone().normalize(),start=explorerMesh.position.clone().addScaledVector(direction,26);
  const bolt=new THREE.Mesh(laserGeometry,supportLaserMaterial);
  bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);bolt.position.copy(start);scene.add(bolt);
- shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:2.1,damage:player.attack*.6*activeBooster('damage')});
+ shots.push({mesh:bolt,pvpAimPoint:explorerAim.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:2.1,damage:player.attack*.6*activeBooster('damage')*petDamageMultiplier(selectedPetVariant(player))});
  if(pvpSession)pvpSession.shots('explorer',shots.filter(p=>!p.pvpSent&&!p.pvpRemote),playerMesh.position,player.attack,1,target.playerId);for(const p of shots)if(!p.pvpRemote)p.pvpSent=true;
  explorerMesh.lookAt(target.mesh.position);explorerFireCd=.68;
 }
@@ -1662,6 +1613,7 @@ function explorerIdlePosition(){
  return playerMesh.position.clone().add(new THREE.Vector3(150,20,90).applyEuler(new THREE.Euler(pitch,yaw,0,'YXZ')));
 }
 function updateExplorer(dt,now){
+ const variant=selectedPetVariant(player);if(player.explorerDrone)ensurePetVisual(variant);showPetVisual(explorerMesh,variant);
  explorerMesh.visible=player.explorerDrone&&!docked&&!landing;
  if(!explorerMesh.visible){explorerCompanion.initialized=false;return}
  const c=explorerCompanion,t=now*.001,range=explorerRange();
@@ -1983,7 +1935,7 @@ function renderDrones(){
  const explorerHtml='<div class="upgrade-card"><div><strong>🛰️ Mascota</strong><small>Recoge automáticamente los materiales de los enemigos y agrega un láser extra a tu nave cuando disparas.</small><small>'+(player.explorerDrone?'Adquirida y equipada':'Precio: '+EXPLORER_PRICE.toLocaleString('es')+' créditos · Compra independiente')+'</small></div><button class="buyExplorerBtn" '+(player.explorerDrone||player.gold<EXPLORER_PRICE?'disabled':'')+'>'+(player.explorerDrone?'Equipada':'Comprar')+'</button></div>';
  const repairLevel=player.repairRobotLevel,repairMax=repairLevel>=5,repairPrice=repairRobotPrice();
  const repairHtml='<div class="upgrade-card"><div><strong>🔧 Robot reparador · Nivel '+repairLevel+'/5</strong><small>Repara '+(repairLevel||1)+' % del casco por segundo tras 2 s sin disparar ni recibir ataques. Cada nivel añade 1 %. No ocupa espacios de drones.</small><small>'+(repairMax?'Nivel máximo · 5 % por segundo':(repairLevel?'Mejorar a nivel '+(repairLevel+1):'Compra permanente')+': '+repairPrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyRepairRobot" '+(repairMax||player.gold<repairPrice?'disabled':'')+'>'+(repairMax?'Máximo':repairLevel?'Mejorar':'Comprar')+'</button></div>';
- const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance de la Mascota · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
+ const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance de la Mascota · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade '+(100*petRangeMultiplier(selectedPetVariant(player)))+' m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
  const autoOwned=player.autoMissilesOwned===true,autoEnabled=autoOwned&&player.autoMissilesEnabled===true;
  const autoHtml='<div class="upgrade-card"><div><strong>🚀 Misiles automáticos</strong><small>Lanza la salva de misiles mientras disparas el láser a un objetivo. Conserva el daño y la recarga normales.</small><small>'+(autoOwned?'Compra permanente · '+(autoEnabled?'Activados':'Desactivados'):'Compra permanente: '+AUTO_MISSILE_PRICE.toLocaleString('es')+' créditos')+'</small></div><button class="autoMissilesBtn" '+(!autoOwned&&player.gold<AUTO_MISSILE_PRICE?'disabled':'')+'>'+(autoOwned?(autoEnabled?'Desactivar':'Activar'):'Comprar')+'</button></div>';
  for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml+autoHtml;
@@ -2420,18 +2372,30 @@ const legacyMissions=[...MISSIONS.map((m,i)=>({...m,id:'aurora-'+i,level:1,legac
  ...EMBER_MISSIONS.map((m,i)=>({...m,id:'ember-'+i,level:30,legacySector:'ember',legacyIndex:i,objectives:[{event:m.event,sector:'ember',goal:m.goal,label:m.description}]}))];
 const missionCatalog=[...legacyMissions,...LONG_MISSIONS.map(m=>({...m,id:'contract-'+m.id,legacyContract:m.id,level:m.id==='mixed-1'||m.id==='mixed-2'?8:m.id.startsWith('mixed-')?15:40})),...CEMETERY_MISSIONS,...PVP_MISSIONS];
 let missionBoard=createMissionBoard(missionCatalog,player.quests);
+function persistMissionSelection(){
+ if(PVP_MODE&&!pvpHangar){
+  const latest=readOfflinePilot(localStorage);latest.quests=latest.quests&&typeof latest.quests==='object'?latest.quests:{};
+  const board=createMissionBoard(missionCatalog,latest.quests);board.active(player.level);board.state.activeMission=missionBoard.state.activeMission;
+  if(!safeStorageSet(SAVE_KEY,JSON.stringify(latest),true))return false;
+  player.quests=latest.quests;missionBoard=createMissionBoard(missionCatalog,player.quests);window.dispatchEvent(new Event('cosmos:progress-saved'));return true;
+ }
+ const saved=save();if(saved)window.dispatchEvent(new Event('cosmos:progress-saved'));return saved;
+}
+missionBoard.active(player.level);
+setTimeout(()=>persistMissionSelection(),0);
 function renderMission(){
  const el=$('questTracker'),toggle=$('questToggle');if(!el)return;
  el.classList.toggle('hidden',questCollapsed);toggle.setAttribute('aria-expanded',String(!questCollapsed));
  if(questCollapsed)return;
- const missions=missionBoard.remaining(player.level),next=missionBoard.nextLevel(player.level);
+ const active=missionBoard.active(player.level),missions=missionBoard.remaining(player.level),next=missionBoard.nextLevel(player.level);
  $('questTitle').textContent='Misiones · '+missions.length+' disponibles';
- $('missionSummary').textContent=Number.isFinite(next)?'Se desbloquean más al nivel '+next:'Progreso automático · Recompensas al completar';
- const list=$('missionList'),stamp=JSON.stringify([player.level,missions.map(m=>[m.id,missionBoard.state.progress[m.id]])]);if(list.dataset.stamp===stamp)return;list.dataset.stamp=stamp;const scroll=list.scrollTop;
+ $('missionSummary').textContent=active?'Misión activa: '+active.title+(Number.isFinite(next)?' · Nuevas al nivel '+next:''):'Elige una misión para avanzar.';
+ const list=$('missionList'),stamp=JSON.stringify([player.level,missionBoard.state.activeMission,missions.map(m=>[m.id,missionBoard.state.progress[m.id]])]);if(list.dataset.stamp===stamp)return;list.dataset.stamp=stamp;const scroll=list.scrollTop;
  list.innerHTML=missions.length?missions.map(m=>{
   const progress=missionBoard.state.progress[m.id],total=m.objectives.reduce((n,o)=>n+o.goal,0),done=progress.reduce((n,v)=>n+v,0);
-  return '<article class="mission-card" data-mission="'+m.id+'"><strong>'+m.title+'</strong><small>Nivel '+m.level+'</small>'+m.objectives.map((o,i)=>'<small>'+o.label+' · '+progress[i]+'/'+o.goal+'</small>').join('')+'<div class="quest-progress"><i style="width:'+100*done/total+'%"></i></div><small class="mission-prize">'+missionPrize(m)+'</small></article>';
+  return '<article class="mission-card" data-mission="'+m.id+'"><strong>'+m.title+'</strong><small>Nivel '+m.level+'</small>'+m.objectives.map((o,i)=>'<small>'+o.label+' · '+progress[i]+'/'+o.goal+'</small>').join('')+'<div class="quest-progress"><i style="width:'+100*done/total+'%"></i></div><small class="mission-prize">'+missionPrize(m)+'</small><button type="button" data-activate-mission="'+m.id+'" '+(active?.id===m.id?'disabled':'')+'>'+(active?.id===m.id?'Misión activa':'Activar misión')+'</button></article>';
  }).join(''):'<p>No quedan misiones disponibles para tu nivel.</p>';list.scrollTop=scroll;
+ list.querySelectorAll('[data-activate-mission]').forEach(button=>button.onclick=()=>{const old=missionBoard.state.activeMission;if(!missionBoard.select(button.dataset.activateMission,player.level))return;if(!persistMissionSelection()){missionBoard.state.activeMission=old;return}renderMission()});
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
 function logAction(type,text,details={}){if(type==='commerce')window.dispatchEvent(new Event('cosmos:progress-saved'));if(PVP_MODE&&!pvpHangar)return;recordAction(player,type,text,details);if(type==='commerce')combatAudio.play(text.includes('Reparación')?'repair':'purchase');else if(type==='mission')combatAudio.play('mission')}
@@ -3600,7 +3564,7 @@ function closePvpHangar(){
  if(!pvpHangar||!save())return;
  combatAudio.play('takeoff');
  const adminSelection=player.shipId;const context=pvpHangar,updated=context.saved;Object.assign(context.flightPlayer,initialPvpPilot(updated));context.flightPlayer.maxHp*=20;context.flightPlayer.hp=context.flightPlayer.maxHp;syncShield(context.flightPlayer,{pvp:true});player=context.flightPlayer;missionBoard=createMissionBoard(missionCatalog,player.quests=JSON.parse(JSON.stringify(updated.quests||{})));hangarUI=context.ui;pvpHangar=null;
- docked=landing=false;$('saleConfirm').classList.add('hidden');hangar.classList.add('hidden');document.body.classList.remove('docked');$('questTracker').classList.add('hidden');resetDockControls();
+ docked=landing=false;$('saleConfirm').classList.add('hidden');hangar.classList.add('hidden');document.body.classList.remove('docked');$('questTracker').classList.add('hidden');questCollapsed=true;$('questToggle').setAttribute('aria-expanded','false');resetDockControls();
  loadAssembledVisual(player.shipId);syncPlayerShipVisuals();pvpBoostersKnown=false;pvpSession.refreshLoadout(updated,adminSelection);hud();
 }
 
@@ -3657,6 +3621,7 @@ if(PVP_MODE){
  function clearFight(){resetDockControls();clearCombatShots();lockedEnemy=null;fireCd=skillCd=classAbilityTime=classAbilityCd=0;}
  docked=landing=false;hangar.classList.add('hidden');playerMesh.position.set(0,120,0);yaw=0;pitch=0;camera.position.set(0,225,285);camera.lookAt(0,120,-215);
  for(const id of ['questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
+ if(COOP_MODE)$('questToggle').classList.remove('hidden');
  const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene,{budget:()=>effectBudget(graphics.level)}):null;
  if(COOP_MODE)scene.fog=new THREE.Fog(0x52617c,1000,2900);
  const arenaBoundary=ARENA_MODE?mountPvpArena(THREE,scene):null;
@@ -3671,7 +3636,7 @@ if(PVP_MODE){
   updateBossVisual(dt);arenaView.update(dt);
   for(const shot of shots){if(!shot.pvpRemote&&pvpSession?.active&&!pvpSession.canFight)shot.life=0;if(shot.target?.playerId&&(pvpSession?.isJammed(shot.target.playerId)||(shot.target.playerId===pvpSession?.myId?!pvpSession?.canFight:!pvpSession?.canTarget(shot.target.playerId))))shot.target=null;}
   for(const r of remotes.values()){
-   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);if(r.shipId==='adminpod')animateAdminPod(r.mesh,performance.now()/1000,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));if(r.shipId==='obsidian')animateObsidian(r.mesh,dt,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));r.pet.visible=r.hp>0&&!!r.hasPet;r.drones.visible=r.hp>0;if(r.hasPet){if(r.petStamp!==explorerMesh.children.length){r.pet.clear();const clone=cloneClean(explorerMesh);clone.visible=true;clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=explorerMesh.children.length}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
+   r.mesh.position.lerp(r.goal,1-Math.exp(-dt*12));syncRemoteVisual(r);if(r.shipId==='adminpod')animateAdminPod(r.mesh,performance.now()/1000,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));if(r.shipId==='obsidian')animateObsidian(r.mesh,dt,r.inHangar?0:Math.min(1,r.mesh.position.distanceTo(r.goal)/30));r.pet.visible=r.hp>0&&!!r.hasPet;r.drones.visible=r.hp>0;if(r.hasPet){const variant=r.petVariant||'normal';ensurePetVisual(variant);const stamp=variant+':'+petVisualRevision;if(r.petStamp!==stamp){r.pet.clear();const clone=new THREE.Group(),chosen=explorerMesh.children.find(c=>c.name==='pet-model-'+variant),parts=chosen?[chosen]:explorerMesh.children.filter(c=>c.name==='pet-fallback');for(const part of parts){const visual=cloneClean(part);visual.visible=true;clone.add(visual)}clone.position.set(-70,30,80);r.pet.add(clone);r.petStamp=stamp}r.pet.position.copy(r.mesh.position);r.pet.rotation.copy(r.mesh.rotation)}r.drones.position.copy(r.mesh.position);r.drones.rotation.copy(r.mesh.rotation);for(let i=0;i<r.drones.children.length;i++){const [x,y,z]=formationOffset(r.formation||'fan',i,r.drones.children.length,performance.now()/1000);r.drones.children[i].position.set(x,z,-y)}
    const point=r.mesh.position.clone().add(new THREE.Vector3(0,68,0)).project(camera),view=r.mesh.position.clone().sub(camera.position).dot(new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion));r.label.hidden=r.hp<=0||view<=0||point.z>1||Math.abs(point.x)>1.1||Math.abs(point.y)>1.1;
    r.label.style.left=((point.x+1)*50)+'%';r.label.style.top=((1-point.y)*50)+'%';r.label.classList.toggle('dueling',!!pvpSession?.canTarget(r.playerId));r.label.classList.toggle('jammed',!!pvpSession?.isJammed(r.playerId));
   }
@@ -3705,7 +3670,7 @@ if(PVP_MODE){
    if(!force&&r.hp>0&&other.hp<=0)titanFireburst.spawn(new THREE.Vector3(...other.pos),60,{count:3});
    if(r.drones.children.length!==other.profile.droneCount||r.droneStamp!==supportDrones[0]?.mesh.children.length){r.drones.clear();for(let i=0;i<other.profile.droneCount;i++){const d=cloneClean(supportDrones[i].mesh);applySupportDesign(THREE,d,'original');d.visible=true;d.position.set((i%2?1:-1)*78,14,125);r.drones.add(d)}r.droneStamp=supportDrones[0]?.mesh.children.length}
    const remoteDesign=other.profile.supportDroneSkin==='pearl'?'pearl':'original';if(r.supportSkin!==remoteDesign||r.supportSkinCount!==r.drones.children.length){for(const d of r.drones.children)applySupportDesign(THREE,d,remoteDesign);r.supportSkin=remoteDesign;r.supportSkinCount=r.drones.children.length}
-   r.team=other.team;r.label.classList.toggle('ally',!!state.match&&other.team===me.team);r.label.classList.toggle('pvp-enemy',!!state.match&&other.team!==me.team);r.inHangar=other.hangar;r.hasPet=other.profile.explorerDrone;r.formation=other.profile.droneFormation;r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shield=Number(other.shield)||0;r.maxShield=other.profile.maxShield||0;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=other.profile.level;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=other.hp>0;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
+   r.team=other.team;r.label.classList.toggle('ally',!!state.match&&other.team===me.team);r.label.classList.toggle('pvp-enemy',!!state.match&&other.team!==me.team);r.inHangar=other.hangar;r.hasPet=other.profile.explorerDrone;r.petVariant=['blue','red'].includes(other.profile.petVariant)?other.profile.petVariant:'normal';r.formation=other.profile.droneFormation;r.hp=other.hp;r.maxHp=other.profile.maxHp;r.shield=Number(other.shield)||0;r.maxShield=other.profile.maxShield||0;r.shipId=other.profile.shipId;r.pilotName=other.name;r.pilotLevel=other.profile.level;r.goal.set(...other.pos);if(r.mesh.position.distanceTo(r.goal)>600)r.mesh.position.copy(r.goal);r.mesh.visible=other.hp>0;if(other.aim){r.mesh.rotation.order='YXZ';r.mesh.rotation.set(other.aim[1],other.aim[0],0)}
 
    if(wasHit&&other.id===me.lastDamagedBy)registerExplorerThreat(r);
    rankedName(r.label.querySelector('span'),other.name+' #'+other.id.slice(-6),other.pvpRank,{clanTag:pvpSession?.clanTag(other.id)});r.label.querySelector('small').textContent=SHIP_TYPES[other.profile.shipId].name+(r.maxShield?' · Escudo '+Math.ceil(r.shield)+'/'+r.maxShield:'')+(other.hangar?' · En hangar':other.protected?' · Protegido':ARENA_MODE?(other.team===me.team?' · Tu equipo':' · Rival PvP'):' · Cooperativo')+Object.entries(other.skillUntil||{}).filter(([,until])=>until>state.serverTime).map(([id])=>' · '+(state.rules.skills?.[id]?.name||'')).join('');r.label.querySelector('i').style.width=(100*(other.hp+r.shield)/(r.maxHp+r.maxShield))+'%';syncRemoteVisual(r);
