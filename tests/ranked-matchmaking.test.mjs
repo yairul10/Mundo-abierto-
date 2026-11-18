@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {packTeams,matchPoints,SEARCH_MS} from '../server/matchmaking/rules.mjs';
+import {packTeams,matchPoints,matchAward,SEARCH_MS} from '../server/matchmaking/rules.mjs';
 import {createMatchBot} from '../server/pvp/practice-bot.mjs';
 import {makeCombatPlayer} from '../server/pvp/combat.mjs';
 import {validSkills} from '../server/pvp/skills.mjs';
@@ -19,4 +19,12 @@ test('public bots randomize names, ships, bounded improvements and valid skills 
  const bots=Array.from({length:30},(_,i)=>createMatchBot(human,{code:'ABCDEF',mode:'5v5'},10000,i%10));
  assert.ok(new Set(bots.map(p=>p.profile.shipId)).size>1);assert.ok(new Set(bots.map(p=>p.profile.attack)).size>1);
  for(const bot of bots){assert.equal(/BOT|práctica/i.test(bot.name),false);assert.ok(bot.profile.attack>=80&&bot.profile.attack<=120);assert.ok(validSkills(bot.equippedSkills,2));assert.ok(bot.profile.maxHp>=34000&&bot.profile.maxHp<=46000)}
+});
+
+test('ranked awards exclude abandoned players, while eliminated participants retain their result',()=>{
+ const result={combatStartedAt:1000,winnerTeam:'a',reason:'destroyed'};
+ assert.deepEqual(matchAward('2v2',{team:'a',participated:false},result),{points:0,wins:0});
+ assert.deepEqual(matchAward('2v2',{team:'a',participated:true},result),{points:50,wins:1});
+ assert.deepEqual(matchAward('arena20',{team:'b',place:3,participated:true},result),{points:55,wins:0});
+ assert.deepEqual(matchAward('arena20',{team:'b',place:3,participated:false},result),{points:0,wins:0});
 });

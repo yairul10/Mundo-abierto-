@@ -12,3 +12,9 @@ export function packTeams(groups,mode){
 }
 export function arenaPlacementPoints(place){return Number.isInteger(place)&&place>=1&&place<=20?[100,70,55,45,40,35,30,25,20,15,10,8,6,4,2,0,0,0,0,0][place-1]:0}
 export function matchPoints(mode,place,won,eligible=true){if(!eligible)return 0;return mode==='arena20'?arenaPlacementPoints(place):won?50:0}
+
+export function matchAward(mode,row,result){
+ const eligible=!!result.combatStartedAt&&row.participated&&result.reason!=='abandoned';
+ const won=!!result.winnerTeam&&result.winnerTeam===row.team;
+ return {points:matchPoints(mode,row.place,won,eligible),wins:eligible&&won?1:0};
+}

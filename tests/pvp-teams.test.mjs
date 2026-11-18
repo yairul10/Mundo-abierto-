@@ -119,3 +119,19 @@ test('practice simulation can award victory to surviving allies and never runs i
  const human=await fixture(false,'5v5');await start(human);human.s.players[0].hp=0;advancePvp(human.s,13100);
  assert.equal(human.s.pvpMatch.status,'active');assert.notEqual(human.s.pvpMatch.simulated,true);
 });
+
+test('Arena 20 shrinks after five minutes, damages only outside and continues until a winner',async()=>{
+ const f=await fixture(false,'arena20');await start(f);const {s}=f,[outside,inside]=s.players;
+ for(const p of s.players.slice(2))p.hp=0;
+ outside.pos=[7800,120,0];inside.pos=[0,120,0];
+ advancePvp(s,313000);assert.equal(s.pvpMatch.status,'active');assert.equal(pvpSnapshot(s,313000).match.zoneRadius,8000);
+ advancePvp(s,323000);assert.equal(s.pvpMatch.status,'active');assert.ok(outside.hp<outside.profile.maxHp);assert.equal(inside.hp,inside.profile.maxHp);assert.ok(pvpSnapshot(s,323000).match.zoneRadius<8000);
+ advancePvp(s,343000);assert.equal(s.pvpMatch.status,'finished');assert.equal(s.pvpMatch.winner,inside.id);
+});
+
+test('Arena ranked surrender forfeits only while alive, leaving after elimination retains eligibility',async()=>{
+ const f=await fixture(false,'arena20');await start(f);const {s,world,ws}=f;s.pvpMatch.ranked={id:'ranked',roster:[]};
+ const [leaver,eliminated]=s.players;eliminated.hp=0;advancePvp(s,13100);assert.equal(eliminated.eliminated,true);
+ await pvpMessage(world,s,eliminated,{type:'leave'},ws,13200);assert.notEqual(eliminated.rankedForfeit,true);
+ await pvpMessage(world,s,leaver,{type:'leave'},ws,13300);assert.equal(leaver.rankedForfeit,true);assert.equal(s.pvpMatch.status,'active');
+});
