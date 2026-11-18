@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dron explorador · Vista de prueba</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080f1d;color:#f4eee3;font:16px system-ui,sans-serif}main{max-width:1000px;margin:auto;padding:18px}h1{font-size:24px;margin:0 0 8px}p{color:#bccbdb;line-height:1.5;margin:8px 0 14px}.tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}button{font:inherit;min-height:44px;padding:8px 16px;border:1px solid #9e824f;border-radius:7px;background:#1b2638;color:#f9efdb;cursor:pointer}button[aria-pressed=true]{background:#e4b957;color:#111b29}button:focus-visible{outline:3px solid #6ce0ff;outline-offset:3px}#viewer{width:100%;height:min(65vh,620px);min-height:300px;background:#0a1426;border:1px solid #40519b;border-radius:12px;overflow:hidden}canvas{width:100%;height:100%;display:block;touch-action:none}#status{min-height:24px}@media(max-height:500px){main{padding:10px}h1{font-size:20px}#viewer{height:60vh}}
+</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script></head>
+<body><main><h1>Dron explorador · Diseño Obsidian</h1><p>Compara el dron original con la pintura de prueba. Arrástralo para girarlo.</p>
+<div class="tools" aria-label="Diseño"><button id="original" aria-pressed="false">Original</button><button id="obsidian" aria-pressed="true">Obsidian</button></div>
+<div id="viewer" aria-label="Vista 3D del dron explorador"></div>
+<div class="tools"><button id="spin" aria-pressed="true">Giro automático</button><button id="zoomIn">Acercar +</button><button id="zoomOut">Alejar −</button><button id="reset">Restablecer vista</button></div>
+<p id="status" role="status">Cargando el dron del juego…</p><p>Esta vista muestra el modelo del juego y la pintura de prueba; no cambia tu partida ni requiere inicio de sesión.</p>
+</main><script type="module" src="./js/explorer-preview.js?v=1"></script></body></html>
