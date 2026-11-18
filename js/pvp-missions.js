@@ -33,7 +33,7 @@ export function settlePvpMissionCores(pilot){
  if(added){pilot.loot||={};pilot.loot.nucleoNexo=(Number(pilot.loot.nucleoNexo)||0)+added;state.coreRewards=[...claimed]}
  return added;
 }
-export function missionPrize(m){return [m.skin&&'Diseño de dron Perla violeta',m.reward&&m.reward.toLocaleString('es')+' créditos',m.xp&&m.xp.toLocaleString('es')+' XP',m.cores&&m.cores+' núcleo'+(m.cores===1?'':'s')+' del Nexo'].filter(Boolean).join(' · ')}
+export function missionPrize(m){return [m.skin&&'Diseño de dron Perla violeta · +30 % de daño de drones de apoyo',m.reward&&m.reward.toLocaleString('es')+' créditos',m.xp&&m.xp.toLocaleString('es')+' XP',m.cores&&m.cores+' núcleo'+(m.cores===1?'':'s')+' del Nexo'].filter(Boolean).join(' · ')}
 
 
 // Award only verified boss participation, after level 100; boss IDs guard duplicates.
