@@ -21,12 +21,13 @@ export function createMissionBoard(catalog,quests={}){
  const completed=quests.pvpMissions?.completed?.includes(m.id);
  if(m.skin){if(completed&&!state.completed.includes(m.id))state.completed.push(m.id);state.progress[m.id]=m.objectives.map((o,i)=>completed?o.goal:Math.min(o.goal,Math.max(0,Math.floor(Number(quests.pvpMissions?.droneProgress?.[i])||0))));continue;}
  if(completed&&!state.completed.includes(m.id))state.completed.push(m.id);
- const first=catalog.find(o=>o.realm==='pvp'&&o.enemyKind===m.enemyKind&&o.objectives[0].goal===1),initial=m.objectives[0].goal>1&&quests.pvpMissions?.completed?.includes(first?.id)?1:0;
+ const first=catalog.find(o=>o.realm==='pvp'&&o.enemyKind===m.enemyKind&&o.objectives[0].goal===1),initial=!Object.hasOwn(state,'activeMission')&&m.objectives[0].goal>1&&quests.pvpMissions?.completed?.includes(first?.id)?1:0;
  state.progress[m.id]=m.objectives.map(o=>completed?o.goal:Math.min(o.goal,Math.max(initial,Math.floor(Number(quests.pvpMissions?.progress?.[m.id])||0))));
  }return catalog.filter(m=>level>=m.level&&!state.completed.includes(m.id)).sort((a,b)=>a.level-b.level)}
  function event(type,sector,level,inventory={}){
   const awards=[];
-  for(const m of remaining(level).filter(m=>m.realm!=='pvp')){
+  const selected=active(level);
+  for(const m of selected&&selected.realm!=='pvp'?[selected]:[]){
    const flags=state.flags[m.id]||(state.flags[m.id]={}),progress=state.progress[m.id];
    m.objectives.forEach((o,i)=>{
     if(o.sector&&o.sector!==sector)return;
@@ -36,11 +37,21 @@ export function createMissionBoard(catalog,quests={}){
     if(o.event==='edgeReturn'){if(type==='edgeNear'){flags.edgeVisited=true;progress[i]=1}if(type==='baseReturn'&&flags.edgeVisited)progress[i]=2;return}
     if(o.event===type)progress[i]=Math.min(o.goal,progress[i]+1);
    });
-   if(m.objectives.every((o,i)=>progress[i]>=o.goal)){state.completed.push(m.id);awards.push(m)}
+   if(m.objectives.every((o,i)=>progress[i]>=o.goal)){state.completed.push(m.id);state.activeMission=null;awards.push(m)}
   }
   return awards;
  }
- return {state,remaining,event,nextLevel:level=>Math.min(...catalog.filter(m=>m.level>level&&!state.completed.includes(m.id)).map(m=>m.level))};
+ function active(level){
+  const available=remaining(level);
+  if(!Object.hasOwn(state,'activeMission')){
+   // Preserve legacy single-boss credit already shown on the old board once, at migration.
+   const previous=quests.pvpMissions;if(previous){previous.progress=previous.progress&&typeof previous.progress==='object'?previous.progress:{};for(const m of catalog.filter(x=>x.realm==='pvp'&&!x.skin&&x.objectives.length===1)){const n=state.progress[m.id]?.[0]||0;if(n>(Number(previous.progress[m.id])||0))previous.progress[m.id]=n}}
+   state.activeMission=available[0]?.id||null;
+  }
+  const selected=available.find(m=>m.id===state.activeMission);if(!selected&&state.activeMission!==null)state.activeMission=null;return selected||null;
+ }
+ function select(id,level){if(!remaining(level).some(m=>m.id===id))return false;state.activeMission=id;return true}
+ return {state,remaining,event,active,select,nextLevel:level=>Math.min(...catalog.filter(m=>m.level>level&&!state.completed.includes(m.id)).map(m=>m.level))};
 }
 export const CEMETERY_MISSIONS=[
  {id:'cemetery-arrival',level:40,title:'Explora el Cementerio',reward:12000,xp:2500,objectives:[{event:'travelGraveyard',sector:'graveyard',goal:1,label:'Viaja al Cementerio de Naves'}]},
