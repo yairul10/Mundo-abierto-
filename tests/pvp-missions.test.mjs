@@ -1,60 +1,13 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {applyBossReceipts,saveBossReceipts} from '../js/pvp-boss-rewards.js';
-import {PVP_MISSIONS} from '../js/pvp-missions.js';
-import {createMissionBoard,CEMETERY_MISSIONS} from '../js/mission-board.js';
-import {createHangarEditor,serializeHangarEditor} from '../js/pvp-hangar.js';
-const source=()=>({level:60,xp:0,gold:100,maxHp:500,hp:500,maxEnergy:100,energy:100,quests:{board:{version:1,completed:['cemetery-arrival'],progress:{'cemetery-titans':[3]},flags:{}}}});
-const receipt=(enemyKind,id=enemyKind)=>({id,enemyKind,bossId:'boss-'+id,damage:10,totalDamage:100,amount:1000,xp:50});
-test('Both Pro missions award once, retain PvE progress, and survive repeated receipts',()=>{
- const a=source(),r=applyBossReceipts(a,[receipt('colossusPro'),receipt('granTitanPro')]);assert.equal(r.missions.length,2);assert.equal(r.pilot.gold,302100);assert.equal(r.addedXp,90100);assert.equal(r.pilot.quests.board.progress['cemetery-titans'][0],3);assert.equal(a.gold,100);
- const replay=applyBossReceipts(JSON.parse(JSON.stringify(r.pilot)),[receipt('colossusPro'),receipt('granTitanPro')]);assert.equal(replay.added,0);assert.equal(replay.missions.length,0);
- const another=applyBossReceipts(r.pilot,[receipt('colossusPro','new-spawn')]);assert.equal(another.added,1000);assert.equal(another.missions.length,0);
-});
-test('No credit for normal bosses, escorts, hostile super boss, missing participation or locked level',()=>{
- for(const enemyKind of ['carrier','granTitan','reinforcement','nexo',undefined])assert.equal(applyBossReceipts(source(),[receipt(enemyKind)]).missions.length,0);
- for(const damage of [0,-1,Infinity,NaN,200])assert.equal(applyBossReceipts(source(),[{...receipt('colossusPro'),damage}]).missions.length,0);
- for(const level of [1,59,undefined])assert.equal(applyBossReceipts({...source(),level},[receipt('colossusPro')]).missions.length,0);
-});
-test('Mission rewards and receipt IDs commit together, retry after failed storage remains valid',()=>{
- const a=source();assert.throws(()=>saveBossReceipts({setItem(){throw Error('quota')}},'save',a,[receipt('colossusPro')]));assert.equal(a.quests.pvpMissions,undefined);
- let saved;const result=saveBossReceipts({setItem(k,v){saved=JSON.parse(v)}},'save',a,[receipt('colossusPro')]);assert.equal(saved.gold,101100);assert.deepEqual(saved.pvpBossReceipts,['colossusPro']);assert.equal(applyBossReceipts(saved,[receipt('colossusPro')]).missions.length,0);assert.equal(result.missions.length,1);
-});
-test('Unified mission list reflects receipts but cannot grant PvP rewards from offline events',()=>{
- const a=source(),catalog=[...CEMETERY_MISSIONS,...PVP_MISSIONS];let board=createMissionBoard(catalog,a.quests);assert.equal(board.remaining(59).filter(m=>m.realm==='pvp').length,0);assert.equal(board.remaining(60).filter(m=>m.realm==='pvp').length,4);
- assert.equal(board.event('pvpColossus','pvp',60).length,0);assert.equal(board.state.progress['pvp-first-colossus'][0],0);
- const r=applyBossReceipts(a,[receipt('colossusPro')]);board=createMissionBoard(catalog,r.pilot.quests);assert.equal(board.remaining(60).filter(m=>m.realm==='pvp').length,3);assert.ok(board.state.completed.includes('pvp-first-colossus'));assert.equal(board.state.progress['cemetery-titans'][0],3);
-});
-test('Hangar receipt serialization preserves offline location, stats and new quest completion',()=>{
- const a={...source(),x:40000,y:100,sector:'graveyard'},editor=createHangarEditor(a);let saved;
- saveBossReceipts({setItem(k,v){saved=JSON.parse(v)}},'save',editor,[receipt('granTitanPro')],p=>serializeHangarEditor(p,a));
- assert.equal(saved.x,40000);assert.equal(saved.sector,'graveyard');assert.ok(saved.quests.pvpMissions.completed.includes('pvp-first-titan'));assert.equal(saved.gold,201100);
-});
-
-test('Single-boss missions give one Nexus core; fifth boss gives three more in parallel',()=>{
- let p=source();
- for(let i=1;i<=5;i++){
-  const r=applyBossReceipts(p,[receipt('colossusPro','colossus-'+i),receipt('granTitanPro','titan-'+i)]);p=JSON.parse(JSON.stringify(r.pilot));
-  assert.equal(r.missionCores,i===1?2:i===5?6:0);
-  assert.equal(p.loot.nucleoNexo,i<5?2:8);
-  const b=createMissionBoard([...CEMETERY_MISSIONS,...PVP_MISSIONS],p.quests);b.remaining(60);assert.equal(b.state.progress['pvp-five-colossi'][0],i);assert.equal(b.state.progress['pvp-five-titans'][0],i);
- }
- assert.equal(p.quests.pvpMissions.completed.length,4);
- const extra=applyBossReceipts(p,[receipt('colossusPro','colossus-6')]);assert.equal(extra.missionCores,0);assert.equal(extra.pilot.loot.nucleoNexo,8);
- assert.equal(p.gold,310100,'Five-boss missions add cores only; previous credit prizes are preserved');
-});
-test('One boss instance cannot advance five-kill counters twice under different delivery IDs',()=>{
- const first=receipt('colossusPro','one'),r=applyBossReceipts(source(),[first,{...first,id:'another-delivery'}]);
- assert.equal(r.pilot.quests.pvpMissions.progress['pvp-five-colossi'],1);assert.equal(r.missionCores,1);
-});
-test('Previously completed first mission receives its new core once and counts as one of five',()=>{
- const p=source();p.quests.pvpMissions={completed:['pvp-first-colossus']};p.pvpBossReceipts=['old'];
- const board=createMissionBoard([...CEMETERY_MISSIONS,...PVP_MISSIONS],p.quests);board.remaining(60);assert.equal(board.state.progress['pvp-five-colossi'][0],1);
- const r=applyBossReceipts(p,[receipt('colossusPro','old')]);assert.equal(r.missionCores,1);assert.equal(r.added,0);assert.equal(applyBossReceipts(r.pilot,[receipt('colossusPro','old')]).missionCores,0);
- const next=applyBossReceipts(r.pilot,[receipt('colossusPro','new')]);assert.equal(next.pilot.quests.pvpMissions.progress['pvp-five-colossi'],2);assert.equal(next.missionCores,0);
-});
-test('Failed fifth-boss write cannot consume the three-core prize',()=>{
- let p=source();for(let i=0;i<4;i++)p=applyBossReceipts(p,[receipt('colossusPro','c'+i)]).pilot;
- assert.throws(()=>saveBossReceipts({setItem(){throw Error('quota')}},'save',p,[receipt('colossusPro','c4')]));assert.equal(p.loot.nucleoNexo,1);assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi'],4);
- const result=saveBossReceipts({setItem(){}},'save',p,[receipt('colossusPro','c4')]);assert.equal(result.missionCores,3);assert.equal(result.pilot.loot.nucleoNexo,4);
-});
+import test from 'node:test';import assert from 'node:assert/strict';
+import {applyBossReceipts,saveBossReceipts} from '../js/pvp-boss-rewards.js';import {PVP_MISSIONS} from '../js/pvp-missions.js';import {createMissionBoard} from '../js/mission-board.js';import {createHangarEditor,serializeHangarEditor} from '../js/pvp-hangar.js';
+const receipt=(enemyKind,id)=>({id,enemyKind,bossId:'boss-'+id,damage:10,totalDamage:100,amount:1000,xp:50});
+function pilot(level=115){return {level,xp:0,gold:100,maxHp:500,hp:500,maxEnergy:100,energy:100,quests:{},pvpBossReceipts:[]}}
+function select(p,id){const b=createMissionBoard(PVP_MISSIONS,p.quests);b.active(p.level);assert(b.select(id,p.level));return p}
+test('a boss advances only the selected mission and cannot be credited twice',()=>{let p=select(pilot(),'pvp-first-colossus'),first=receipt('colossusPro','one');let r=applyBossReceipts(p,[first]);p=r.pilot;assert.deepEqual(r.missions.map(m=>m.id),['pvp-first-colossus']);assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi']||0,0);assert.equal(p.quests.board.activeMission,null);p=select(p,'pvp-five-colossi');r=applyBossReceipts(p,[{...first,id:'different-delivery'}]);p=r.pilot;assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi']||0,0);p=applyBossReceipts(p,[receipt('colossusPro','two')]).pilot;assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi'],1)});
+test('both pet missions each require twenty distinct nexus bosses and level gate',()=>{let p=pilot(109);let b=createMissionBoard(PVP_MISSIONS,p.quests);b.active(109);assert(!b.select('pet-blue-nexus',109));p.level=110;p=select(p,'pet-blue-nexus');assert(!createMissionBoard(PVP_MISSIONS,p.quests).select('pet-red-nexus',110));for(let i=0;i<20;i++)p=applyBossReceipts(p,[receipt('nexo','a'+i)]).pilot;assert(p.quests.pvpMissions.completed.includes('pet-blue-nexus'));assert(!p.quests.pvpMissions.completed.includes('pet-red-nexus'));p.level=115;p=select(p,'pet-red-nexus');p=applyBossReceipts(p,[{...receipt('nexo','a0'),id:'other-receipt'}]).pilot;assert.equal(p.quests.pvpMissions.progress['pet-red-nexus']||0,0);for(let i=0;i<19;i++)p=applyBossReceipts(p,[receipt('nexo','b'+i)]).pilot;assert.equal(p.quests.pvpMissions.progress['pet-red-nexus'],19);p=applyBossReceipts(p,[receipt('nexo','b19')]).pilot;assert(p.quests.pvpMissions.completed.includes('pet-red-nexus'))});
+test('retains old mission progress when migrating and selecting',()=>{let p=pilot(100);p.quests.pvpMissions={completed:['pvp-first-colossus'],progress:{'pvp-five-titans':3},droneProgress:[12,8]};let b=createMissionBoard(PVP_MISSIONS,p.quests);b.active(100);assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi'],1);assert.equal(p.quests.pvpMissions.progress['pvp-five-titans'],3);assert.deepEqual(p.quests.pvpMissions.droneProgress,[12,8]);assert(b.select('pvp-five-colossi',100));p=applyBossReceipts(p,[receipt('colossusPro','new')]).pilot;assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi'],2);assert.deepEqual(p.quests.pvpMissions.droneProgress,[12,8])});
+test('invalid contributions do not advance, failed write cannot consume rewards',()=>{let p=select(pilot(),'pvp-first-colossus');for(const damage of [0,-1,Infinity,NaN,200]){const r=applyBossReceipts(p,[{...receipt('colossusPro','bad'+String(damage)),damage}]);assert.equal(r.missions.length,0)}assert.throws(()=>saveBossReceipts({setItem(){throw Error('quota')}},'save',p,[receipt('colossusPro','c1')]));assert.equal(p.quests.pvpMissions,undefined);let saved;const r=saveBossReceipts({setItem(k,v){saved=JSON.parse(v)}},'save',p,[receipt('colossusPro','c1')]);assert.equal(r.missions.length,1);assert.equal(saved.gold,101100);assert.equal(saved.loot.nucleoNexo,1);assert.equal(applyBossReceipts(saved,[receipt('colossusPro','c1')]).missions.length,0)});
+test('hangar receipt serialization preserves location and mission state',()=>{let p=select({...pilot(),x:40000,y:100,sector:'graveyard'},'pvp-first-titan');const editor=createHangarEditor(p);let saved;saveBossReceipts({setItem(k,v){saved=JSON.parse(v)}},'save',editor,[receipt('granTitanPro','t')],v=>serializeHangarEditor(v,p));assert.equal(saved.x,40000);assert.equal(saved.sector,'graveyard');assert(saved.quests.pvpMissions.completed.includes('pvp-first-titan'))});
+test('legacy completed first mission receives its core once and the five-kill mission retains its existing first credit',()=>{let p=pilot(60);p.quests.pvpMissions={completed:['pvp-first-colossus']};p.pvpBossReceipts=['old'];const b=createMissionBoard(PVP_MISSIONS,p.quests);b.active(60);assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi'],1);let result=applyBossReceipts(p,[receipt('colossusPro','old')]);assert.equal(result.missionCores,1);p=result.pilot;assert.equal(applyBossReceipts(p,[receipt('colossusPro','old')]).missionCores,0);p=select(p,'pvp-five-colossi');p=applyBossReceipts(p,[receipt('colossusPro','new')]).pilot;assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi'],2)});
+test('fifth boss reward is atomic when persistence fails',()=>{let p=select(pilot(60),'pvp-five-colossi');p.quests.pvpMissions={completed:[],progress:{'pvp-five-colossi':4}};const hit=receipt('colossusPro','last');assert.throws(()=>saveBossReceipts({setItem(){throw Error('quota')}},'save',p,[hit]));assert.equal(p.quests.pvpMissions.progress['pvp-five-colossi'],4);const r=saveBossReceipts({setItem(){}},'save',p,[hit]);assert.equal(r.missionCores,3);assert.equal(r.pilot.loot.nucleoNexo,3)});
+test('one player’s active mission never suppresses another player’s participation',()=>{let a=select(pilot(110),'pet-blue-nexus'),b=select(pilot(115),'pet-red-nexus');a=applyBossReceipts(a,[receipt('nexo','shared')]).pilot;b=applyBossReceipts(b,[receipt('nexo','shared')]).pilot;assert.equal(a.quests.pvpMissions.progress['pet-blue-nexus'],1);assert.equal(b.quests.pvpMissions.progress['pet-red-nexus'],1)});
