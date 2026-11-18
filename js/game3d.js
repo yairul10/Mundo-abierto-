@@ -61,7 +61,7 @@ import {GRAPHICS_KEY,FRAME_RATE_KEY,normalizeFrameRate,initialGraphicsLevel,crea
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=436';
-import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350';
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=350-m2';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
@@ -2354,7 +2354,7 @@ const MISSIONS=[
  {title:'Primer contacto',description:'Destruye 5 exploradoras enemigas',event:'scout',goal:5,reward:500,xp:75},
  {title:'Recuperación espacial',description:'Recoge 3 cajas de botín',event:'loot',goal:3,reward:800,xp:110},
  {title:'Regreso a la base',description:'Atraca en Aurora y compra una mejora',event:'baseUpgrade',goal:2,reward:1500,xp:160},
- {title:'Escolta de combate',description:'Compra tu primer dron de combate en el hangar',event:'drone',goal:1,reward:1200,xp:120},
+ {title:'Escolta de combate',description:'Compra tu primer dron de combate en Tienda → Drones',event:'drone',goal:1,reward:1200,xp:120},
  {title:'Frena a los asaltantes',description:'Destruye 6 enemigos del segundo tipo: Asaltantes',event:'raider',goal:6,reward:1800,xp:180},
  {title:'Patrulla del borde',description:'Acércate a 200 m del borde de Aurora y vuelve a su zona segura',event:'edgeReturn',goal:2,reward:2000,xp:200},
  {title:'Arsenal de misiles',description:'Mejora el lanzamisiles al nivel 1 o superior',event:'missileUpgrade',goal:1,reward:1600,xp:160},

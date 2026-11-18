@@ -49,6 +49,6 @@ export const CEMETERY_MISSIONS=[
  {id:'cemetery-catapult',level:40,title:'Desarma la artillería',reward:200000,xp:30000,objectives:[{event:'catapult',sector:'graveyard',goal:80,label:'Catapultas destruidas'}]},
  {id:'cemetery-harpoon',level:45,title:'Rompe el bloqueo',reward:250000,xp:40000,objectives:[{event:'harpooner',sector:'graveyard',goal:100,label:'Arponeros destruidos'}]},
  {id:'cemetery-stalker',level:50,title:'Silencia a los Acechadores',reward:250000,xp:40000,objectives:[{event:'stalker',sector:'graveyard',goal:80,label:'Acechadores destruidos'}]},
- {id:'cemetery-fleet',level:55,title:'Financia tu nueva flota',reward:500000,xp:80000,objectives:[{event:'catapult',sector:'graveyard',goal:150,label:'Catapultas'},{event:'harpooner',sector:'graveyard',goal:150,label:'Arponeros'},{event:'stalker',sector:'graveyard',goal:100,label:'Acechadores'}]},
+ {id:'cemetery-fleet',level:55,title:'Financia tu nueva flota',reward:1200000,xp:185000,objectives:[{event:'catapult',sector:'graveyard',goal:150,label:'Catapultas'},{event:'harpooner',sector:'graveyard',goal:150,label:'Arponeros'},{event:'stalker',sector:'graveyard',goal:100,label:'Acechadores'}]},
  {id:'cemetery-titans',level:60,title:'Dominio sobre los Titanes',reward:300000,xp:100000,objectives:[{event:'granTitan',sector:'graveyard',goal:5,label:'Grandes Titanes destruidos'}]}
 ];
