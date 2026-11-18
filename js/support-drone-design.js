@@ -1,6 +1,7 @@
 // Cosmetic selection is kept in quests so existing local and cloud saves preserve it.
 export const supportDesignUnlocked=pilot=>!!pilot?.quests?.pvpMissions?.completed?.includes('coop-drone-pearl');
 export const supportDesignSelected=pilot=>supportDesignUnlocked(pilot)&&pilot?.quests?.supportDroneSkin==='pearl'?'pearl':'original';
+export const supportDroneDamageMultiplier=design=>design==='pearl'?1.3:1;
 const originals=new WeakMap(),painted=new WeakMap();
 export function applySupportDesign(THREE,root,design){
  root.traverse(object=>{if(!object.isMesh||!object.material)return;const isArray=Array.isArray(object.material),materials=isArray?object.material:[object.material];const updated=materials.map(current=>{
