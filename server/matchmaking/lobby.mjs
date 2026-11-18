@@ -1,5 +1,5 @@
 import {validPvpMode,pvpRoomName,PVP_MODES} from '../pvp/pvp-teams.mjs';
-import {SEARCH_MS,NOTICE_MS,PRESENCE_MS,packTeams,matchPoints} from './rules.mjs';
+import {SEARCH_MS,NOTICE_MS,PRESENCE_MS,packTeams,matchAward} from './rules.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code,status:409})};
 const code=()=>Array.from(crypto.getRandomValues(new Uint8Array(6)),n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n%32]).join('');
 export function initMatchmaking(ctx){
@@ -48,13 +48,13 @@ export async function matchmakingCommand(lobby,actor,name,realm,raw,now=Date.now
   if(m.status==='configuring'){
    const result=await room.configureRankedMatch({...m,ranks:Object.fromEntries(m.roster.map(p=>[p.accountId,score(ctx,p.accountId)]))});if(!result?.ok)throw Error('match_configuration_failed');m.status='active';save(ctx,s);
   }
-  const result=await room.rankedResult(m.id,now>m.createdAt+3600000);if(result?.status!=='finished')continue;
+  const result=await room.rankedResult(m.id,m.mode!=='arena20'&&now>m.createdAt+3600000);if(result?.status!=='finished')continue;
   ctx.storage.transactionSync(()=>{
    for(const row of result.players.filter(p=>!p.isBot)){
-    const points=matchPoints(m.mode,row.place,result.winnerTeam===row.team,!!result.combatStartedAt&&row.participated&&result.reason!=='abandoned');
+    const {points,wins}=matchAward(m.mode,row,result);
     const exists=ctx.storage.sql.exec('SELECT 1 FROM arena_receipts WHERE match_id=? AND account_id=?',m.id,row.accountId).toArray().length;if(exists)continue;
     ctx.storage.sql.exec('INSERT INTO arena_receipts VALUES(?,?,?,?)',m.id,row.accountId,points,row.place||null);
-    ctx.storage.sql.exec('INSERT INTO arena_points VALUES(?,?,?,?,1) ON CONFLICT(account_id) DO UPDATE SET name=excluded.name,points=arena_points.points+excluded.points,wins=arena_points.wins+excluded.wins,matches=arena_points.matches+1',row.accountId,row.name,points,result.winnerTeam===row.team?1:0);
+    ctx.storage.sql.exec('INSERT INTO arena_points VALUES(?,?,?,?,1) ON CONFLICT(account_id) DO UPDATE SET name=excluded.name,points=arena_points.points+excluded.points,wins=arena_points.wins+excluded.wins,matches=arena_points.matches+1',row.accountId,row.name,points,wins);
    }
    m.status='finished';m.settled=true;m.finishedAt=now;save(ctx,s);
   });

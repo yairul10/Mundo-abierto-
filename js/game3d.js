@@ -70,7 +70,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=497';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=521';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=521-zone1';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=497';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=472';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';
@@ -2654,7 +2654,7 @@ function drawRadar(dt){
  for(const rad of [22,44,66]){ctx.beginPath();ctx.arc(78,78,rad,0,Math.PI*2);ctx.stroke()}
  ctx.beginPath();ctx.moveTo(78,12);ctx.lineTo(78,144);ctx.moveTo(12,78);ctx.lineTo(144,78);ctx.stroke();
  if(COOP_MODE){ctx.strokeStyle='#a393ff';ctx.beginPath();for(const x of [-1600,1600]){const a=radarPoint(x,1200),b=radarPoint(x,-12500);ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)}ctx.stroke()}
- if(PVP_MODE&&!COOP_MODE){const center=radarPoint(0,0);for(const [radius,color]of (ARENA_MODE?[[pvpSession?.radius||2200,'#8e91f5']]:[[650,'#72dfff'],[3275,'#71f5a4'],[5900,'#ff6c79']])){ctx.strokeStyle=color;ctx.beginPath();ctx.arc(center.x,center.y,radius*RADAR_RADIUS/RADAR_RANGE,0,Math.PI*2);ctx.stroke()}}
+ if(PVP_MODE&&!COOP_MODE){const center=radarPoint(0,0);for(const [radius,color]of (ARENA_MODE?[[pvpSession?.radius||2200,'#8e91f5'],...(Number.isFinite(pvpSession?.arenaSafeRadius)?[[pvpSession.arenaSafeRadius,'#ff5757']]:[])]:[[650,'#72dfff'],[3275,'#71f5a4'],[5900,'#ff6c79']])){ctx.strokeStyle=color;ctx.beginPath();ctx.arc(center.x,center.y,radius*RADAR_RADIUS/RADAR_RANGE,0,Math.PI*2);ctx.stroke()}}
  const dot=(x,y,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()};
  for(const e of enemies){if(e.dead||!e.mesh.visible)continue;const p=radarPoint(e.mesh.position.x,e.mesh.position.z);if(p.inside)dot(p.x,p.y,ARENA_MODE&&e.pvpRemote&&e.team?(e.team===pvpSession?.myTeam?'#70ffba':'#ff7979'):e.pvpRemote&&!pvpSession?.canTarget(e.playerId)?'#68e6ff':e.pro?'#ffce60':'#ff6a6a',3)}
  for(const d of drops){const p=radarPoint(d.mesh.position.x,d.mesh.position.z);if(p.inside)dot(p.x,p.y,'#e8b5ff',2.8)}
@@ -3642,10 +3642,13 @@ if(PVP_MODE){
  for(const id of ['questToggle','questTracker','pvpBtn','dockBtn','interactBtn','characterPanel'])$(id).classList.add('hidden');
  const cooperativeClouds=COOP_MODE?mountCooperativeClouds(THREE,scene,{budget:()=>effectBudget(graphics.level)}):null;
  if(COOP_MODE)scene.fog=new THREE.Fog(0x52617c,1000,2900);
- const arenaBoundary=ARENA_MODE?mountPvpArena(THREE,scene):null;if(!ARENA_MODE&&!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Mapa cooperativo':'Mapa PvP';
+ const arenaBoundary=ARENA_MODE?mountPvpArena(THREE,scene):null;
+ const safeZoneLine=ARENA_MODE?new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({length:128},(_,i)=>new THREE.Vector3(Math.cos(i*Math.PI/64),0,Math.sin(i*Math.PI/64)))),new THREE.LineBasicMaterial({color:0xff5555,transparent:true,opacity:.9,depthTest:false})):null;
+ if(safeZoneLine){safeZoneLine.position.y=120;safeZoneLine.visible=false;scene.add(safeZoneLine)}
+ if(!ARENA_MODE&&!COOP_MODE)mountPvpZones(THREE,scene);$('hint').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Expedición cooperativa · Avanza desde la base':'Base · PvE hasta 3.275 m · Zona hostil hasta 5.900 m';$('stationDistance').textContent=ARENA_MODE?'Arena PvP':COOP_MODE?'Mapa cooperativo':'Mapa PvP';
  pvpSession=startSharedSession({coopCompleted:repeatCoopFarm,keepArena,repeatMissiles:()=>{if(pvpSession?.canFight){skillCd=0;skill()}},canLand:()=>!landing&&!docked&&selectLandingPlatform(),requestLanding:()=>pvpSession?.requestHangar(),openHangar:beginLanding,isHangarOpen:()=>!!pvpHangar||landing,pause:()=>{save();clearFight();pvpSounds.reset();clearTimeout(respawnSoundTimer)},clearFight,targetId:()=>lockedEnemy?.playerId,practiceBlocked:()=>document.hidden||!document.hasFocus()||!!document.querySelector('dialog[open]')||!panel.classList.contains('hidden')||!$('shopPanel').classList.contains('hidden')||systemMap.open||document.body.matches('.journal-open,.portrait-blocked'),nearPortal:()=>!ARENA_MODE&&playerMesh.position.distanceTo(returnPortal.position)<=100,
  frame(dt){
-  if(arenaBoundary){const scale=(pvpSession?.radius||2200)/2200;arenaBoundary.scale.set(scale,1,scale);}
+  if(arenaBoundary){const scale=(pvpSession?.radius||2200)/2200;arenaBoundary.scale.set(scale,1,scale);const radius=pvpSession?.arenaSafeRadius;safeZoneLine.visible=Number.isFinite(radius)&&radius<pvpSession.radius&&radius>0;if(safeZoneLine.visible)safeZoneLine.scale.set(radius,1,radius);}
   const spectator=pvpSession?.spectatorTarget;if(spectator){playerMesh.visible=false;lockFrame.classList.add('hidden');if(!pvpSession.matchPaused)updateSpectatorShots(dt);const point=new THREE.Vector3(...spectator.pos),angle=spectator.aim?.[0]||0,behind=new THREE.Vector3(Math.sin(angle)*cameraZoom,cameraZoom*105/285,Math.cos(angle)*cameraZoom);camera.position.lerp(point.clone().add(behind),1-Math.exp(-dt*6));camera.lookAt(point)}
   cooperativeClouds?.update(dt);
   updateBossVisual(dt);arenaView.update(dt);
