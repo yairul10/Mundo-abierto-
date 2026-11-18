@@ -1,4 +1,4 @@
-import {applySupportDesign,supportDesignSelected} from './support-drone-design.js?v=1';
+import {applySupportDesign,supportDesignSelected,supportDroneDamageMultiplier} from './support-drone-design.js?v=2';
 import {applyExplorerDesign} from './explorer-design.js?v=1';
 import {wantsObsidianPreview,displayedShip} from './obsidian-visual-preview.js?v=1';
 import {mountBaseActions} from './base-actions.js?v=498';
@@ -1785,7 +1785,7 @@ function fireSupportDrones(aimPoint,locked,noseDir){
   bolt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   bolt.position.copy(start);scene.add(bolt);
   const range=supportRange();
-  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:range/1150+.35,range,damage:player.attack*.6*equippedBonus().damage*activeLaserBooster()});
+  shots.push({mesh:bolt,pvpAimPoint:destination.clone(),vel:direction.multiplyScalar(1150*projectileMultiplier(player.boosters)),life:range/1150+.35,range,damage:player.attack*.6*equippedBonus().damage*activeLaserBooster()*supportDroneDamageMultiplier(supportDesignSelected(player))});
  }
 }
 // Proyectiles enemigos independientes de los disparos del jugador.
