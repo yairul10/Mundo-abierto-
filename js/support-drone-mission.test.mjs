@@ -14,3 +14,10 @@ const {offlineRoster} = await import('./pvp-loadout.js');
 const {profile} = await import('../server/pvp/combat.mjs');
 let roster=offlineRoster(player);assert.equal(roster.profiles.aurora.supportDroneSkin,'pearl');assert.equal(profile(roster.profiles.aurora).supportDroneSkin,'pearl');delete player.quests.pvpMissions.completed;assert.equal(offlineRoster(player).profiles.aurora.supportDroneSkin,'original');
 console.log('Sincronización de diseño por perfil: OK');
+// The cosmetic bonus is calculated by the combat server only for support drones.
+const {makeCombatPlayer,volley}=await import('../server/pvp/combat.mjs');
+const {supportDroneDamageMultiplier}=await import('./support-drone-design.js');
+function fire(skin,weapon,kind,boosted=false){const pilot={id:'a',pos:[0,0,0],connected:true};makeCombatPlayer(pilot,{shipId:'aurora',maxHp:1000,maxEnergy:100,attack:100,defense:0,speed:220,droneCount:8,explorerDrone:true,supportDroneSkin:skin,boosters:boosted?{damage2:50}:{}});pilot.profile.droneDamage=1.2;const bullets=volley({players:[pilot],bullets:[]},pilot,{weapon,shots:[{offset:[0,0,0],direction:[0,0,-1],kind}]},10000);assert(bullets);return bullets[0].damage;}
+for(const boosted of [false,true]){assert(Math.abs(fire('pearl','laser','drone',boosted)/fire('original','laser','drone',boosted)-1.3)<1e-10);assert.equal(fire('pearl','laser','laser',boosted),fire('original','laser','laser',boosted));assert.equal(fire('pearl','explorer','explorer',boosted),fire('original','explorer','explorer',boosted));}
+assert.equal(supportDroneDamageMultiplier('pearl'),1.3);assert.equal(supportDroneDamageMultiplier('original'),1);
+console.log('Daño de apoyo +30 %, potenciadores, nave y mascota: OK');
