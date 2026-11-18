@@ -1,4 +1,5 @@
-import {DRONE_MISSION_ID} from './pvp-missions.js?v=drone1';
+import {PET_VARIANTS,petVariantUnlocked,selectedPetVariant} from './pet-variants.js?v=1';
+import {DRONE_MISSION_ID} from './pvp-missions.js?v=pet1';
 import {activeDamageBooster} from './damage-boosters.js?v=462';
 import {shieldCapacity} from './shield-system.js?v=364';
 import {pvpMultipliers,pveMultipliers,cooperativeMultipliers} from './pvp-loadout.js?v=462';
@@ -32,6 +33,9 @@ export function mountHangarUI({player,isDocked,isOffline,canShop=isOffline,isPvp
   const unlocked=player.quests?.pvpMissions?.completed?.includes(DRONE_MISSION_ID),skin=player.quests?.supportDroneSkin==='pearl'&&unlocked?'pearl':'original';
   host.insertAdjacentHTML('beforeend','<h4>Diseño de drones de apoyo</h4><p class="muted">Perla violeta otorga +30 % de daño base a los drones de apoyo en todos los combates. La mascota es independiente.</p><div class="commerce-grid"><article class="commerce-card"><h4>Original</h4><button data-drone-skin="original" '+(skin==='original'?'disabled':'')+'>'+(skin==='original'?'Equipado':'Equipar')+'</button></article><article class="commerce-card"><h4>Perla violeta</h4><p class="muted">'+(unlocked?'Disponible':'Nivel 100 · misión: 50 Infernos Pro y 40 Grandes Titanes Pro')+'</p><button data-drone-skin="pearl" '+(!unlocked||skin==='pearl'?'disabled':'')+'>'+(skin==='pearl'?'Equipado':unlocked?'Equipar':'Bloqueado')+'</button></article></div>');
   host.querySelectorAll('[data-drone-skin]').forEach(b=>b.onclick=()=>{if(view!=='equipment'||!isDocked()||!isOffline()||(b.dataset.droneSkin==='pearl'&&!player.quests?.pvpMissions?.completed?.includes(DRONE_MISSION_ID)))return;player.quests||={};player.quests.supportDroneSkin=b.dataset.droneSkin;sync()});
+  if(player.explorerDrone){const selectedPet=selectedPetVariant(player);host.insertAdjacentHTML('beforeend','<h4>Mascota</h4><p class="muted">Elige una mascota independiente de tus drones de apoyo.</p><div class="commerce-grid">'+Object.entries(PET_VARIANTS).map(([id,pet])=>{const unlocked=petVariantUnlocked(player,id);return '<article class="commerce-card"><h4>'+pet.name+'</h4><p>'+pet.benefit+'</p><small>'+(unlocked?'Disponible':'Nivel '+(id==='blue'?110:115)+' · 20 Titanes del Nexo')+'</small><button data-pet-variant="'+id+'" '+(!unlocked||selectedPet===id?'disabled':'')+'>'+(selectedPet===id?'Equipada':unlocked?'Equipar':'Bloqueada')+'</button></article>'}).join('')+'</div>');
+   host.querySelectorAll('[data-pet-variant]').forEach(b=>b.onclick=()=>{if(view!=='equipment'||!isDocked()||!isOffline()||!player.explorerDrone||!petVariantUnlocked(player,b.dataset.petVariant))return;player.quests||={};player.quests.petVariant=b.dataset.petVariant;sync()});
+  }
   host.querySelectorAll('[data-inspect-ship]').forEach(b=>b.onclick=()=>{equipmentShip=b.dataset.inspectShip;render(true)});
   if(view==='equipment')void startAssemblyPreview($('equipmentShipPreview'),equipmentShip);
   host.querySelectorAll('[data-equip-owned]').forEach(b=>b.onclick=()=>{if(view!=='equipment'||!isDocked()||!isOffline()||!player.ownedShips?.[b.dataset.equipOwned])return;equipShip(b.dataset.equipOwned);render(true)});
@@ -57,7 +61,7 @@ export function mountHangarUI({player,isDocked,isOffline,canShop=isOffline,isPvp
   $('shopPurchases').disabled=!canShop();
   $('shopAccessNotice').hidden=canShop();
   if(assemblyZone!==baseZone()){assemblyZone=baseZone();selected=assemblyZone==='pvp'?'ship:obsidian':'shield';draft.clear();stopAssemblyPreview();force=true}
-  const next=JSON.stringify([baseZone(),player.gold,player.loot,player.formations,player.droneFormation,player.droneCount,player.repairRobotLevel,player.boosters,player.ownedShips,player.shipId,player.level,player.quests?.supportDroneSkin,player.quests?.pvpMissions?.completed]);
+  const next=JSON.stringify([baseZone(),player.gold,player.loot,player.formations,player.droneFormation,player.droneCount,player.repairRobotLevel,player.boosters,player.ownedShips,player.shipId,player.level,player.quests?.supportDroneSkin,player.quests?.petVariant,player.quests?.pvpMissions?.completed]);
   if(!force&&next===stamp)return;stamp=next;
   document.querySelectorAll('[data-shop-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.shopCategory===category)));
   for(const c of ['ships','drones','upgrades','boosters','sell'])$('shop'+c[0].toUpperCase()+c.slice(1)).classList.toggle('hidden',c!==category);
