@@ -1,3 +1,4 @@
+import {applyExplorerDesign} from './explorer-design.js?v=1';
 import {wantsObsidianPreview,displayedShip} from './obsidian-visual-preview.js?v=1';
 import {mountBaseActions} from './base-actions.js?v=498';
 import {readCoopChoice} from './coop-room-ui.js?v=491';
@@ -1537,6 +1538,7 @@ for(let i=0;i<MAX_DRONES;i++){
  scene.add(drone);supportDrones.push({mesh:drone,side,rank:Math.floor(i/2)});
 }
 // Noveno dron especial: mascota exploradora independiente de los ocho de combate.
+let explorerDesignPreview='original';
 const explorerMesh=new THREE.Group();
 const explorerShell=new THREE.Mesh(new THREE.OctahedronGeometry(13,1),new THREE.MeshStandardMaterial({color:0xe3ad43,metalness:.6,roughness:.3,emissive:0x69410d,emissiveIntensity:.35}));
 explorerShell.scale.set(1.1,.7,1.4);explorerMesh.add(explorerShell);
@@ -1581,6 +1583,7 @@ deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
   part.material=usesMaterialArray?tintedMaterials:tintedMaterials[0];
  });
  const glow=new THREE.PointLight(0x30baff,3.5,55);
+ explorerMesh.userData.designGlow=glow;
  glow.position.set(0,0,-12);
  pivot.add(glow);
  // Mantener un núcleo visible aunque el GLB tenga materiales incompatibles
@@ -1599,6 +1602,8 @@ deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
   }
  });
  explorerMesh.add(pivot);
+ explorerMesh.userData.designVisual=visual;
+ applyExplorerDesign(THREE,visual,explorerDesignPreview);
  explorerMesh.scale.setScalar(1);
  // El núcleo permanece como respaldo visual detrás del GLB.
  explorerShell.material.color.setHex(0x2279c8);
@@ -2269,6 +2274,16 @@ function renderAdminDesigns(){
  if(!PVP_MODE||!pvpSession?.adminShipAllowed){panel?.remove();return}
  if(!panel){panel=document.createElement('section');panel.id='adminObsidianDesigns';panel.className='admin-designs';home.appendChild(panel)}
  panel.innerHTML='<h3>Obsidian · Diseños de prueba</h3><p class="muted">Solo administrador · Vista local durante esta sesión. Sin cambios de estadísticas. Los demás jugadores ven el diseño original.</p><div class="commerce-tabs" role="group" aria-label="Diseño de Obsidian">'+Object.entries(OBSIDIAN_SKINS).map(([id,skin])=>'<button type="button" data-obsidian-skin="'+id+'" aria-pressed="'+(adminObsidianSkin===id)+'">'+skin.name+'</button>').join('')+'</div><div class="ship-model-preview" id="adminObsidianPreview" style="height:260px"></div><p class="muted">Selecciona un diseño para previsualizarlo. Se aplica al volar con tu Obsidian.</p>';
+ panel.insertAdjacentHTML('beforeend','<h3>Dron explorador · Diseño de prueba</h3><p class="muted">Vista local durante esta sesión; requiere tener el dron. El diseño aún no es una recompensa.</p><div class="commerce-tabs"><button type="button" data-explorer-design="original">Original</button><button type="button" data-explorer-design="obsidian">Obsidian</button></div>');
+ panel.querySelectorAll('[data-explorer-design]').forEach(button=>button.onclick=()=>{
+  if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed)return;
+  explorerDesignPreview=button.dataset.explorerDesign==='obsidian'?'obsidian':'original';
+  applyExplorerDesign(THREE,explorerMesh.userData.designVisual,explorerDesignPreview);
+  explorerMesh.userData.designGlow?.color.setHex(explorerDesignPreview==='obsidian'?0x21e5c2:0x30baff);
+  explorerEye.material.color.setHex(explorerDesignPreview==='obsidian'?0x21e5c2:0x65edff);
+  panel.querySelectorAll('[data-explorer-design]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.explorerDesign===explorerDesignPreview)));
+ });
+ panel.querySelectorAll('[data-explorer-design]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.explorerDesign===explorerDesignPreview)));
  panel.querySelectorAll('[data-obsidian-skin]').forEach(button=>button.onclick=()=>{
   if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed)return;
   adminObsidianSkin=allowedObsidianSkin(button.dataset.obsidianSkin,true);
