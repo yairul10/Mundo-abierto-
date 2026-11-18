@@ -1547,7 +1547,7 @@ const explorerEye=new THREE.Mesh(new THREE.SphereGeometry(5,12,8),new THREE.Mesh
 explorerEye.position.z=-15;explorerMesh.add(explorerEye);
 explorerMesh.scale.setScalar(.6);explorerMesh.visible=false;scene.add(explorerMesh);
 // El GLB es exclusivamente visual: se conserva la malla raíz para el seguimiento, disparo y recogida.
-deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
+deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=106',gltf=>{
  const visual=gltf.scene;
  visual.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(visual);
@@ -1560,29 +1560,6 @@ deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
  visual.scale.setScalar(scale);
  visual.position.copy(center).multiplyScalar(-scale);
  pivot.add(visual);
- // Detalles azul eléctrico y violeta, conservando las texturas originales de Sloyd.
- visual.traverse(part=>{
-  if(!part.isMesh)return;
-  const usesMaterialArray=Array.isArray(part.material);
-  const materials=usesMaterialArray?part.material:[part.material];
-  const tintedMaterials=materials.map(mat=>{
-   if(!mat)return mat;
-   const tinted=mat.clone();
-   if(tinted.color){
-    const hue=tinted.color.clone();
-    const light=hue.r*.2126+hue.g*.7152+hue.b*.0722;
-    if(light>.15 && light<.78)tinted.color.lerp(new THREE.Color(0x7cb8e8),.17);
-   }
-   if('emissive' in tinted){
-    tinted.emissive=new THREE.Color(0x123f8e);
-    tinted.emissiveIntensity=.18;
-   }
-   return tinted;
-  });
-  // Una malla de material único no puede recibir un array: sin grupos de
-  // geometría Three.js no la dibuja, aunque continúe existiendo y moviéndose.
-  part.material=usesMaterialArray?tintedMaterials:tintedMaterials[0];
- });
  const glow=new THREE.PointLight(0x30baff,3.5,55);
  explorerMesh.userData.designGlow=glow;
  glow.position.set(0,0,-12);
@@ -1606,7 +1583,9 @@ deferredModelLoad(modelLoader,'./assets/models/scifidrone.glb?v=105',gltf=>{
  explorerMesh.userData.designVisual=visual;
  applyExplorerDesign(THREE,visual,explorerDesignPreview);
  explorerMesh.scale.setScalar(1);
- // El núcleo permanece como respaldo visual detrás del GLB.
+ // El núcleo solo se usa mientras carga el modelo o si falla la carga.
+ explorerShell.visible=false;
+ explorerEye.visible=false;
  explorerShell.material.color.setHex(0x2279c8);
  explorerShell.material.emissive.setHex(0x0753a0);
  explorerShell.scale.set(.68,.44,.78);

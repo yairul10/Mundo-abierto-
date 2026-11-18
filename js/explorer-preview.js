@@ -12,7 +12,7 @@ try{
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.setClearColor(0x0a1426);host.append(renderer.domElement);
  let shaderFailed=false;renderer.debug.onShaderError=()=>{shaderFailed=true;status.textContent='No se pudo mostrar la pintura. Prueba la vista original.'};
  function resize(){const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}addEventListener('resize',resize);resize();
- const gltf=await new GLTFLoader().loadAsync('./assets/models/scifidrone.glb?v=105'),model=gltf.scene;
+ const gltf=await new GLTFLoader().loadAsync('./assets/models/scifidrone.glb?v=106'),model=gltf.scene;
  model.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
  if(!Number.isFinite(longest)||longest<=0)throw Error('invalid model');
  model.scale.setScalar(2.3/longest);model.position.copy(center).multiplyScalar(-2.3/longest);
