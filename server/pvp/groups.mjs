@@ -54,7 +54,7 @@ export function splitGroupRewards(world,enemy,receipts,eligible){
    shares.forEach((r,i)=>{r[key]=Math.floor(total/shares.length)+Number(i<total%shares.length)});
   }
   for(const receipt of shares)if(!receipts.includes(receipt)&&(receipt.amount||receipt.xp)){
-   if(['colossusPro','granTitanPro'].includes(enemy.kind))receipt.enemyKind=enemy.kind;
+   if(['colossusPro','granTitanPro','infernoPro','nexo'].includes(enemy.kind))receipt.enemyKind=enemy.kind;
    world.bossRewards.push(receipt);
   }
  }
