@@ -3,6 +3,7 @@ export const DRONE_MISSION_ID='coop-drone-pearl';
 export const DRONE_MISSION=Object.freeze({id:DRONE_MISSION_ID,realm:'pvp',level:100,title:'Diseño de dron · Perla violeta',reward:0,xp:0,cores:0,skin:'pearl',objectives:[{event:'infernoPro',sector:'pvp',goal:50,label:'Derrota 50 Infernos Pro'},{event:'granTitanPro',sector:'pvp',goal:40,label:'Derrota 40 Grandes Titanes Pro'}]});
 export const PVP_MISSIONS=Object.freeze([
  DRONE_MISSION,
+ {id:'pet-blue-titan-nexo',realm:'pvp',level:110,title:'Mascota · Dron Azul',reward:0,xp:0,cores:0,pet:'blue',objectives:[{event:'nexo',sector:'pvp',goal:20,label:'Participa en la derrota de 20 Titanes del Nexo'}]},
  {id:'pvp-first-colossus',realm:'pvp',level:60,title:'Desafío cooperativo · Coloso Pro',reward:100000,xp:30000,cores:1,enemyKind:'colossusPro',objectives:[{event:'pvpColossus',sector:'pvp',goal:1,label:'Participa en la derrota de un Coloso Pro en el mapa Cooperativo'}]},
  {id:'pvp-first-titan',realm:'pvp',level:60,title:'Desafío cooperativo · Gran Titán Pro',reward:200000,xp:60000,cores:1,enemyKind:'granTitanPro',objectives:[{event:'pvpGranTitan',sector:'pvp',goal:1,label:'Participa en la derrota de un Gran Titán Pro en el mapa Cooperativo'}]},
  {id:'pvp-five-colossi',realm:'pvp',level:60,title:'Cazador cooperativo · 5 Colosos Pro',reward:0,xp:0,cores:3,enemyKind:'colossusPro',objectives:[{event:'pvpColossus',sector:'pvp',goal:5,label:'Participa en la derrota de 5 Colosos Pro en el mapa Cooperativo'}]},
@@ -33,7 +34,7 @@ export function settlePvpMissionCores(pilot){
  if(added){pilot.loot||={};pilot.loot.nucleoNexo=(Number(pilot.loot.nucleoNexo)||0)+added;state.coreRewards=[...claimed]}
  return added;
 }
-export function missionPrize(m){return [m.skin&&'Diseño de dron Perla violeta · +30 % de daño de drones de apoyo',m.reward&&m.reward.toLocaleString('es')+' créditos',m.xp&&m.xp.toLocaleString('es')+' XP',m.cores&&m.cores+' núcleo'+(m.cores===1?'':'s')+' del Nexo'].filter(Boolean).join(' · ')}
+export function missionPrize(m){return [m.pet==='blue'&&'Diseño de mascota Dron Azul',m.skin&&'Diseño de dron Perla violeta · +30 % de daño de drones de apoyo',m.reward&&m.reward.toLocaleString('es')+' créditos',m.xp&&m.xp.toLocaleString('es')+' XP',m.cores&&m.cores+' núcleo'+(m.cores===1?'':'s')+' del Nexo'].filter(Boolean).join(' · ')}
 
 
 // Award only verified boss participation, after level 100; boss IDs guard duplicates.
@@ -43,4 +44,14 @@ export function awardDroneMission(pilot,receipt){
  state.droneBosses=Array.isArray(state.droneBosses)?state.droneBosses:[];if(state.droneBosses.includes(receipt.bossId))return [];
  state.droneBosses.push(receipt.bossId);state.droneProgress=Array.isArray(state.droneProgress)?state.droneProgress:[0,0];const i=receipt.enemyKind==='infernoPro'?0:1;state.droneProgress=DRONE_MISSION.objectives.map((o,n)=>Math.max(0,Math.min(o.goal,Math.floor(Number(state.droneProgress[n])||0))));state.droneProgress[i]=Math.min(DRONE_MISSION.objectives[i].goal,state.droneProgress[i]+1);
  if(state.droneProgress.every((n,j)=>n>=DRONE_MISSION.objectives[j].goal)){state.completed.push(DRONE_MISSION_ID);return [DRONE_MISSION]}return [];
+}
+
+// Each verified Nexo contributes once, beginning at level 110.
+export function awardBluePetMission(pilot,receipt){
+ const mission=PVP_MISSIONS.find(m=>m.id==='pet-blue-titan-nexo');
+ if(Number(pilot.level)<mission.level||receipt?.enemyKind!=='nexo'||typeof receipt.bossId!=='string'||!receipt.bossId||!Number.isFinite(receipt.damage)||receipt.damage<=0||!Number.isFinite(receipt.totalDamage)||receipt.totalDamage<=0||receipt.damage>receipt.totalDamage)return [];
+ pilot.quests||={};const state=pilot.quests.pvpMissions||={completed:[]};state.completed=Array.isArray(state.completed)?state.completed:[];if(state.completed.includes(mission.id))return [];
+ state.petNexoBosses=Array.isArray(state.petNexoBosses)?state.petNexoBosses:[];if(state.petNexoBosses.includes(receipt.bossId))return [];
+ state.petNexoBosses.push(receipt.bossId);state.progress||={};state.progress[mission.id]=Math.min(20,Math.max(0,Math.floor(Number(state.progress[mission.id])||0))+1);
+ if(state.progress[mission.id]===20){state.completed.push(mission.id);return [mission]}return [];
 }
