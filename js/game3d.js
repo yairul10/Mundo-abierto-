@@ -36,7 +36,7 @@ import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-up
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=450';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=514';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=514';
-import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=petred1';
+import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=singlekill1';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=479';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
@@ -54,7 +54,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=514';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=495';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=petred1';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=singlekill1';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=491';
@@ -63,7 +63,7 @@ import {GRAPHICS_KEY,FRAME_RATE_KEY,normalizeFrameRate,initialGraphicsLevel,crea
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=436';
-import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=petred1';
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=singlekill1';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
@@ -2431,7 +2431,7 @@ $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};
 function logAction(type,text,details={}){if(type==='commerce')window.dispatchEvent(new Event('cosmos:progress-saved'));if(PVP_MODE&&!pvpHangar)return;recordAction(player,type,text,details);if(type==='commerce')combatAudio.play(text.includes('Reparación')?'repair':'purchase');else if(type==='mission')combatAudio.play('mission')}
 function missionEvent(type,context={}){if(PVP_MODE&&!pvpHangar)return;
  const sector=context.sector||player.sector||'aurora';
- const awards=missionBoard.event(type,sector,player.level,{drones:ownedDrones(),missiles:upgradeLevel('missiles')});
+ const awards=missionBoard.event(type,sector,player.level,{drones:ownedDrones(),missiles:upgradeLevel('missiles'),kill:context.kill===true});
  for(const m of awards){logAction('mission','Misión completada: '+m.title+' · +'+m.reward.toLocaleString('es')+' créditos · +'+m.xp+' XP',{mission:m.id,credits:m.reward,xp:m.xp});player.gold+=m.reward;gainXp(m.xp);lootToast('🏆 '+m.title+' · +'+m.reward.toLocaleString('es')+' créditos · +'+m.xp+' XP')}
  renderMission();save();
 }
@@ -2516,7 +2516,7 @@ function kill(e,missile=false){
  else titanFireburst.spawn(e.mesh.position,60,{count:graphics.profile.sparks>8?4:3});
  e.dead=e.titanAdd||e.type==='granTitan'||e.bossAdd||e.type==='carrier'?Infinity:performance.now()/1000+8;e.mesh.visible=false;
  logAction('combat','Enemigo destruido: '+enemyName+' · +'+gold.toLocaleString('es')+' créditos · +'+xp+' XP · '+t.loot+' recursos',{enemy:e.type,sector:activeSector,credits:gold,xp,resources:t.loot});
- missionEvent(e.type,{sector:activeSector});if(missile)missionEvent('missileKill',{sector:activeSector});
+ missionEvent(missile?[e.type,'missileKill']:[e.type],{sector:activeSector,kill:true});
  player.gold+=gold;for(let i=0;i<t.loot;i++)spawnLoot(e);
  if(e.type==='granTitan'){
   // Recompensa garantizada del Cementerio: 3 unidades de cada recurso exclusivo.
