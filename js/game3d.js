@@ -36,7 +36,7 @@ import {laserLevel,laserSpeed,laserUpgradeCost,buyLaserUpgrade} from './laser-up
 import {fleetMultipliers,savedPveMultipliers,FLEET_BALANCE_VERSION} from './fleet-balance.js?v=450';
 import {OBSIDIAN_SKINS,allowedObsidianSkin,applyObsidianSkin,resetObsidianClone} from './obsidian-skins.js?v=514';
 import {startAssemblyPreview} from './assembly-3d-preview.js?v=514';
-import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=petblue1';
+import {PVP_MISSIONS,missionPrize} from './pvp-missions.js?v=petred1';
 import {setCombatArtwork,presentCombatButton,shipCombatArtwork} from './combat-buttons.js?v=389';
 import {rankedName} from './pvp-ranks.js?v=479';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
@@ -54,7 +54,7 @@ import {loadAdminPod,animateAdminPod} from './admin-pod.js?v=338';
 import {loadObsidian,animateObsidian} from './obsidian-rig.js?v=514';
 import {createCombatAudio,createPvpSoundObserver} from './combat-audio.js?v=495';
 import {createNexoRig,NEXO_VISUAL} from './pvp-boss-rig.js?v=259';
-import {saveBossReceipts} from './pvp-boss-rewards.js?v=petblue1';
+import {saveBossReceipts} from './pvp-boss-rewards.js?v=petred1';
 import {proMultiplier,proRewardMultiplier,proPopulation} from './pro-enemies.js?v=432';
 import {shipThumbnail} from './ship-preview-catalog.js?v=355';
 import {createFarmPilot} from './farm-pilot.js?v=491';
@@ -63,7 +63,7 @@ import {GRAPHICS_KEY,FRAME_RATE_KEY,normalizeFrameRate,initialGraphicsLevel,crea
 import {createModelLoadQueue} from './model-load-queue.js?v=229';
 import {TITAN_BOMB_FUSE,titanBombProgress,createTitanEffects} from './titan-effects.js?v=352';
 import {recordAction,mountJournal} from './activity-journal.js?v=436';
-import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=petblue1';
+import {createMissionBoard,CEMETERY_MISSIONS} from './mission-board.js?v=petred1';
 import {TITAN_STATS,titanScale,titanPattern,titanBombOffsets,titanPatrolPoint,createGranTitan,createTitanCycle,advanceTitanCycle} from './gran-titan.js?v=326';
 import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
@@ -1540,18 +1540,19 @@ for(let i=0;i<MAX_DRONES;i++){
 }
 // Noveno dron especial: mascota exploradora independiente de los ocho de combate.
 let explorerDesignPreview='original';
- const bluePetUnlocked=()=>!!player.quests?.pvpMissions?.completed?.includes('pet-blue-titan-nexo');
- let bluePetPivot=null,bluePetLoading=false;
+
+ const petUnlocked=id=>!!player.quests?.pvpMissions?.completed?.includes('pet-'+id+'-titan-nexo');
+ const petPivots={},petLoading={};
  function updatePetVisual(){
-  const blue=bluePetUnlocked()&&player.quests?.petDesign==='blue';
-  const original=explorerMesh.userData.originalPivot;if(original)original.visible=!blue||!bluePetPivot;
-  if(bluePetPivot)bluePetPivot.visible=blue;
-  if(!blue||bluePetPivot||bluePetLoading)return;
-  bluePetLoading=true;deferredModelLoad(modelLoader,'./assets/models/pet-blue.glb?v=1',gltf=>{
-   bluePetLoading=false;const visual=gltf.scene;visual.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(visual),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
+  const chosen=player.quests?.petDesign,selected=['blue','red'].includes(chosen)&&petUnlocked(chosen)?chosen:null;
+  const original=explorerMesh.userData.originalPivot;if(original)original.visible=!selected||!petPivots[selected];
+  for(const [id,pivot] of Object.entries(petPivots))pivot.visible=id===selected;
+  if(!selected||petPivots[selected]||petLoading[selected])return;
+  petLoading[selected]=true;deferredModelLoad(modelLoader,'./assets/models/pet-'+selected+'.glb?v=1',gltf=>{
+   petLoading[selected]=false;const visual=gltf.scene;visual.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(visual),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
    if(!Number.isFinite(longest)||longest<.001)return;
-   const pivot=new THREE.Group(),scale=90/longest;visual.scale.setScalar(scale);visual.position.copy(center).multiplyScalar(-scale);pivot.add(visual);bluePetPivot=pivot;explorerMesh.add(pivot);updatePetVisual();
-  },undefined,error=>{bluePetLoading=false;console.warn('No se pudo cargar el diseño azul',error);lootToast('No se pudo cargar la mascota azul')});
+   const pivot=new THREE.Group(),scale=90/longest;visual.scale.setScalar(scale);visual.position.copy(center).multiplyScalar(-scale);pivot.add(visual);petPivots[selected]=pivot;explorerMesh.add(pivot);updatePetVisual();
+  },undefined,error=>{petLoading[selected]=false;console.warn('No se pudo cargar el diseño de mascota',error);lootToast('No se pudo cargar el diseño de mascota')});
  }
 const explorerMesh=new THREE.Group();
 const explorerShell=new THREE.Mesh(new THREE.OctahedronGeometry(13,1),new THREE.MeshStandardMaterial({color:0xe3ad43,metalness:.6,roughness:.3,emissive:0x69410d,emissiveIntensity:.35}));
@@ -1978,8 +1979,8 @@ function renderDrones(){
  const rangeHtml='<div class="upgrade-card"><div><strong>📡 Alcance de la Mascota · Nivel '+rangeLevel+'/10</strong><small>Detecta cajas hasta '+explorerRange().toLocaleString('es')+' m. Cada mejora añade 100 m de alcance.</small><small>'+(rangeMax?'Alcance máximo conseguido':'Siguiente nivel: '+rangePrice.toLocaleString('es')+' créditos')+'</small></div><button class="buyExplorerRange" '+(!player.explorerDrone||rangeMax||player.gold<rangePrice?'disabled':'')+'>'+(rangeMax?'Máximo':'Mejorar')+'</button></div>';
  const autoOwned=player.autoMissilesOwned===true,autoEnabled=autoOwned&&player.autoMissilesEnabled===true;
  const autoHtml='<div class="upgrade-card"><div><strong>🚀 Misiles automáticos</strong><small>Lanza la salva de misiles mientras disparas el láser a un objetivo. Conserva el daño y la recarga normales.</small><small>'+(autoOwned?'Compra permanente · '+(autoEnabled?'Activados':'Desactivados'):'Compra permanente: '+AUTO_MISSILE_PRICE.toLocaleString('es')+' créditos')+'</small></div><button class="autoMissilesBtn" '+(!autoOwned&&player.gold<AUTO_MISSILE_PRICE?'disabled':'')+'>'+(autoOwned?(autoEnabled?'Desactivar':'Activar'):'Comprar')+'</button></div>';
- for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml+autoHtml+'<div class="upgrade-card"><div><strong>Diseño de mascota</strong><small>'+(bluePetUnlocked()?'Dron Azul desbloqueado':'Dron Azul: nivel 110 y 20 Titanes del Nexo')+'</small></div><button class="petDesignBtn" '+(!player.explorerDrone||!bluePetUnlocked()?'disabled':'')+'>'+(player.quests?.petDesign==='blue'?'Usar original':'Usar azul')+'</button></div>';
- el.querySelector('.petDesignBtn').onclick=()=>{if(!player.explorerDrone||!bluePetUnlocked())return;player.quests.petDesign=player.quests.petDesign==='blue'?'original':'blue';updatePetVisual();save();renderDrones()};
+ for(const el of containers){el.innerHTML=html.replace('id="buyDroneBtn"','class="buyDroneBtn"')+explorerHtml+rangeHtml+repairHtml+autoHtml+'<div class="upgrade-card"><div><strong>Diseño de mascota</strong><small>Azul: nivel 110 · Rojo: nivel 115. Cada diseño requiere 20 Titanes del Nexo.</small></div><div><button class="petDesignBtn" data-pet-design="original" '+(!player.explorerDrone?'disabled':'')+'>Original</button><button class="petDesignBtn" data-pet-design="blue" '+(!player.explorerDrone||!petUnlocked('blue')?'disabled':'')+'>Azul</button><button class="petDesignBtn" data-pet-design="red" '+(!player.explorerDrone||!petUnlocked('red')?'disabled':'')+'>Rojo</button></div></div>';
+ el.querySelectorAll('.petDesignBtn').forEach(button=>{button.setAttribute('aria-pressed',String((player.quests?.petDesign||'original')===button.dataset.petDesign));button.onclick=()=>{const id=button.dataset.petDesign;if(!player.explorerDrone||(id!=='original'&&!petUnlocked(id)))return;player.quests||={};player.quests.petDesign=id;updatePetVisual();save();renderDrones()}});
  el.querySelector('.autoMissilesBtn').onclick=()=>{
   if(!canUseShop())return;
   const owned=player.autoMissilesOwned===true;

@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {awardBluePetMission,PVP_MISSIONS} from '../js/pvp-missions.js';
+import {createMissionBoard} from '../js/mission-board.js';
+const pilot={level:115,quests:{}},receipt=i=>({enemyKind:'nexo',bossId:'nexo-'+i,damage:1,totalDamage:2});
+for(let i=0;i<20;i++)awardBluePetMission(pilot,receipt(i));
+assert.deepEqual(pilot.quests.pvpMissions.completed,['pet-blue-titan-nexo']);
+awardBluePetMission(pilot,receipt(19));
+assert.equal(pilot.quests.pvpMissions.progress['pet-red-titan-nexo'],undefined);
+for(let i=20;i<39;i++)awardBluePetMission(pilot,receipt(i));
+const board=createMissionBoard(PVP_MISSIONS,JSON.parse(JSON.stringify(pilot.quests)));board.remaining(115);
+assert.deepEqual(board.state.progress['pet-red-titan-nexo'],[19]);
+assert.equal(awardBluePetMission(pilot,receipt(39))[0].id,'pet-red-titan-nexo');
+assert.equal(awardBluePetMission(pilot,receipt(40)).length,0);
+const low={level:114,quests:{pvpMissions:{completed:['pet-blue-titan-nexo']}}};
+awardBluePetMission(low,receipt(90));assert.equal(low.quests.pvpMissions.progress,undefined);
+console.log('Misión de mascota roja: OK');

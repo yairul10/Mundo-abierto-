@@ -1,5 +1,5 @@
 import {recordAction} from './activity-journal.js?v=436';
-import {awardPvpMission,awardDroneMission,awardBluePetMission,settlePvpMissionCores} from './pvp-missions.js?v=petblue1';
+import {awardPvpMission,awardDroneMission,awardBluePetMission,settlePvpMissionCores} from './pvp-missions.js?v=petred1';
 import {addPilotXp} from './pilot-xp.js?v=356';
 const REWARD_ENEMIES=Object.freeze({colossusPro:'Coloso Pro',granTitanPro:'Gran Titán Pro',infernoPro:'Inferno Pro',nexo:'Titán del Nexo',raider:'Asaltante Pro',sentinel:'Guardián Pro',destroyer:'Destructor Pro',catapult:'Catapulta Pro',harpooner:'Arponero Pro',stalker:'Acechador Pro'});
 const REWARD_MATERIALS=Object.freeze({chatarra:'chatarra',aleacion:'aleación',nucleo:'núcleos de energía',reliquia:'componentes ancestrales',nucleoNexo:'núcleos del Nexo'});
