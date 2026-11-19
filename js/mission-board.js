@@ -22,11 +22,22 @@ export function createMissionBoard(catalog,quests={}){
  if(m.pet){if(completed&&!state.completed.includes(m.id))state.completed.push(m.id);state.progress[m.id]=m.objectives.map(o=>completed?o.goal:Math.min(o.goal,Math.max(0,Math.floor(Number(quests.pvpMissions?.progress?.[m.id])||0))));continue;}
  if(m.skin){if(completed&&!state.completed.includes(m.id))state.completed.push(m.id);state.progress[m.id]=m.objectives.map((o,i)=>completed?o.goal:Math.min(o.goal,Math.max(0,Math.floor(Number(quests.pvpMissions?.droneProgress?.[i])||0))));continue;}
  if(completed&&!state.completed.includes(m.id))state.completed.push(m.id);
- const first=catalog.find(o=>o.realm==='pvp'&&o.enemyKind===m.enemyKind&&o.objectives[0].goal===1),initial=m.objectives[0].goal>1&&quests.pvpMissions?.completed?.includes(first?.id)?1:0;
+ const first=catalog.find(o=>o.realm==='pvp'&&o.enemyKind===m.enemyKind&&o.objectives[0].goal===1),initial=!quests.pvpMissions?.exclusiveKillsV1&&m.objectives[0].goal>1&&quests.pvpMissions?.completed?.includes(first?.id)?1:0;
  state.progress[m.id]=m.objectives.map(o=>completed?o.goal:Math.min(o.goal,Math.max(initial,Math.floor(Number(quests.pvpMissions?.progress?.[m.id])||0))));
  }return catalog.filter(m=>level>=m.level&&!state.completed.includes(m.id)).sort((a,b)=>a.level-b.level)}
  function event(type,sector,level,inventory={}){
   const awards=[];
+  // A kill may match the enemy type and missile objective, but only one incomplete objective consumes it.
+  if(inventory.kill){
+   const types=Array.isArray(type)?type:[type];
+   for(const m of remaining(level).filter(m=>m.realm!=='pvp')){
+    const progress=state.progress[m.id],i=m.objectives.findIndex((o,n)=>types.includes(o.event)&&(!o.sector||o.sector===sector)&&progress[n]<o.goal);
+    if(i<0)continue;
+    progress[i]++;if(m.objectives.every((o,n)=>progress[n]>=o.goal)){state.completed.push(m.id);awards.push(m)}
+    break;
+   }
+   return awards;
+  }
   for(const m of remaining(level).filter(m=>m.realm!=='pvp')){
    const flags=state.flags[m.id]||(state.flags[m.id]={}),progress=state.progress[m.id];
    m.objectives.forEach((o,i)=>{

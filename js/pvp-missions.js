@@ -11,22 +11,14 @@ export const PVP_MISSIONS=Object.freeze([
  {id:'pvp-five-titans',realm:'pvp',level:60,title:'Cazador cooperativo · 5 Grandes Titanes Pro',reward:0,xp:0,cores:3,enemyKind:'granTitanPro',objectives:[{event:'pvpGranTitan',sector:'pvp',goal:5,label:'Participa en la derrota de 5 Grandes Titanes Pro en el mapa Cooperativo'}]}
 ]);
 export function awardPvpMission(pilot,receipt){
- const matching=PVP_MISSIONS.filter(m=>m.enemyKind===receipt.enemyKind&&Number(pilot.level)>=m.level);
+ const matching=PVP_MISSIONS.filter(m=>m.enemyKind===receipt?.enemyKind&&Number(pilot.level)>=m.level);
  if(!matching.length||!Number.isFinite(receipt.damage)||receipt.damage<=0||!Number.isFinite(receipt.totalDamage)||receipt.totalDamage<=0||receipt.damage>receipt.totalDamage||typeof receipt.bossId!=='string'||!receipt.bossId)return [];
- pilot.quests||={};const state=pilot.quests.pvpMissions||={completed:[]};
- state.completed=Array.isArray(state.completed)?state.completed:[];if(matching.every(m=>state.completed.includes(m.id)))return [];state.progress||={};state.bosses=Array.isArray(state.bosses)?state.bosses:[];
- if(state.bosses.includes(receipt.bossId))return [];
- state.bosses.push(receipt.bossId);const before=new Set(state.completed),awards=[];
- for(const m of matching){
-  if(before.has(m.id)){state.progress[m.id]=m.objectives[0].goal;continue}
-  const goal=m.objectives[0].goal;
-  // Earlier releases recorded a completed single-boss mission, without counters.
-  const legacyFirst=PVP_MISSIONS.find(o=>o.enemyKind===m.enemyKind&&o.objectives[0].goal===1);
-  const initial=goal>1&&before.has(legacyFirst.id)?1:0;
-  state.progress[m.id]=Math.min(goal,Math.max(initial,Math.floor(Number(state.progress[m.id])||0))+1);
-  if(state.progress[m.id]>=goal){state.completed.push(m.id);awards.push(m)}
- }
- return awards;
+ pilot.quests||={};const state=pilot.quests.pvpMissions||={completed:[]};state.completed=Array.isArray(state.completed)?state.completed:[];state.progress||={};state.bosses=Array.isArray(state.bosses)?state.bosses:[];
+ const mission=matching.find(m=>!state.completed.includes(m.id)&&(Number(state.progress[m.id])||0)<m.objectives[0].goal);
+ if(!mission||state.bosses.includes(receipt.bossId))return [];
+ state.bosses.push(receipt.bossId);const goal=mission.objectives[0].goal;
+ state.progress[mission.id]=Math.min(goal,Math.max(0,Math.floor(Number(state.progress[mission.id])||0))+1);
+ if(state.progress[mission.id]>=goal){state.completed.push(mission.id);return [mission]}return [];
 }
 export function settlePvpMissionCores(pilot){
  const state=pilot.quests?.pvpMissions;if(!state||!Array.isArray(state.completed))return 0;
@@ -58,4 +50,32 @@ export function awardBluePetMission(pilot,receipt){
  state.petNexoBosses.push(receipt.bossId);state.progress||={};const goal=mission.objectives[0].goal;
  state.progress[mission.id]=Math.min(goal,Math.max(0,Math.floor(Number(state.progress[mission.id])||0))+1);
  if(state.progress[mission.id]===goal){state.completed.push(mission.id);return [mission]}return [];
+}
+
+// Preserve the old displayed one-kill legacy progress once, without crediting new defeats twice.
+function migrateExclusiveKills(pilot){
+ const state=pilot.quests?.pvpMissions;if(!state||state.exclusiveKillsV1)return;
+ state.progress||={};
+ for(const m of PVP_MISSIONS.filter(m=>m.enemyKind&&m.objectives[0].goal>1)){
+  const first=PVP_MISSIONS.find(o=>o.enemyKind===m.enemyKind&&o.objectives[0].goal===1);
+  if(state.completed?.includes(first?.id))state.progress[m.id]=Math.max(1,Math.floor(Number(state.progress[m.id])||0));
+ }
+ state.exclusiveKillsV1=true;
+}
+// One receipt is allocated to the lowest-level eligible mission with an unfinished matching objective.
+export function awardExclusiveBossMission(pilot,receipt){
+ if(!receipt||typeof receipt.bossId!=='string'||!receipt.bossId||!Number.isFinite(receipt.damage)||receipt.damage<=0||!Number.isFinite(receipt.totalDamage)||receipt.totalDamage<=0||receipt.damage>receipt.totalDamage)return [];
+ pilot.quests||={};const state=pilot.quests.pvpMissions||={completed:[]};state.completed=Array.isArray(state.completed)?state.completed:[];
+ migrateExclusiveKills(pilot);
+ if(['bosses','droneBosses','petNexoBosses','exclusiveBosses'].some(k=>Array.isArray(state[k])&&state[k].includes(receipt.bossId)))return [];
+ const eligible=PVP_MISSIONS.filter(m=>{
+  if(Number(pilot.level)<m.level||state.completed.includes(m.id))return false;
+  if(m.pet)return receipt.enemyKind==='nexo'&&(Number(state.progress?.[m.id])||0)<m.objectives[0].goal;
+  if(m.skin){const i=m.objectives.findIndex(o=>o.event===receipt.enemyKind);return i>=0&&(Number(state.droneProgress?.[i])||0)<m.objectives[i].goal}
+  return m.enemyKind===receipt.enemyKind&&(Number(state.progress?.[m.id])||0)<m.objectives[0].goal;
+ }).sort((a,b)=>a.level-b.level);
+ const mission=eligible[0];if(!mission)return [];
+ let awards=mission.pet?awardBluePetMission(pilot,receipt):mission.skin?awardDroneMission(pilot,receipt):awardPvpMission(pilot,receipt);
+ state.exclusiveBosses=Array.isArray(state.exclusiveBosses)?state.exclusiveBosses:[];state.exclusiveBosses.push(receipt.bossId);
+ return awards;
 }

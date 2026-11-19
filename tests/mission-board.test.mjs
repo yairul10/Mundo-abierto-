@@ -7,8 +7,8 @@ assert.deepEqual(board.event('loot','belt',40),[]);assert.equal(board.state.prog
 assert.equal(board.event('loot','aurora',40)[0].id,'a1');assert(!board.remaining(40).some(m=>m.id==='a1'));assert.equal(board.event('loot','aurora',40).length,0);
 board=createMissionBoard(catalog,JSON.parse(JSON.stringify(q)));assert.equal(board.event('loot','aurora',40).length,0,'reload does not award twice');
 board.event('harpooner','graveyard',40);assert.equal(board.state.progress['cemetery-harpoon'][0],0,'locked mission does not progress');board.event('harpooner','graveyard',45);assert.equal(board.state.progress['cemetery-harpoon'][0],1);
-for(let i=0;i<80;i++)board.event('catapult','graveyard',40);assert(board.state.completed.includes('cemetery-catapult'));assert(board.state.completed.includes('old-contract'),'parallel goals progress together');
+for(let i=0;i<83;i++)board.event('catapult','graveyard',40,{kill:true});assert(board.state.completed.includes('cemetery-catapult'));assert(board.state.completed.includes('old-contract'),'earlier mission completes before later mission');
 assert.equal(CEMETERY_MISSIONS.filter(m=>m.reward>=200000).reduce((n,m)=>n+m.reward,0),2200000);
 const special=createMissionBoard([{id:'edge',level:1,objectives:[{event:'edgeReturn',sector:'graveyard',goal:2}]},{id:'base',level:1,objectives:[{event:'baseUpgrade',sector:'aurora',goal:2}]}],{});
 assert.equal(special.event('baseReturn','graveyard',1).length,0);special.event('edgeNear','graveyard',1);assert.equal(special.event('baseReturn','graveyard',1)[0].id,'edge');special.event('upgrade','aurora',1);assert.equal(special.state.progress.base[0],0);special.event('dock','aurora',1);assert.equal(special.event('upgrade','aurora',1)[0].id,'base');
-console.log('Mission board: migration, level locks, parallel progress, sector restrictions, hidden completions, reload idempotence and 1.5M hunt rewards.');
+console.log('Mission board: migration, level locks, exclusive enemy progress, sector restrictions, hidden completions, reload idempotence and 1.5M hunt rewards.');
