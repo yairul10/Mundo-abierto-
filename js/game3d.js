@@ -1543,12 +1543,13 @@ let explorerDesignPreview='original';
 
  const petUnlocked=id=>!!player.quests?.pvpMissions?.completed?.includes('pet-'+id+'-titan-nexo');
  const petPivots={},petLoading={};
+ const petModels={blue:'./assets/models/pet-blue.glb?v=1',red:'./assets/models/pet-red.glb?v=1'};
  function updatePetVisual(){
   const chosen=player.quests?.petDesign,selected=['blue','red'].includes(chosen)&&petUnlocked(chosen)?chosen:null;
   const original=explorerMesh.userData.originalPivot;if(original)original.visible=!selected||!petPivots[selected];
   for(const [id,pivot] of Object.entries(petPivots))pivot.visible=id===selected;
   if(!selected||petPivots[selected]||petLoading[selected])return;
-  petLoading[selected]=true;deferredModelLoad(modelLoader,'./assets/models/pet-'+selected+'.glb?v=1',gltf=>{
+  petLoading[selected]=true;deferredModelLoad(modelLoader,petModels[selected],gltf=>{
    petLoading[selected]=false;const visual=gltf.scene;visual.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(visual),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),longest=Math.max(size.x,size.y,size.z);
    if(!Number.isFinite(longest)||longest<.001)return;
    const pivot=new THREE.Group(),scale=90/longest;visual.scale.setScalar(scale);visual.position.copy(center).multiplyScalar(-scale);pivot.add(visual);petPivots[selected]=pivot;explorerMesh.add(pivot);updatePetVisual();
