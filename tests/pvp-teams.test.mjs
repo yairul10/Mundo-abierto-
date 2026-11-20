@@ -6,6 +6,15 @@ const body=(id,bot=false)=>({accountId:id,name:id,clientVersion:5,realm:'normal'
 async function fixture(bot=false,mode='2v2'){const s={players:[],events:[],duels:[],invites:[]},sent=[],ws={send:m=>sent.push(JSON.parse(m)),close(){}},world={ctx:{storage:{setAlarm:async()=>{}},getWebSockets:()=>[]},worldSave(){},worldBroadcast(){},startSimulation(){},worldDisconnect:async()=>{}};
  for(let i=0;i<(bot?1:mode==='arena20'?20:mode==='5v5'?10:4);i++){await enterPvp(world,s,{...body('p'+i,bot),pvpRoom:{...body('p'+i,bot).pvpRoom,mode}},'p'+i,10000);s.players.find(p=>p.id==='p'+i).connected=true}return {s,world,ws,sent};}
 async function start(f){for(const p of f.s.players.filter(p=>!p.isBot))await pvpMessage(f.world,f.s,p,{type:'ready',ready:true},f.ws,10000);assert.equal(f.s.pvpMatch.status,'countdown');advancePvp(f.s,13000);assert.equal(f.s.pvpMatch.status,'active')}
+test('public ranked preparation preserves ready between ticks and waits for every human',async()=>{
+ const f=await fixture(),{s,world,ws}=f;
+ s.pvpMatch.ranked={id:'ranked',roster:s.players.map(p=>({accountId:p.accountId})),joinDeadline:11000};
+ advancePvp(s,10000);assert.equal(s.pvpMatch.status,'waiting');
+ await pvpMessage(world,s,s.players[0],{type:'ready',ready:true},ws,10001);
+ advancePvp(s,10100);assert.equal(s.players[0].ready,true);assert.equal(s.pvpMatch.status,'waiting');
+ for(const p of s.players.slice(1))await pvpMessage(world,s,p,{type:'ready',ready:true},ws,10200);
+ assert.equal(s.pvpMatch.status,'countdown');
+});
 test('2v2 has isolated room identities, four reserved slots, balanced teams and four ready checks',async()=>{
  assert.notEqual(pvpRoomName('normal','ABCDEF','1v1'),pvpRoomName('normal','ABCDEF','2v2'));
  const f=await fixture();assert.deepEqual(f.s.players.map(p=>p.team),['a','b','a','b']);assert.equal(new Set(f.s.players.map(p=>JSON.stringify(p.spawn))).size,4);
