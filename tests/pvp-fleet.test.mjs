@@ -9,7 +9,7 @@ for(const [id,parent]of Object.entries(pairs)){
  for(const key of ['hp','attack','speed'])assert.equal(ship[key],Number((base[key]+.1).toFixed(2)));
  assert.equal(ship.defense,1);
  const pilot={shipId:'aurora',level:40,gold:ship.cost,loot:{...ship.recipe},ownedShips:{aurora:true},shipBaseStats:{maxHp:1000,attack:200,defense:100,speed:300},formations:{fan:true}};
- const before=structuredClone(pilot);assert.equal(assembleShip(pilot,id,'pve'),false);assert.deepEqual(pilot,before);assert.equal(assembleShip(pilot,id,'pvp'),true);
+ assert.equal(assembleShip(pilot,id,'pve'),true);
  pilot.shipId=id;
  const normal=pveMultipliers(id),offline=offlineRoster(pilot).profiles[id];
  assert.deepEqual([offline.maxHp,offline.attack,offline.defense,offline.speed],[1000*normal.hp,Math.round(200*normal.attack),Math.round(100*normal.defense),Math.round(300*normal.speed)]);
@@ -23,4 +23,4 @@ for(const [id,parent]of Object.entries(pairs)){
 }
 const p={id:'v',connected:true,pos:[900,120,0],roster:importRoster(pvpRoster({shipId:'vertigo',ownedShips:{vertigo:true},maxEnergy:100,shipBaseStats:{maxHp:1000,attack:200,defense:100,speed:300}}).profiles)};
 equip(p,'vertigo');p.paralyzedUntil=10000;assert(useAbility({players:[p]},p,2000));assert.equal(p.paralyzedUntil,0);
-console.log('PvP fleet: exact +0.1 stats, PvE-only ×0.70, zone restriction, saved bases and repeated round trips stable, Vértigo cleanse.');
+console.log('PvP fleet: exact +0.1 stats, PvE-only ×0.70, unified assembly, saved bases and repeated round trips stable, Vértigo cleanse.');
