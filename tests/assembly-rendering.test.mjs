@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {ASSEMBLED_SHIPS,canAssembleShip} from '../js/assembled-ships.js';
 import {pvpMultipliers,pveMultipliers,cooperativeMultipliers} from '../js/pvp-loadout.js';
+import {renderShipInfo,bindShipInfo} from '../js/ship-info.js';
 // Exercise the real recipe renderer: missing UI metadata previously threw before
 // installing material buttons, leaving the selected recipe and store empty.
 const source=readFileSync(new URL('../js/hangar-ui.js',import.meta.url),'utf8');
@@ -9,10 +10,10 @@ const render=source.slice(source.indexOf(' function renderShipAssembly(id){'),so
 const materials=[['chatarra','Chatarra','#abc'],['aleacion','Aleación','#abc'],['nucleo','Núcleo','#abc'],['reliquia','Reliquia','#abc']];
 for(const [id,ship] of Object.entries(ASSEMBLED_SHIPS).filter(([,ship])=>!ship.adminOnly)){
  const player={level:163,gold:2000000,loot:{...ship.recipe},ownedShips:{aurora:true}};
- const nodes=new Map(),node=()=>({innerHTML:'',querySelectorAll:()=>[]});
+ const nodes=new Map(),node=()=>({innerHTML:'',querySelectorAll:()=>[],insertAdjacentHTML(_position,html){this.innerHTML+=html}});
  const $=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
- const run=new Function('$','ASSEMBLED_SHIPS','pvpMultipliers','pveMultipliers','cooperativeMultipliers','MATERIALS','player','draft','canAssembleShip','baseZone','assembledShipPreview','fmt','view',render+';return renderShipAssembly');
- const draw=run($,ASSEMBLED_SHIPS,pvpMultipliers,pveMultipliers,cooperativeMultipliers,materials,player,new Set(),canAssembleShip,()=>ship.assemblyZone||'pve',()=>'',String,'home');
+ const run=new Function('$','ASSEMBLED_SHIPS','pvpMultipliers','pveMultipliers','cooperativeMultipliers','MATERIALS','player','draft','canAssembleShip','baseZone','assembledShipPreview','fmt','view','renderShipInfo','bindShipInfo',render+';return renderShipAssembly');
+ const draw=run($,ASSEMBLED_SHIPS,pvpMultipliers,pveMultipliers,cooperativeMultipliers,materials,player,new Set(),canAssembleShip,()=>ship.assemblyZone||'pve',()=>'',String,'home',renderShipInfo,bindShipInfo);
  draw(id);
  for(const key of Object.keys(ship.recipe))assert.ok($('assemblyDetail').innerHTML.includes('data-ship-material="'+key+'"'),id+': '+key);
  if(ship.assemblyZone==='pvp')assert.match($('assemblyDetail').innerHTML,/Núcleo del Nexo/);

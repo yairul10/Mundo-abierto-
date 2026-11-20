@@ -1,3 +1,4 @@
+import {renderShipInfo,bindShipInfo} from './ship-info.js?v=1';
 import {applySupportDesign,supportDesignSelected,supportDroneDamageMultiplier} from './support-drone-design.js?v=2';
 import {applyExplorerDesign} from './explorer-design.js?v=1';
 import {wantsObsidianPreview,displayedShip} from './obsidian-visual-preview.js?v=1';
@@ -70,7 +71,7 @@ import {attachAssembledEngines} from './assembled-engines.js?v=321';
 import {ASSEMBLED_SHIPS,canAssembleShip,assembleShip,shipRole} from './assembled-ships.js?v=450';
 import {createColosoRig,attachColosoExhaust} from './coloso-rig.js?v=340';
 import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus,tickBoosters,formationOffset} from './hangar-systems.js?v=497';
-import {mountHangarUI} from './hangar-ui.js?v=shop-icons1';
+import {mountHangarUI} from './hangar-ui.js?v=ship-info1';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
 import {sharedRequested,startSharedSession} from './shared-session.js?v=drone1';
@@ -2313,12 +2314,14 @@ function renderShips(){
  const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
  if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
- fleet.innerHTML='<h3>Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail(player.shipId)+'</div><div><strong id="shopShipPreviewName">Nave equipada</strong><small>Nave equipada · Arrastra para girar.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe&&!t.adminOnly).map(([id,t])=>{
+ const stamp=JSON.stringify([player.shipId,player.ownedShips,player.level,player.gold,player.loot,player.shipSpecializations,canUseShop()]);if(fleet.dataset.stamp===stamp)return;fleet.dataset.stamp=stamp;
+ fleet.innerHTML='<h3>Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail(player.shipId)+'</div><div><strong id="shopShipPreviewName">Nave equipada</strong><small id="shopShipPreviewStatus">Nave equipada · Arrastra para girar.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe&&!t.adminOnly).map(([id,t])=>{
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
   const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Defensa ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
   const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
-  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(owned||!canBuy?'disabled':'')+'>'+(owned?'Disponible en Hangar':'Comprar')+'</button></div>';
+  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'<button type="button" class="subtle" data-shop-inspect="'+id+'">Ver características y habilidades</button><div data-shop-ship-info="'+id+'"></div></div><button data-ship="'+id+'" '+(owned||!canBuy?'disabled':'')+'>'+(owned?'Disponible en Hangar':'Comprar')+'</button></div>';
  }).join('');
+ fleet.querySelectorAll('[data-shop-inspect]').forEach(button=>button.onclick=()=>{const id=button.dataset.shopInspect,detail=button.parentElement.querySelector('[data-shop-ship-info]');if(detail.innerHTML){detail.innerHTML='';button.textContent='Ver características y habilidades';return}detail.innerHTML=renderShipInfo(id,player);bindShipInfo(detail,player);button.textContent='Ocultar características';const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_TYPES[id].name;const status=$('shopShipPreviewStatus');if(status)status.textContent=(player.shipId===id?'Nave equipada':'Vista previa')+' · Arrastra para girar.';hangarUI?.previewShip(id)});
  fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
   const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t||!canUseShop()||t.recipe||player.ownedShips[id])return;
   if(!player.ownedShips[id]){
