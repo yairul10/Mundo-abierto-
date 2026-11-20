@@ -116,13 +116,14 @@ export function advancePvp(s,now){
   if(simulatePracticeRemainder(s,now))return;
   if(human?.practicePaused){m.paused=true;freezePracticeClocks(s,dt,now);if(m.status==='active')m.deadline+=dt;if(m.status==='countdown'){m.startsAt+=dt;for(const p of s.players)p.duelStartsAt=m.startsAt}return}m.paused=false;
  }
- if(m.ranked&&m.status==='waiting'){
+ if(m.ranked&&m.status==='waiting'&&!m.rankedPrepared){
   const humans=s.players.filter(p=>!p.isBot&&p.connected&&!p.exiting);
   if(humans.length<m.ranked.roster.length&&now<m.ranked.joinDeadline)return;
   if(!humans.length){finishPvp(s,now,null,'abandoned');return}
   s.players=s.players.filter(p=>humans.includes(p));
   for(let slot=0;slot<capacity;slot++)if(!s.players.some(p=>p.slot===slot)){const bot=createMatchBot(humans[slot%humans.length],m,now,slot);if(s.players.some(p=>p.name===bot.name))bot.name+=' '+slot;s.players.push(bot)};
   for(const p of s.players)p.ready=p.isBot===true;
+  m.rankedPrepared=true;
  }
  const present=s.players.filter(p=>p.connected&&!p.exiting);
  if(m.clanWar&&m.status==='waiting'&&(present.length===m.clanWar.roster.length||now>=m.clanWar.joinDeadline)){
