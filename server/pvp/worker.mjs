@@ -39,7 +39,9 @@ export default {
    if(url.pathname==='/cosmetics/permissions'&&request.method==='GET'){
     const account=await verifiedPvpAccount(request,env,'normal');
     if(account.error)return json({error:account.error},account.status,origin);
-    const isAdmin=!account.testGuest&&String(env.CHAT_ADMIN_IDS||'').split(',').map(id=>id.trim()).includes(account.playerId);
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('google-play:'+account.playerId));
+    const pilotId=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('').slice(0,24);
+    const isAdmin=!account.testGuest&&String(env.CHAT_ADMIN_IDS||'').split(',').map(id=>id.trim()).includes(pilotId);
     return json({obsidianCountrySkins:isAdmin},200,origin);
    }
    if(url.pathname==='/chat'&&request.method==='POST'){const result=await globalChatRoute(request,env,await readBody(request));return json(result.body,result.status,origin)}
