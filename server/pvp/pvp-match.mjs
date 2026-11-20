@@ -122,7 +122,7 @@ export function advancePvp(s,now){
   if(!humans.length){finishPvp(s,now,null,'abandoned');return}
   s.players=s.players.filter(p=>humans.includes(p));
   for(let slot=0;slot<capacity;slot++)if(!s.players.some(p=>p.slot===slot)){const bot=createMatchBot(humans[slot%humans.length],m,now,slot);if(s.players.some(p=>p.name===bot.name))bot.name+=' '+slot;s.players.push(bot)};
-  for(const p of s.players)p.ready=true;
+  for(const p of s.players)p.ready=p.isBot===true;
  }
  const present=s.players.filter(p=>p.connected&&!p.exiting);
  if(m.clanWar&&m.status==='waiting'&&(present.length===m.clanWar.roster.length||now>=m.clanWar.joinDeadline)){
