@@ -2264,7 +2264,9 @@ function changeShip(id){
  player.shipId=id;syncShield(player,{pvp:PVP_MODE&&!pvpHangar});loadAssembledVisual(id);classAbilityCd=0;classAbilityTime=0;syncShipStats();syncPlayerShipVisuals();save();hud();renderShips();hangarRefresh();
  lootToast('🚀 Nave '+SHIP_TYPES[id].name+' equipada');
 }
-let adminObsidianSkin='original';
+// La preferencia visual se conserva entre mapas, sin conceder permisos de administrador.
+const OBSIDIAN_SKIN_PREF_KEY='cosmos-obsidian-admin-skin';
+let adminObsidianSkin=allowedObsidianSkin((()=>{try{return localStorage.getItem(OBSIDIAN_SKIN_PREF_KEY)}catch{return null}})(),true);
 function renderAdminDesigns(){
  const home=$('hangarHomeView');if(!home)return;
  let panel=$('adminObsidianDesigns');
@@ -2284,6 +2286,7 @@ function renderAdminDesigns(){
  panel.querySelectorAll('[data-obsidian-skin]').forEach(button=>button.onclick=()=>{
   if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed)return;
   adminObsidianSkin=allowedObsidianSkin(button.dataset.obsidianSkin,true);
+  try{localStorage.setItem(OBSIDIAN_SKIN_PREF_KEY,adminObsidianSkin)}catch{}
   panel.querySelectorAll('[data-obsidian-skin]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.obsidianSkin===adminObsidianSkin)));
   applyObsidianSkin(THREE,playerMesh.userData.obsidianModel,adminObsidianSkin);
   void startAssemblyPreview($('adminObsidianPreview'),'obsidian',{skin:adminObsidianSkin});
