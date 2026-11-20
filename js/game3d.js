@@ -42,6 +42,7 @@ import {rankedName} from './pvp-ranks.js?v=479';
 import {pveRecoveryCost,settlePveRecovery} from './pve-recovery.js?v=364';
 import {checkpointProfile,activeProfile} from './account-storage.js?v=344';
 import {ENEMY_BASELINES} from './enemy-balance.js?v=343';
+import {auroraEnemyDamage} from './aurora-enemy-damage.js?v=1';
 import {updateProAuras} from './pro-aura.js?v=342';
 import {settleRespawn,finishPvpTransfer} from './pvp-settlement.js?v=364';
 import {pvpAccountToken} from './pvp-account.js?v=421';
@@ -1875,7 +1876,7 @@ function updateEnemyShots(dt){
   p.mesh.position.addScaledVector(p.velocity,dt);p.life-=dt;if(p.guided)updateMissileEffects(p,dt);
   if(!docked&&!landing&&!inSafeZone(playerMesh.position)&&segmentDistance(previous,p.mesh.position,playerMesh.position)<45){
    if(p.guided)combatAudio.play('explosion',p.mesh.position);
-   applyPlayerDamage(Math.max(1,p.damage-player.defense*.25));p.life=0;
+   applyPlayerDamage(auroraEnemyDamage(Math.max(1,p.damage-player.defense*.25),{sector:activeSector,level:player.level,enemy:p.owner,pvp:PVP_MODE}));p.life=0;
   }
   if(p.life<=0){removeMissileEffects(p);scene.remove(p.mesh);enemyShots.splice(i,1)}
  }
@@ -3580,7 +3581,7 @@ for(const e of enemies){
     if(d<1275)e.mesh.position.addScaledVector(dir,-Math.min(t.speed*dt,1325-d));
     else if(d>1375)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-1350));
    }else if(d>800)e.mesh.position.addScaledVector(dir,Math.min(t.speed*dt,d-800));
-  else if(d<65){registerExplorerThreat(e);applyPlayerDamage(Math.max(1,t.damage*proMultiplier(e)-player.defense*.25)*dt)}
+  else if(d<65){registerExplorerThreat(e);applyPlayerDamage(auroraEnemyDamage(Math.max(1,t.damage*proMultiplier(e)-player.defense*.25)*dt,{sector:activeSector,level:player.level,enemy:e,pvp:PVP_MODE}))}
   e.fireTimer-=dt;if(e.fireTimer<=0&&d>80){enemyFire(e);e.fireTimer=(e.type==='stalker'?3:e.type==='catapult'?6:e.type==='harpooner'?5:e.type==='scout'?2.8:e.type==='raider'?2.0:1.5)+Math.random()*.7}
  }
  if(e.bossAdd&&(d>=COMBAT_RANGE||playerSafe||docked||landing))patrolCarrierAdd(e,dt,now/1000);
