@@ -1,0 +1,8 @@
+{
+  "exitCode": 1,
+  "wallSeconds": 30.774509910000006,
+  "childCpuUserSeconds": 37.220158,
+  "childCpuSystemSeconds": 3.679756,
+  "maxChildRssKiB": 318736,
+  "note": "RUSAGE_CHILDREN includes Node and reaped workerd descendants; maxRSS is largest individual process, not summed concurrent RSS."
+}
