@@ -2384,7 +2384,7 @@ function buyUpgrade(id){
 const MISSIONS=[
  {title:'Primer contacto',description:'Destruye 5 exploradoras enemigas',event:'scout',goal:5,reward:500,xp:75},
  {title:'Recuperación espacial',description:'Recoge 3 cajas de botín',event:'loot',goal:3,reward:800,xp:110},
- {title:'Regreso a la base',description:'Atraca en Aurora y compra una mejora',event:'baseUpgrade',goal:2,reward:1500,xp:160},
+ {title:'Regreso a la base',description:'Aterriza en Aurora y compra una mejora en ☰ → Tienda → Mejoras',event:'baseUpgrade',goal:2,reward:1500,xp:160},
  {title:'Escolta de combate',description:'Compra tu primer dron de combate en Tienda → Drones',event:'drone',goal:1,reward:1200,xp:120},
  {title:'Frena a los asaltantes',description:'Destruye 6 enemigos del segundo tipo: Asaltantes',event:'raider',goal:6,reward:1800,xp:180},
  {title:'Patrulla del borde',description:'Acércate a 200 m del borde de Aurora y vuelve a su zona segura',event:'edgeReturn',goal:2,reward:2000,xp:200},
@@ -2444,7 +2444,8 @@ function renderMission(){
  const list=$('missionList'),stamp=JSON.stringify([player.level,missions.map(m=>[m.id,missionBoard.state.progress[m.id]])]);if(list.dataset.stamp===stamp)return;list.dataset.stamp=stamp;const scroll=list.scrollTop;
  list.innerHTML=missions.length?missions.map(m=>{
   const progress=missionBoard.state.progress[m.id],total=m.objectives.reduce((n,o)=>n+o.goal,0),done=progress.reduce((n,v)=>n+v,0);
-  return '<article class="mission-card" data-mission="'+m.id+'"><strong>'+m.title+'</strong><small>Nivel '+m.level+'</small>'+m.objectives.map((o,i)=>'<small>'+o.label+' · '+progress[i]+'/'+o.goal+'</small>').join('')+'<div class="quest-progress"><i style="width:'+100*done/total+'%"></i></div><small class="mission-prize">'+missionPrize(m)+'</small></article>';
+  const objectives=m.objectives.map((o,i)=>o.event==='baseUpgrade'?'<small>Aterriza en la estación de Aurora · '+(progress[i]>=1?'1':'0')+'/1</small><small>Abre ☰ → Tienda → Mejoras y compra una mejora en Aurora · '+(progress[i]>=2?'1':'0')+'/1</small>':'<small>'+o.label+' · '+progress[i]+'/'+o.goal+'</small>').join('');
+  return '<article class="mission-card" data-mission="'+m.id+'"><strong>'+m.title+'</strong><small>Nivel '+m.level+'</small>'+objectives+'<div class="quest-progress"><i style="width:'+100*done/total+'%"></i></div><small class="mission-prize">'+missionPrize(m)+'</small></article>';
  }).join(''):'<p>No quedan misiones disponibles para tu nivel.</p>';list.scrollTop=scroll;
 }
 $('questToggle').onclick=()=>{questCollapsed=!questCollapsed;renderMission()};

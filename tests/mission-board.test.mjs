@@ -11,4 +11,10 @@ for(let i=0;i<83;i++)board.event('catapult','graveyard',40,{kill:true});assert(b
 assert.equal(CEMETERY_MISSIONS.filter(m=>m.reward>=200000).reduce((n,m)=>n+m.reward,0),2200000);
 const special=createMissionBoard([{id:'edge',level:1,objectives:[{event:'edgeReturn',sector:'graveyard',goal:2}]},{id:'base',level:1,objectives:[{event:'baseUpgrade',sector:'aurora',goal:2}]}],{});
 assert.equal(special.event('baseReturn','graveyard',1).length,0);special.event('edgeNear','graveyard',1);assert.equal(special.event('baseReturn','graveyard',1)[0].id,'edge');special.event('upgrade','aurora',1);assert.equal(special.state.progress.base[0],0);special.event('dock','aurora',1);assert.equal(special.event('upgrade','aurora',1)[0].id,'base');
+const baseCatalog=[{id:'aurora-2',level:1,reward:1500,xp:160,objectives:[{event:'baseUpgrade',sector:'aurora',goal:2}]}],saved={board:{version:1,completed:[],progress:{'aurora-2':[1]},flags:{'aurora-2':{docked:true}}}};
+const resumed=createMissionBoard(baseCatalog,JSON.parse(JSON.stringify(saved)));
+assert.deepEqual(resumed.state.progress['aurora-2'],[1],'previous landing remains recorded');
+assert.equal(resumed.event('upgrade','belt',1).length,0,'upgrade must occur in Aurora');
+assert.equal(resumed.event('upgrade','aurora',1)[0].reward,1500,'store upgrade completes the mission once');
+assert.equal(resumed.event('upgrade','aurora',1).length,0,'reward cannot be paid twice');
 console.log('Mission board: migration, level locks, exclusive enemy progress, sector restrictions, hidden completions, reload idempotence and 1.5M hunt rewards.');
