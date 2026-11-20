@@ -2270,12 +2270,12 @@ let adminObsidianSkin=allowedObsidianSkin((()=>{try{return localStorage.getItem(
 function renderAdminDesigns(){
  const home=$('hangarHomeView');if(!home)return;
  let panel=$('adminObsidianDesigns');
- if(!PVP_MODE||!pvpSession?.adminShipAllowed){panel?.remove();return}
+ if(!PVP_MODE||!pvpSession?.adminShipAllowed||!player.ownedShips?.obsidian){panel?.remove();return}
  if(!panel){panel=document.createElement('section');panel.id='adminObsidianDesigns';panel.className='admin-designs';home.appendChild(panel)}
  panel.innerHTML='<h3>Obsidian · Diseños de prueba</h3><p class="muted">Solo administrador · Vista local durante esta sesión. Sin cambios de estadísticas. Los demás jugadores ven el diseño original.</p><div class="commerce-tabs" role="group" aria-label="Diseño de Obsidian">'+Object.entries(OBSIDIAN_SKINS).map(([id,skin])=>'<button type="button" data-obsidian-skin="'+id+'" aria-pressed="'+(adminObsidianSkin===id)+'">'+skin.name+'</button>').join('')+'</div><div class="ship-model-preview" id="adminObsidianPreview" style="height:260px"></div><p class="muted">Selecciona un diseño para previsualizarlo. Se aplica al volar con tu Obsidian.</p>';
  panel.insertAdjacentHTML('beforeend','<h3>Mascota · Diseño de prueba</h3><p class="muted">Vista local durante esta sesión; requiere tener la mascota. El diseño aún no es una recompensa.</p><div class="commerce-tabs"><button type="button" data-explorer-design="original">Original</button><button type="button" data-explorer-design="obsidian">Obsidian</button></div>');
  panel.querySelectorAll('[data-explorer-design]').forEach(button=>button.onclick=()=>{
-  if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed)return;
+  if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed||!player.ownedShips?.obsidian)return;
   explorerDesignPreview=button.dataset.explorerDesign==='obsidian'?'obsidian':'original';
   applyExplorerDesign(THREE,explorerMesh.userData.designVisual,explorerDesignPreview);
   explorerMesh.userData.designGlow?.color.setHex(explorerDesignPreview==='obsidian'?0x21e5c2:0x30baff);
@@ -2284,7 +2284,7 @@ function renderAdminDesigns(){
  });
  panel.querySelectorAll('[data-explorer-design]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.explorerDesign===explorerDesignPreview)));
  panel.querySelectorAll('[data-obsidian-skin]').forEach(button=>button.onclick=()=>{
-  if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed)return;
+  if(!docked||!PVP_MODE||!pvpSession?.adminShipAllowed||!player.ownedShips?.obsidian)return;
   adminObsidianSkin=allowedObsidianSkin(button.dataset.obsidianSkin,true);
   try{localStorage.setItem(OBSIDIAN_SKIN_PREF_KEY,adminObsidianSkin)}catch{}
   panel.querySelectorAll('[data-obsidian-skin]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.obsidianSkin===adminObsidianSkin)));
@@ -3501,7 +3501,7 @@ const visibleShip=displayedShip(player.shipId,OBSIDIAN_VISUAL_PREVIEW);
 const assembledVisual=ASSEMBLED_SHIPS[visibleShip]?playerMesh.userData[visibleShip+'Model']:null;
 const assembledEnginesActive=!!assembledVisual?.visible;
 if(visibleShip==='adminpod')animateAdminPod(assembledVisual,now/1000,docked||landing?0:Math.hypot(throttle,strafe));
-if(visibleShip==='obsidian'){const skin=OBSIDIAN_VISUAL_PREVIEW?'chile':allowedObsidianSkin(adminObsidianSkin,PVP_MODE&&pvpSession?.adminShipAllowed);applyObsidianSkin(THREE,assembledVisual,skin);animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe))}
+if(visibleShip==='obsidian'){const skin=OBSIDIAN_VISUAL_PREVIEW?'chile':allowedObsidianSkin(adminObsidianSkin,PVP_MODE&&pvpSession?.adminShipAllowed&&!!player.ownedShips?.obsidian);applyObsidianSkin(THREE,assembledVisual,skin);animateObsidian(assembledVisual,dt,docked||landing?0:Math.hypot(throttle,strafe))}
 const auroraVisual=playerMesh.userData.xWingModel;
 const auroraEnginesActive=player.shipId==='aurora'&&!!auroraVisual?.visible;
 const customEnginesActive=titanEnginesActive||espectroEnginesActive||assembledEnginesActive||auroraEnginesActive;
