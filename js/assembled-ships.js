@@ -12,7 +12,7 @@ export const ASSEMBLED_SHIPS=Object.freeze({
 });
 export function canAssembleShip(player,id,zone='pve'){
  const ship=ASSEMBLED_SHIPS[id];
- return !!ship&&!ship.adminOnly&&(ship.assemblyZone||'pve')===zone&&!player.ownedShips?.[id]&&Number(player.level)>=ship.level&&Number(player.gold)>=ship.cost&&Object.entries(ship.recipe).every(([key,amount])=>Number(player.loot?.[key]||0)>=amount);
+ return !!ship&&!ship.adminOnly&&!player.ownedShips?.[id]&&Number(player.level)>=ship.level&&Number(player.gold)>=ship.cost&&Object.entries(ship.recipe).every(([key,amount])=>Number(player.loot?.[key]||0)>=amount);
 }
 export function assembleShip(player,id,zone='pve'){
  if(!canAssembleShip(player,id,zone))return false;
