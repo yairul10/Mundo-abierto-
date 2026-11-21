@@ -11,7 +11,7 @@ import {mountFloatingJoystick} from './floating-joystick.js?v=486';
 import {mountHallOfFame} from './hall-of-fame.js?v=520';
 import {mountRankedMatchmaking} from './ranked-matchmaking.js?v=479';
 import {guidePrecisionLaser} from './precision-guidance.js?v=478';
-import {mountOnlineChat} from './online-chat.js?v=477';
+import {mountOnlineChat} from './online-chat.js?v=526';
 import {mountClanWarWatch} from './clan-wars.js?v=476';
 import {createClanBadges,renderClanName,clanPilotName} from './clan-badges.js?v=472';
 import {createCoopFarmPilot} from './coop-farm-pilot.js?v=494';
@@ -74,7 +74,7 @@ import {FORMATIONS,normalizeHangar,formationBonus,boosterBonus,laserBoosterBonus
 import {mountHangarUI} from './hangar-ui.js?v=ship-info1';
 import {selectCompanionTask,companionMode} from './companion-priority.js?v=359';
 import {mountCompanionControls} from './companion-controls.js?v=378';
-import {sharedRequested,startSharedSession} from './shared-session.js?v=525';
+import {sharedRequested,startSharedSession} from './shared-session.js?v=526';
 import {initialPvpPilot,readOfflinePilot} from './pvp-loadout.js?v=drone1';
 import {createHangarEditor,serializeHangarEditor} from './pvp-hangar.js?v=drone1';
 import {advancedEnemyScale,scaledHealth,segmentDistance,GRAVEYARD,createGraveyard,createScrapCombat,linkScrapPairs,placeScrapPairs,rejoinScrapPair} from './graveyard.js?v=390';

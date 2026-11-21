@@ -1,4 +1,4 @@
-import {mountMapChat} from './map-chat.js?v=477';
+import {mountMapChat} from './map-chat.js?v=526';
 import {pvpAccountToken} from './pvp-account.js?v=435';
 import {isNativePlayGames,playGamesStatus} from './play-games-auth.js';
 const API='https://mundo-abierto-pvp.yairul17.workers.dev';
@@ -28,7 +28,7 @@ export function mountOnlineChat({realm='normal',getToken,fetcher=fetch,storage=l
  }
  function schedule(){clearTimeout(timer);if(visible&&!stopped)timer=setTimeout(()=>{if(!document.hidden&&!pending)send({type:'chatHistory'});schedule()},8000)}
  const chat=mountMapChat({send,realm,storage,getToken:token,onVisibility:value=>{visible=value;schedule()}});
- const style=document.createElement('link');style.rel='stylesheet';style.href='./css/map-chat.css?v=477';document.head.append(style);
+ const style=document.createElement('link');style.rel='stylesheet';style.href='./css/map-chat.css?v=526';document.head.append(style);
  const reconnect=()=>{if(visible&&!document.hidden)send({type:'chatHistory'})};
  window.addEventListener('online',reconnect);document.addEventListener('visibilitychange',reconnect);
  window.addEventListener('pagehide',()=>{stopped=true;clearTimeout(timer);window.removeEventListener('online',reconnect);document.removeEventListener('visibilitychange',reconnect)},{once:true});

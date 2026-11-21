@@ -35,3 +35,7 @@
 #mapChat .clan-chat-messages article{padding:4px 0;border-bottom:1px solid #62829e55}
 #mapChat .clan-chat-messages p{margin:0;white-space:pre-wrap}
 #mapChat .clan-chat-messages small{display:inline-block;margin-right:8px}
+
+#mapChat .map-chat-messages details.map-chat-player{margin:0;background:transparent}
+#mapChat .map-chat-player summary{color:#bfeaff;padding:0;text-decoration:underline;text-underline-offset:2px}
+#mapChat .map-chat-player[open]{background:#0a1d31e8;padding:2px 5px}
