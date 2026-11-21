@@ -144,3 +144,17 @@ test('Arena ranked surrender forfeits only while alive, leaving after eliminatio
  await pvpMessage(world,s,eliminated,{type:'leave'},ws,13200);assert.notEqual(eliminated.rankedForfeit,true);
  await pvpMessage(world,s,leaver,{type:'leave'},ws,13300);assert.equal(leaver.rankedForfeit,true);assert.equal(s.pvpMatch.status,'active');
 });
+
+test('all team and arena modes equip and validate three distinct PvP skills',async()=>{
+ for(const mode of ['2v2','5v5','arena20']){
+  const {s,world,ws,sent}=await fixture(true,mode),human=s.players.find(p=>!p.isBot);
+  assert.equal(pvpSnapshot(s,10000).rules.skillSlots,3);
+  assert(s.players.every(p=>p.skillSlots===3&&p.equippedSkills.length===3));
+  await pvpMessage(world,s,human,{type:'skills',skills:['fury','paralyze','luck']},ws,10000);
+  assert.deepEqual(human.equippedSkills,['fury','paralyze','luck']);
+  await pvpMessage(world,s,human,{type:'skills',skills:['fury','fury','luck']},ws,10000);
+  assert.equal(sent.at(-1).error,'invalid_skills');
+  human.skillSlots=2;human.equippedSkills=['fury','paralyze'];advancePvp(s,10001);
+  assert.equal(human.skillSlots,3);assert.deepEqual(human.equippedSkills.slice(0,2),['fury','paralyze']);
+ }
+});

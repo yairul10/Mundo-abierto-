@@ -4,7 +4,7 @@ import {activeProfile} from './account-storage.js?v=344';
 import {clanWarReturnURL} from './clan-wars.js?v=476';
 import {createClanBadges,clanPilotName} from './clan-badges.js?v=471';
 import {spectatorPilot,nextSpectatorPilot,arenaDeathMessage} from './pvp-spectator.js?v=471';
-import {arenaRequested,choosePvpMatch,readArenaChoice,saveArenaChoice,showPvpResult} from './pvp-match-ui.js?v=521';
+import {arenaRequested,choosePvpMatch,readArenaChoice,saveArenaChoice,showPvpResult} from './pvp-match-ui.js?v=522';
 import {chooseCoopRoom,readCoopChoice,saveCoopChoice,showExpeditionEnd} from './coop-room-ui.js?v=491';
 import {restoreWorldSnapshot} from './world-snapshot.js?v=1';
 import {rankedName} from './pvp-ranks.js?v=479';
@@ -14,7 +14,7 @@ import {PVP_CLIENT_VERSION,checkPvpVersion,showPvpUpdate} from './pvp-version.js
 import {pvpAccountToken,clearPvpAccountToken,pvpAccountProfile} from './pvp-account.js?v=435';
 import {mountOnlineChat} from './online-chat.js?v=477';
 import {createMovementPrediction} from './pvp-prediction.js?v=324';
-import {mountPvpControlEditor} from './pvp-control-editor.js?v=488';
+import {mountPvpControlEditor} from './pvp-control-editor.js?v=522';
 import {mountPvpSkills} from './pvp-skills-ui.js?v=488';
 import {cooperativeRoster,pvpRoster as arenaRoster,readOfflinePilot} from './pvp-loadout.js?v=drone1';
 const RANKED_ID=new URLSearchParams(location.search).get('ranked');

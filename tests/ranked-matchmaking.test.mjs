@@ -18,7 +18,7 @@ test('public bots randomize names, ships, bounded improvements and valid skills 
  const human={id:'human',team:'a',realm:'normal',roster:{aurora:{maxHp:1000,attack:100,defense:20,speed:220,maxEnergy:100}}};makeCombatPlayer(human,{...human.roster.aurora,shipId:'aurora'});
  const bots=Array.from({length:30},(_,i)=>createMatchBot(human,{code:'ABCDEF',mode:'5v5'},10000,i%10));
  assert.ok(new Set(bots.map(p=>p.profile.shipId)).size>1);assert.ok(new Set(bots.map(p=>p.profile.attack)).size>1);
- for(const bot of bots){assert.equal(/BOT|práctica/i.test(bot.name),false);assert.ok(bot.profile.attack>=80&&bot.profile.attack<=120);assert.ok(validSkills(bot.equippedSkills,2));assert.ok(bot.profile.maxHp>=34000&&bot.profile.maxHp<=46000)}
+ for(const bot of bots){assert.equal(/BOT|práctica/i.test(bot.name),false);assert.ok(bot.profile.attack>=80&&bot.profile.attack<=120);assert.ok(validSkills(bot.equippedSkills,3));assert.ok(bot.profile.maxHp>=34000&&bot.profile.maxHp<=46000)}
 });
 
 test('ranked awards exclude abandoned players, while eliminated participants retain their result',()=>{

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {mountPvpControlEditor} from '../js/pvp-control-editor.js';
-function harness(saved,pve=false,realm='normal'){
- const registry=new Map(),storage=new Map(),listeners={};
+function harness(saved,pve=false,realm='normal',storage=new Map()){
+ const registry=new Map(),listeners={};
  globalThis.innerWidth=1000;globalThis.innerHeight=500;
  class Element{
   constructor(id=''){this.id=id;this.children=[];this.events={};this.attributes={};this.dataset={};this.classList={add(){}};this.styles={};this.style={setProperty:(k,v)=>this.styles[k]=v,getPropertyValue:k=>this.styles[k]||''};}
@@ -71,3 +71,16 @@ formationPreview.events.pointermove({pointerId:5,clientX:800,clientY:100});
 formationPreview.events.pointerup();
 restored.overlay.querySelector('[data-action="save"]').onclick();
 assert.equal(harness(JSON.parse(restored.storage.get(restored.key))).registry.get('formationBtn').styles.left,'80vw');
+
+const unified=harness(null,true,'normal',new Map());
+const third=unified.canvas.children.find(c=>c.attributes['aria-label']==='Habilidad PvP 3');
+assert(third,'PvE editor previews PvP ability even without its live button');
+third.events.pointerdown({preventDefault(){},pointerId:8});third.events.pointermove({pointerId:8,clientX:650,clientY:200});third.events.pointerup();
+unified.preview.events.pointerdown({preventDefault(){},pointerId:9});unified.preview.events.pointermove({pointerId:9,clientX:500,clientY:250});unified.preview.events.pointerup();
+unified.overlay.querySelector('[data-action="save"]').onclick();
+const arena=harness(null,false,'normal',unified.storage);
+assert.equal(arena.joystick.styles.left,'50vw','shared joystick follows PvE layout');
+assert.deepEqual(JSON.parse(unified.storage.get('mundoAbierto.sharedControls.normal')).pvpSkillButton2,[65,40]);
+const prior=new Map([['mundoAbierto.pvpControls.normal',JSON.stringify([...old,[50,40],[60,15],[65,15],[70,15],[80,20],[55,35]])]]);
+const migrated=harness(null,true,'normal',prior);
+assert.equal(migrated.canvas.children.find(c=>c.attributes['aria-label']==='Habilidad PvP 3').style.left,'55%','prior PvP ability position is preserved');
