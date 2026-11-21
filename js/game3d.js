@@ -2310,18 +2310,31 @@ function renderAdminDesigns(){
   void startAssemblyPreview($('adminObsidianPreview'),'obsidian',{skin:adminObsidianSkin});
  });
 }
+let selectedShopShip=null;
 function renderShips(){
  const hangarShop=$('shopShips');if(!hangarShop)return;
  let fleet=$('hangarShipFleet');
  if(!fleet){fleet=document.createElement('div');fleet.id='hangarShipFleet';hangarShop.appendChild(fleet)}
  const stamp=JSON.stringify([player.shipId,player.ownedShips,player.level,player.gold,player.loot,player.shipSpecializations,canUseShop()]);if(fleet.dataset.stamp===stamp)return;fleet.dataset.stamp=stamp;
- fleet.innerHTML='<h3>Flota de naves</h3><section class="shop-model-hero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail(player.shipId)+'</div><div><strong id="shopShipPreviewName">Nave equipada</strong><small id="shopShipPreviewStatus">Nave equipada · Arrastra para girar.</small></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe&&!t.adminOnly).map(([id,t])=>{
+ if(!selectedShopShip||!SHIP_TYPES[selectedShopShip]||SHIP_TYPES[selectedShopShip].adminOnly)selectedShopShip=SHIP_TYPES[player.shipId]&&!SHIP_TYPES[player.shipId].adminOnly?player.shipId:'aurora';
+ fleet.innerHTML='<h3>Flota de naves</h3><section class="shop-model-hero" id="shopShipHero"><div id="shopShipPreview" class="ship-model-preview">'+shipThumbnail(selectedShopShip)+'</div><div class="shop-ship-detail"><strong id="shopShipPreviewName">'+SHIP_TYPES[selectedShopShip].name+'</strong><small id="shopShipPreviewStatus">'+(selectedShopShip===player.shipId?'Nave equipada':'Vista previa')+' · Arrastra para girar.</small><div id="shopShipInfo">'+renderShipInfo(selectedShopShip,player).replace('<details>','<details open>')+'</div></div></section>'+Object.entries(SHIP_TYPES).filter(([,t])=>!t.recipe&&!t.adminOnly).map(([id,t])=>{
   const owned=!!player.ownedShips[id],selected=player.shipId===id,canBuy=t.recipe?canAssembleShip(player,id):player.level>=t.level&&player.gold>=t.cost;
   const stats=t.recipe?'<small>Casco ×'+t.hp+' · Ataque ×'+t.attack+' · Defensa ×'+t.defense+' · Velocidad ×'+t.speed+'</small>':'';
   const recipe=t.recipe?Object.entries(t.recipe).map(([key,n])=>n.toLocaleString('es')+' '+(LOOT_TYPES.find(item=>item.id===key)?.name||key)+' ('+(player.loot?.[key]||0)+')').join(' · '):'';
-  return '<div class="upgrade-card"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'<button type="button" class="subtle" data-shop-inspect="'+id+'">Ver características y habilidades</button><div data-shop-ship-info="'+id+'"></div></div><button data-ship="'+id+'" '+(owned||!canBuy?'disabled':'')+'>'+(owned?'Disponible en Hangar':'Comprar')+'</button></div>';
+  return '<div class="upgrade-card shop-ship-card '+(selectedShopShip===id?'is-selected':'')+'" data-shop-select="'+id+'" tabindex="0" role="group" aria-label="Ver características de '+t.name+'"><div><strong>'+t.name+'</strong><small>'+t.description+'</small>'+stats+'<small>'+(owned?'Adquirida':('Nivel '+t.level+' · '+t.cost.toLocaleString('es')+' créditos'))+'</small>'+(recipe&&!owned?'<small>'+recipe+'</small>':'')+'</div><button data-ship="'+id+'" '+(owned||!canBuy?'disabled':'')+'>'+(owned?'Disponible en Hangar':'Comprar')+'</button></div>';
  }).join('');
- fleet.querySelectorAll('[data-shop-inspect]').forEach(button=>button.onclick=()=>{const id=button.dataset.shopInspect,detail=button.parentElement.querySelector('[data-shop-ship-info]');if(detail.innerHTML){detail.innerHTML='';button.textContent='Ver características y habilidades';return}detail.innerHTML=renderShipInfo(id,player);bindShipInfo(detail,player);button.textContent='Ocultar características';const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_TYPES[id].name;const status=$('shopShipPreviewStatus');if(status)status.textContent=(player.shipId===id?'Nave equipada':'Vista previa')+' · Arrastra para girar.';hangarUI?.previewShip(id)});
+ bindShipInfo($('shopShipInfo'),player);
+ fleet.querySelectorAll('[data-shop-select]').forEach(card=>{
+  const select=()=>{const id=card.dataset.shopSelect;if(!SHIP_TYPES[id])return;selectedShopShip=id;
+   fleet.querySelectorAll('[data-shop-select]').forEach(item=>item.classList.toggle('is-selected',item.dataset.shopSelect===id));
+   const info=$('shopShipInfo');info.innerHTML=renderShipInfo(id,player).replace('<details>','<details open>');bindShipInfo(info,player);
+   const label=$('shopShipPreviewName');if(label)label.textContent=SHIP_TYPES[id].name;
+   const status=$('shopShipPreviewStatus');if(status)status.textContent=(player.shipId===id?'Nave equipada':'Vista previa')+' · Arrastra para girar.';
+   hangarUI?.previewShip(id);$('shopShipHero')?.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+  card.onclick=event=>{if(!event.target.closest('button'))select()};
+  card.onkeydown=event=>{if(event.target===card&&(event.key==='Enter'||event.key===' ')){event.preventDefault();select()}};
+ });
  fleet.querySelectorAll('button[data-ship]').forEach(button=>button.onclick=()=>{
   const id=button.dataset.ship,t=SHIP_TYPES[id];if(!t||!canUseShop()||t.recipe||player.ownedShips[id])return;
   if(!player.ownedShips[id]){
